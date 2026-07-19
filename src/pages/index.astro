@@ -145,6 +145,19 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
         </div>
       </div>
     </article>
+
+    <article class="card col-4">
+      <div class="section-title">
+        <h3>Harcanan</h3>
+        <span class="lvl lvl--ok" id="spend-badge" hidden>Canlı</span>
+      </div>
+      <p class="spend-line"><b id="spend-amount" style="font-size:1.9rem; font-weight:800;">—</b> <span class="muted">/ €{tripData.totalBudget.max.toLocaleString('tr-TR')} tahmini</span></p>
+      <div class="progress" aria-label="Bütçe kullanımı">
+        <span id="spend-progress" style="width: 0%"></span>
+      </div>
+      <p class="tiny-note" id="spend-note">Kuzey uygulamasından bekleniyor…</p>
+      <p class="tiny-note">Pratik hedef: {tripData.totalBudget.total}</p>
+    </article>
   </section>
 
   <section id="check" class="shell">
@@ -361,7 +374,7 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
 <script
   is:inline
   lang="ts"
-  define:vars={{ routeData: tripData.routeGuide, stopsData: tripData.stops, checklistSize: tripData.checklist.length, departureAt: tripData.departureAt }}
+  define:vars={{ routeData: tripData.routeGuide, stopsData: tripData.stops, checklistSize: tripData.checklist.length, departureAt: tripData.departureAt, budgetMax: tripData.totalBudget.max }}
 >
   (() => {
     const departure = new Date(departureAt);
@@ -483,6 +496,33 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
     pollLive();
     const liveInterval = setInterval(pollLive, 60000);
     window.addEventListener('pagehide', () => clearInterval(liveInterval));
+
+    // Kuzey uygulamasının yayınladığı harcama TOPLAMINI çek (yalnızca toplam; kalem yok).
+    const spendAmount = document.getElementById('spend-amount');
+    const spendProgress = document.getElementById('spend-progress');
+    const spendNote = document.getElementById('spend-note');
+    const spendBadge = document.getElementById('spend-badge');
+
+    const pollSpend = async () => {
+      try {
+        const res = await fetch('/api/expenses', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const total = Number(data.totalEur);
+        if (!isFinite(total)) return;
+        if (spendAmount) spendAmount.textContent = '€' + Math.round(total).toLocaleString('tr-TR');
+        const pct = budgetMax > 0 ? Math.min(100, Math.round((total / budgetMax) * 100)) : 0;
+        if (spendProgress) spendProgress.style.width = pct + '%';
+        if (spendNote) spendNote.textContent = '%' + pct + ' harcandı';
+        if (spendBadge) spendBadge.hidden = false;
+      } catch (_) {
+        /* sessiz: app henüz harcama göndermemiş olabilir */
+      }
+    };
+
+    pollSpend();
+    const spendInterval = setInterval(pollSpend, 60000);
+    window.addEventListener('pagehide', () => clearInterval(spendInterval));
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});

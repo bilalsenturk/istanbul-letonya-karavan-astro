@@ -102,6 +102,9 @@ const activeIndex = (() => {
       <div class="two-col" style="margin-top:10px;">
         <div>
           <h4>Kamp</h4>
+          {day.camp.image ? (
+            <img class="camp-photo" src={day.camp.image} alt={day.camp.name} loading="lazy" width="800" height="500" />
+          ) : null}
           <p><strong>{day.camp.name}</strong> — {day.camp.place}</p>
           <p class="muted">{day.camp.note}</p>
           <p>İletişim: {day.camp.contact}</p>
@@ -109,6 +112,24 @@ const activeIndex = (() => {
           {day.camp.phone ? <p>Tel: <a href={`tel:${day.camp.phone}`}>{day.camp.phone}</a></p> : null}
           <p>Rezervasyon şablonu: <em>{day.camp.reservationTemplate}</em></p>
           <p><a href={day.camp.link} target="_blank" rel="noreferrer">Kamp konumu</a></p>
+
+          {day.camp.alternatives?.length ? (
+            <div class="camp-alts">
+              <h4>Diğer kamp seçenekleri</h4>
+              {day.camp.alternatives.map((alt) => (
+                <a class="camp-alt" href={alt.link} target="_blank" rel="noreferrer">
+                  {alt.image ? (
+                    <img src={alt.image} alt={alt.name} loading="lazy" width="150" height="100" />
+                  ) : null}
+                  <span class="camp-alt__body">
+                    <strong>{alt.name}</strong>
+                    <span class="muted">{alt.place}</span>
+                    {alt.note ? <span class="camp-alt__note">{alt.note}</span> : null}
+                  </span>
+                </a>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div>
           <h4>Canlı Trafik Kontrolü</h4>
@@ -281,5 +302,59 @@ const activeIndex = (() => {
   .day-title h1 {
     margin: 0;
     font-size: 1.5rem;
+  }
+
+  .camp-photo {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 8 / 5;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    margin: 4px 0 12px;
+  }
+
+  .camp-alts {
+    margin-top: 14px;
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+  }
+
+  .camp-alt {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 8px;
+    margin: 8px 0;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .camp-alt:hover {
+    border-color: var(--accent);
+    background: rgba(103, 166, 255, 0.08);
+  }
+
+  .camp-alt img {
+    width: 84px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  .camp-alt__body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .camp-alt__note {
+    font-size: 0.82rem;
+    color: var(--muted);
   }
 </style>

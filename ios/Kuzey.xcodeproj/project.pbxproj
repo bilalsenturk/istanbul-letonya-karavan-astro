@@ -12,31 +12,48 @@
 		1F27EF2FD3A054C89EB215C4 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A9CB73E03C832207007A05A /* ContentView.swift */; };
 		27D303E4234299F590A82DC4 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D158F3DF63E4C9036FB22C7 /* Config.swift */; };
 		3B014CAF3ED8C77379FD5729 /* Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35155F1CE413BCBF9F18829E /* Navigation.swift */; };
+		44D26612235CC1CD1C2EAA37 /* RouteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDCB70244A1866C05724B7B /* RouteStore.swift */; };
+		5D29D5A948AD1618A9D6EBB2 /* ExpenseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5996AC2B67B4359151F40773 /* ExpenseStore.swift */; };
 		68B14299CB90DBF724E88AA2 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC44A961C70396158E35B2A1 /* Models.swift */; };
+		6A8F57A39EEEB2A7FA64075F /* Expense.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB332D14823389349D9F9A9 /* Expense.swift */; };
 		83113E5D1FBE09DAB2A20E48 /* PlanScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC66F61F5A93C2097EF6381 /* PlanScreen.swift */; };
 		89784D251FA5CFB972CFACF6 /* KaravanApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48DBB19FBCDD52DE1F4E55F8 /* KaravanApp.swift */; };
+		8A8CCD1D954E11A6C346CFB6 /* AppleMapsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31D0A33B6EDB7280B5616C20 /* AppleMapsService.swift */; };
+		9D65F8215A7804576B305FB9 /* StopExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25CA028A20B4BE8F4D0ED411 /* StopExploreView.swift */; };
+		B47A0043B3BC95932E1E9FF4 /* NavProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 482F782E822AB4C91884E391 /* NavProgressStore.swift */; };
 		BB1181756AD31C2121B413CD /* CountdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD74465F353E94FA714455D0 /* CountdownView.swift */; };
 		BE94D409F9E37AE2C0E79B9C /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEB2A1F70C4BD191A5BA233B /* WeatherService.swift */; };
+		C11853ABEDB233B5100F09D2 /* ExpensesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 370CBB45D2A76FE6AC6681D0 /* ExpensesView.swift */; };
+		C1CD5BD742E28B2406B8C33B /* CampImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45DECAA1995A716526093E8C /* CampImage.swift */; };
 		D639120DCFB9ED1C9D94A027 /* trip.json in Resources */ = {isa = PBXBuildFile; fileRef = 854400F42C0A6BF3D1C19B27 /* trip.json */; };
 		DCA192F45DFD629CE1326455 /* DayDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50EC37896D44D59908E84F08 /* DayDetailView.swift */; };
 		DD27A9E6C1CCB53B5B5F0E24 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B82E5004A631A77716317D /* LocationManager.swift */; };
 		E7CC729324E01B0041BFBEE5 /* LiveLocationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C443FE724E722869D208BAC /* LiveLocationCard.swift */; };
 		EE7E4F5FFF6937FF414394D1 /* TripStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CFA86E52D515272F7F13F10 /* TripStore.swift */; };
 		EF3F584FDB22426380668F50 /* MapScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86097054B82CA8512E4AA874 /* MapScreen.swift */; };
+		FA3A58E4C230882AAD9F18EB /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DC95431B932CB4DFD5412C9 /* Notifications.swift */; };
 		FAD7DD8D7AC36626072723B3 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00954AF5EE56487B60F675E1 /* Theme.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		00954AF5EE56487B60F675E1 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		21B82E5004A631A77716317D /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
+		25CA028A20B4BE8F4D0ED411 /* StopExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopExploreView.swift; sourceTree = "<group>"; };
+		31D0A33B6EDB7280B5616C20 /* AppleMapsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleMapsService.swift; sourceTree = "<group>"; };
 		35155F1CE413BCBF9F18829E /* Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Navigation.swift; sourceTree = "<group>"; };
+		370CBB45D2A76FE6AC6681D0 /* ExpensesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpensesView.swift; sourceTree = "<group>"; };
 		39518EF9591A8B60BC9FB024 /* Kuzey.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Kuzey.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		45DECAA1995A716526093E8C /* CampImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CampImage.swift; sourceTree = "<group>"; };
+		482F782E822AB4C91884E391 /* NavProgressStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavProgressStore.swift; sourceTree = "<group>"; };
 		48DBB19FBCDD52DE1F4E55F8 /* KaravanApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaravanApp.swift; sourceTree = "<group>"; };
 		4CC66F61F5A93C2097EF6381 /* PlanScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanScreen.swift; sourceTree = "<group>"; };
 		4D158F3DF63E4C9036FB22C7 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		50EC37896D44D59908E84F08 /* DayDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayDetailView.swift; sourceTree = "<group>"; };
+		5996AC2B67B4359151F40773 /* ExpenseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpenseStore.swift; sourceTree = "<group>"; };
 		5A9CB73E03C832207007A05A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		5BB332D14823389349D9F9A9 /* Expense.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Expense.swift; sourceTree = "<group>"; };
 		5CFA86E52D515272F7F13F10 /* TripStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripStore.swift; sourceTree = "<group>"; };
+		5DC95431B932CB4DFD5412C9 /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		854400F42C0A6BF3D1C19B27 /* trip.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = trip.json; sourceTree = "<group>"; };
 		86097054B82CA8512E4AA874 /* MapScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapScreen.swift; sourceTree = "<group>"; };
 		8C443FE724E722869D208BAC /* LiveLocationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveLocationCard.swift; sourceTree = "<group>"; };
@@ -45,18 +62,25 @@
 		CD74465F353E94FA714455D0 /* CountdownView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountdownView.swift; sourceTree = "<group>"; };
 		DC44A961C70396158E35B2A1 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		DEB2A1F70C4BD191A5BA233B /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
+		DEDCB70244A1866C05724B7B /* RouteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
 		433F4FB75A37C6DA9CE24E46 /* Karavan */ = {
 			isa = PBXGroup;
 			children = (
+				31D0A33B6EDB7280B5616C20 /* AppleMapsService.swift */,
 				9AEF46AA6EEEAA6BB1DFD19E /* Assets.xcassets */,
 				4D158F3DF63E4C9036FB22C7 /* Config.swift */,
+				5BB332D14823389349D9F9A9 /* Expense.swift */,
+				5996AC2B67B4359151F40773 /* ExpenseStore.swift */,
 				48DBB19FBCDD52DE1F4E55F8 /* KaravanApp.swift */,
 				21B82E5004A631A77716317D /* LocationManager.swift */,
 				DC44A961C70396158E35B2A1 /* Models.swift */,
 				35155F1CE413BCBF9F18829E /* Navigation.swift */,
+				482F782E822AB4C91884E391 /* NavProgressStore.swift */,
+				5DC95431B932CB4DFD5412C9 /* Notifications.swift */,
+				DEDCB70244A1866C05724B7B /* RouteStore.swift */,
 				00954AF5EE56487B60F675E1 /* Theme.swift */,
 				5CFA86E52D515272F7F13F10 /* TripStore.swift */,
 				DEB2A1F70C4BD191A5BA233B /* WeatherService.swift */,
@@ -69,13 +93,16 @@
 		6D724DEAA6E11EF7CA49C584 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				45DECAA1995A716526093E8C /* CampImage.swift */,
 				5A9CB73E03C832207007A05A /* ContentView.swift */,
 				CD74465F353E94FA714455D0 /* CountdownView.swift */,
 				9F5C959C02D3AEB61D35B2E4 /* DashboardView.swift */,
 				50EC37896D44D59908E84F08 /* DayDetailView.swift */,
+				370CBB45D2A76FE6AC6681D0 /* ExpensesView.swift */,
 				8C443FE724E722869D208BAC /* LiveLocationCard.swift */,
 				86097054B82CA8512E4AA874 /* MapScreen.swift */,
 				4CC66F61F5A93C2097EF6381 /* PlanScreen.swift */,
+				25CA028A20B4BE8F4D0ED411 /* StopExploreView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -175,18 +202,27 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8A8CCD1D954E11A6C346CFB6 /* AppleMapsService.swift in Sources */,
+				C1CD5BD742E28B2406B8C33B /* CampImage.swift in Sources */,
 				27D303E4234299F590A82DC4 /* Config.swift in Sources */,
 				1F27EF2FD3A054C89EB215C4 /* ContentView.swift in Sources */,
 				BB1181756AD31C2121B413CD /* CountdownView.swift in Sources */,
 				042CD6553C4C9F181A24D979 /* DashboardView.swift in Sources */,
 				DCA192F45DFD629CE1326455 /* DayDetailView.swift in Sources */,
+				6A8F57A39EEEB2A7FA64075F /* Expense.swift in Sources */,
+				5D29D5A948AD1618A9D6EBB2 /* ExpenseStore.swift in Sources */,
+				C11853ABEDB233B5100F09D2 /* ExpensesView.swift in Sources */,
 				89784D251FA5CFB972CFACF6 /* KaravanApp.swift in Sources */,
 				E7CC729324E01B0041BFBEE5 /* LiveLocationCard.swift in Sources */,
 				DD27A9E6C1CCB53B5B5F0E24 /* LocationManager.swift in Sources */,
 				EF3F584FDB22426380668F50 /* MapScreen.swift in Sources */,
 				68B14299CB90DBF724E88AA2 /* Models.swift in Sources */,
+				B47A0043B3BC95932E1E9FF4 /* NavProgressStore.swift in Sources */,
 				3B014CAF3ED8C77379FD5729 /* Navigation.swift in Sources */,
+				FA3A58E4C230882AAD9F18EB /* Notifications.swift in Sources */,
 				83113E5D1FBE09DAB2A20E48 /* PlanScreen.swift in Sources */,
+				44D26612235CC1CD1C2EAA37 /* RouteStore.swift in Sources */,
+				9D65F8215A7804576B305FB9 /* StopExploreView.swift in Sources */,
 				FAD7DD8D7AC36626072723B3 /* Theme.swift in Sources */,
 				EE7E4F5FFF6937FF414394D1 /* TripStore.swift in Sources */,
 				BE94D409F9E37AE2C0E79B9C /* WeatherService.swift in Sources */,
@@ -259,15 +295,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Kuzey;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Canlı yolculuk takibi: Riga'ya kalan mesafe, hız ve sıradaki durak konumunuza göre hesaplanır.";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				INFOPLIST_FILE = Support/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -287,15 +315,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Kuzey;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Canlı yolculuk takibi: Riga'ya kalan mesafe, hız ve sıradaki durak konumunuza göre hesaplanır.";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				INFOPLIST_FILE = Support/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

@@ -649,7 +649,16 @@
         "email": "info@camperisimo.com",
         "link": "https://www.google.com/maps/search/?api=1&query=Camperisimo+Caravan+Camper+Park+Sofia",
         "reservationTemplate": "Bugün 1 gece, elektrikli kamp yeri, duş ve temizlik mümkün mü? 18:00–20:00 varış var.",
-        "note": "Şehir kenarında kalmak, bir sonraki günü yüksek tempo olmadan geçirmeye yardım eder."
+        "note": "Şehir kenarında kalmak, bir sonraki günü yüksek tempo olmadan geçirmeye yardım eder.",
+        "image": "/assets/camps/sofia.webp",
+        "alternatives": [
+          {
+            "name": "Camping Ribkata",
+            "place": "Sofya’ya ~23 km",
+            "link": "https://www.google.com/maps/search/?api=1&query=Camping%20Ribkata%20Sofia%20Bulgaria",
+            "note": "Dağ manzaralı, sakin; şehir dışı alternatif."
+          }
+        ]
       },
       "stops": [
         {
@@ -721,14 +730,29 @@
         "Öğleden sonra yağmurda sürüş yavaşıtılabilir"
       ],
       "camp": {
-        "name": "Bükreş güney kamp hedefi",
-        "place": "Bükreş Güney çevresi",
+        "name": "Belvedere Camping",
+        "place": "Băneasa, Bükreş (göller çevresi)",
         "contact": "Kapasite ve elektrik bağlantısı teyidi tek gün önceden yapılmalı",
         "phone": null,
         "email": "kamp@bucamp.ro",
-        "link": "https://www.google.com/maps/search/?api=1&query=camping+south+Bucharest",
+        "link": "https://www.google.com/maps/search/?api=1&query=Belvedere%20Camping%20Bucharest",
         "reservationTemplate": "Bugün geceleme ve araç park alanı (karavan için) var mı? Kapalı depo ve duş imkanı var mı?",
-        "note": "Kente girişin gürültüsünü aşmak için kampı ana arterden uzak seç."
+        "note": "Merkeze ~20 dk; üç göl arasında tam donanımlı tesis. İlk şehir molası için rahat.",
+        "image": "/assets/camps/bucharest.webp",
+        "alternatives": [
+          {
+            "name": "Camping Snagov (Marina)",
+            "place": "Snagov gölü ormanı, ~40 km",
+            "link": "https://www.google.com/maps/search/?api=1&query=Camping%20Snagov%20lake%20Romania",
+            "note": "Göl kenarı, karavan + çadır; sakin orman ortamı."
+          },
+          {
+            "name": "Clinceni motokaravan alanı",
+            "place": "Carierei 58, Clinceni (Ilfov)",
+            "link": "https://www.google.com/maps/search/?api=1&query=camping%20Clinceni%20Ilfov%20Romania",
+            "note": "Şehir dışı, motokaravan için pratik gece durağı."
+          }
+        ]
       },
       "stops": [
         {
@@ -800,14 +824,29 @@
         "Yol kenarı arıza ihtimaline karşı karavan elektrik bağlantısı kontrol listesi tekrar."
       ],
       "camp": {
-        "name": "Deva kamp alanı",
-        "place": "Deva çevresi",
+        "name": "Camping Tranzit Deva",
+        "place": "Șoseaua Națională 117, Deva (A1 yakını)",
         "contact": "Aynı gün rezerve edilmesi önerilir",
         "phone": null,
         "email": "rezervare@deva-camp.ro",
-        "link": "https://www.google.com/maps/search/?api=1&query=camping+Deva+Romania",
+        "link": "https://www.google.com/maps/search/?api=1&query=Camping%20Tranzit%20Deva%20Romania",
         "reservationTemplate": "Deva'da 1 gece karavan dolabı ve elektrikli park uygun mu? Rezervasyon teyidi rica edilir.",
-        "note": "Erken varış: geceyi düzenli geçirir, araç kontrolüne 1 saat ek süre bırakır."
+        "note": "A1 otoyoluna yakın transit kampı; Hunedoara Kalesi için uygun.",
+        "image": "/assets/camps/deva.webp",
+        "alternatives": [
+          {
+            "name": "La Cetate",
+            "place": "Deva çevresi",
+            "link": "https://www.google.com/maps/search/?api=1&query=La%20Cetate%20camping%20Deva%20Romania",
+            "note": "Küçük, sessiz; İngilizce konuşan işletmeci, elektrik dahil."
+          },
+          {
+            "name": "Camping Șoimuș",
+            "place": "Șoimuș, A1 çıkışı",
+            "link": "https://www.google.com/maps/search/?api=1&query=Camping%20Soimus%20Deva%20Romania",
+            "note": "15 karavan yeri; su, elektrik, duş, çamaşır."
+          }
+        ]
       },
       "stops": [
         {
@@ -886,7 +925,22 @@
         "email": "info@budapestcamping.hu",
         "link": "https://www.google.com/maps/search/?api=1&query=Camping+Budapest+Arena",
         "reservationTemplate": "Günümüz, elektrik, duş, atık su yönetimi ve giriş saati teyidi rica edilir.",
-        "note": "Kısa gün nedeniyle dinlenme ve vites ayarı için en temiz seçenek."
+        "note": "Kısa gün nedeniyle dinlenme ve vites ayarı için en temiz seçenek.",
+        "image": "/assets/camps/budapest.webp",
+        "alternatives": [
+          {
+            "name": "Haller Camping",
+            "place": "Budapeşte (M3 metro)",
+            "link": "https://www.google.com/maps/search/?api=1&query=Haller%20Camping%20Budapest",
+            "note": "Merkeze 5 durak; tüm yıl açık, elektrik hookup."
+          },
+          {
+            "name": "Római Camping",
+            "place": "Óbuda, Tuna kıyısı",
+            "link": "https://www.google.com/maps/search/?api=1&query=Romai%20Camping%20Budapest",
+            "note": "Geniş yeşil alan, nehir kenarı; klasik Budapeşte kampı."
+          }
+        ]
       },
       "stops": [
         {
@@ -964,7 +1018,22 @@
         "email": "info@budapestcamping.hu",
         "link": "https://www.google.com/maps/search/?api=1&query=Camping+Budapest+Arena",
         "reservationTemplate": "Bugün sadece konaklama onayı ve kamp elektrik şalterleri kontrol edilmeli.",
-        "note": "Aynı kampın korunması yükü ve yorgunluğu düşürür."
+        "note": "Aynı kampın korunması yükü ve yorgunluğu düşürür.",
+        "image": "/assets/camps/budapest.webp",
+        "alternatives": [
+          {
+            "name": "Haller Camping",
+            "place": "Budapeşte (M3 metro)",
+            "link": "https://www.google.com/maps/search/?api=1&query=Haller%20Camping%20Budapest",
+            "note": "Merkeze 5 durak; tüm yıl açık, elektrik hookup."
+          },
+          {
+            "name": "Római Camping",
+            "place": "Óbuda, Tuna kıyısı",
+            "link": "https://www.google.com/maps/search/?api=1&query=Romai%20Camping%20Budapest",
+            "note": "Geniş yeşil alan, nehir kenarı; klasik Budapeşte kampı."
+          }
+        ]
       },
       "stops": [
         {
@@ -1034,7 +1103,16 @@
         "email": "camping@mosir.katowice.pl",
         "link": "https://www.google.com/maps/search/?api=1&query=Camping+215+Katowice",
         "reservationTemplate": "Bugün geçiş sonrası 1 gece, göl kenarı kamp yeri ve duş durumu teyidi rica edilir.",
-        "note": "Şehrin içinde olsa da erişimi güçlü; planlı inmek iyi olur."
+        "note": "Şehrin içinde olsa da erişimi güçlü; planlı inmek iyi olur.",
+        "image": "/assets/camps/katowice.webp",
+        "alternatives": [
+          {
+            "name": "Camping Park Śląski",
+            "place": "Chorzów, Park Śląski",
+            "link": "https://www.google.com/maps/search/?api=1&query=Camping%20Park%20Slaski%20Chorzow",
+            "note": "25 motokaravan yeri, restoran + SPA; parkın içinde."
+          }
+        ]
       },
       "stops": [
         {
@@ -1105,14 +1183,29 @@
         "Gece sürüşü kaçınılmalı; gerekiyorsa ikinci güvenli durak eklenir"
       ],
       "camp": {
-        "name": "Suwałki kamp hedefi",
-        "place": "Suwałki çevresi",
+        "name": "Eurocamping Suwałki",
+        "place": "ul. Zarzecze 26, Suwałki",
         "contact": "Günün içinde teyit edilmesi kritik",
         "phone": null,
         "email": "reservations@suwalki-camp.pl",
-        "link": "https://www.google.com/maps/search/?api=1&query=camping+Suwalki+Poland",
+        "link": "https://www.google.com/maps/search/?api=1&query=Eurocamping%20Suwalki%20Poland",
         "reservationTemplate": "Riga'dan önceki stratejik güvenlik molası için 1 gece mümkün mü? Elektrik ve temizlik durumu isterim.",
-        "note": "Baltık hattına girmeden önce ritmi düşürmek için ideal gece."
+        "note": "Şehir içi ACSI kampı, 42 parsel; Riga öncesi son toparlanma.",
+        "image": "/assets/camps/suwalki.webp",
+        "alternatives": [
+          {
+            "name": "Camping Wigry",
+            "place": "Wigry Milli Parkı, göl kenarı",
+            "link": "https://www.google.com/maps/search/?api=1&query=Camping%20Wigry%20Poland",
+            "note": "Doğa içinde, yıllardır karavan ağırlayan tesis."
+          },
+          {
+            "name": "Osada na Cyplu",
+            "place": "Wigry gölü",
+            "link": "https://www.google.com/maps/search/?api=1&query=Osada%20na%20Cyplu%20Wigry%20Poland",
+            "note": "Ağaçlar arasında sessiz; ücretsiz ateş ve tuvalet."
+          }
+        ]
       },
       "stops": [
         {
@@ -1190,7 +1283,22 @@
         "email": "info@campingyachts.lv",
         "link": "https://www.google.com/maps/search/?api=1&query=Camping+Yachts+Riga",
         "reservationTemplate": "Riga varışı için 1 gece, elektrikli kamp ve atık su bağlantısı teyidi rica edilir.",
-        "note": "Varış sonrası kurulum basit, su ve elektrik hızlıca devreye alınır."
+        "note": "Varış sonrası kurulum basit, su ve elektrik hızlıca devreye alınır.",
+        "image": "/assets/camps/riga.webp",
+        "alternatives": [
+          {
+            "name": "Riga City Camping",
+            "place": "Ķīpsala (Kipsalas 8)",
+            "link": "https://www.google.com/maps/search/?api=1&query=Riga%20City%20Camping%20Latvia",
+            "note": "Eski Şehir’e yürüme mesafesi; havuz + market yakın."
+          },
+          {
+            "name": "Riverside Camping",
+            "place": "Daugava kıyısı, Riga",
+            "link": "https://www.google.com/maps/search/?api=1&query=Riverside%20Camping%20Riga",
+            "note": "Nehir kenarı, şehir merkezine yakın alternatif."
+          }
+        ]
       },
       "stops": [
         {

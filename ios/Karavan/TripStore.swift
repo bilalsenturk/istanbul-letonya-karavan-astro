@@ -14,12 +14,17 @@ final class TripStore: ObservableObject {
         Task { await refreshFromRemote() }
     }
 
-    private func loadBundled() {
+    /// Gömülü gezi verisi (çevrimdışı yedek + arka plan görevleri için).
+    static func bundledTrip() -> TripData? {
         guard let url = Bundle.main.url(forResource: "trip", withExtension: "json"),
               let data = try? Data(contentsOf: url),
               let decoded = try? JSONDecoder().decode(TripData.self, from: data)
-        else { return }
-        trip = decoded
+        else { return nil }
+        return decoded
+    }
+
+    private func loadBundled() {
+        trip = Self.bundledTrip()
     }
 
     func refreshFromRemote() async {

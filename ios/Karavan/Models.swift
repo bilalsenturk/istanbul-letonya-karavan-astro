@@ -22,6 +22,8 @@ struct TripData: Codable {
 struct Budget: Codable {
     let fuel: String
     let total: String
+    let min: Int?
+    let max: Int?
 }
 
 struct Stop: Codable, Identifiable {
@@ -71,6 +73,18 @@ struct Camp: Codable {
     let place: String
     let note: String
     let link: String
+    let image: String?                      // "/assets/camps/x.webp" (opsiyonel)
+    let alternatives: [CampAlternative]?    // şehir için diğer gerçek kamplar
+}
+
+struct CampAlternative: Codable, Identifiable {
+    let name: String
+    let place: String
+    let link: String
+    let note: String?
+    let image: String?
+
+    var id: String { name }
 }
 
 struct ChecklistItem: Codable, Identifiable {

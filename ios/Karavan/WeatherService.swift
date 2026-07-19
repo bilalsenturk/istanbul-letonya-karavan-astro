@@ -17,6 +17,9 @@ final class WeatherService: ObservableObject {
     @Published var items: [StopWeather] = []
     @Published var updatedAt: Date?
 
+    // Hava değişiminde bildirim göndermek için (opsiyonel).
+    weak var notifier: NotificationManager?
+
     // WMO kodu → (SF Symbol, Türkçe açıklama)
     private static let wmo: [Int: (String, String)] = [
         0: ("sun.max.fill", "Açık"), 1: ("sun.min.fill", "Genelde açık"),
@@ -79,5 +82,47 @@ final class WeatherService: ObservableObject {
         }
         items = result
         updatedAt = Date()
+        detectAndNotifyChanges(result)
+    }
+
+    // MARK: - Hava değişimi algısı → bildirim
+
+    private struct Snap: Codable { let raining: Bool; let desc: String }
+
+    private var lastSnapshot: [String: Snap] {
+        get {
+            guard let data = UserDefaults.standard.data(forKey: "weatherSnapshot"),
+                  let decoded = try? JSONDecoder().decode([String: Snap].self, from: data)
+            else { return [:] }
+            return decoded
+        }
+        set {
+            UserDefaults.standard.set(try? JSONEncoder().encode(newValue), forKey: "weatherSnapshot")
+        }
+    }
+
+    private func detectAndNotifyChanges(_ items: [StopWeather]) {
+        let previous = lastSnapshot
+        let isFirstEver = previous.isEmpty
+        var next: [String: Snap] = [:]
+
+        for w in items {
+            next[w.id] = Snap(raining: w.isRaining, desc: w.desc)
+            guard !isFirstEver, let prev = previous[w.id] else { continue }
+
+            if !prev.raining && w.isRaining {
+                notifier?.notify(title: "☔️ \(w.name) · yağmur başladı", body: "\(w.desc), \(w.temp)°")
+            } else if prev.raining && !w.isRaining {
+                notifier?.notify(title: "🌤️ \(w.name) · yağmur durdu", body: "\(w.desc), \(w.temp)°")
+            } else if prev.desc != w.desc && isSevere(w.desc) {
+                notifier?.notify(title: "⛈️ \(w.name) · \(w.desc)", body: "Dikkatli sür — \(w.temp)°")
+            }
+        }
+        lastSnapshot = next
+    }
+
+    private func isSevere(_ desc: String) -> Bool {
+        ["kuvvetli", "fırtına", "dolu", "sağanak", "gürültü"]
+            .contains { desc.localizedCaseInsensitiveContains($0) }
     }
 }

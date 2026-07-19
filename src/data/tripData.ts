@@ -14,6 +14,14 @@ type ChecklistTask = {
   task: string;
 };
 
+type CampAlternative = {
+  name: string;
+  place: string;
+  link: string;
+  note?: string;
+  image?: string;
+};
+
 type CampPlan = {
   name: string;
   place: string;
@@ -23,6 +31,8 @@ type CampPlan = {
   link: string;
   reservationTemplate: string;
   note: string;
+  image?: string;
+  alternatives?: CampAlternative[];
 };
 
 type DayStop = {

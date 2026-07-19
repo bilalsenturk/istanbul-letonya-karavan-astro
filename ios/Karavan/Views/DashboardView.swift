@@ -4,6 +4,8 @@ struct DashboardView: View {
     @EnvironmentObject var store: TripStore
     @EnvironmentObject var loc: LocationManager
     @EnvironmentObject var weather: WeatherService
+    @EnvironmentObject var expenses: ExpenseStore
+    @EnvironmentObject var routeStore: RouteStore
 
     var body: some View {
         NavigationStack {
@@ -22,6 +24,7 @@ struct DashboardView: View {
                                 }
                             }
                             metricRow(trip: trip)
+                            expenseCard(trip: trip)
                             LiveLocationCard()
                             weatherStrip
                         } else {
@@ -45,7 +48,9 @@ struct DashboardView: View {
         .task {
             loc.request()
             if let stops = store.trip?.stops {
-                await weather.refresh(stops: stops)
+                async let w: () = weather.refresh(stops: stops)
+                async let r: () = routeStore.computeIfNeeded(stops: stops)
+                _ = await (w, r)
             }
         }
     }
@@ -116,6 +121,58 @@ struct DashboardView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(Theme.line, lineWidth: 1)
         )
+    }
+
+    // MARK: - Harcama kartı (dokununca detay liste açılır)
+
+    private func expenseCard(trip: TripData) -> some View {
+        let ceiling = Double(trip.totalBudget.max ?? 1795)
+        let ratio = ceiling > 0 ? min(1, expenses.total / ceiling) : 0
+        let percent = Int((ratio * 100).rounded())
+        return NavigationLink {
+            ExpensesView()
+        } label: {
+            VStack(alignment: .leading, spacing: 11) {
+                HStack {
+                    MonoLabel(text: "Harcanan", color: Theme.c1)
+                    Spacer()
+                    Text("detay")
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Theme.muted)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Theme.muted)
+                }
+                HStack(alignment: .firstTextBaseline, spacing: 7) {
+                    Text("€\(expenses.total, specifier: "%.0f")")
+                        .font(.system(size: 34, weight: .heavy, design: .rounded))
+                        .foregroundStyle(Theme.text)
+                    Text("/ €\(ceiling, specifier: "%.0f") tahmini")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Theme.muted)
+                }
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.white.opacity(0.08))
+                        Capsule()
+                            .fill(percent >= 100 ? AnyShapeStyle(Theme.bad) : AnyShapeStyle(Theme.gradWarm))
+                            .frame(width: geo.size.width * ratio)
+                    }
+                }
+                .frame(height: 9)
+                HStack {
+                    Text("%\(percent) harcandı")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(percent >= 100 ? Theme.bad : Theme.dim)
+                    Spacer()
+                    Text(expenses.expenses.isEmpty ? "+ ekle" : "kalan €\(max(0, ceiling - expenses.total), specifier: "%.0f")")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Theme.dim)
+                }
+            }
+            .card()
+        }
+        .buttonStyle(.plain)
     }
 
     private var weatherStrip: some View {

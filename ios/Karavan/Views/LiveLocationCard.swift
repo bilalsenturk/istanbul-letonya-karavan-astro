@@ -5,6 +5,8 @@ import MapKit
 struct LiveLocationCard: View {
     @EnvironmentObject var store: TripStore
     @EnvironmentObject var loc: LocationManager
+    @EnvironmentObject var routeStore: RouteStore
+    @EnvironmentObject var nav: NavProgressStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -23,26 +25,13 @@ struct LiveLocationCard: View {
 
             if let trip = store.trip {
                 routeMap(trip: trip)
-                    .frame(height: 190)
+                    .frame(height: 210)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
+                carPlayButton(trip: trip)
+
                 if loc.location != nil {
-                    HStack(spacing: 0) {
-                        stat(
-                            value: rigaText(trip: trip),
-                            label: "Riga'ya kalan"
-                        )
-                        Divider().background(Theme.line).padding(.vertical, 4)
-                        stat(
-                            value: nearestText(trip: trip),
-                            label: "En yakın durak"
-                        )
-                        Divider().background(Theme.line).padding(.vertical, 4)
-                        stat(
-                            value: loc.speedKmh.map { "\($0) km/s" } ?? "0 km/s",
-                            label: "Hız"
-                        )
-                    }
+                    nextDestinationPanel(trip: trip)
                     if loc.lastPublished != nil {
                         HStack(spacing: 5) {
                             Image(systemName: "antenna.radiowaves.left.and.right")
@@ -67,14 +56,115 @@ struct LiveLocationCard: View {
             }
         }
         .card()
+        .task { await updateNav() }
+        .onChange(of: loc.location?.timestamp) { _, _ in Task { await updateNav() } }
+        .onChange(of: routeStore.routes.count) { _, _ in Task { await updateNav() } }
+    }
+
+    private func updateNav() async {
+        guard let stops = store.trip?.stops else { return }
+        await nav.update(location: loc.location, stops: stops, legs: routeStore.routes)
+    }
+
+    // Sıradaki hedefe kalan km + SÜRE + gidilen + anlık şehir (kullanıcı isteği).
+    @ViewBuilder
+    private func nextDestinationPanel(trip: TripData) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                if let next = nav.nextStop {
+                    Text("Sıradaki: \(next.flag) \(next.name)")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(Theme.c1)
+                } else {
+                    Text("Sıradaki hedef hesaplanıyor…")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Theme.muted)
+                }
+                Spacer()
+                if let city = nav.currentCity {
+                    Label(city, systemImage: "location.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Theme.dim)
+                }
+            }
+
+            HStack(spacing: 0) {
+                stat(value: nav.remainingKm.map { "\($0) km" } ?? "—", label: "Kalan yol")
+                Divider().background(Theme.line).padding(.vertical, 4)
+                stat(value: nav.remainingMinutes != nil ? nav.remainingTimeText : "—", label: "Kalan süre")
+                Divider().background(Theme.line).padding(.vertical, 4)
+                stat(value: loc.speedKmh.map { "\($0) km/s" } ?? "0 km/s", label: "Hız")
+            }
+
+            // Etap ilerlemesi: gidilen / kalan
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.white.opacity(0.08))
+                    Capsule().fill(Theme.gradCool).frame(width: geo.size.width * nav.legProgress)
+                }
+            }
+            .frame(height: 8)
+
+            HStack {
+                Text("Gidilen \(nav.traveledKm.map { "\($0) km" } ?? "—") · %\(Int((nav.legProgress * 100).rounded()))")
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Theme.muted)
+                Spacer()
+                if let riga = trip.stops.last, let km = loc.distanceKm(to: riga) {
+                    Text("Riga'ya \(Int(km.rounded())) km")
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Theme.muted)
+                }
+            }
+        }
+    }
+
+    // Tek tıkla Apple Maps sürüş → iPhone Passat'a CarPlay ile bağlıysa araç ekranında açılır.
+    // (VW'nin gömülü navigasyonuna doğrudan aktarım 3. parti app'lere kapalı — CarPlay tek yol.)
+    @ViewBuilder
+    private func carPlayButton(trip: TripData) -> some View {
+        if let target = carPlayTarget(trip: trip) {
+            Button {
+                NavApp.openAppleMaps(to: target)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "car.fill")
+                    Text("Arabada aç · \(target.name)")
+                    Spacer()
+                    Image(systemName: "arrow.up.forward.app.fill")
+                }
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(Theme.gradCool, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+            }
+        }
+    }
+
+    private func carPlayTarget(trip: TripData) -> Stop? {
+        guard !trip.stops.isEmpty else { return nil }
+        guard let near = loc.nearestStop(in: trip.stops),
+              let idx = trip.stops.firstIndex(where: { $0.id == near.stop.id })
+        else { return trip.stops.last } // konum yoksa Riga'ya
+        // Durağa çok yakınsak sıradakini hedefle; değilse en yakın durağa sür.
+        if near.km < 5, idx + 1 < trip.stops.count { return trip.stops[idx + 1] }
+        return near.stop
     }
 
     @ViewBuilder
     private func routeMap(trip: TripData) -> some View {
-        let coords = trip.stops.map(\.coordinate)
-        Map(initialPosition: .automatic) {
-            MapPolyline(coordinates: coords)
-                .stroke(Theme.c2, lineWidth: 3)
+        // Kullanıcıya odaklı başlangıç kamerası (konum yoksa tüm rota).
+        Map(initialPosition: .userLocation(fallback: .automatic)) {
+            // Gerçek yol (Apple Haritalar); gelene kadar ince kesikli taslak (kırmızı değil).
+            if routeStore.routes.isEmpty {
+                MapPolyline(coordinates: trip.stops.map(\.coordinate))
+                    .stroke(Theme.c4.opacity(0.4), style: StrokeStyle(lineWidth: 2.5, dash: [5, 5]))
+            } else {
+                ForEach(Array(routeStore.routes.enumerated()), id: \.offset) { _, route in
+                    MapPolyline(route).stroke(Theme.c4, lineWidth: 3)
+                }
+            }
             ForEach(trip.stops) { stop in
                 Annotation(stop.name, coordinate: stop.coordinate) {
                     Text(stop.flag)
@@ -86,16 +176,6 @@ struct LiveLocationCard: View {
             UserAnnotation()
         }
         .mapStyle(.standard(elevation: .flat))
-    }
-
-    private func rigaText(trip: TripData) -> String {
-        guard let riga = trip.stops.last, let km = loc.distanceKm(to: riga) else { return "—" }
-        return "\(Int(km.rounded())) km"
-    }
-
-    private func nearestText(trip: TripData) -> String {
-        guard let near = loc.nearestStop(in: trip.stops) else { return "—" }
-        return "\(near.stop.name) · \(Int(near.km.rounded())) km"
     }
 
     private func stat(value: String, label: String) -> some View {

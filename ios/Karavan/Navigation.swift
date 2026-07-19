@@ -6,8 +6,13 @@ import UIKit
 enum NavApp {
     /// Apple Maps'te sürüş rotası başlat (mevcut konumdan hedefe)
     static func openAppleMaps(to stop: Stop) {
-        let dest = MKMapItem(placemark: MKPlacemark(coordinate: stop.coordinate))
-        dest.name = stop.name
+        openAppleMaps(toCoordinate: stop.coordinate, name: stop.name)
+    }
+
+    /// Apple Maps'te herhangi bir koordinata sürüş rotası (Apple Haritalar POI sonucu vb.)
+    static func openAppleMaps(toCoordinate coordinate: CLLocationCoordinate2D, name: String) {
+        let dest = MKMapItem(placemark: MKPlacemark(coordinate: coordinate))
+        dest.name = name
         MKMapItem.openMaps(
             with: [MKMapItem.forCurrentLocation(), dest],
             launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving]

@@ -4,6 +4,7 @@ struct DayDetailView: View {
     let day: DayPlan
     let index: Int
     @EnvironmentObject var store: TripStore
+    @Environment(\.openURL) private var openURL
 
     private var destinationStop: Stop? {
         store.trip?.stop(matching: day.destination)
@@ -15,6 +16,8 @@ struct DayDetailView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    CampImage(path: day.camp.image, height: 200)
+
                     VStack(alignment: .leading, spacing: 8) {
                         MonoLabel(text: "\(index + 1). gün · \(day.date)", color: Theme.c1)
                         Text(day.isRestDay ? "\(day.origin)\nDinlenme günü" : "\(day.origin) →\n\(day.destination)")
@@ -88,6 +91,8 @@ struct DayDetailView: View {
                         }
                     }
                     .card()
+
+                    alternativesSection
                 }
                 .padding(18)
                 .frame(maxWidth: 700)
@@ -96,6 +101,47 @@ struct DayDetailView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .preferredColorScheme(.dark)
+    }
+
+    @ViewBuilder private var alternativesSection: some View {
+        if let alts = day.camp.alternatives, !alts.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                MonoLabel(text: "Diğer kamp seçenekleri", color: Theme.c3)
+                ForEach(alts) { alt in
+                    Button {
+                        if let url = URL(string: alt.link) { openURL(url) }
+                    } label: {
+                        HStack(spacing: 12) {
+                            CampImage(path: alt.image, height: 62, width: 82, cornerRadius: 12)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(alt.name)
+                                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                                    .foregroundStyle(Theme.text)
+                                    .lineLimit(1)
+                                Text(alt.place)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(Theme.dim)
+                                    .lineLimit(1)
+                                if let note = alt.note, !note.isEmpty {
+                                    Text(note)
+                                        .font(.system(size: 11.5))
+                                        .foregroundStyle(Theme.muted)
+                                        .lineLimit(2)
+                                }
+                            }
+                            Spacer(minLength: 4)
+                            Image(systemName: "map.fill")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Theme.c2)
+                        }
+                        .padding(10)
+                        .background(Theme.panel, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 
     private func chip(_ text: String) -> some View {

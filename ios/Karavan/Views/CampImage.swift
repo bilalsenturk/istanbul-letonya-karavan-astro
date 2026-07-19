@@ -1,0 +1,58 @@
+import SwiftUI
+
+// Ağdan yüklenen, önbellekli kamp görseli. Görsel app'e gömülmez → app hafif kalır.
+// Yükleme/başarısızlıkta temalı gradyan + çadır ikonu gösterir; eksik görsel UI'ı bozmaz.
+struct CampImage: View {
+    let path: String?          // "/assets/camps/x.webp" ya da tam URL
+    var height: CGFloat = 190
+    var width: CGFloat? = nil  // nil → tüm genişliği kaplar
+    var cornerRadius: CGFloat = 18
+
+    private var url: URL? {
+        guard let path, !path.isEmpty else { return nil }
+        return URL(string: path, relativeTo: Config.imageBaseURL)
+    }
+
+    var body: some View {
+        ZStack {
+            placeholder
+            if let url {
+                AsyncImage(url: url, transaction: Transaction(animation: .easeOut(duration: 0.25))) { phase in
+                    if case .success(let image) = phase {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Color.clear
+                    }
+                }
+            }
+        }
+        .modifier(SizeModifier(width: width, height: height))
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(Theme.line, lineWidth: 1)
+        )
+    }
+
+    private var placeholder: some View {
+        ZStack {
+            Theme.gradWarm.opacity(0.5)
+            Image(systemName: "tent.fill")
+                .font(.system(size: min(height * 0.32, 34), weight: .semibold))
+                .foregroundStyle(.white.opacity(0.85))
+        }
+    }
+}
+
+private struct SizeModifier: ViewModifier {
+    let width: CGFloat?
+    let height: CGFloat
+
+    func body(content: Content) -> some View {
+        if let width {
+            content.frame(width: width, height: height)
+        } else {
+            content.frame(maxWidth: .infinity).frame(height: height)
+        }
+    }
+}
