@@ -1,43 +1,48 @@
-# Astro Starter Kit: Minimal
+# İstanbul → Riga Karavan Yolculuğu
 
-```sh
-npm create astro@latest -- --template minimal
+Astro ile oluşturulmuş karavan yolculuğu brifing ve takip panosu.
+
+## Yolculuk
+
+- **Güzergâh:** İstanbul → Sofya → Bükreş → Deva → Budapeşte → Katowice → Suwałki → Riga
+- **Tarih:** 3–10 Ağustos 2026
+- **Araç:** VW Passat 1.6 TDI + Adria karavan
+- **Toplam:** ~3.150 km
+
+## Proje Yapısı
+
+```
+src/
+├── components/
+│   ├── CameraPlayer.astro   # Şehir kamerası oynatıcı
+│   └── RouteMap.astro       # Leaflet interaktif rota haritası
+├── data/
+│   ├── tripData.json        # Tüm yolculuk verileri
+│   └── tripData.ts          # TypeScript tipleri
+├── layouts/
+│   └── MainLayout.astro     # Ana sayfa düzeni
+├── pages/
+│   ├── index.astro          # Kontrol paneli
+│   └── day/[slug].astro     # Günlük detay sayfaları
+└── scripts/
+    └── routeMap.ts          # Leaflet harita başlatma
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## Komutlar
 
-## 🚀 Project Structure
+| Komut | Açıklama |
+|-------|----------|
+| `npm run dev` | Geliştirme sunucusu (`localhost:4321`) |
+| `npm run build` | Üretim build'i (`dist/`) |
+| `npm run preview` | Build önizlemesi |
+| `npm run lint` | ESLint ile kod kontrolü |
+| `npm run format` | Prettier ile formatlama |
+| `npm run check` | TypeScript tip kontrolü |
 
-Inside of your Astro project, you'll see the following folders and files:
+## Yapılan İyileştirmeler
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
-
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
-
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+- Veri (JSON) ve tipler (TS) ayrıştırıldı
+- Leaflet npm paketi ile CDN bağımlılığı kaldırıldı
+- Sitemap, robots.txt ve PWA eklendi
+- ESLint + Prettier yapılandırması
+- Tarih tekilleştirme, setInterval cleanup, responsive iyileştirmeler

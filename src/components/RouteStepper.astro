@@ -1,0 +1,194 @@
+---
+interface StepStop {
+  name: string;
+  country: string;
+}
+
+interface Props {
+  stops: StepStop[];
+  activeIndex?: number;
+  compact?: boolean;
+}
+
+const { stops, activeIndex = -1, compact = false } = Astro.props;
+
+const flags: Record<string, string> = {
+  'Türkiye': '🇹🇷',
+  'Bulgaristan': '🇧🇬',
+  'Romanya': '🇷🇴',
+  'Macaristan': '🇭🇺',
+  'Polonya': '🇵🇱',
+  'Letonya': '🇱🇻',
+};
+
+const total = stops.length;
+// Yolculuk henüz başlamadıysa (activeIndex < 0) ilerleme %0.
+const progressPct =
+  activeIndex < 0 ? 0 : Math.min(100, (activeIndex / Math.max(1, total - 1)) * 100);
+---
+
+<div class:list={['stepper', { 'stepper--compact': compact }]} role="list" aria-label="Rota aşamaları">
+  <div class="stepper__track" aria-hidden="true">
+    <span class="stepper__fill" style={`width:${progressPct}%`}></span>
+  </div>
+  <ol class="stepper__nodes">
+    {stops.map((stop, i) => {
+      const state = i < activeIndex ? 'done' : i === activeIndex ? 'active' : 'todo';
+      return (
+        <li class:list={['step', `step--${state}`]} role="listitem">
+          <span class="step__dot">
+            <span class="step__flag">{flags[stop.country] ?? '📍'}</span>
+          </span>
+          <span class="step__label">
+            <span class="step__city">{stop.name}</span>
+            <span class="step__country">{stop.country}</span>
+          </span>
+        </li>
+      );
+    })}
+  </ol>
+</div>
+
+<style>
+  .stepper {
+    position: relative;
+    padding: 6px 4px 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .stepper::-webkit-scrollbar {
+    display: none;
+  }
+
+  .stepper__track {
+    position: absolute;
+    top: 22px;
+    left: 22px;
+    right: 22px;
+    height: 3px;
+    border-radius: 999px;
+    background: var(--line);
+  }
+
+  .stepper--compact .stepper__track {
+    top: 16px;
+  }
+
+  .stepper__fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--road), var(--accent));
+    box-shadow: 0 0 12px rgba(255, 157, 77, 0.45);
+    transition: width 400ms ease;
+  }
+
+  .stepper__nodes {
+    position: relative;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(88px, 1fr);
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    min-width: max-content;
+  }
+
+  .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .step__dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    background: var(--panel);
+    border: 2px solid var(--line);
+    font-size: 15px;
+    line-height: 1;
+    transition:
+      transform 160ms ease,
+      border-color 200ms ease,
+      box-shadow 200ms ease;
+  }
+
+  .stepper--compact .step__dot {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+
+  .step__flag {
+    filter: grayscale(0.4);
+    opacity: 0.75;
+  }
+
+  .step--done .step__dot {
+    border-color: var(--road);
+  }
+
+  .step--done .step__flag {
+    filter: none;
+    opacity: 1;
+  }
+
+  .step--active .step__dot {
+    border-color: var(--accent);
+    transform: scale(1.15);
+    box-shadow:
+      0 0 0 4px rgba(103, 166, 255, 0.16),
+      0 8px 20px rgba(0, 0, 0, 0.35);
+  }
+
+  .step--active .step__flag {
+    filter: none;
+    opacity: 1;
+  }
+
+  .step__label {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 0 4px;
+  }
+
+  .step__city {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.15;
+  }
+
+  .step--todo .step__city {
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .step__country {
+    font-size: 0.64rem;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+
+  .stepper--compact .step__label {
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    .step__country {
+      display: none;
+    }
+    .step__city {
+      font-size: 0.72rem;
+    }
+  }
+</style>

@@ -20,17 +20,64 @@ const { title, description } = Astro.props;
     <link rel="icon" href="/favicon.ico" />
     <link rel="preconnect" href="https://unpkg.com" />
     <link rel="preconnect" href="https://www.google.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script is:inline>
+      // Tema seçimini FOUC olmadan uygula.
+      (() => {
+        try {
+          const saved = localStorage.getItem('trip-theme');
+          if (saved === 'light' || saved === 'dark') {
+            document.documentElement.setAttribute('data-theme', saved);
+          }
+        } catch (_) {}
+      })();
+    </script>
     <style is:global>
       :root {
         --bg: #050b16;
         --panel: rgba(14, 24, 46, 0.84);
+        --panel-solid: #0e1830;
         --text: #e9f1ff;
         --muted: #9eb2d1;
         --line: rgba(120, 150, 210, 0.33);
         --accent: #67a6ff;
+        --road: #ff9d4d;
+        --road-soft: rgba(255, 157, 77, 0.14);
         --ok: #39d98a;
         --warn: #ffcf66;
         --bad: #ff7088;
+        --card-bg: rgba(8, 16, 32, 0.45);
+        --halo-1: rgba(103, 166, 255, 0.16);
+        --halo-2: rgba(255, 157, 77, 0.08);
+        --halo-3: rgba(60, 110, 255, 0.1);
+        --shadow: rgba(0, 0, 0, 0.28);
+        color-scheme: dark;
+      }
+
+      :root[data-theme='light'] {
+        --bg: #eef2fa;
+        --panel: rgba(255, 255, 255, 0.9);
+        --panel-solid: #ffffff;
+        --text: #12233f;
+        --muted: #56668a;
+        --line: rgba(40, 80, 150, 0.16);
+        --accent: #2f6fe0;
+        --road: #f07a1e;
+        --road-soft: rgba(240, 122, 30, 0.12);
+        --ok: #1aa864;
+        --warn: #c98a09;
+        --bad: #e0435f;
+        --card-bg: rgba(255, 255, 255, 0.66);
+        --halo-1: rgba(103, 166, 255, 0.22);
+        --halo-2: rgba(240, 122, 30, 0.12);
+        --halo-3: rgba(120, 170, 255, 0.16);
+        --shadow: rgba(40, 70, 130, 0.14);
+        color-scheme: light;
       }
 
       * {
@@ -49,10 +96,11 @@ const { title, description } = Astro.props;
           Arial,
           sans-serif;
         background:
-          radial-gradient(circle at 0% 0%, rgba(103, 166, 255, 0.16), transparent 36%),
-          radial-gradient(circle at 85% 0%, rgba(89, 224, 255, 0.08), transparent 30%),
-          radial-gradient(circle at 20% 100%, rgba(60, 110, 255, 0.1), transparent 36%),
+          radial-gradient(circle at 0% 0%, var(--halo-1), transparent 36%),
+          radial-gradient(circle at 85% 0%, var(--halo-2), transparent 30%),
+          radial-gradient(circle at 20% 100%, var(--halo-3), transparent 36%),
           var(--bg);
+        transition: background 240ms ease, color 240ms ease;
       }
 
       a {
@@ -72,8 +120,57 @@ const { title, description } = Astro.props;
         border-radius: 20px;
         padding: 20px;
         margin-bottom: 16px;
-        box-shadow: 0 10px 38px rgba(0, 0, 0, 0.28);
+        box-shadow: 0 10px 38px var(--shadow);
         backdrop-filter: blur(2px);
+      }
+
+      /* Üst bar: marka + tema geçişi */
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+        padding: 4px 2px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-family: "Space Grotesk", Inter, sans-serif;
+        font-weight: 700;
+        font-size: 0.95rem;
+        letter-spacing: 0.02em;
+        color: var(--text);
+      }
+
+      .brand__mark {
+        font-size: 1.15rem;
+      }
+
+      .brand__route {
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      .theme-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid var(--line);
+        background: var(--card-bg);
+        color: var(--text);
+        border-radius: 999px;
+        padding: 7px 13px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: border-color 160ms ease, background 160ms ease;
+      }
+
+      .theme-toggle:hover {
+        border-color: var(--accent);
       }
 
       h1,
@@ -81,6 +178,8 @@ const { title, description } = Astro.props;
       h3,
       h4 {
         margin-top: 0;
+        font-family: "Space Grotesk", Inter, "Segoe UI", sans-serif;
+        letter-spacing: -0.01em;
       }
 
       h1 {
@@ -124,11 +223,25 @@ const { title, description } = Astro.props;
         background:
           linear-gradient(
             125deg,
-            rgba(103, 166, 255, 0.14) 0%,
-            rgba(9, 20, 39, 0.02) 46%,
-            rgba(89, 224, 255, 0.1) 100%
+            var(--road-soft) 0%,
+            transparent 46%,
+            rgba(103, 166, 255, 0.12) 100%
           ),
-          rgba(10, 20, 41, 0.32);
+          var(--panel);
+      }
+
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 88% -10%, var(--road-soft), transparent 42%);
+        pointer-events: none;
+      }
+
+      .hero > * {
+        position: relative;
+        z-index: 1;
       }
 
       .hero p {
@@ -137,21 +250,75 @@ const { title, description } = Astro.props;
         max-width: 74ch;
       }
 
+      /* Dev geri sayım bloğu */
+      .hero-top {
+        display: grid;
+        grid-template-columns: 1.35fr 1fr;
+        gap: 22px;
+        align-items: center;
+      }
+
+      .countdown-block {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 4px 0;
+      }
+
+      .countdown-label {
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--road);
+      }
+
+      .countdown-number {
+        font-family: "Space Grotesk", Inter, sans-serif;
+        font-weight: 700;
+        font-size: clamp(3.4rem, 9vw, 5.6rem);
+        line-height: 0.95;
+        letter-spacing: -0.03em;
+        background: linear-gradient(120deg, var(--text) 30%, var(--road));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .countdown-unit {
+        font-size: 0.9rem;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+
+      .countdown-clock {
+        font-variant-numeric: tabular-nums;
+        color: var(--text);
+        font-weight: 600;
+      }
+
       .hero-image {
-        margin-top: 12px;
+        margin: 0;
         border-radius: 14px;
         width: 100%;
-        min-height: 190px;
+        height: 100%;
+        min-height: 170px;
         object-fit: cover;
-        border: 1px solid rgba(120, 150, 210, 0.45);
-        background: linear-gradient(130deg, rgba(103, 166, 255, 0.16), rgba(89, 224, 255, 0.08));
+        border: 1px solid var(--line);
+        background: linear-gradient(130deg, var(--road-soft), rgba(103, 166, 255, 0.1));
       }
 
       .hero-badges {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-        margin-top: 14px;
+        margin-top: 16px;
+      }
+
+      .hero-stepper {
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
       }
 
       .grid {
@@ -161,10 +328,11 @@ const { title, description } = Astro.props;
       }
 
       .card {
+        position: relative;
         padding: 14px;
         border: 1px solid var(--line);
         border-radius: 15px;
-        background: rgba(8, 16, 32, 0.45);
+        background: var(--card-bg);
         transition:
           transform 140ms ease,
           border-color 180ms ease,
@@ -173,8 +341,28 @@ const { title, description } = Astro.props;
 
       .card:hover {
         transform: translateY(-2px);
-        border-color: rgba(118, 186, 255, 0.6);
-        box-shadow: 0 10px 24px rgba(5, 8, 16, 0.34);
+        border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+        box-shadow: 0 10px 24px var(--shadow);
+      }
+
+      /* Aşama numarası rozeti (günlük plan kartları) */
+      .stage-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 26px;
+        height: 26px;
+        padding: 0 7px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        font-family: "Space Grotesk", Inter, sans-serif;
+        color: var(--road);
+        background: var(--road-soft);
+        border: 1px solid color-mix(in srgb, var(--road) 40%, transparent);
       }
 
       .muted {
@@ -187,6 +375,29 @@ const { title, description } = Astro.props;
         gap: 8px;
       }
 
+      details {
+        margin: 8px 0 0;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px;
+        background: color-mix(in srgb, var(--card-bg) 85%, transparent);
+      }
+
+      details[open] {
+        background: color-mix(in srgb, var(--accent) 7%, transparent);
+      }
+
+      summary {
+        cursor: pointer;
+        color: var(--text);
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      details p {
+        margin: 6px 0;
+      }
+
       .tag {
         display: inline-flex;
         align-items: center;
@@ -195,17 +406,57 @@ const { title, description } = Astro.props;
         border-radius: 999px;
         padding: 5px 10px;
         font-size: 12px;
-        color: #c6dcff;
-        background: rgba(103, 166, 255, 0.12);
+        color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 12%, transparent);
+      }
+
+      .tag--road {
+        color: var(--road);
+        background: var(--road-soft);
+        border-color: color-mix(in srgb, var(--road) 35%, transparent);
       }
 
       .pill {
         border-radius: 999px;
         padding: 8px 12px;
-        border: 1px solid rgba(118, 175, 255, 0.42);
-        background: rgba(103, 166, 255, 0.07);
-        color: #dfecff;
+        border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+        background: color-mix(in srgb, var(--accent) 7%, transparent);
+        color: var(--text);
         font-size: 0.85rem;
+      }
+
+      /* Risk seviyesi rozetleri */
+      .lvl {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .lvl::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: currentColor;
+      }
+
+      .lvl--ok {
+        color: var(--ok);
+        background: color-mix(in srgb, var(--ok) 14%, transparent);
+      }
+
+      .lvl--warn {
+        color: var(--warn);
+        background: color-mix(in srgb, var(--warn) 16%, transparent);
+      }
+
+      .lvl--bad {
+        color: var(--bad);
+        background: color-mix(in srgb, var(--bad) 15%, transparent);
       }
 
       .day-link {
@@ -217,7 +468,7 @@ const { title, description } = Astro.props;
       }
 
       .day-link strong {
-        color: #fff;
+        color: var(--text);
       }
 
       .map-frame,
@@ -229,9 +480,9 @@ const { title, description } = Astro.props;
       }
 
       .btn {
-        border: 1px solid rgba(103, 166, 255, 0.5);
-        background: linear-gradient(180deg, rgba(103, 166, 255, 0.18), rgba(103, 166, 255, 0.12));
-        color: #eaf2ff;
+        border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+        background: color-mix(in srgb, var(--accent) 14%, transparent);
+        color: var(--text);
         border-radius: 10px;
         padding: 9px 12px;
         font-weight: 600;
@@ -247,31 +498,45 @@ const { title, description } = Astro.props;
       }
 
       .btn:hover {
-        border-color: #67a6ff;
+        border-color: var(--accent);
         transform: translateY(-1px);
-        background: linear-gradient(180deg, rgba(103, 166, 255, 0.3), rgba(103, 166, 255, 0.2));
+        background: color-mix(in srgb, var(--accent) 24%, transparent);
       }
 
       .btn:focus-visible {
-        outline: 2px solid rgba(103, 166, 255, 0.75);
+        outline: 2px solid color-mix(in srgb, var(--accent) 75%, transparent);
         outline-offset: 2px;
       }
 
       .btn--ghost {
-        border-color: rgba(120, 150, 210, 0.35);
-        background: rgba(11, 19, 40, 0.35);
-        color: #cfdef9;
+        border-color: var(--line);
+        background: var(--card-bg);
+        color: var(--muted);
         font-weight: 500;
       }
 
       .btn--ghost:hover {
-        background: rgba(103, 166, 255, 0.12);
+        color: var(--text);
+        background: color-mix(in srgb, var(--accent) 12%, transparent);
       }
 
       .btn--primary {
-        background: linear-gradient(150deg, #3d87ff, #6ca5ff);
+        background: linear-gradient(150deg, var(--accent), color-mix(in srgb, var(--accent) 70%, white));
         border: none;
-        color: white;
+        color: #fff;
+      }
+
+      /* Yol temalı ana buton (bugünün güzergâhı) */
+      .btn--road {
+        background: linear-gradient(150deg, var(--road), color-mix(in srgb, var(--road) 72%, white));
+        border: none;
+        color: #241300;
+        font-weight: 700;
+      }
+
+      .btn--road:hover {
+        border-color: transparent;
+        filter: brightness(1.05);
       }
 
       .metric-row {
@@ -282,10 +547,11 @@ const { title, description } = Astro.props;
       }
 
       .metric {
-        border: 1px solid rgba(120, 150, 210, 0.35);
+        border: 1px solid var(--line);
         border-radius: 12px;
         padding: 10px 12px;
         min-width: 120px;
+        background: var(--card-bg);
       }
 
       .metric b {
@@ -325,7 +591,7 @@ const { title, description } = Astro.props;
       }
 
       .task-check-row .due {
-        color: #aebfe0;
+        color: var(--muted);
         font-size: 0.75rem;
       }
 
@@ -373,27 +639,39 @@ const { title, description } = Astro.props;
         width: 100%;
         height: 8px;
         border-radius: 999px;
-        border: 1px solid rgba(120, 150, 210, 0.4);
-        background: rgba(17, 26, 45, 0.9);
+        border: 1px solid var(--line);
+        background: color-mix(in srgb, var(--text) 8%, transparent);
         overflow: hidden;
       }
 
       .progress > span {
         display: block;
         height: 100%;
-        background: linear-gradient(90deg, #3d87ff, #5fb4ff);
+        background: linear-gradient(90deg, var(--road), var(--accent));
         transition: width 180ms ease;
       }
 
       .tiny-note {
-        color: #b4c6ea;
+        color: var(--muted);
         font-size: 12px;
       }
 
-      @media (max-width: 920px) {
+      @media (max-width: 768px) {
         .grid,
         .two-col {
           grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .hero-top {
+          grid-template-columns: 1fr;
+          gap: 14px;
+        }
+
+        .hero-image {
+          min-height: 150px;
+          order: -1;
         }
       }
 
@@ -411,15 +689,115 @@ const { title, description } = Astro.props;
         .route-map {
           min-height: 300px;
         }
+
+        .topbar .brand__route {
+          display: none;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+
+      /* Yazdırma / PDF brifing çıktısı */
+      @media print {
+        :root {
+          --bg: #fff;
+          --panel: #fff;
+          --card-bg: #fff;
+          --text: #111;
+          --muted: #444;
+          --line: #ccc;
+          --shadow: transparent;
+        }
+
+        body {
+          background: #fff;
+          color: #000;
+        }
+
+        .container {
+          width: 100%;
+          padding: 0;
+        }
+
+        .topbar,
+        .theme-toggle,
+        .hero-badges,
+        .btn,
+        iframe,
+        .route-map,
+        .map-frame {
+          display: none !important;
+        }
+
+        .shell,
+        .card {
+          break-inside: avoid;
+          box-shadow: none;
+          border: 1px solid #ccc;
+          backdrop-filter: none;
+        }
+
+        .countdown-number {
+          -webkit-text-fill-color: #000;
+          color: #000;
+        }
+
+        a {
+          color: #000;
+        }
       }
     </style>
   </head>
   <body>
     <main class="container">
+      <div class="topbar">
+        <a class="brand" href="/">
+          <span class="brand__mark">🚐</span>
+          <span>KARAVAN BRIFING</span>
+          <span class="brand__route">· İstanbul → Riga</span>
+        </a>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Tema değiştir">
+          <span id="theme-icon">🌙</span>
+          <span id="theme-text">Koyu</span>
+        </button>
+      </div>
       <slot />
       <p class="foot">
         İstanbul → Riga karavan planı · Gerçek harita ve kamp planlaması modülü · Son güncelleme: 19 Temmuz 2026
       </p>
     </main>
+    <script is:inline>
+      (() => {
+        const root = document.documentElement;
+        const btn = document.getElementById('theme-toggle');
+        const icon = document.getElementById('theme-icon');
+        const text = document.getElementById('theme-text');
+        if (!btn) return;
+
+        // Varsayılan koyu tema (CSS'te data-theme yoksa koyu render edilir).
+        const effective = () => root.getAttribute('data-theme') || 'dark';
+
+        const paint = (mode) => {
+          const light = mode === 'light';
+          icon.textContent = light ? '☀️' : '🌙';
+          text.textContent = light ? 'Açık' : 'Koyu';
+        };
+
+        paint(effective());
+
+        btn.addEventListener('click', () => {
+          const next = effective() === 'light' ? 'dark' : 'light';
+          root.setAttribute('data-theme', next);
+          try {
+            localStorage.setItem('trip-theme', next);
+          } catch (_) {}
+          paint(next);
+        });
+      })();
+    </script>
   </body>
 </html>

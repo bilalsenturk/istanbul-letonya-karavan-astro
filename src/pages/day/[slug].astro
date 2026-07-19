@@ -1,6 +1,7 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
 import RouteMap from '../../components/RouteMap.astro';
+import RouteStepper from '../../components/RouteStepper.astro';
 import CameraPlayer from '../../components/CameraPlayer.astro';
 import { tripData } from '../../data/tripData';
 
@@ -18,15 +19,59 @@ if (!day) {
 }
 
 const mapStops = tripData.stops.map((stop) => ({ name: stop.name, lat: stop.lat, lng: stop.lng }));
-const previous = tripData.days.findIndex((row) => row.slug === slug) - 1;
-const next = tripData.days.findIndex((row) => row.slug === slug) + 1;
+const stepperStops = tripData.stops.map((stop) => ({ name: stop.name, country: stop.country }));
+const dayIndex = tripData.days.findIndex((row) => row.slug === slug);
+const previous = dayIndex - 1;
+const next = dayIndex + 1;
+
+const matchedSegmentGuide = tripData.segmentGuides.find((segment) => {
+  const fromMatch = segment.from === day.origin || day.origin.includes(segment.from) || segment.from.includes(day.origin);
+  const toMatch =
+    segment.to === day.destination ||
+    day.destination.includes(segment.to) ||
+    segment.to.includes(day.destination);
+  return fromMatch && toMatch;
+});
+
+const segmentGuide = matchedSegmentGuide ?? tripData.segmentGuides[Math.max(0, Math.min(dayIndex - 1, tripData.segmentGuides.length - 1))];
+
+const cityToCountry: Array<[string, string]> = [
+  ['İstanbul', 'Türkiye'],
+  ['Sofya', 'Bulgaristan'],
+  ['Bükreş', 'Romanya'],
+  ['Deva', 'Romanya'],
+  ['Budapeşte', 'Macaristan'],
+  ['Katowice', 'Polonya'],
+  ['Suwałki', 'Polonya'],
+  ['Riga', 'Letonya'],
+];
+
+const dayCountries = Array.from(
+  new Set(
+    cityToCountry
+      .filter(([city]) => day.origin.includes(city) || day.destination.includes(city))
+      .map(([, country]) => country),
+  ),
+);
+
+const dayCountryGuides = dayCountries
+  .map((country) => tripData.countryGuides.find((guide) => guide.country === country))
+  .filter((guide): guide is NonNullable<(typeof tripData.countryGuides)[number]> => Boolean(guide));
+
+// Bu günün hedef durağını stepper'da aktif olarak işaretle.
+const activeIndex = (() => {
+  const found = tripData.stops.findIndex(
+    (s) => day.destination.includes(s.name) || s.name.includes(day.destination),
+  );
+  return found >= 0 ? found : Math.min(dayIndex + 1, tripData.stops.length - 1);
+})();
 ---
 
 <MainLayout title={`Günlük Plan: ${day.date} (${day.origin} → ${day.destination})`}>
   <section class="shell" id="top">
     <div class="day-title">
       <h1>{day.date}</h1>
-      <span class="tag">{day.origin} → {day.destination}</span>
+      <span class="tag tag--road">{day.origin} → {day.destination}</span>
     </div>
     <p class="subline">
       Günün operasyonel özeti: mesafe, yakıt, risk senaryoları, alternatif planlar, kamp teyidi ve kamera takip noktaları.
@@ -36,6 +81,9 @@ const next = tripData.days.findIndex((row) => row.slug === slug) + 1;
       <span class="tag">Sürüş: {day.duration}</span>
       <span class="tag">Yakıt: {day.fuel}</span>
     </p>
+    <div class="hero-stepper">
+      <RouteStepper stops={stepperStops} activeIndex={activeIndex} />
+    </div>
   </section>
 
   <section class="grid">
@@ -64,19 +112,27 @@ const next = tripData.days.findIndex((row) => row.slug === slug) + 1;
         </div>
         <div>
           <h4>Canlı Trafik Kontrolü</h4>
-          <iframe
-            title="Trafik"
-            loading="lazy"
-            src={day.trafficEmbed}
-            referrerpolicy="no-referrer-when-downgrade"
-          ></iframe>
-          <p class="muted">Kaynak: {day.trafficLabel}</p>
+          <p class="subline" style="margin-bottom: 12px;">
+            Trafik izleme için en stabil seçenek doğrudan harita uygulamasını yeni sekmede açmaktır.
+          </p>
+          <p class="tag-row">
+            <a
+              class="btn"
+              href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(day.origin)}&destination=${encodeURIComponent(day.destination)}&travelmode=driving`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Google Yol Trafiği (Canlı)
+            </a>
+            <a class="btn btn--ghost" href={day.route} target="_blank" rel="noreferrer">Google Rota Planını Aç</a>
+          </p>
+          <p class="muted">Not: Bu planın trafik penceresi kaynaktan kısıtlanabiliyor, bu yüzden bağlantılar tercih edilir.</p>
         </div>
       </div>
       <div class="tag-row">
-        <a class="btn btn--primary" href={day.route}>Google Rota Planı</a>
-        <a class="btn" href={day.routeEmbed}>Rota (harita gömülü)</a>
-        <a class="btn btn--ghost" href="/">Kontrol Paneline Dön</a>
+          <a class="btn btn--primary" href={day.route} target="_blank" rel="noreferrer">Google Rota Planı</a>
+          <a class="btn btn--ghost" href="/#harita">Kontrol Paneli Rotası</a>
+          <a class="btn btn--ghost" href="/">Kontrol Paneline Dön</a>
       </div>
     </article>
 
@@ -98,6 +154,47 @@ const next = tripData.days.findIndex((row) => row.slug === slug) + 1;
         {day.contingencies.map((item) => <li>{item}</li>)}
       </ul>
     </article>
+  </section>
+
+  <section class="shell">
+    <div class="section-title">
+      <h3>Etap Brifingi</h3>
+      <a class="btn btn--ghost" href="#top">Ana başlık</a>
+    </div>
+    <div class="grid">
+      <article class="card col-6">
+        <h4>Güzergâh özeti</h4>
+        <p class="muted">{day.origin} → {day.destination}</p>
+        <ul>
+          {segmentGuide.highlights.map((item) => <li>{item}</li>)}
+        </ul>
+        <p><strong>Net yorum:</strong> {segmentGuide.netComment}</p>
+      </article>
+
+      <article class="card col-6">
+        <h4>Ülke odaklı operatif notlar</h4>
+        {dayCountryGuides.map((guide) => (
+          <details class="accordion">
+            <summary>{guide.country}</summary>
+            <p>{guide.profile}</p>
+            <p class="muted">
+              {guide.population} · {guide.language} · {guide.currency}
+            </p>
+            <p><strong>Öne çıkan:</strong></p>
+            <ul>
+              {guide.highlights.map((point) => <li>{point}</li>)}
+            </ul>
+            <p class="muted">{guide.highlightsAdvice}</p>
+            <p>
+              <strong>Önerilen alışveriş/ara nokta:</strong> {guide.shopping}
+            </p>
+            {guide.shoppingAdvice ? <p class="muted">{guide.shoppingAdvice}</p> : null}
+            <p class="muted">{guide.coffeeFood}</p>
+            <p class="muted"><strong>Not:</strong> {guide.roadNote}</p>
+          </details>
+        ))}
+      </article>
+    </div>
   </section>
 
   <section class="shell">

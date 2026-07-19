@@ -3,7 +3,10 @@ interface Camera {
   title: string;
   url: string;
   source: string;
-  kind?: 'video' | 'web';
+  kind?: 'video' | 'web' | 'image';
+  openUrl?: string;
+  refreshSeconds?: number;
+  note?: string;
 }
 
 interface Props {
@@ -11,19 +14,24 @@ interface Props {
 }
 
 const { camera } = Astro.props;
-const containerId = `camera-${Math.random().toString(36).slice(2, 8)}`;
+const kind = camera.kind || 'web';
+const isImage = kind === 'image';
+const isVideo = kind === 'video';
+const openUrl = camera.openUrl ?? camera.url;
+const mediaId = `camera-${Math.random().toString(36).slice(2, 8)}`;
+const refreshInterval = Math.max(45, Math.min(180, camera.refreshSeconds ?? 90));
 ---
 
-<article class="card">
+<article class="card" aria-live="polite">
   <div class="day-title">
     <h4>{camera.title}</h4>
     <span class="muted">{camera.source}</span>
   </div>
 
-  {camera.kind === 'video' ? (
+  {isVideo ? (
     <div class="custom-player">
       <iframe
-        id={containerId}
+        id={mediaId}
         src={camera.url}
         loading="lazy"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -31,15 +39,87 @@ const containerId = `camera-${Math.random().toString(36).slice(2, 8)}`;
         title={camera.title}
       ></iframe>
       <div class="player-overlay">
-        <a class="open-link" href={camera.url} target="_blank" rel="noreferrer">Kamerayı kendi pencerende aç</a>
+        <a class="open-link" href={camera.url} target="_blank" rel="noreferrer">Canlı yayını yeni sekmede aç</a>
+      </div>
+    </div>
+  ) : isImage ? (
+    <div class="camera-frame camera-frame--image" role="img" aria-label={`${camera.title} canlı görüntü` }>
+      <img
+        id={mediaId}
+        class="camera-image"
+        loading="lazy"
+        src={camera.url}
+        data-base-src={camera.url}
+        data-refresh-seconds={refreshInterval}
+        alt={`${camera.title} canlı kamera görüntüsü`}
+        onerror="this.dataset.loadError='1'"
+      />
+      <div class="camera-frame-status" data-status>Hazırlandı, ilk kare yüklendi.</div>
+      <div class="player-overlay">
+        <a class="open-link" href={openUrl} target="_blank" rel="noreferrer">OpenCam panelini aç</a>
       </div>
     </div>
   ) : (
-    <div class="camera-frame">
-      <iframe src={camera.url} loading="lazy" title={camera.title}></iframe>
+    <div class="camera-frame camera-frame--web" aria-label="Kamera kaynağı bağlantı modu">
+      <div class="web-fallback">
+        <p>
+          Bu kaynak iframe ile güvenli olarak gömülemiyor. En güncel görüntüye
+          <strong>bu bağlantıdan</strong> erişebilirsin.
+        </p>
+        <a class="open-link" href={openUrl} target="_blank" rel="noreferrer">Kamerayı yeni sekmede aç</a>
+      </div>
     </div>
   )}
+
+  {camera.note ? <p class="muted camera-note">{camera.note}</p> : null}
 </article>
+
+{isImage ? (
+  <script is:inline define:vars={{ mediaId, refreshInterval }}>
+    (() => {
+      const img = document.getElementById(mediaId);
+      if (!img || img.tagName !== 'IMG') return;
+
+      const status = img.closest('.card')?.querySelector('[data-status]');
+      const baseUrl = (img.getAttribute('data-base-src') || '').trim();
+      const fallbackStatus = status instanceof HTMLElement ? status : null;
+      const refreshMs = Math.max(30000, Number(refreshInterval) * 1000);
+      let failCount = 0;
+
+      const stampedUrl = () => {
+        const separator = baseUrl.includes('?') ? '&' : '?';
+        return `${baseUrl}${separator}_ts=${Date.now()}`;
+      };
+
+      const refresh = () => {
+        if (!img || failCount > 8) return;
+        img.src = stampedUrl();
+      };
+
+      const setStatus = (text) => {
+        if (fallbackStatus) fallbackStatus.textContent = text;
+      };
+
+      img.addEventListener('load', () => {
+        failCount = 0;
+        setStatus('Kamera akışı canlı (son dakika güncellemesi).');
+      });
+
+      img.addEventListener('error', () => {
+        failCount += 1;
+        if (failCount >= 4) {
+          setStatus('Geçici akış sorunu var. Sayfayı yenileyip tekrar deneyin.');
+          return;
+        }
+
+        setStatus('Kamera geçici olarak yavaş cevap veriyor, yeniden deneniyor...');
+        setTimeout(refresh, 1200);
+      });
+
+      setInterval(refresh, refreshMs);
+    })();
+  </script>
+) : null}
 
 <style>
   article {
@@ -54,14 +134,56 @@ const containerId = `camera-${Math.random().toString(36).slice(2, 8)}`;
     border-radius: 10px;
     overflow: hidden;
     border: 1px solid rgba(120, 150, 210, 0.4);
+    background: #071426;
   }
 
-  .custom-player iframe,
-  .camera-frame iframe {
+  .custom-player iframe {
     width: 100%;
     aspect-ratio: 16 / 9;
     border: 0;
     display: block;
+  }
+
+  .camera-frame img,
+  .camera-frame .web-fallback {
+    width: 100%;
+    min-height: 200px;
+    display: block;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border: 0;
+  }
+
+  .camera-frame--web {
+    background: rgba(2, 12, 26, 0.9);
+  }
+
+  .web-fallback {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px;
+    color: #d0deff;
+    font-size: 0.92rem;
+  }
+
+  .web-fallback p {
+    margin: 0;
+    color: #c6d8ff;
+  }
+
+  .camera-frame-status {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    padding: 4px 8px;
+    background: rgba(11, 20, 35, 0.85);
+    color: #9ec5ff;
+    border: 1px solid rgba(126, 176, 255, 0.35);
+    border-radius: 999px;
+    font-size: 11px;
   }
 
   .player-overlay {
@@ -80,6 +202,11 @@ const containerId = `camera-${Math.random().toString(36).slice(2, 8)}`;
     padding: 6px 10px;
     border-radius: 999px;
     color: #d7e7ff;
+  }
+
+  .camera-note {
+    margin-bottom: 0;
+    font-size: 0.82rem;
   }
 
   .day-title {

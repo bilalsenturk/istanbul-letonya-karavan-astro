@@ -1,6 +1,7 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro';
 import RouteMap from '../components/RouteMap.astro';
+import RouteStepper from '../components/RouteStepper.astro';
 import { tripData } from '../data/tripData';
 
 const departureDate = new Date(tripData.departureAt);
@@ -8,45 +9,64 @@ const today = new Date();
 const daysUntilDeparture = Math.max(0, Math.ceil((departureDate.getTime() - today.getTime()) / 86400000));
 const daySpan = tripData.days.length;
 const mapStops = tripData.stops.map((stop) => ({ name: stop.name, lat: stop.lat, lng: stop.lng }));
+const stepperStops = tripData.stops.map((stop) => ({ name: stop.name, country: stop.country }));
+const countryChain = tripData.countryGuides.map((country) => country.country).join(' → ');
+
+// Günün zorluk seviyesini mesafe/süreye göre kabaca sınıflandır.
+function dayLevel(day: (typeof tripData.days)[number]): 'ok' | 'warn' | 'bad' {
+  if (/dinlenme|sürüş yok/i.test(day.distanceKm + day.duration)) return 'ok';
+  const km = parseInt(day.distanceKm.replace(/[^\d]/g, '').slice(0, 3), 10) || 0;
+  if (km >= 550) return 'bad';
+  if (km >= 440) return 'warn';
+  return 'ok';
+}
+const levelText = { ok: 'Rahat gün', warn: 'Dikkatli', bad: 'Uzun etap' };
 ---
 
 <MainLayout
   title="İstanbul → Riga Karavan Yolculuğu"
-  description="7-8 günlük karavan rotası, günlük plan, trafik takibi, kamp ve ekipman checklist’i."
+  description="7-8 günlük karavan rotası, günlük plan, trafik takibi, kamp ve ekipman checklist'i."
 >
   <section class="shell hero">
-    <div class="section-title">
+    <div class="hero-top">
       <div>
-        <h1>İstanbul’dan Letonya’ya Karavan Brifingi</h1>
-        <p class="subline">
-          Yolculuk planı, günlük hedefler, trafik riskleri ve canlı takip tek ekranda.
+        <h1>İstanbul'dan Letonya'ya Karavan Brifingi</h1>
+        <div class="countdown-block">
+          <span class="countdown-label">Yola çıkmaya kalan</span>
+          <span class="countdown-number" id="remaining-days">{daysUntilDeparture}</span>
+          <span class="countdown-unit">gün · <span class="countdown-clock" id="countdown">yükleniyor…</span></span>
+        </div>
+        <p class="subline" style="margin-top: 14px;">
           <strong>Araç:</strong> {tripData.vehicle.model} · <strong>Plaka:</strong> {tripData.vehicle.plate}
         </p>
       </div>
-      <a class="btn btn--primary" href="/day/istanbul-sofya">Bugünün Güzergâhı</a>
+      <img
+        class="hero-image"
+        src="/assets/passat-adria-karavan.png"
+        alt="Passat + Adria karavan"
+        loading="lazy"
+        width="1180"
+        height="664"
+      />
     </div>
-    <img
-      class="hero-image"
-      src="/assets/passat-adria-karavan.png"
-      alt="Passat + Adria karavan"
-      loading="lazy"
-    />
     <div class="hero-badges">
+      <a class="btn btn--road" href="/day/istanbul-sofya">Bugünün Güzergâhı</a>
       <a class="btn btn--primary" href="#plan">Günlük Plan</a>
       <a class="btn btn--ghost" href="#check">Hazırlık Listesi</a>
       <a class="btn btn--ghost" href="#harita">Canlı Harita</a>
       <a class="btn btn--ghost" href="/day/suwalki-riga">Riga Yaklaşımı</a>
     </div>
+    <div class="hero-stepper">
+      <RouteStepper stops={stepperStops} activeIndex={-1} />
+    </div>
   </section>
 
   <section class="grid">
     <article class="card col-4">
-      <h3>Yola Çıkmaya Kalan Süre</h3>
-      <p id="countdown" class="subline">Yükleniyor…</p>
-      <p><strong>Planlanan çıkış:</strong> {tripData.departureAt}</p>
-      <p><strong>Kalan gün:</strong> <span id="remaining-days">{daysUntilDeparture}</span></p>
-      <p><strong>Toplam segment:</strong> {daySpan} gün</p>
-      <p class="tiny-note">Takvimdeki son tarih güncellemesi: 19 Temmuz 2026</p>
+      <h3>Yolculuk Özeti</h3>
+      <p><strong>Planlanan çıkış:</strong> {new Date(tripData.departureAt).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      <p><strong>Toplam segment:</strong> {daySpan} gün · {tripData.stops.length} durak</p>
+      <p class="tiny-note">{tripData.countryGuides.length} ülke brifingi: {countryChain}</p>
       <div class="metric-row">
         <div class="metric">
           <span>Toplam yakıt bütçesi</span>
@@ -117,14 +137,14 @@ const mapStops = tripData.stops.map((stop) => ({ name: stop.name, lat: stop.lat,
       <article class="card col-12">
         <h4>Hedeflenen 10 kritik aksiyon</h4>
         <ol class="route-list">
-          <li>Deutsche Schule Riga’ya 2026/27 başlangıç teyidi</li>
-          <li>Litonya’ya hareket öncesi son teknik ve sigorta kontrolü</li>
+          <li>Deutsche Schule Riga'ya 2026/27 başlangıç teyidi</li>
+          <li>Litonya'ya hareket öncesi son teknik ve sigorta kontrolü</li>
           <li>Karavan elektrik sorunlarının yazılı çözüm teyidi</li>
           <li>PMLP randevusu, adres ve şirket sürecini eşzamanlama</li>
           <li>Liman ve kamp rezervasyon alternatifleri (Sofya/Bükreş/Budapeşte)</li>
           <li>Vinyet + otoyol ücret güncellemesi</li>
           <li>Yedek plan: gecikme ve mola saatleri</li>
-          <li>Riga’ya girişte kamp ve internet/elektrik doğrulama</li>
+          <li>Riga'ya girişte kamp ve internet/elektrik doğrulama</li>
           <li>Okul ve buz pateni süreç belgelerinin yedek kopyası</li>
           <li>Finans tamponu ve kart limitleri kontrolü</li>
         </ol>
@@ -140,38 +160,134 @@ const mapStops = tripData.stops.map((stop) => ({ name: stop.name, lat: stop.lat,
       activeFrom="İstanbul"
       activeTo="Riga"
       height="430px"
-    />
+      />
+  </section>
+
+  <section class="shell">
+    <div class="section-title">
+      <h3>Yol boyunca ülke ve rota brifingi</h3>
+      <a class="btn btn--ghost" href="#plan">Gün planına geç</a>
+    </div>
+    <div class="grid">
+      {tripData.countryGuides.map((country) => (
+        <article class="card col-6">
+          <h4>{country.country}</h4>
+          <p class="tiny-note">{country.population} · {country.language} · {country.currency}</p>
+          <p>{country.profile}</p>
+          <details>
+            <summary>Öne çıkan noktalar ve operasyon notu</summary>
+            <ul>
+              {country.highlights.map((item) => <li>{item}</li>)}
+            </ul>
+            <p class="muted"><strong>Net karar:</strong> {country.highlightsAdvice}</p>
+            <p>
+              <strong>Kritik mola tercihi:</strong> {country.shopping}
+            </p>
+            {country.shoppingAdvice ? <p class="muted">{country.shoppingAdvice}</p> : null}
+            <p class="muted">{country.roadNote}</p>
+          </details>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="shell">
+    <div class="section-title">
+      <h3>Etap özeti: hangi gün neye odaklanmalı</h3>
+      <span class="pill">Rotaların net yorumu</span>
+    </div>
+    <div class="grid">
+      {tripData.segmentGuides.map((segment) => (
+        <article class="card col-6">
+          <h4>{segment.segment}</h4>
+          <p class="tiny-note">{segment.from} → {segment.to}</p>
+          <ul>
+            {segment.highlights.map((item) => <li>{item}</li>)}
+          </ul>
+          <p><strong>Net karar:</strong> {segment.netComment}</p>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="shell">
+    <div class="section-title">
+      <h3>Yeme-içme ve mola stratejisi</h3>
+      <span class="pill">Kahve, restoran ve ara kontrol modeli</span>
+    </div>
+    <div class="grid">
+      <article class="card col-6">
+        <h4>{tripData.coffeeStrategy.title}</h4>
+        <ul>
+          {tripData.coffeeStrategy.coffeeStops.map((item) => <li>{item}</li>)}
+        </ul>
+      </article>
+      <article class="card col-6">
+        <h4>{tripData.mealStrategy.title}</h4>
+        <ul>
+          {tripData.mealStrategy.items.map((item) => <li>{item}</li>)}
+        </ul>
+      </article>
+    </div>
+    <div class="card" style="margin-top: 14px;">
+      <h4>Kamp mantığı: ana + yedek model</h4>
+      <p>{tripData.campLogic.title}</p>
+      <div class="grid">
+        <article class="card col-12">
+          {tripData.campLogic.items.map((item) => (
+            <details>
+              <summary>{item.city}</summary>
+              <p><strong>Ana tercih:</strong> {item.primary}</p>
+              <p><strong>Alternatif:</strong> {item.alternative}</p>
+              <p class="muted"><strong>Avantaj:</strong> {item.advantages}</p>
+              <p class="muted"><strong>Dezavantaj:</strong> {item.disadvantages}</p>
+            </details>
+          ))}
+        </article>
+      </div>
+    </div>
   </section>
 
   <section id="plan" class="shell">
     <h3>Günlük Yolculuk Planı</h3>
     <p class="subline">Her gün için ayrı sayfaya geçerek risk, alternatif ve kamp detaylarını detaylı inceleyebilirsin.</p>
     <div class="grid">
-      {tripData.days.map((day) => (
-        <a href={`/day/${day.slug}`} class="card col-6">
-          <div class="day-link">
-            <strong>{day.date}</strong>
-            <span class="tag">{day.origin} → {day.destination}</span>
-          </div>
-          <div class="tag-row">
-            <span class="tag">Mesafe {day.distanceKm}</span>
-            <span class="tag">Süre {day.duration}</span>
-            <span class="tag">{day.fuel}</span>
-          </div>
-          <p class="muted">{day.risks[0]}</p>
-          <div class="tag-row" style="margin-top: 8px;">
-            <span class="pill">Kamp: {day.camp.place}</span>
-            <span class="pill">Kamera: {day.cityCameras.length} adet</span>
-          </div>
-        </a>
-      ))}
+      {tripData.days.map((day, i) => {
+        const level = dayLevel(day);
+        return (
+          <a href={`/day/${day.slug}`} class="card col-6">
+            <span class="stage-badge">{i + 1}. gün</span>
+            <div class="day-link">
+              <strong>{day.date}</strong>
+              <span class={`lvl lvl--${level}`}>{levelText[level]}</span>
+            </div>
+            <div class="tag-row">
+              <span class="tag tag--road">{day.origin} → {day.destination}</span>
+            </div>
+            <div class="tag-row" style="margin-top: 8px;">
+              <span class="tag">Mesafe {day.distanceKm}</span>
+              <span class="tag">Süre {day.duration}</span>
+              <span class="tag">{day.fuel}</span>
+            </div>
+            <p class="muted">{day.risks[0]}</p>
+            <div class="tag-row" style="margin-top: 8px;">
+              <span class="pill">Kamp: {day.camp.place}</span>
+              <span class="pill">Kamera: {day.cityCameras.length} adet</span>
+            </div>
+          </a>
+        );
+      })}
     </div>
   </section>
 </MainLayout>
 
-<script is:inline define:vars={{ routeData: tripData.routeGuide, stopsData: tripData.stops, checklistSize: tripData.checklist.length }}>
+<script
+  is:inline
+  lang="ts"
+  define:vars={{ routeData: tripData.routeGuide, stopsData: tripData.stops, checklistSize: tripData.checklist.length }}
+>
   (() => {
-    const departure = new Date('2026-08-03T05:00:00+03:00');
+    const departure = new Date('{tripData.departureAt}');
     const countdown = document.getElementById('countdown');
     const remaining = document.getElementById('remaining-days');
     const distEl = document.getElementById('remaining-distance');
@@ -184,18 +300,21 @@ const mapStops = tripData.stops.map((stop) => ({ name: stop.name, lat: stop.lat,
     const updateCountdown = () => {
       const diff = departure.getTime() - Date.now();
       if (diff <= 0) {
-        countdown.textContent = 'Yola çıkış zamanı aktif.';
+        if (remaining) remaining.textContent = '0';
+        if (countdown) countdown.textContent = 'yola çıkış zamanı aktif';
         return;
       }
       const days = Math.floor(diff / 86400000);
       const hours = Math.floor((diff % 86400000) / 3600000);
       const mins = Math.floor((diff % 3600000) / 60000);
-      countdown.textContent = `${days} gün ${hours} saat ${mins} dakika kaldı.`;
-      remaining.textContent = String(days);
+      if (countdown) countdown.textContent = `${hours} saat ${mins} dk kaldı`;
+      if (remaining) remaining.textContent = String(days);
     };
 
     updateCountdown();
-    setInterval(updateCountdown, 60000);
+    const countdownInterval = setInterval(updateCountdown, 60000);
+    window.addEventListener('beforeunload', () => clearInterval(countdownInterval));
+    window.addEventListener('pagehide', () => clearInterval(countdownInterval));
 
     const route = routeData;
     if (route.length > 0 && cityEl) {
@@ -266,5 +385,9 @@ const mapStops = tripData.stops.map((stop) => ({ name: stop.name, lat: stop.lat,
     setTaskProgress();
     updateLocation();
     document.getElementById('locate-btn')?.addEventListener('click', updateLocation);
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
   })();
 </script>

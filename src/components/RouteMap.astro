@@ -15,6 +15,15 @@ interface Props {
 
 const { title, routeStops, activeFrom, activeTo, height = '360px' } = Astro.props;
 const mapId = `route-map-${Math.random().toString(36).slice(2, 10)}`;
+const validStops = routeStops.filter((stop) => Number.isFinite(stop.lat) && Number.isFinite(stop.lng));
+const fallbackCenter = (() => {
+  if (!validStops.length) return '55.0000,24.0000';
+  const avgLat = validStops.reduce((total, stop) => total + stop.lat, 0) / validStops.length;
+  const avgLng = validStops.reduce((total, stop) => total + stop.lng, 0) / validStops.length;
+  return `${avgLat.toFixed(4)},${avgLng.toFixed(4)}`;
+})();
+const fallbackMarkers = validStops.map((stop) => `&markers=${stop.lat.toFixed(4)},${stop.lng.toFixed(4)},lightblue1`).join('');
+const fallbackUrl = `https://staticmap.openstreetmap.de/staticmap.php?size=900x420&zoom=6&center=${encodeURIComponent(fallbackCenter)}&maptype=mapnik${fallbackMarkers}`;
 ---
 
 <section class="card" aria-label={title}>
@@ -29,7 +38,12 @@ const mapId = `route-map-${Math.random().toString(36).slice(2, 10)}`;
       style={`height:${height}; min-height:${height};`}
     ></div>
     <div class="fallback-map">
-      <iframe loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Yol Haritası" src={`https://www.google.com/maps?output=embed&f=d&daddr=${encodeURIComponent(activeTo)}&saddr=${encodeURIComponent(activeFrom)}`}></iframe>
+      <img
+        class="fallback-map-image"
+        loading="lazy"
+        src={fallbackUrl}
+        alt="Yol haritası arka plan"
+      />
     </div>
   </div>
 </section>
@@ -41,19 +55,6 @@ const mapId = `route-map-${Math.random().toString(36).slice(2, 10)}`;
     z-index: 1;
   }
 
-  .fallback-map iframe {
-    width: 100%;
-    height: 100%;
-    display: block;
-    border: none;
-  }
-
-  .fallback-map {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-  }
-
   .route-map-container {
     min-height: 320px;
   }
@@ -62,113 +63,44 @@ const mapId = `route-map-${Math.random().toString(36).slice(2, 10)}`;
     opacity: 0;
   }
 
-  .route-map-container.ready .fallback-map iframe {
+  .route-map-container.ready .fallback-map {
     display: none;
   }
 
   .route-map-container.ready .route-map {
     opacity: 1;
   }
+
+  .fallback-map {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+  }
+
+  .fallback-map img,
+  .fallback-map {
+    display: block;
+  }
+
+  .fallback-map-image {
+    width: 100%;
+    height: 100%;
+    border: none;
+    object-fit: cover;
+    min-height: 100%;
+  }
+
+  .fallback-map {
+    background: #091427;
+  }
 </style>
 
-<script is:inline>
-  (function () {
-    const sectionEl = document.currentScript?.parentElement?.closest('section');
-    if (!sectionEl) return;
+<script>
+  import { initRouteMap } from '../scripts/routeMap';
 
-    const mapContainer = sectionEl.querySelector('.route-map');
-    if (!mapContainer) return;
-
-    const points = (() => {
-      try {
-        return JSON.parse(mapContainer.dataset.stops || '[]');
-      } catch {
-        return [];
-      }
-    })();
-
-    if (!Array.isArray(points) || points.length === 0) {
-      return;
-    }
-
-    const loadLeafletCss = () => {
-      if (document.querySelector('link[data-leaflet-css]')) return;
-      const css = document.createElement('link');
-      css.rel = 'stylesheet';
-      css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      css.setAttribute('data-leaflet-css', '1');
-      document.head.appendChild(css);
-    };
-
-    const loadLeafletJs = () =>
-      new Promise((resolve, reject) => {
-        if (window.L && window.L.map) return resolve();
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error('Leaflet yüklenemedi.'));
-        document.head.appendChild(script);
-      });
-
-    const wrapper = mapContainer.closest('.route-map-container');
-    if (!wrapper) return;
-
-    loadLeafletCss();
-    loadLeafletJs()
-      .then(() => {
-        const bounds = [];
-        const map = L.map(mapContainer, {
-          zoomControl: false,
-        }).setView([55, 24], 5);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-          maxZoom: 18,
-        }).addTo(map);
-
-        const latlngs = points.map((point) => {
-          const lat = Number(point.lat);
-          const lng = Number(point.lng);
-          if (Number.isFinite(lat) && Number.isFinite(lng)) {
-            bounds.push([lat, lng]);
-            return [lat, lng];
-          }
-          return null;
-        }).filter(Boolean);
-
-        if (latlngs.length === 0) {
-          return;
-        }
-
-        const from = String(mapContainer.dataset.from || '');
-        const to = String(mapContainer.dataset.to || '');
-        const start = points.findIndex((p) => String(p.name).toLowerCase() === from.toLowerCase());
-        const end = points.findIndex((p) => String(p.name).toLowerCase() === to.toLowerCase());
-        const segmentStart = Math.max(0, start >= 0 ? start : 0);
-        const segmentEnd = Math.max(segmentStart, end >= 0 ? end : segmentStart);
-
-        points.forEach((point, index) => {
-          if (!point || !Number.isFinite(point.lat) || !Number.isFinite(point.lng)) return;
-          const fill = index >= segmentStart && index <= segmentEnd ? '#59e0ff' : '#9bb2ff';
-          const radius = index >= segmentStart && index <= segmentEnd ? 7 : 5;
-          const marker = L.circleMarker([point.lat, point.lng], {
-            radius,
-            color: '#0b1a33',
-            weight: 2,
-            fillColor: fill,
-            fillOpacity: 1,
-          }).addTo(map);
-          marker.bindPopup(`<strong>${point.name}</strong>`);
-        });
-
-        L.polyline(latlngs, { color: '#67a6ff', weight: 4, opacity: 0.9 }).addTo(map);
-        map.fitBounds(bounds, { padding: [18, 18] });
-        wrapper.classList.add('ready');
-      })
-      .catch(() => {
-        const fallback = wrapper.querySelector('.fallback-map iframe');
-        if (fallback) fallback.style.display = 'block';
-      });
-  })();
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.route-map').forEach((el) => {
+      if (el.id) initRouteMap(el.id);
+    });
+  });
 </script>
