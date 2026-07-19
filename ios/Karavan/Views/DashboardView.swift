@@ -52,7 +52,7 @@ struct DashboardView: View {
                 async let w: () = weather.refresh(stops: stops)
                 async let r: () = routeStore.computeIfNeeded(stops: stops)
                 _ = await (w, r)
-                await nav.update(location: loc.location, stops: stops, legs: routeStore.routes)
+                await nav.update(location: loc.location, stops: stops, legs: routeStore.legs)
             }
         }
     }
@@ -206,7 +206,9 @@ struct DashboardView: View {
                     ForEach(weather.items) { w in
                         VStack(alignment: .leading, spacing: 7) {
                             HStack(spacing: 5) {
-                                Text(w.flag).font(.system(size: 13))
+                                Text(w.code)
+                                    .font(.system(size: 10, weight: .heavy, design: .rounded))
+                                    .foregroundStyle(Theme.dim)
                                 Text(w.name)
                                     .font(.system(size: 12, weight: .semibold, design: .rounded))
                                     .foregroundStyle(Theme.dim)

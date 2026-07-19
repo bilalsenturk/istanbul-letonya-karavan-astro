@@ -6,6 +6,7 @@ struct StopWeather: Identifiable {
     let id: String
     let name: String
     let flag: String
+    let code: String
     let temp: Int
     let symbol: String
     let desc: String
@@ -73,6 +74,7 @@ final class WeatherService: ObservableObject {
                     id: stop.id,
                     name: stop.name,
                     flag: stop.flag,
+                    code: stop.code,
                     temp: Int(cur.temperature_2m.rounded()),
                     symbol: symbol,
                     desc: desc,

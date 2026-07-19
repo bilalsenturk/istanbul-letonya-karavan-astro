@@ -41,7 +41,7 @@ struct StopExploreView: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            Text(stop.flag).font(.system(size: 34))
+            CountryBadge(code: stop.code, size: 18)
             VStack(alignment: .leading, spacing: 2) {
                 Text(stop.name)
                     .font(.system(size: 26, weight: .heavy, design: .rounded))

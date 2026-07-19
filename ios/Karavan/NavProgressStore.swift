@@ -20,7 +20,21 @@ final class NavProgressStore: ObservableObject {
         location.distance(from: CLLocation(latitude: stop.lat, longitude: stop.lng))
     }
 
-    func update(location: CLLocation?, stops: [Stop], legs: [MKRoute]) async {
+    /// Noktanın [a,b] segmentine yaklaşık (dik) uzaklığı — hangi etapta olduğunu bulmak için.
+    private func distanceToSegment(_ p: CLLocation, from a: Stop, to b: Stop) -> Double {
+        let ca = CLLocation(latitude: a.lat, longitude: a.lng)
+        let cb = CLLocation(latitude: b.lat, longitude: b.lng)
+        let ab = ca.distance(from: cb)
+        guard ab > 1 else { return p.distance(from: ca) }
+        let ap = p.distance(from: ca)
+        let bp = p.distance(from: cb)
+        let t = max(0, min(1, (ap * ap - bp * bp + ab * ab) / (2 * ab * ab)))
+        let along = t * ab
+        let perpSq = max(0, ap * ap - along * along)
+        return perpSq.squareRoot()
+    }
+
+    func update(location: CLLocation?, stops: [Stop], legs: [MKRoute?]) async {
         guard let location, stops.count >= 2 else { return }
 
         // Kısıtla: yalnızca 700 m'den fazla hareket ya da 45 sn geçmişse yeniden hesapla.
@@ -32,17 +46,18 @@ final class NavProgressStore: ObservableObject {
         lastCoord = location.coordinate
         lastComputeAt = now
 
-        // 1) Sıradaki durak: en yakın durak; ona çok yakınsak (ya da başlangıçtaysak) sıradaki.
-        var nearest = 0
-        var best = Double.infinity
-        for (i, s) in stops.enumerated() {
-            let d = meters(location, to: s)
-            if d < best { best = d; nearest = i }
+        // 1) Bulunduğun ETABI (segment) bul; sıradaki durak o etabın bitişidir.
+        //    "En yakın durak" heuristiği etabın ilk yarısında ayrıldığın şehri
+        //    "sıradaki" gösterip kalan km'yi geriye hesaplıyordu — segment bunu çözer.
+        var bestLeg = 0
+        var bestSeg = Double.infinity
+        for k in 0 ..< (stops.count - 1) {
+            let d = distanceToSegment(location, from: stops[k], to: stops[k + 1])
+            if d < bestSeg { bestSeg = d; bestLeg = k }
         }
-        var idx = nearest
-        if nearest == 0 || best < 12_000 { idx = min(nearest + 1, stops.count - 1) }
+        let idx = bestLeg + 1
+        let prevIdx = bestLeg
         let next = stops[idx]
-        let prevIdx = max(0, idx - 1)
         nextStop = next
 
         // 2) Kalan km + SÜRE — Apple Maps (MKDirections) ile gerçek sürüş.
@@ -64,8 +79,8 @@ final class NavProgressStore: ObservableObject {
 
         // 3) Gidilen yol + ilerleme (etabın toplamından).
         let legTotal: Double
-        if legs.indices.contains(prevIdx) {
-            legTotal = legs[prevIdx].distance
+        if legs.indices.contains(prevIdx), let leg = legs[prevIdx] {
+            legTotal = leg.distance
         } else {
             legTotal = CLLocation(latitude: stops[prevIdx].lat, longitude: stops[prevIdx].lng)
                 .distance(from: CLLocation(latitude: next.lat, longitude: next.lng))

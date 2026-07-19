@@ -44,6 +44,17 @@ const countryFlags: Record<string, string> = {
 
 // "Nüfus: 85 milyon" → "85 milyon"
 const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(': ') + 2) : s);
+
+// Ülke kodları (Kalan Hedefler listesi için)
+const countryCodes: Record<string, string> = {
+  'Türkiye': 'TR',
+  'Bulgaristan': 'BG',
+  'Romanya': 'RO',
+  'Macaristan': 'HU',
+  'Polonya': 'PL',
+  'Litvanya': 'LT',
+  'Letonya': 'LV',
+};
 ---
 
 <MainLayout
@@ -63,7 +74,7 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
         <span class="eyebrow">İstanbul → Riga · {tripData.totalKm.toLocaleString('tr-TR')} km · {tripData.countryGuides.length} ülke</span>
         <h1>Letonya Yolculuğu</h1>
         <p class="hero-full__lead">
-          {daySpan} günlük karavan rotası, günlük plan, canlı trafik, kamp ve ekipman kontrol listesi — tek ekranda.
+          {daySpan} günlük karavan rotası, canlı konum, günlük plan ve kamp — tek ekranda.
         </p>
         <div class="hero-metric hero-metric--count">
           <span class="hero-metric__label">Yola çıkmaya kalan</span>
@@ -76,6 +87,10 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
             <em>:</em>
             <div class="ct"><b id="ct-s">–</b><span>sn</span></div>
           </div>
+        </div>
+        <div class="hero-live" id="hero-live" hidden>
+          <span class="hero-live__dot"></span>
+          <span id="hero-live-text">Canlı konum bekleniyor…</span>
         </div>
         <div class="hero-metrics">
           <div class="hero-metric">
@@ -133,18 +148,16 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
     </article>
 
     <article class="card col-4">
-      <h3>Hazırlık Durumu</h3>
-      <p><strong>Çekim:</strong> {tripData.vehicle.towing}</p>
-      <p><strong>Yükleme:</strong> Ağır eşyalar dingile yakın, hassas eşyalar sabitlenmiş.</p>
-      <div class="progress-wrap">
-        <div class="tag-row">
-          <span class="tag">Kontrol listesi</span>
-          <span class="tiny-note" id="task-status">0 / {tripData.checklist.length}</span>
-        </div>
-        <div class="progress" aria-label="Hazırlık ilerleme çubuğu">
-          <span id="task-progress" style="width: 0%"></span>
-        </div>
+      <div class="section-title">
+        <h3>Kalan Hedefler</h3>
+        <span class="lvl lvl--ok" id="dest-badge" hidden>Canlı</span>
       </div>
+      <ul class="dest-list" id="dest-list">
+        {tripData.stops.map((s) => (
+          <li data-stop={s.name}><span class="dest-code">{countryCodes[s.country] ?? '•'}</span> {s.name}</li>
+        ))}
+      </ul>
+      <p class="tiny-note" id="dest-note">Uygulama yayına başlayınca sıradaki hedef vurgulanır.</p>
     </article>
 
     <article class="card col-4">
@@ -159,44 +172,6 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
       <p class="tiny-note" id="spend-note">Kuzey uygulamasından bekleniyor…</p>
       <p class="tiny-note">Pratik hedef: {tripData.totalBudget.total}</p>
     </article>
-  </section>
-
-  <section id="check" class="shell">
-    <div class="section-title">
-      <div>
-        <h3>Yola Çıkmadan Önce Hazırlık Kontrol Listesi</h3>
-        <p class="subline">İşaretlediklerin bu tarayıcıda saklanır.</p>
-      </div>
-      <a class="btn btn--ghost" href="#plan">Plan Modülüne Git</a>
-    </div>
-    <div class="card task-check-wrap">
-      {tripData.checklist.map((item) => (
-        <label class="task-check-row">
-          <input type="checkbox" class="task-check" data-task={item.id} />
-          <div>
-            <p><strong>{item.due}</strong> — {item.task}</p>
-          </div>
-        </label>
-      ))}
-    </div>
-
-    <div class="grid" style="margin-top: 12px;">
-      <article class="card col-12">
-        <h4>Hedeflenen 10 kritik aksiyon</h4>
-        <ol class="route-list">
-          <li>Deutsche Schule Riga'ya 2026/27 başlangıç teyidi</li>
-          <li>Litonya'ya hareket öncesi son teknik ve sigorta kontrolü</li>
-          <li>Karavan elektrik sorunlarının yazılı çözüm teyidi</li>
-          <li>PMLP randevusu, adres ve şirket sürecini eşzamanlama</li>
-          <li>Liman ve kamp rezervasyon alternatifleri (Sofya/Bükreş/Budapeşte)</li>
-          <li>Vinyet + otoyol ücret güncellemesi</li>
-          <li>Yedek plan: gecikme ve mola saatleri</li>
-          <li>Riga'ya girişte kamp ve internet/elektrik doğrulama</li>
-          <li>Okul ve buz pateni süreç belgelerinin yedek kopyası</li>
-          <li>Finans tamponu ve kart limitleri kontrolü</li>
-        </ol>
-      </article>
-    </div>
   </section>
 
   <section id="hava" class="shell">
@@ -375,7 +350,7 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
 <script
   is:inline
   lang="ts"
-  define:vars={{ routeData: tripData.routeGuide, stopsData: tripData.stops, checklistSize: tripData.checklist.length, departureAt: tripData.departureAt, budgetMax: tripData.totalBudget.max }}
+  define:vars={{ stopsData: tripData.stops, departureAt: tripData.departureAt, budgetMax: tripData.totalBudget.max }}
 >
   (() => {
     const departure = new Date(departureAt);
@@ -386,11 +361,7 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
     const ctM = document.getElementById('ct-m');
     const ctS = document.getElementById('ct-s');
     const distEl = document.getElementById('remaining-distance');
-    const timeEl = document.getElementById('remaining-time');
-    const cityEl = document.getElementById('target-city');
     const locStatus = document.getElementById('location-status');
-    const statusEl = document.getElementById('task-status');
-    const progressEl = document.getElementById('task-progress');
 
     const pad = (n) => String(n).padStart(2, '0');
     let live = false;
@@ -413,11 +384,6 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
     const countdownInterval = setInterval(updateCountdown, 1000);
     window.addEventListener('pagehide', () => clearInterval(countdownInterval));
 
-    const route = routeData;
-    if (route.length > 0 && cityEl) {
-      cityEl.textContent = route[0].to || 'Sofya';
-    }
-
     const haversine = (a, b) => {
       const toRad = (d) => (d * Math.PI) / 180;
       const R = 6371;
@@ -434,18 +400,6 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
     const stops = stopsData;
     const riga = stops[stops.length - 1];
 
-    const setTaskProgress = () => {
-      const checks = document.querySelectorAll('.task-check');
-      let done = 0;
-      checks.forEach((input) => {
-        if (input.checked) done += 1;
-      });
-      const total = Number(checklistSize || 1);
-      const percent = Math.round((done / total) * 100);
-      statusEl.textContent = `${done} / ${total}`;
-      progressEl.style.width = `${percent}%`;
-    };
-
     // Kuzey iOS uygulamasının yayınladığı CANLI DURUMU çek ve birebir yansıt.
     const liveBadge = document.getElementById('live-badge');
     const speedEl = document.getElementById('live-speed');
@@ -455,6 +409,10 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
     const remLiveEl = document.getElementById('live-remaining');
     const progLiveEl = document.getElementById('live-progress');
     const travLiveEl = document.getElementById('live-traveled');
+    const heroLive = document.getElementById('hero-live');
+    const heroLiveText = document.getElementById('hero-live-text');
+    const destBadge = document.getElementById('dest-badge');
+    const destItems = Array.from(document.querySelectorAll('#dest-list li'));
 
     const fmtMin = (m) => (m >= 60 ? `${Math.floor(m / 60)} sa ${m % 60} dk` : `${m} dk`);
 
@@ -484,6 +442,27 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
         if (travLiveEl) travLiveEl.textContent = typeof data.traveledKm === 'number' ? `Gidilen ${data.traveledKm} km` : '';
         if (speedEl) speedEl.textContent = data.speedKmh != null ? `${data.speedKmh} km/s` : '—';
 
+        // Hero canlı şeridi
+        if (heroLive && heroLiveText) {
+          const bits = [];
+          if (data.city) bits.push('Şu an: ' + data.city);
+          if (data.nextStop) bits.push('Sıradaki ' + data.nextStop + (typeof data.remainingKm === 'number' ? ' · ' + data.remainingKm + ' km' : ''));
+          bits.push("Riga'ya " + Math.round(remainingRiga) + ' km');
+          heroLiveText.textContent = bits.join('  ·  ');
+          heroLive.hidden = false;
+        }
+        // Kalan hedefler: sıradakini vurgula, geçilenleri soluklaştır
+        if (destItems.length && data.nextStop) {
+          let reached = false;
+          destItems.forEach((li) => {
+            const isNext = li.dataset.stop === data.nextStop;
+            if (isNext) reached = true;
+            li.classList.toggle('is-next', isNext);
+            li.classList.toggle('is-passed', !reached && !isNext);
+          });
+          if (destBadge) destBadge.hidden = false;
+        }
+
         const ts = new Date(data.ts);
         if (updatedEl && !isNaN(ts.getTime())) {
           updatedEl.textContent = `Son güncelleme: ${ts.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`;
@@ -495,18 +474,6 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
       }
     };
 
-    const checks = document.querySelectorAll('.task-check');
-    checks.forEach((item) => {
-      const key = `trip-check-${item.dataset.task}`;
-      const saved = localStorage.getItem(key) === '1';
-      item.checked = saved;
-      item.addEventListener('change', () => {
-        localStorage.setItem(key, item.checked ? '1' : '0');
-        setTaskProgress();
-      });
-    });
-
-    setTaskProgress();
     pollLive();
     const liveInterval = setInterval(pollLive, 20000);
     window.addEventListener('pagehide', () => clearInterval(liveInterval));
@@ -543,3 +510,61 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
     }
   })();
 </script>
+
+<style>
+  .hero-live {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0 4px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #dbe6ff;
+  }
+  .hero-live__dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: #35e08a;
+    box-shadow: 0 0 0 4px rgba(53, 224, 138, 0.18);
+    flex-shrink: 0;
+  }
+  .dest-list {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .dest-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    border: 1px solid transparent;
+    transition: background 0.2s ease, opacity 0.2s ease, border-color 0.2s ease;
+  }
+  .dest-code {
+    font: 700 0.72rem/1 ui-monospace, monospace;
+    letter-spacing: 0.4px;
+    color: #fff;
+    background: linear-gradient(135deg, #ff9a3c, #ff4d6d);
+    padding: 3px 6px;
+    border-radius: 5px;
+    flex-shrink: 0;
+  }
+  .dest-list li.is-passed {
+    opacity: 0.4;
+  }
+  .dest-list li.is-passed .dest-code {
+    filter: grayscale(0.6);
+  }
+  .dest-list li.is-next {
+    background: rgba(103, 166, 255, 0.12);
+    border-color: rgba(103, 166, 255, 0.4);
+    font-weight: 700;
+  }
+</style>

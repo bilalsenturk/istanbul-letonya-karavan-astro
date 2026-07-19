@@ -51,7 +51,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
             // Konum geldikçe ilerlemeyi güncelle (view zamanlamasına bağlı kalmadan),
             // sonra web'e zengin durumu yayınla.
             if let stops = self.trip?.trip?.stops, stops.count >= 2 {
-                await self.nav?.update(location: last, stops: stops, legs: self.routeStore?.routes ?? [])
+                await self.nav?.update(location: last, stops: stops, legs: self.routeStore?.legs ?? [])
             }
             self.publishToWeb(last)
         }

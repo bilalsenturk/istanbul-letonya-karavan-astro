@@ -63,7 +63,7 @@ struct LiveLocationCard: View {
 
     private func updateNav() async {
         guard let stops = store.trip?.stops else { return }
-        await nav.update(location: loc.location, stops: stops, legs: routeStore.routes)
+        await nav.update(location: loc.location, stops: stops, legs: routeStore.legs)
     }
 
     // Sıradaki hedefe kalan km + SÜRE + gidilen + anlık şehir (kullanıcı isteği).
@@ -72,9 +72,12 @@ struct LiveLocationCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 if let next = nav.nextStop {
-                    Text("Sıradaki: \(next.flag) \(next.name)")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundStyle(Theme.c1)
+                    HStack(spacing: 6) {
+                        CountryBadge(code: next.code, size: 10)
+                        Text("Sıradaki: \(next.name)")
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .foregroundStyle(Theme.c1)
+                    }
                 } else {
                     Text("Sıradaki hedef hesaplanıyor…")
                         .font(.system(size: 12, weight: .medium))
@@ -143,13 +146,8 @@ struct LiveLocationCard: View {
     }
 
     private func carPlayTarget(trip: TripData) -> Stop? {
-        guard !trip.stops.isEmpty else { return nil }
-        guard let near = loc.nearestStop(in: trip.stops),
-              let idx = trip.stops.firstIndex(where: { $0.id == near.stop.id })
-        else { return trip.stops.last } // konum yoksa Riga'ya
-        // Durağa çok yakınsak sıradakini hedefle; değilse en yakın durağa sür.
-        if near.km < 5, idx + 1 < trip.stops.count { return trip.stops[idx + 1] }
-        return near.stop
+        // Segment-bazlı sıradaki hedef (geriye rota açma hatasını önler); yoksa Riga.
+        nav.nextStop ?? trip.stops.last
     }
 
     @ViewBuilder
@@ -167,10 +165,12 @@ struct LiveLocationCard: View {
             }
             ForEach(trip.stops) { stop in
                 Annotation(stop.name, coordinate: stop.coordinate) {
-                    Text(stop.flag)
-                        .font(.system(size: 14))
-                        .padding(4)
-                        .background(.black.opacity(0.55), in: Circle())
+                    Text(stop.code)
+                        .font(.system(size: 9, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.white)
+                        .frame(width: 26, height: 26)
+                        .background(.black.opacity(0.62), in: Circle())
+                        .overlay(Circle().strokeBorder(Theme.c4.opacity(0.8), lineWidth: 1))
                 }
             }
             UserAnnotation()

@@ -49,6 +49,21 @@ struct Stop: Codable, Identifiable {
         default: return "📍"
         }
     }
+
+    /// Bayrak emojisi simülatörde/bazı fontlarda "?" olarak çıkabildiği için
+    /// arayüzde kullanılan güvenli ülke kodu (her yerde render olur).
+    var code: String {
+        switch country {
+        case "Türkiye": return "TR"
+        case "Bulgaristan": return "BG"
+        case "Romanya": return "RO"
+        case "Macaristan": return "HU"
+        case "Polonya": return "PL"
+        case "Letonya": return "LV"
+        case "Litvanya": return "LT"
+        default: return "•"
+        }
+    }
 }
 
 struct DayPlan: Codable, Identifiable {

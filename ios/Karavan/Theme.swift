@@ -48,6 +48,23 @@ extension View {
     func card() -> some View { modifier(CardStyle()) }
 }
 
+// Ülke kodu rozeti — bayrak emojisi yerine (simülatörde/bazı fontlarda "?" çıkmaz).
+struct CountryBadge: View {
+    let code: String
+    var size: CGFloat = 12
+
+    var body: some View {
+        Text(code)
+            .font(.system(size: size, weight: .heavy, design: .rounded))
+            .kerning(0.3)
+            .foregroundStyle(.white)
+            .padding(.horizontal, size * 0.42)
+            .padding(.vertical, size * 0.18)
+            .background(Theme.gradWarm, in: RoundedRectangle(cornerRadius: size * 0.4, style: .continuous))
+            .fixedSize()
+    }
+}
+
 // Mono etiket (web'deki eyebrow/mono his)
 struct MonoLabel: View {
     let text: String

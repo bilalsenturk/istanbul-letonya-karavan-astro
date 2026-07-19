@@ -48,12 +48,12 @@ struct MapScreen: View {
             loc.request()
             if let stops = store.trip?.stops {
                 await routeStore.computeIfNeeded(stops: stops)
-                await nav.update(location: loc.location, stops: stops, legs: routeStore.routes)
+                await nav.update(location: loc.location, stops: stops, legs: routeStore.legs)
             }
         }
         .onChange(of: loc.location?.timestamp) { _, _ in
             if let stops = store.trip?.stops {
-                Task { await nav.update(location: loc.location, stops: stops, legs: routeStore.routes) }
+                Task { await nav.update(location: loc.location, stops: stops, legs: routeStore.legs) }
             }
         }
         .sheet(item: $selectedStop) { stop in
@@ -77,7 +77,9 @@ struct MapScreen: View {
                     .fixedSize()
                 ZStack {
                     Circle().fill(.black.opacity(0.65)).frame(width: 30, height: 30)
-                    Text(stop.flag).font(.system(size: 15))
+                    Text(stop.code)
+                        .font(.system(size: 11, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.white)
                 }
                 .overlay(Circle().strokeBorder(Theme.c4, lineWidth: 2))
                 .shadow(color: .black.opacity(0.35), radius: 3, y: 1)
