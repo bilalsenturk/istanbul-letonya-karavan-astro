@@ -173,11 +173,24 @@ struct AddExpenseSheet: View {
     @EnvironmentObject var expenseStore: ExpenseStore
     @Environment(\.dismiss) private var dismiss
 
-    @State private var amount = ""
-    @State private var category: ExpenseCategory = .yakit
-    @State private var note = ""
+    @State private var amount: String
+    @State private var category: ExpenseCategory
+    @State private var note: String
     @State private var date = Date()
     @State private var addedCount = 0
+
+    // Tarayıcı/sesli girişten ön-dolu açılabilir.
+    init(prefillAmount: Double? = nil,
+         prefillCategory: ExpenseCategory = .yakit,
+         prefillNote: String = "",
+         onAdd: @escaping (Expense) -> Void) {
+        self.onAdd = onAdd
+        _amount = State(initialValue: prefillAmount.map {
+            $0.truncatingRemainder(dividingBy: 1) == 0 ? String(Int($0)) : String(format: "%.2f", $0)
+        } ?? "")
+        _category = State(initialValue: prefillCategory)
+        _note = State(initialValue: prefillNote)
+    }
 
     private var amountValue: Double? {
         Double(amount.replacingOccurrences(of: ",", with: "."))

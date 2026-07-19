@@ -97,6 +97,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                 rigaKm = Int(km.rounded())
             }
             AnnouncementService.shared.announceArrival(stopName: region.identifier, remainingToFinalKm: rigaKm)
+            LiveActivityManager.shared.endCurrent()   // etap bitti → kilit ekranı kartını kapat
         }
     }
 
@@ -107,12 +108,78 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
             // Konum geldikçe ilerlemeyi güncelle (view zamanlamasına bağlı kalmadan),
             // sonra web'e zengin durumu yayınla.
             if let stops = self.trip?.trip?.stops, stops.count >= 2 {
-                await self.nav?.update(location: last, stops: stops, legs: self.routeStore?.legs ?? [])
+                await self.nav?.update(location: last, stops: stops, route: self.routeStore)
             }
             self.publishToWeb(last)
             // Her ~100 km / yaklaşınca sesli mesafe anonsu
             if let name = self.nav?.nextStop?.name, let km = self.nav?.remainingKm {
                 AnnouncementService.shared.progressUpdate(nextStop: name, remainingKm: km)
+            }
+            self.updateSharedAndActivity()
+            self.checkRouteDeviation(last)
+        }
+    }
+
+    // MARK: - Rota-sapma uyarısı (SOS)
+    // Plandaki yoldan 5+ km sapmış halde sürüş, 3 ardışık ölçümde teyit edilirse bildir.
+    private var deviationStreak = 0
+    private var lastDeviationAlert: Date = .distantPast
+
+    private func checkRouteDeviation(_ current: CLLocation) {
+        guard let legIdx = nav?.currentLegIndex,
+              let coordsList = routeStore?.displayCoords,
+              coordsList.indices.contains(legIdx),
+              (speedKmh ?? 0) > 20
+        else { deviationStreak = 0; return }
+
+        let legCoords = coordsList[legIdx]
+        guard legCoords.count > 1 else { return }
+        var minDist = Double.infinity
+        for c in stride(from: 0, to: legCoords.count, by: 4) {
+            let d = current.distance(from: CLLocation(latitude: legCoords[c].latitude, longitude: legCoords[c].longitude))
+            if d < minDist { minDist = d }
+            if minDist < 5000 { break }
+        }
+
+        if minDist >= 5000 {
+            deviationStreak += 1
+            if deviationStreak >= 3, Date().timeIntervalSince(lastDeviationAlert) > 900 {
+                lastDeviationAlert = Date()
+                NotificationManager.shared.notify(
+                    title: "🧭 Rotadan saptın",
+                    body: "Planlanan yoldan \(Int(minDist / 1000)) km uzaktasın. Bilerek mi? Araçlar'dan konumunu paylaşabilirsin.",
+                    id: "route-deviation"
+                )
+            }
+        } else {
+            deviationStreak = 0
+        }
+    }
+
+    /// Widget + Live Activity beslemesi: App Group snapshot'ı yaz, sürüşteyse aktiviteyi güncelle.
+    private func updateSharedAndActivity() {
+        guard let nav else { return }
+        var values: [String: Any] = [:]
+        if let city = nav.currentCity { values[SharedSnapshot.Key.currentCity] = city }
+        if let next = nav.nextStop {
+            values[SharedSnapshot.Key.nextStop] = next.name
+            values[SharedSnapshot.Key.nextCode] = next.code
+        }
+        if let km = nav.remainingKm { values[SharedSnapshot.Key.remainingKm] = km }
+        if let m = nav.remainingMinutes { values[SharedSnapshot.Key.remainingMin] = m }
+        values[SharedSnapshot.Key.legProgress] = Int((nav.legProgress * 100).rounded())
+        SharedSnapshot.write(values)
+        LiveActivityManager.shared.reloadWidgetsThrottled()
+
+        // Sürüş algısı: 25 km/s üstü → Live Activity başlat/güncelle
+        if let next = nav.nextStop, let km = nav.remainingKm, let m = nav.remainingMinutes {
+            let speed = speedKmh ?? 0
+            if speed > 25 || LiveActivityManager.shared.isActive {
+                LiveActivityManager.shared.startOrUpdate(
+                    nextStop: next.name, nextCode: next.code,
+                    remainingKm: km, remainingMin: m,
+                    speedKmh: speed, progress: nav.legProgress
+                )
             }
         }
     }

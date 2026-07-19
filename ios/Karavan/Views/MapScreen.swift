@@ -18,12 +18,12 @@ struct MapScreen: View {
                 Map(position: $position) {
                     // Gerçek sürüş rotası (Apple Haritalar / MKDirections).
                     // Henüz hesaplanmadıysa ince kesikli taslak çizgi (kırmızı değil).
-                    if routeStore.routes.isEmpty {
+                    if routeStore.displayCoords.isEmpty {
                         MapPolyline(coordinates: trip.stops.map(\.coordinate))
                             .stroke(Theme.c4.opacity(0.35), style: StrokeStyle(lineWidth: 3, dash: [6, 6]))
                     } else {
-                        ForEach(Array(routeStore.routes.enumerated()), id: \.offset) { _, route in
-                            MapPolyline(route)
+                        ForEach(Array(routeStore.displayCoords.enumerated()), id: \.offset) { _, coords in
+                            MapPolyline(coordinates: coords)
                                 .stroke(Theme.c4, lineWidth: 5)
                         }
                     }
@@ -48,12 +48,12 @@ struct MapScreen: View {
             loc.request()
             if let stops = store.trip?.stops {
                 await routeStore.computeIfNeeded(stops: stops)
-                await nav.update(location: loc.location, stops: stops, legs: routeStore.legs)
+                await nav.update(location: loc.location, stops: stops, route: routeStore)
             }
         }
         .onChange(of: loc.location?.timestamp) { _, _ in
             if let stops = store.trip?.stops {
-                Task { await nav.update(location: loc.location, stops: stops, legs: routeStore.legs) }
+                Task { await nav.update(location: loc.location, stops: stops, route: routeStore) }
             }
         }
         .sheet(item: $selectedStop) { stop in
@@ -92,7 +92,7 @@ struct MapScreen: View {
         VStack(spacing: 8) {
             if let next = nav.nextStop, let km = nav.remainingKm {
                 pill("arrow.triangle.turn.up.right.circle.fill", "\(next.name) · \(km) km · \(nav.remainingTimeText)")
-            } else if !routeStore.routes.isEmpty {
+            } else if routeStore.hasRoute {
                 pill("road.lanes", "Gerçek yol: \(routeStore.totalDistanceKm) km · \(routeTimeText)")
             } else if routeStore.computing {
                 pill("road.lanes", "Gerçek yol hesaplanıyor…")

@@ -25,6 +25,15 @@ final class TripStore: ObservableObject {
 
     private func loadBundled() {
         trip = Self.bundledTrip()
+        writeSnapshot()
+    }
+
+    /// Widget'ların ihtiyacı olan sabitleri App Group'a yaz.
+    private func writeSnapshot() {
+        guard let trip else { return }
+        var values: [String: Any] = [SharedSnapshot.Key.departureAt: trip.departureAt]
+        if let max = trip.totalBudget.max { values[SharedSnapshot.Key.budgetMax] = Double(max) }
+        SharedSnapshot.write(values)
     }
 
     func refreshFromRemote() async {
@@ -38,5 +47,6 @@ final class TripStore: ObservableObject {
         else { return }
         trip = decoded
         lastRefreshed = Date()
+        writeSnapshot()
     }
 }

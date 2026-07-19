@@ -9,6 +9,8 @@ struct ContentView: View {
                 .tabItem { Label("Harita", systemImage: "map.fill") }
             PlanScreen()
                 .tabItem { Label("Plan", systemImage: "list.number") }
+            ToolsView()
+                .tabItem { Label("Araçlar", systemImage: "wrench.and.screwdriver.fill") }
         }
         .tint(Theme.c2)
     }

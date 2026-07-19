@@ -9,6 +9,7 @@ struct KaravanApp: App {
     @StateObject private var routeStore = RouteStore()
     @StateObject private var navProgress = NavProgressStore()
     @StateObject private var altimeter = AltimeterService()
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         // Kamp görsellerini tek sefer indir, tekrar kullan (hız + veri tasarrufu).
@@ -44,6 +45,12 @@ struct KaravanApp: App {
                         NotificationManager.shared.scheduleDepartureReminders(departure: departure)
                     }
                     BackgroundWeather.schedule()
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .active {
+                        expenses.reload()                 // Siri arka planda eklemiş olabilir
+                        locationManager.applyPowerMode()  // termal/güç durumu değişmiş olabilir
+                    }
                 }
         }
         // Arka planda periyodik hava kontrolü (best-effort; iOS zamanlar).

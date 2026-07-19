@@ -29,10 +29,22 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Fiş/pompa tutarı okuma, belge tarama ve tabela çevirisi için kamera kullanılır.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Belge kasasını (pasaport, sigorta) yalnızca sana açmak için Face ID kullanılır.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Arka planda da takip: duraklara varışta otomatik bildirim ve canlı konum yayını için.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Canlı yolculuk takibi: Riga'ya kalan mesafe, hız ve sıradaki durak konumunuza göre hesaplanır.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Eller serbest sesli harcama eklemek için mikrofon kullanılır.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Yol fotoğraflarını rota haritasına iğnelemek (foto günlüğü) için fotoğraflara erişilir.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Söylediğin harcamayı yazıya çevirmek için konuşma tanıma kullanılır.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>

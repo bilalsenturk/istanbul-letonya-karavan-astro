@@ -6,10 +6,25 @@ import Foundation
 final class ExpenseStore: ObservableObject {
     @Published private(set) var expenses: [Expense] = []
 
-    private let fileURL: URL = {
-        let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        return dir.appendingPathComponent("expenses.json")
-    }()
+    nonisolated static var fileURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("expenses.json")
+    }
+
+    private var fileURL: URL { Self.fileURL }
+
+    /// Siri/App Intent gibi store örneği olmadan çalışan yerlerden doğrudan ekleme.
+    /// App öne gelince `reload()` ile arayüze yansır.
+    nonisolated static func appendDirect(_ expense: Expense) {
+        var list = (try? JSONDecoder().decode([Expense].self, from: Data(contentsOf: fileURL))) ?? []
+        list.append(expense)
+        list.sort { $0.date > $1.date }
+        if let data = try? JSONEncoder().encode(list) {
+            try? data.write(to: fileURL, options: .atomic)
+        }
+        let total = list.reduce(0) { $0 + $1.amountEur }
+        SharedSnapshot.write([SharedSnapshot.Key.spentEur: (total * 100).rounded() / 100])
+    }
 
     init() {
         load()
@@ -102,6 +117,14 @@ final class ExpenseStore: ObservableObject {
             try? data.write(to: fileURL, options: .atomic)
         }
         publishTotal()
+        SharedSnapshot.write([SharedSnapshot.Key.spentEur: (total * 100).rounded() / 100])
+        LiveActivityManager.shared.reloadWidgetsThrottled()
+    }
+
+    /// Diskten yeniden yükle (Siri/App Intent arka planda eklemiş olabilir).
+    func reload() {
+        load()
+        objectWillChange.send()
     }
 
     // MARK: - Web'e yalnızca toplamı yayınla

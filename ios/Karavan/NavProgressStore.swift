@@ -20,6 +20,7 @@ final class NavProgressStore: ObservableObject {
     @Published var legProgress: Double = 0     // 0…1
     @Published var currentCity: String?
     @Published var arrivals: [StopArrival] = []
+    @Published var currentLegIndex: Int?       // rota-sapma (SOS) kontrolü için
 
     private var lastComputeAt: Date = .distantPast
     private var lastCoord: CLLocationCoordinate2D?
@@ -43,7 +44,7 @@ final class NavProgressStore: ObservableObject {
         return perpSq.squareRoot()
     }
 
-    func update(location: CLLocation?, stops: [Stop], legs: [MKRoute?]) async {
+    func update(location: CLLocation?, stops: [Stop], route: RouteStore?) async {
         guard let location, stops.count >= 2 else { return }
 
         // Kısıtla: yalnızca 700 m'den fazla hareket ya da 45 sn geçmişse yeniden hesapla.
@@ -68,6 +69,7 @@ final class NavProgressStore: ObservableObject {
         let prevIdx = bestLeg
         let next = stops[idx]
         nextStop = next
+        currentLegIndex = bestLeg
 
         // 2) Kalan km + SÜRE — Apple Maps (MKDirections) ile gerçek sürüş.
         let request = MKDirections.Request()
@@ -88,8 +90,8 @@ final class NavProgressStore: ObservableObject {
 
         // 3) Gidilen yol + ilerleme (etabın toplamından).
         let legTotal: Double
-        if legs.indices.contains(prevIdx), let leg = legs[prevIdx] {
-            legTotal = leg.distance
+        if let info = route?.legInfo(prevIdx) {
+            legTotal = info.distance
         } else {
             legTotal = CLLocation(latitude: stops[prevIdx].lat, longitude: stops[prevIdx].lng)
                 .distance(from: CLLocation(latitude: next.lat, longitude: next.lng))
@@ -104,8 +106,8 @@ final class NavProgressStore: ObservableObject {
         var cum = TimeInterval((remainingMinutes ?? 0) * 60)
         for k in idx ..< stops.count {
             if k > idx {
-                if legs.indices.contains(k - 1), let leg = legs[k - 1] {
-                    cum += leg.expectedTravelTime
+                if let info = route?.legInfo(k - 1) {
+                    cum += info.time
                 } else {
                     let d = CLLocation(latitude: stops[k - 1].lat, longitude: stops[k - 1].lng)
                         .distance(from: CLLocation(latitude: stops[k].lat, longitude: stops[k].lng))

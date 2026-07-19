@@ -9,6 +9,10 @@ struct DashboardView: View {
     @EnvironmentObject var nav: NavProgressStore
     @EnvironmentObject var altimeter: AltimeterService
 
+    // Sürüş Focus filtresi (Ayarlar → Odak → Sürüş → Kuzey): sade panel.
+    @AppStorage(SharedSnapshot.Key.simpleMode, store: SharedSnapshot.defaults)
+    private var simpleMode = false
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -25,11 +29,13 @@ struct DashboardView: View {
                                     CountdownView(departure: departure)
                                 }
                             }
-                            metricRow(trip: trip)
-                            expenseCard(trip: trip)
+                            if !simpleMode { metricRow(trip: trip) }
+                            if !simpleMode { expenseCard(trip: trip) }
                             LiveLocationCard()
-                            arrivalsCard
-                            weatherStrip
+                            if !simpleMode {
+                                arrivalsCard
+                                weatherStrip
+                            }
                         } else {
                             ProgressView().tint(.white).padding(40)
                         }
@@ -54,7 +60,7 @@ struct DashboardView: View {
                 async let w: () = weather.refresh(stops: stops)
                 async let r: () = routeStore.computeIfNeeded(stops: stops)
                 _ = await (w, r)
-                await nav.update(location: loc.location, stops: stops, legs: routeStore.legs)
+                await nav.update(location: loc.location, stops: stops, route: routeStore)
             }
         }
         .onChange(of: loc.location?.timestamp) { _, _ in

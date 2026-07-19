@@ -71,12 +71,12 @@ struct LiveLocationCard: View {
         .card()
         .task { await updateNav() }
         .onChange(of: loc.location?.timestamp) { _, _ in Task { await updateNav() } }
-        .onChange(of: routeStore.routes.count) { _, _ in Task { await updateNav() } }
+        .onChange(of: routeStore.legs.count) { _, _ in Task { await updateNav() } }
     }
 
     private func updateNav() async {
         guard let stops = store.trip?.stops else { return }
-        await nav.update(location: loc.location, stops: stops, legs: routeStore.legs)
+        await nav.update(location: loc.location, stops: stops, route: routeStore)
     }
 
     // Sıradaki hedefe kalan km + SÜRE + gidilen + anlık şehir (kullanıcı isteği).
@@ -168,12 +168,12 @@ struct LiveLocationCard: View {
         // Kullanıcıya odaklı başlangıç kamerası (konum yoksa tüm rota).
         Map(initialPosition: .userLocation(fallback: .automatic)) {
             // Gerçek yol (Apple Haritalar); gelene kadar ince kesikli taslak (kırmızı değil).
-            if routeStore.routes.isEmpty {
+            if routeStore.displayCoords.isEmpty {
                 MapPolyline(coordinates: trip.stops.map(\.coordinate))
                     .stroke(Theme.c4.opacity(0.4), style: StrokeStyle(lineWidth: 2.5, dash: [5, 5]))
             } else {
-                ForEach(Array(routeStore.routes.enumerated()), id: \.offset) { _, route in
-                    MapPolyline(route).stroke(Theme.c4, lineWidth: 3)
+                ForEach(Array(routeStore.displayCoords.enumerated()), id: \.offset) { _, coords in
+                    MapPolyline(coordinates: coords).stroke(Theme.c4, lineWidth: 3)
                 }
             }
             ForEach(trip.stops) { stop in
