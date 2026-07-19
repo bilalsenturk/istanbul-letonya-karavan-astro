@@ -78,7 +78,6 @@ const mapId = `route-map-${Math.random().toString(36).slice(2, 10)}`;
 
     const mapContainer = sectionEl.querySelector('.route-map');
     if (!mapContainer) return;
-    if (!mapContainer) return;
 
     const points = (() => {
       try {
@@ -102,7 +101,7 @@ const mapId = `route-map-${Math.random().toString(36).slice(2, 10)}`;
     };
 
     const loadLeafletJs = () =>
-      new Promise<void>((resolve, reject) => {
+      new Promise((resolve, reject) => {
         if (window.L && window.L.map) return resolve();
         const script = document.createElement('script');
         script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';

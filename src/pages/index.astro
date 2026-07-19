@@ -7,12 +7,7 @@ const departureDate = new Date(tripData.departureAt);
 const today = new Date();
 const daysUntilDeparture = Math.max(0, Math.ceil((departureDate.getTime() - today.getTime()) / 86400000));
 const daySpan = tripData.days.length;
-
-const mapStops = tripData.stops.map((stop) => ({
-  name: stop.name,
-  lat: stop.lat,
-  lng: stop.lng,
-}));
+const mapStops = tripData.stops.map((stop) => ({ name: stop.name, lat: stop.lat, lng: stop.lng }));
 ---
 
 <MainLayout
@@ -20,79 +15,118 @@ const mapStops = tripData.stops.map((stop) => ({
   description="7-8 günlük karavan rotası, günlük plan, trafik takibi, kamp ve ekipman checklist’i."
 >
   <section class="shell hero">
-    <h1>İstanbul’dan Letonya’ya: İstanbul → Riga Karavan Brifingi</h1>
-    <p>
-      Bu kontrol paneliyle her gün için ayrı sayfa, rota çizgisi, canlı trafik görünümü,
-      şehir kameraları ve yolculuk öncesi hazırlık durumu tek ekranda takip edilir.
-      Karavan: <strong>{tripData.vehicle.model}</strong> · Plaka: <strong>{tripData.vehicle.plate}</strong>
-    </p>
-    <img class="hero-image" src="/assets/passat-adria-karavan.png" alt="Passat + Adria karavan" loading="lazy" />
-    <div class="header-nav">
-      <a class="btn" href="#plan">Günlere Git</a>
-      <a class="btn" href="#check">Hazırlık Kontrolü</a>
-      <a class="btn" href="#harita">Canlı Harita</a>
-      <a class="btn" href="/day/istanbul-sofya">Bugün Programı</a>
+    <div class="section-title">
+      <div>
+        <h1>İstanbul’dan Letonya’ya Karavan Brifingi</h1>
+        <p class="subline">
+          Yolculuk planı, günlük hedefler, trafik riskleri ve canlı takip tek ekranda.
+          <strong>Araç:</strong> {tripData.vehicle.model} · <strong>Plaka:</strong> {tripData.vehicle.plate}
+        </p>
+      </div>
+      <a class="btn btn--primary" href="/day/istanbul-sofya">Bugünün Güzergâhı</a>
+    </div>
+    <img
+      class="hero-image"
+      src="/assets/passat-adria-karavan.png"
+      alt="Passat + Adria karavan"
+      loading="lazy"
+    />
+    <div class="hero-badges">
+      <a class="btn btn--primary" href="#plan">Günlük Plan</a>
+      <a class="btn btn--ghost" href="#check">Hazırlık Listesi</a>
+      <a class="btn btn--ghost" href="#harita">Canlı Harita</a>
+      <a class="btn btn--ghost" href="/day/suwalki-riga">Riga Yaklaşımı</a>
     </div>
   </section>
 
   <section class="grid">
     <article class="card col-4">
       <h3>Yola Çıkmaya Kalan Süre</h3>
-      <p id="countdown" class="muted">Yükleniyor…</p>
-      <p>Planlanan çıkış: <strong>{tripData.departureAt}</strong></p>
-      <p>Bugüne kadar kalan gün: <strong id="remaining-days">{daysUntilDeparture}</strong></p>
-      <p>Toplam segment: <strong>{daySpan}</strong> gün.</p>
-      <p class="tag">Yaklaşık toplam bütçe: <strong>{tripData.totalBudget.total}</strong></p>
-      <p>Yakıt bütçesi aralığı: <strong>{tripData.totalBudget.fuel}</strong></p>
+      <p id="countdown" class="subline">Yükleniyor…</p>
+      <p><strong>Planlanan çıkış:</strong> {tripData.departureAt}</p>
+      <p><strong>Kalan gün:</strong> <span id="remaining-days">{daysUntilDeparture}</span></p>
+      <p><strong>Toplam segment:</strong> {daySpan} gün</p>
+      <p class="tiny-note">Takvimdeki son tarih güncellemesi: 19 Temmuz 2026</p>
+      <div class="metric-row">
+        <div class="metric">
+          <span>Toplam yakıt bütçesi</span>
+          <b>{tripData.totalBudget.fuel}</b>
+        </div>
+        <div class="metric">
+          <span>Toplam hedef aralık</span>
+          <b>{tripData.totalBudget.total}</b>
+        </div>
+        <div class="metric">
+          <span>Tahmini toplam mesafe</span>
+          <b>{tripData.totalKm} km</b>
+        </div>
+      </div>
     </article>
 
     <article class="card col-4">
       <h3>Konum Takibi</h3>
       <p id="location-status" class="muted">Konum bilgisi bekleniyor…</p>
-      <p><strong>Şu anki hedef:</strong> <span id="target-city">Sofya</span></p>
+      <p><strong>Hedef şehir:</strong> <span id="target-city">Sofya</span></p>
       <p><strong>Kalan mesafe:</strong> <span id="remaining-distance">—</span></p>
-      <p><strong>Tahmini kalan süre:</strong> <span id="remaining-time">—</span></p>
-      <button class="btn" id="locate-btn">Konumumu Güncelle</button>
-      <p class="muted">Not: Telefonun hareket verisi varsa "konum izni" ile daha doğru gösterim yapılır.</p>
+      <p><strong>Tahmini varış süresi:</strong> <span id="remaining-time">—</span></p>
+      <div class="metric-row" style="margin-top: 12px;">
+        <button class="btn" id="locate-btn">Konumumu Yenile</button>
+        <span class="pill">Telefon konumu + kullanıcı izniyle daha doğru sonuç</span>
+      </div>
     </article>
 
     <article class="card col-4">
-      <h3>Araç ve Karavan Durumu</h3>
+      <h3>Araç & Karavan Durumu</h3>
+      <p><strong>Çekim:</strong> {tripData.vehicle.towing}</p>
       <p><strong>Model:</strong> {tripData.vehicle.model}</p>
       <p><strong>Plaka:</strong> {tripData.vehicle.plate}</p>
-      <p><strong>Çekme profili:</strong> {tripData.vehicle.towing}</p>
-      <p><strong>Planlanan mesafe:</strong> {tripData.totalKm} km</p>
-      <p class="tag">Yakıt: {tripData.totalBudget.fuel} · Toplam: {tripData.totalBudget.total}</p>
+      <p><strong>Yükleme prensibi:</strong> Ağır eşyalar dingile yakın, hassas eşyalar sabitlenmiş.</p>
+      <div class="progress-wrap">
+        <div class="tag-row">
+          <span class="tag">Hazırlık ilerlemesi</span>
+          <span class="tiny-note" id="task-status">0 / {tripData.checklist.length}</span>
+        </div>
+        <div class="progress" aria-label="Hazırlık ilerleme çubuğu">
+          <span id="task-progress" style="width: 0%"></span>
+        </div>
+      </div>
     </article>
   </section>
 
   <section id="check" class="shell">
-    <h3>Yola Çıkmadan Önce Hazırlık Kontrol Listesi</h3>
-    <p class="muted">İlerleme ve son tarih takibi, görev tamamlandıkça otomatik olarak cihaza kaydedilir.</p>
-    <div class="grid">
+    <div class="section-title">
+      <div>
+        <h3>Yola Çıkmadan Önce Hazırlık Kontrol Listesi</h3>
+        <p class="subline">İşaretledikleriniz otomatik lokal olarak saklanır.</p>
+      </div>
+      <a class="btn btn--ghost" href="#plan">Plan Modülüne Git</a>
+    </div>
+    <div class="card task-check-wrap">
       {tripData.checklist.map((item) => (
-        <label class="card col-6">
+        <label class="task-check-row">
           <input type="checkbox" class="task-check" data-task={item.id} />
-          <strong>{item.due}</strong>
-          <p>{item.task}</p>
+          <div>
+            <p><strong>{item.due}</strong> — {item.task}</p>
+            <span class="due muted">Görev ID: {item.id}</span>
+          </div>
         </label>
       ))}
     </div>
-    <div class="grid">
+
+    <div class="grid" style="margin-top: 12px;">
       <article class="card col-12">
-        <h4>İlk 10 Adım</h4>
-        <ol>
-          <li>Deutsche Schule Riga’ya e-posta teyit</li>
-          <li>Buz pateni kulüplerine ön başvuru</li>
-          <li>PMLP randevusunu 1 gün içinde netleştirme</li>
-          <li>Şirket kurulum sürecini başlat</li>
-          <li>Yeşil kart + yol yardım</li>
-          <li>Karavan elektrik arızası onayı</li>
-          <li>Yolcu ve yol yardımı kontrolleri</li>
-          <li>Sofya / Bükreş / Budapeşte kamp teyitleri</li>
-          <li>Deva ve Suwałki geçiş testleri</li>
-          <li>Riga kamp ve adres dokümanları</li>
-          <li>Rezervasyon ve finans tamponu</li>
+        <h4>Hedeflenen 10 kritik aksiyon</h4>
+        <ol class="route-list">
+          <li>Deutsche Schule Riga’ya 2026/27 başlangıç teyidi</li>
+          <li>Litonya’ya hareket öncesi son teknik ve sigorta kontrolü</li>
+          <li>Karavan elektrik sorunlarının yazılı çözüm teyidi</li>
+          <li>PMLP randevusu, adres ve şirket sürecini eşzamanlama</li>
+          <li>Liman ve kamp rezervasyon alternatifleri (Sofya/Bükreş/Budapeşte)</li>
+          <li>Vinyet + otoyol ücret güncellemesi</li>
+          <li>Yedek plan: gecikme ve mola saatleri</li>
+          <li>Riga’ya girişte kamp ve internet/elektrik doğrulama</li>
+          <li>Okul ve buz pateni süreç belgelerinin yedek kopyası</li>
+          <li>Finans tamponu ve kart limitleri kontrolü</li>
         </ol>
       </article>
     </div>
@@ -100,11 +134,18 @@ const mapStops = tripData.stops.map((stop) => ({
 
   <section id="harita" class="shell">
     <h3>Rota Haritası (gerçek harita)</h3>
-    <RouteMap title="İstanbul → Riga Tam Rota" routeStops={mapStops} activeFrom="İstanbul" activeTo="Riga" height="430px" />
+    <RouteMap
+      title="İstanbul → Riga Tam Rota"
+      routeStops={mapStops}
+      activeFrom="İstanbul"
+      activeTo="Riga"
+      height="430px"
+    />
   </section>
 
   <section id="plan" class="shell">
     <h3>Günlük Yolculuk Planı</h3>
+    <p class="subline">Her gün için ayrı sayfaya geçerek risk, alternatif ve kamp detaylarını detaylı inceleyebilirsin.</p>
     <div class="grid">
       {tripData.days.map((day) => (
         <a href={`/day/${day.slug}`} class="card col-6">
@@ -117,14 +158,18 @@ const mapStops = tripData.stops.map((stop) => ({
             <span class="tag">Süre {day.duration}</span>
             <span class="tag">{day.fuel}</span>
           </div>
-          <p>{day.risks[0]}</p>
+          <p class="muted">{day.risks[0]}</p>
+          <div class="tag-row" style="margin-top: 8px;">
+            <span class="pill">Kamp: {day.camp.place}</span>
+            <span class="pill">Kamera: {day.cityCameras.length} adet</span>
+          </div>
         </a>
       ))}
     </div>
   </section>
 </MainLayout>
 
-<script is:inline define:vars={{ routeData: tripData.routeGuide, stopsData: tripData.stops }}>
+<script is:inline define:vars={{ routeData: tripData.routeGuide, stopsData: tripData.stops, checklistSize: tripData.checklist.length }}>
   (() => {
     const departure = new Date('2026-08-03T05:00:00+03:00');
     const countdown = document.getElementById('countdown');
@@ -133,6 +178,8 @@ const mapStops = tripData.stops.map((stop) => ({
     const timeEl = document.getElementById('remaining-time');
     const cityEl = document.getElementById('target-city');
     const locStatus = document.getElementById('location-status');
+    const statusEl = document.getElementById('task-status');
+    const progressEl = document.getElementById('task-progress');
 
     const updateCountdown = () => {
       const diff = departure.getTime() - Date.now();
@@ -151,8 +198,9 @@ const mapStops = tripData.stops.map((stop) => ({
     setInterval(updateCountdown, 60000);
 
     const route = routeData;
-    const nextTarget = route[0]?.to || '';
-    if (cityEl) cityEl.textContent = nextTarget;
+    if (route.length > 0 && cityEl) {
+      cityEl.textContent = route[0].to || 'Sofya';
+    }
 
     const haversine = (a, b) => {
       const toRad = (d) => (d * Math.PI) / 180;
@@ -170,6 +218,18 @@ const mapStops = tripData.stops.map((stop) => ({
     const stops = stopsData;
     const riga = stops[stops.length - 1];
 
+    const setTaskProgress = () => {
+      const checks = document.querySelectorAll('.task-check');
+      let done = 0;
+      checks.forEach((input) => {
+        if (input.checked) done += 1;
+      });
+      const total = Number(checklistSize || 1);
+      const percent = Math.round((done / total) * 100);
+      statusEl.textContent = `${done} / ${total}`;
+      progressEl.style.width = `${percent}%`;
+    };
+
     const updateLocation = () => {
       if (!navigator.geolocation) {
         locStatus.textContent = 'Bu cihazda konum servisi desteklenmiyor.';
@@ -186,14 +246,11 @@ const mapStops = tripData.stops.map((stop) => ({
           locStatus.textContent = 'Konum alındı';
         },
         () => {
-          locStatus.textContent = 'Konum izni yok. "Konumumu Güncelle" ile deneyin.';
+          locStatus.textContent = 'Konum izni kapalı. "Konumumu Yenile" ile tekrar deneyin.';
         },
         { enableHighAccuracy: false, timeout: 12000 },
       );
     };
-
-    updateLocation();
-    document.getElementById('locate-btn')?.addEventListener('click', updateLocation);
 
     const checks = document.querySelectorAll('.task-check');
     checks.forEach((item) => {
@@ -202,7 +259,12 @@ const mapStops = tripData.stops.map((stop) => ({
       item.checked = saved;
       item.addEventListener('change', () => {
         localStorage.setItem(key, item.checked ? '1' : '0');
+        setTaskProgress();
       });
     });
+
+    setTaskProgress();
+    updateLocation();
+    document.getElementById('locate-btn')?.addEventListener('click', updateLocation);
   })();
 </script>

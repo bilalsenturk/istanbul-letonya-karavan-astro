@@ -17,20 +17,20 @@ if (!day) {
   return Astro.redirect('/');
 }
 
-const stopIndex = tripData.stops.findIndex((s) => s.name === day.origin);
-const endIndex = tripData.stops.findIndex((s) => s.name === day.destination);
 const mapStops = tripData.stops.map((stop) => ({ name: stop.name, lat: stop.lat, lng: stop.lng }));
 const previous = tripData.days.findIndex((row) => row.slug === slug) - 1;
 const next = tripData.days.findIndex((row) => row.slug === slug) + 1;
 ---
 
 <MainLayout title={`Günlük Plan: ${day.date} (${day.origin} → ${day.destination})`}>
-  <section class="shell">
+  <section class="shell" id="top">
     <div class="day-title">
       <h1>{day.date}</h1>
       <span class="tag">{day.origin} → {day.destination}</span>
     </div>
-    <p class="muted">Her günlük sayfa: hedef kilometre, yakıt, süre, risk senaryoları, kamp alternatifleri ve şehir kamera doğrulama noktaları.</p>
+    <p class="subline">
+      Günün operasyonel özeti: mesafe, yakıt, risk senaryoları, alternatif planlar, kamp teyidi ve kamera takip noktaları.
+    </p>
     <p class="tag-row">
       <span class="tag">Mesafe: {day.distanceKm}</span>
       <span class="tag">Sürüş: {day.duration}</span>
@@ -40,7 +40,10 @@ const next = tripData.days.findIndex((row) => row.slug === slug) + 1;
 
   <section class="grid">
     <article class="card col-8">
-      <h3>Rota ve plan</h3>
+      <div class="section-title">
+        <h3>Rota ve Plan</h3>
+        <a class="btn btn--ghost" href="/">Kontrol Paneli</a>
+      </div>
       <RouteMap
         title="Günün Haritası"
         routeStops={mapStops}
@@ -71,14 +74,17 @@ const next = tripData.days.findIndex((row) => row.slug === slug) + 1;
         </div>
       </div>
       <div class="tag-row">
-        <a class="btn" href={day.route}>Google Rota Planı (yönlendirme)</a>
+        <a class="btn btn--primary" href={day.route}>Google Rota Planı</a>
         <a class="btn" href={day.routeEmbed}>Rota (harita gömülü)</a>
-        <a class="btn" href="/">Kontrol Paneline Dön</a>
+        <a class="btn btn--ghost" href="/">Kontrol Paneline Dön</a>
       </div>
     </article>
 
     <article class="card col-4">
-      <h3>Riskler ve Olasılıklar</h3>
+      <div class="section-title">
+        <h3>Riskler ve Olasılıklar</h3>
+        <span class="pill">Strateji odaklı</span>
+      </div>
       <h4>Sorun Senaryoları</h4>
       <ul>
         {day.risks.map((item) => <li>{item}</li>)}
@@ -95,7 +101,10 @@ const next = tripData.days.findIndex((row) => row.slug === slug) + 1;
   </section>
 
   <section class="shell">
-    <h3>Yol Üzeri Duraklar</h3>
+    <div class="section-title">
+      <h3>Yol Üzeri Duraklar</h3>
+      <span class="pill">Yakıt-kahve-tavsiyeler</span>
+    </div>
     <div class="grid">
       {day.stops.map((stop) => (
         <article class="card col-4">
@@ -111,14 +120,18 @@ const next = tripData.days.findIndex((row) => row.slug === slug) + 1;
   </section>
 
   <section class="shell">
-    <h3>Şehir Kameraları</h3>
+    <div class="section-title">
+      <h3>Şehir Kameraları</h3>
+      <a class="btn btn--ghost" href="#top">Yukarı çık</a>
+    </div>
     <div class="grid">
       {day.cityCameras.map((camera) => <div class="col-6"><CameraPlayer camera={camera} /></div>)}
     </div>
   </section>
 
   <section class="shell">
-    <h3>Günün Gelişimi ve Geçiş Kaydı</h3>
+    <h3>İleriye Yönelik Notlar</h3>
+    <p class="subline">Riga sonrası adaptasyon ve 2. haftaya geçişte kullanılan aksiyon kartları.</p>
     <div class="grid">
       {tripData.postArrival.map((item) => (
         <article class="card col-4">
@@ -134,7 +147,7 @@ const next = tripData.days.findIndex((row) => row.slug === slug) + 1;
     <h3>Geçiş Bağlantıları</h3>
     <p class="tag-row">
       {previous >= 0 ? <a class="btn" href={`/day/${tripData.days[previous].slug}`}>Önceki Gün</a> : null}
-      {next < tripData.days.length ? <a class="btn" href={`/day/${tripData.days[next].slug}`}>Sonraki Gün</a> : null}
+      {next < tripData.days.length ? <a class="btn btn--ghost" href={`/day/${tripData.days[next].slug}`}>Sonraki Gün</a> : null}
     </p>
   </section>
 </MainLayout>
