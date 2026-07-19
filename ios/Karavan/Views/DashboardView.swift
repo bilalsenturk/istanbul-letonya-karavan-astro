@@ -7,6 +7,7 @@ struct DashboardView: View {
     @EnvironmentObject var expenses: ExpenseStore
     @EnvironmentObject var routeStore: RouteStore
     @EnvironmentObject var nav: NavProgressStore
+    @EnvironmentObject var altimeter: AltimeterService
 
     var body: some View {
         NavigationStack {
@@ -27,6 +28,7 @@ struct DashboardView: View {
                             metricRow(trip: trip)
                             expenseCard(trip: trip)
                             LiveLocationCard()
+                            arrivalsCard
                             weatherStrip
                         } else {
                             ProgressView().tint(.white).padding(40)
@@ -54,6 +56,9 @@ struct DashboardView: View {
                 _ = await (w, r)
                 await nav.update(location: loc.location, stops: stops, legs: routeStore.legs)
             }
+        }
+        .onChange(of: loc.location?.timestamp) { _, _ in
+            altimeter.stationary = (loc.speedKmh ?? 0) < 5   // yalnızca dururken fırtına kontrolü
         }
     }
 
@@ -196,6 +201,44 @@ struct DashboardView: View {
             .card()
         }
         .buttonStyle(.plain)
+    }
+
+    // Kalan tüm duraklara zincirleme varış tahmini (Apple ETA) + rakım.
+    @ViewBuilder private var arrivalsCard: some View {
+        if !nav.arrivals.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    MonoLabel(text: "Tahmini varışlar", color: Theme.c3)
+                    Spacer()
+                    if altimeter.available, let alt = altimeter.altitude {
+                        Label("\(Int(alt)) m", systemImage: "mountain.2.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Theme.dim)
+                    }
+                }
+                ForEach(nav.arrivals) { a in
+                    HStack(spacing: 10) {
+                        CountryBadge(code: a.code, size: 9)
+                        Text(a.name)
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Theme.text)
+                        Spacer()
+                        Text(etaText(a.eta))
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .foregroundStyle(Theme.dim)
+                    }
+                }
+            }
+            .card()
+        }
+    }
+
+    private func etaText(_ date: Date) -> String {
+        let cal = Calendar.current
+        let time = date.formatted(date: .omitted, time: .shortened)
+        if cal.isDateInToday(date) { return time }
+        if cal.isDateInTomorrow(date) { return "yarın \(time)" }
+        return date.formatted(.dateTime.weekday(.abbreviated).hour().minute())
     }
 
     private var weatherStrip: some View {

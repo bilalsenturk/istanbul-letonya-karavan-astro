@@ -9,6 +9,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     @Published var status: CLAuthorizationStatus = .notDetermined
     @Published var lastPublished: Date?
     @Published var publishEnabled = true
+    @Published var powerSaving = false     // termal/düşük güçte GPS kısıldı mı
 
     // Web'e zengin canlı durum göndermek için (şehir, sıradaki hedef, kalan km/süre…)
     weak var nav: NavProgressStore?
@@ -17,20 +18,57 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
 
     private let manager = CLLocationManager()
     private var lastPostAt: Date = .distantPast
+    private var monitoredStops: [Stop] = []
 
     override init() {
         super.init()
         manager.delegate = self
-        manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
-        manager.distanceFilter = 100
         manager.activityType = .automotiveNavigation
+        applyPowerMode()
+        NotificationCenter.default.addObserver(self, selector: #selector(powerChanged),
+                                               name: .NSProcessInfoPowerStateDidChange, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(powerChanged),
+                                               name: ProcessInfo.thermalStateDidChangeNotification, object: nil)
+    }
+
+    // MARK: - Termal / batarya uyumlu GPS
+    // Telefon ısınınca, Düşük Güç modunda veya kritik ısıda GPS hassasiyetini kısar;
+    // canlı paylaşımın kampa kadar dayanmasını sağlar.
+    @objc private nonisolated func powerChanged() {
+        Task { @MainActor in self.applyPowerMode() }
+    }
+
+    func applyPowerMode() {
+        let info = ProcessInfo.processInfo
+        let saving = info.isLowPowerModeEnabled
+            || info.thermalState == .serious
+            || info.thermalState == .critical
+        powerSaving = saving
+        manager.desiredAccuracy = saving ? kCLLocationAccuracyHundredMeters : kCLLocationAccuracyNearestTenMeters
+        manager.distanceFilter = saving ? 400 : 100
     }
 
     func request() {
-        if status == .notDetermined {
+        switch status {
+        case .notDetermined:
             manager.requestWhenInUseAuthorization()
-        } else {
+        case .authorizedWhenInUse:
+            manager.requestAlwaysAuthorization()   // arka planda varış bildirimi için
+        default:
             manager.startUpdatingLocation()
+        }
+    }
+
+    /// Varış geofence'i: her durağın çevresinde çember; girince bildirim (app kapalıyken de).
+    func startMonitoringStops(_ stops: [Stop]) {
+        monitoredStops = stops
+        guard CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self) else { return }
+        for region in manager.monitoredRegions { manager.stopMonitoring(for: region) }
+        for stop in stops.prefix(20) {
+            let region = CLCircularRegion(center: stop.coordinate, radius: 3000, identifier: stop.name)
+            region.notifyOnEntry = true
+            region.notifyOnExit = false
+            manager.startMonitoring(for: region)
         }
     }
 
@@ -40,7 +78,20 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
             self.status = s
             if s == .authorizedWhenInUse || s == .authorizedAlways {
                 self.manager.startUpdatingLocation()
+                if !self.monitoredStops.isEmpty {
+                    self.startMonitoringStops(self.monitoredStops)
+                }
             }
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
+        Task { @MainActor in
+            NotificationManager.shared.notify(
+                title: "🎉 \(region.identifier) · vardınız!",
+                body: "Kontrol: tüp gaz kapalı mı · elektrik/su · sınır belgeleri hazır mı?",
+                id: "arrival-\(region.identifier)"
+            )
         }
     }
 

@@ -16,6 +16,7 @@ targets:
         UILaunchScreen: {}
         UIApplicationSupportsIndirectInputEvents: true
         NSLocationWhenInUseUsageDescription: "Canlı yolculuk takibi: Riga'ya kalan mesafe, hız ve sıradaki durak konumunuza göre hesaplanır."
+        NSLocationAlwaysAndWhenInUseUsageDescription: "Arka planda da takip: duraklara varışta otomatik bildirim ve canlı konum yayını için."
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UISupportedInterfaceOrientations~ipad:
@@ -28,9 +29,10 @@ targets:
         # Uzak trafiğe dokunmaz; yalnızca localhost/*.local/adsız hostlar.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
-        # Arka planda hava kontrolü (best-effort bildirimler)
+        # Arka planda hava kontrolü + canlı konum + varış geofence
         UIBackgroundModes:
           - fetch
+          - location
         BGTaskSchedulerPermittedIdentifiers:
           - com.bilalsenturk.kuzey.weather
     settings:

@@ -16,6 +16,7 @@
 		5D29D5A948AD1618A9D6EBB2 /* ExpenseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5996AC2B67B4359151F40773 /* ExpenseStore.swift */; };
 		68B14299CB90DBF724E88AA2 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC44A961C70396158E35B2A1 /* Models.swift */; };
 		6A8F57A39EEEB2A7FA64075F /* Expense.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB332D14823389349D9F9A9 /* Expense.swift */; };
+		757502C0180B0C08065C603D /* AltimeterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 805F78AAB9DA84F69009C2E2 /* AltimeterService.swift */; };
 		83113E5D1FBE09DAB2A20E48 /* PlanScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC66F61F5A93C2097EF6381 /* PlanScreen.swift */; };
 		89784D251FA5CFB972CFACF6 /* KaravanApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48DBB19FBCDD52DE1F4E55F8 /* KaravanApp.swift */; };
 		8A8CCD1D954E11A6C346CFB6 /* AppleMapsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31D0A33B6EDB7280B5616C20 /* AppleMapsService.swift */; };
@@ -54,6 +55,7 @@
 		5BB332D14823389349D9F9A9 /* Expense.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Expense.swift; sourceTree = "<group>"; };
 		5CFA86E52D515272F7F13F10 /* TripStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripStore.swift; sourceTree = "<group>"; };
 		5DC95431B932CB4DFD5412C9 /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
+		805F78AAB9DA84F69009C2E2 /* AltimeterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AltimeterService.swift; sourceTree = "<group>"; };
 		854400F42C0A6BF3D1C19B27 /* trip.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = trip.json; sourceTree = "<group>"; };
 		86097054B82CA8512E4AA874 /* MapScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapScreen.swift; sourceTree = "<group>"; };
 		8C443FE724E722869D208BAC /* LiveLocationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveLocationCard.swift; sourceTree = "<group>"; };
@@ -69,6 +71,7 @@
 		433F4FB75A37C6DA9CE24E46 /* Karavan */ = {
 			isa = PBXGroup;
 			children = (
+				805F78AAB9DA84F69009C2E2 /* AltimeterService.swift */,
 				31D0A33B6EDB7280B5616C20 /* AppleMapsService.swift */,
 				9AEF46AA6EEEAA6BB1DFD19E /* Assets.xcassets */,
 				4D158F3DF63E4C9036FB22C7 /* Config.swift */,
@@ -202,6 +205,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				757502C0180B0C08065C603D /* AltimeterService.swift in Sources */,
 				8A8CCD1D954E11A6C346CFB6 /* AppleMapsService.swift in Sources */,
 				C1CD5BD742E28B2406B8C33B /* CampImage.swift in Sources */,
 				27D303E4234299F590A82DC4 /* Config.swift in Sources */,

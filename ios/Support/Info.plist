@@ -29,6 +29,8 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Arka planda da takip: duraklara varışta otomatik bildirim ve canlı konum yayını için.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Canlı yolculuk takibi: Riga'ya kalan mesafe, hız ve sıradaki durak konumunuza göre hesaplanır.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
@@ -36,6 +38,7 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>
+		<string>location</string>
 	</array>
 	<key>UILaunchScreen</key>
 	<dict/>

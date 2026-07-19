@@ -1,8 +1,16 @@
 import MapKit
 import CoreLocation
 
+// Bir durağa tahmini varış (zincirleme ETA için).
+struct StopArrival: Identifiable {
+    let id: String
+    let name: String
+    let code: String
+    let eta: Date
+}
+
 // Canlı yolculuk ilerlemesi: sıradaki hedef, kalan km + SÜRE (Apple Maps ETA),
-// gidilen yol ve anlık şehir. Konum değiştikçe (kısıtlı) güncellenir.
+// gidilen yol, anlık şehir ve kalan tüm duraklara zincirleme varış tahmini.
 @MainActor
 final class NavProgressStore: ObservableObject {
     @Published var nextStop: Stop?
@@ -11,6 +19,7 @@ final class NavProgressStore: ObservableObject {
     @Published var traveledKm: Int?
     @Published var legProgress: Double = 0     // 0…1
     @Published var currentCity: String?
+    @Published var arrivals: [StopArrival] = []
 
     private var lastComputeAt: Date = .distantPast
     private var lastCoord: CLLocationCoordinate2D?
@@ -89,7 +98,26 @@ final class NavProgressStore: ObservableObject {
         traveledKm = Int((traveled / 1000).rounded())
         legProgress = legTotal > 0 ? min(1, max(0, traveled / legTotal)) : 0
 
-        // 4) Anlık şehir (ters coğrafi kodlama, best-effort).
+        // 4) Zincirleme varış tahminleri: sıradaki durak → Riga (kalan süre + sonraki etaplar).
+        var arr: [StopArrival] = []
+        let base = Date()
+        var cum = TimeInterval((remainingMinutes ?? 0) * 60)
+        for k in idx ..< stops.count {
+            if k > idx {
+                if legs.indices.contains(k - 1), let leg = legs[k - 1] {
+                    cum += leg.expectedTravelTime
+                } else {
+                    let d = CLLocation(latitude: stops[k - 1].lat, longitude: stops[k - 1].lng)
+                        .distance(from: CLLocation(latitude: stops[k].lat, longitude: stops[k].lng))
+                    cum += d / (80_000.0 / 3600.0)
+                }
+            }
+            let s = stops[k]
+            arr.append(StopArrival(id: s.id, name: s.name, code: s.code, eta: base.addingTimeInterval(cum)))
+        }
+        arrivals = arr
+
+        // 5) Anlık şehir (ters coğrafi kodlama, best-effort).
         if let placemark = try? await geocoder.reverseGeocodeLocation(location).first {
             currentCity = placemark.locality ?? placemark.subAdministrativeArea ?? placemark.administrativeArea
         }

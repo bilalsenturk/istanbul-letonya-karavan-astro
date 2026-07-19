@@ -8,6 +8,7 @@ struct KaravanApp: App {
     @StateObject private var expenses = ExpenseStore()
     @StateObject private var routeStore = RouteStore()
     @StateObject private var navProgress = NavProgressStore()
+    @StateObject private var altimeter = AltimeterService()
 
     init() {
         // Kamp görsellerini tek sefer indir, tekrar kullan (hız + veri tasarrufu).
@@ -23,6 +24,7 @@ struct KaravanApp: App {
                 .environmentObject(expenses)
                 .environmentObject(routeStore)
                 .environmentObject(navProgress)
+                .environmentObject(altimeter)
                 .preferredColorScheme(.dark)
                 .task {
                     await NotificationManager.shared.requestAuthorization()
@@ -30,6 +32,10 @@ struct KaravanApp: App {
                     locationManager.nav = navProgress
                     locationManager.trip = store
                     locationManager.routeStore = routeStore
+                    altimeter.start()
+                    if let stops = store.trip?.stops {
+                        locationManager.startMonitoringStops(stops)
+                    }
                     if let departure = store.trip?.departureDate {
                         NotificationManager.shared.scheduleDepartureReminders(departure: departure)
                     }
