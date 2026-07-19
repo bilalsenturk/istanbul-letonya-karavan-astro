@@ -2,6 +2,7 @@
 import MainLayout from '../layouts/MainLayout.astro';
 import RouteMap from '../components/RouteMap.astro';
 import RouteStepper from '../components/RouteStepper.astro';
+import WeatherStrip from '../components/WeatherStrip.astro';
 import { tripData } from '../data/tripData';
 
 const departureDate = new Date(tripData.departureAt);
@@ -10,6 +11,12 @@ const daysUntilDeparture = Math.max(0, Math.ceil((departureDate.getTime() - toda
 const daySpan = tripData.days.length;
 const mapStops = tripData.stops.map((stop) => ({ name: stop.name, lat: stop.lat, lng: stop.lng }));
 const stepperStops = tripData.stops.map((stop) => ({ name: stop.name, country: stop.country }));
+const weatherStops = tripData.stops.map((stop) => ({
+  name: stop.name,
+  country: stop.country,
+  lat: stop.lat,
+  lng: stop.lng,
+}));
 const countryChain = tripData.countryGuides.map((country) => country.country).join(' → ');
 
 // Günün zorluk seviyesini mesafe/süreye göre kabaca sınıflandır.
@@ -58,12 +65,19 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
         <p class="hero-full__lead">
           {daySpan} günlük karavan rotası, günlük plan, canlı trafik, kamp ve ekipman kontrol listesi — tek ekranda.
         </p>
-        <div class="hero-metrics">
-          <div class="hero-metric hero-metric--count">
-            <span class="hero-metric__label">Yola çıkmaya kalan</span>
-            <span class="hero-metric__value countdown-number" id="remaining-days">{daysUntilDeparture}</span>
-            <span class="hero-metric__unit">gün · <span class="countdown-clock" id="countdown">yükleniyor…</span></span>
+        <div class="hero-metric hero-metric--count">
+          <span class="hero-metric__label">Yola çıkmaya kalan</span>
+          <div class="count-tiles" id="count-tiles" aria-live="polite">
+            <div class="ct"><b id="ct-d">{daysUntilDeparture}</b><span>gün</span></div>
+            <em>:</em>
+            <div class="ct"><b id="ct-h">–</b><span>saat</span></div>
+            <em>:</em>
+            <div class="ct"><b id="ct-m">–</b><span>dk</span></div>
+            <em>:</em>
+            <div class="ct"><b id="ct-s">–</b><span>sn</span></div>
           </div>
+        </div>
+        <div class="hero-metrics">
           <div class="hero-metric">
             <span class="hero-metric__label">Toplam mesafe</span>
             <span class="hero-metric__value">{tripData.totalKm.toLocaleString('tr-TR')}</span>
@@ -73,6 +87,11 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
             <span class="hero-metric__label">Yakıt bütçesi</span>
             <span class="hero-metric__value">{tripData.totalBudget.fuel}</span>
             <span class="hero-metric__unit">tahmini</span>
+          </div>
+          <div class="hero-metric">
+            <span class="hero-metric__label">Rota</span>
+            <span class="hero-metric__value">{daySpan} gün</span>
+            <span class="hero-metric__unit">{tripData.stops.length} durak · {tripData.countryGuides.length} ülke</span>
           </div>
         </div>
         <div class="hero-badges">
@@ -161,6 +180,15 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
         </ol>
       </article>
     </div>
+  </section>
+
+  <section id="hava" class="shell">
+    <div class="sec-head">
+      <span class="eyebrow">Canlı · Open-Meteo</span>
+      <h2>Duraklarda hava durumu</h2>
+      <p class="subline">Her durağın şu anki sıcaklığı ve koşulu. Yağış olan duraklar vurgulanır; sayfa her açıldığında güncellenir.</p>
+    </div>
+    <WeatherStrip stops={weatherStops} />
   </section>
 
   <section id="harita" class="shell">
@@ -294,27 +322,31 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
       <h2>Günlük Yolculuk Planı</h2>
       <p class="subline">Her güne tıklayarak risk, alternatif ve kamp detaylarına in.</p>
     </div>
-    <div class="grid">
+    <div class="timeline">
       {tripData.days.map((day, i) => {
         const level = dayLevel(day);
+        const rest = day.origin === day.destination;
         return (
-          <a href={`/day/${day.slug}`} class="card col-6">
-            <span class="stage-badge">{i + 1}. gün</span>
-            <div class="day-link">
-              <strong>{day.date}</strong>
-              <span class={`lvl lvl--${level}`}>{levelText[level]}</span>
-            </div>
-            <div class="tag-row">
-              <span class="tag tag--road">{day.origin} → {day.destination}</span>
-            </div>
-            <div class="tag-row" style="margin-top: 8px;">
-              <span class="tag">Mesafe {day.distanceKm}</span>
-              <span class="tag">Süre {day.duration}</span>
-              <span class="tag">{day.fuel}</span>
-            </div>
-            <p class="muted">{day.risks[0]}</p>
-            <div class="tag-row" style="margin-top: 8px;">
-              <span class="pill">Kamp: {day.camp.place}</span>
+          <a href={`/day/${day.slug}`} class="t-item">
+            <span class:list={['t-node', { 't-node--rest': rest }]}>{rest ? '☾' : i + 1}</span>
+            <div class="t-card">
+              <div class="t-head">
+                <span class="t-date">{day.date}</span>
+                <span class={`lvl lvl--${level}`}>{levelText[level]}</span>
+              </div>
+              <div class="t-route">
+                {rest ? `${day.origin} · Dinlenme günü` : <>{day.origin}<em>→</em>{day.destination}</>}
+              </div>
+              <div class="tag-row">
+                {!rest && <span class="tag">🛣️ {day.distanceKm}</span>}
+                <span class="tag">⏱️ {day.duration}</span>
+                {!rest && <span class="tag">⛽ {day.fuel}</span>}
+              </div>
+              <p class="muted t-risk">{day.risks[0]}</p>
+              <div class="t-foot">
+                <span class="pill">⛺ {day.camp.place}</span>
+                <span class="t-go">Günün detayı →</span>
+              </div>
             </div>
           </a>
         );
@@ -331,8 +363,11 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
   (() => {
     const departure = new Date(departureAt);
     const departureValid = !isNaN(departure.getTime());
-    const countdown = document.getElementById('countdown');
-    const remaining = document.getElementById('remaining-days');
+    const tiles = document.getElementById('count-tiles');
+    const ctD = document.getElementById('ct-d');
+    const ctH = document.getElementById('ct-h');
+    const ctM = document.getElementById('ct-m');
+    const ctS = document.getElementById('ct-s');
     const distEl = document.getElementById('remaining-distance');
     const timeEl = document.getElementById('remaining-time');
     const cityEl = document.getElementById('target-city');
@@ -340,24 +375,25 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
     const statusEl = document.getElementById('task-status');
     const progressEl = document.getElementById('task-progress');
 
+    const pad = (n) => String(n).padStart(2, '0');
+    let live = false;
+
     const updateCountdown = () => {
-      if (!departureValid) return;
+      if (!departureValid || !tiles || live) return;
       const diff = departure.getTime() - Date.now();
       if (diff <= 0) {
-        if (remaining) remaining.textContent = '0';
-        if (countdown) countdown.textContent = 'yola çıkış zamanı aktif';
+        live = true;
+        tiles.innerHTML = '<div class="ct ct--live">🚐 Yoldayız!</div>';
         return;
       }
-      const days = Math.floor(diff / 86400000);
-      const hours = Math.floor((diff % 86400000) / 3600000);
-      const mins = Math.floor((diff % 3600000) / 60000);
-      if (countdown) countdown.textContent = `${hours} saat ${mins} dk kaldı`;
-      if (remaining) remaining.textContent = String(days);
+      if (ctD) ctD.textContent = String(Math.floor(diff / 86400000));
+      if (ctH) ctH.textContent = pad(Math.floor((diff % 86400000) / 3600000));
+      if (ctM) ctM.textContent = pad(Math.floor((diff % 3600000) / 60000));
+      if (ctS) ctS.textContent = pad(Math.floor((diff % 60000) / 1000));
     };
 
     updateCountdown();
-    const countdownInterval = setInterval(updateCountdown, 60000);
-    window.addEventListener('beforeunload', () => clearInterval(countdownInterval));
+    const countdownInterval = setInterval(updateCountdown, 1000);
     window.addEventListener('pagehide', () => clearInterval(countdownInterval));
 
     const route = routeData;

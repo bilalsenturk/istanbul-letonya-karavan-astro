@@ -1,0 +1,195 @@
+---
+interface WStop {
+  name: string;
+  country: string;
+  lat: number;
+  lng: number;
+}
+
+interface Props {
+  stops: WStop[];
+}
+
+const { stops } = Astro.props;
+
+const flags: Record<string, string> = {
+  'Türkiye': '🇹🇷',
+  'Bulgaristan': '🇧🇬',
+  'Romanya': '🇷🇴',
+  'Macaristan': '🇭🇺',
+  'Polonya': '🇵🇱',
+  'Letonya': '🇱🇻',
+};
+---
+
+<div class="weather-grid" id="weather-grid">
+  {stops.map((s, i) => (
+    <div class="wx" data-lat={s.lat} data-lng={s.lng} data-i={i}>
+      <div class="wx__head">
+        <span class="wx__flag">{flags[s.country] ?? '📍'}</span>
+        <span class="wx__city">{s.name}</span>
+      </div>
+      <div class="wx__body">
+        <span class="wx__icon">·</span>
+        <span class="wx__temp">—°</span>
+      </div>
+      <span class="wx__desc">yükleniyor…</span>
+    </div>
+  ))}
+</div>
+<p class="wx__note" id="weather-note"></p>
+
+<script>
+  const WMO: Record<number, [string, string]> = {
+    0: ['☀️', 'Açık'],
+    1: ['🌤️', 'Genelde açık'],
+    2: ['⛅', 'Parçalı bulutlu'],
+    3: ['☁️', 'Bulutlu'],
+    45: ['🌫️', 'Sisli'],
+    48: ['🌫️', 'Kırağı sisi'],
+    51: ['🌦️', 'Hafif çisenti'],
+    53: ['🌦️', 'Çisenti'],
+    55: ['🌦️', 'Yoğun çisenti'],
+    56: ['🌧️', 'Donan çisenti'],
+    57: ['🌧️', 'Donan çisenti'],
+    61: ['🌧️', 'Hafif yağmur'],
+    63: ['🌧️', 'Yağmur'],
+    65: ['🌧️', 'Kuvvetli yağmur'],
+    66: ['🌧️', 'Donan yağmur'],
+    67: ['🌧️', 'Donan yağmur'],
+    71: ['🌨️', 'Hafif kar'],
+    73: ['🌨️', 'Kar'],
+    75: ['🌨️', 'Yoğun kar'],
+    77: ['🌨️', 'Kar taneleri'],
+    80: ['🌦️', 'Sağanak'],
+    81: ['🌧️', 'Sağanak'],
+    82: ['⛈️', 'Kuvvetli sağanak'],
+    85: ['🌨️', 'Kar sağanağı'],
+    86: ['🌨️', 'Kar sağanağı'],
+    95: ['⛈️', 'Gök gürültülü'],
+    96: ['⛈️', 'Dolu + fırtına'],
+    99: ['⛈️', 'Dolu + fırtına'],
+  };
+
+  async function loadWeather() {
+    const cards = Array.from(document.querySelectorAll<HTMLElement>('.wx'));
+    const note = document.getElementById('weather-note');
+    if (!cards.length) return;
+
+    const lats = cards.map((c) => c.dataset.lat).join(',');
+    const lngs = cards.map((c) => c.dataset.lng).join(',');
+    const url =
+      `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lngs}` +
+      `&current=temperature_2m,precipitation,weather_code&timezone=auto`;
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('http ' + res.status);
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : [data];
+
+      cards.forEach((card, i) => {
+        const cur = list[i]?.current;
+        if (!cur) return;
+        const [icon, desc] = WMO[cur.weather_code] ?? ['🌡️', '—'];
+        const temp = Math.round(cur.temperature_2m);
+        const rain = Number(cur.precipitation) > 0;
+
+        (card.querySelector('.wx__icon') as HTMLElement).textContent = icon;
+        (card.querySelector('.wx__temp') as HTMLElement).textContent = `${temp}°`;
+        const descEl = card.querySelector('.wx__desc') as HTMLElement;
+        descEl.textContent = rain ? `${desc} · ☔ yağış var` : desc;
+        card.classList.toggle('wx--rain', rain);
+        card.classList.add('wx--ready');
+      });
+
+      if (note) {
+        const t = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        note.textContent = `Kaynak: Open-Meteo · ${t} itibarıyla güncel`;
+      }
+    } catch (e) {
+      if (note) note.textContent = 'Hava durumu şu an alınamadı. Bağlantıyı kontrol edip tekrar dene.';
+      cards.forEach((card) => {
+        (card.querySelector('.wx__desc') as HTMLElement).textContent = 'veri yok';
+      });
+    }
+  }
+
+  loadWeather();
+</script>
+
+<style>
+  .weather-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+  }
+
+  .wx {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm, 14px);
+    background: var(--card-bg);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: border-color 200ms ease, transform 200ms ease, opacity 300ms ease;
+    opacity: 0.55;
+  }
+
+  .wx--ready {
+    opacity: 1;
+  }
+
+  .wx--rain {
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+    background: color-mix(in srgb, var(--accent) 8%, var(--card-bg));
+  }
+
+  .wx__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .wx__flag {
+    font-size: 1.1rem;
+  }
+
+  .wx__city {
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: var(--text);
+  }
+
+  .wx__body {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .wx__icon {
+    font-size: 1.9rem;
+    line-height: 1;
+  }
+
+  .wx__temp {
+    font-family: var(--font-display, sans-serif);
+    font-weight: 700;
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .wx__desc {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  .wx__note {
+    margin: 12px 0 0;
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    color: var(--muted);
+  }
+</style>
