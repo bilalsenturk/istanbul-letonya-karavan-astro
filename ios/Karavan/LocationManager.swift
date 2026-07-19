@@ -10,6 +10,11 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     @Published var lastPublished: Date?
     @Published var publishEnabled = true
 
+    // Web'e zengin canlı durum göndermek için (şehir, sıradaki hedef, kalan km/süre…)
+    weak var nav: NavProgressStore?
+    weak var trip: TripStore?
+    weak var routeStore: RouteStore?
+
     private let manager = CLLocationManager()
     private var lastPostAt: Date = .distantPast
 
@@ -43,6 +48,11 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         guard let last = locations.last else { return }
         Task { @MainActor in
             self.location = last
+            // Konum geldikçe ilerlemeyi güncelle (view zamanlamasına bağlı kalmadan),
+            // sonra web'e zengin durumu yayınla.
+            if let stops = self.trip?.trip?.stops, stops.count >= 2 {
+                await self.nav?.update(location: last, stops: stops, legs: self.routeStore?.routes ?? [])
+            }
             self.publishToWeb(last)
         }
     }
@@ -79,7 +89,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     private func publishToWeb(_ loc: CLLocation) {
         guard publishEnabled,
               let url = Config.livePostURL,
-              Date().timeIntervalSince(lastPostAt) > 60
+              Date().timeIntervalSince(lastPostAt) > 30
         else { return }
         lastPostAt = Date()
 
@@ -89,12 +99,24 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         req.setValue(Config.livePostSecret, forHTTPHeaderField: "x-live-secret")
         req.timeoutInterval = 10
 
-        let payload: [String: Any] = [
+        var payload: [String: Any] = [
             "lat": loc.coordinate.latitude,
             "lng": loc.coordinate.longitude,
             "speedKmh": max(0, Int((loc.speed * 3.6).rounded())),
             "ts": ISO8601DateFormatter().string(from: loc.timestamp),
         ]
+        // App'in canlı durumunu web'e birebir yansıt (dinamik site).
+        if let nav {
+            if let city = nav.currentCity { payload["city"] = city }
+            if let next = nav.nextStop {
+                payload["nextStop"] = next.name
+                payload["nextFlag"] = next.flag
+            }
+            if let km = nav.remainingKm { payload["remainingKm"] = km }
+            if let minutes = nav.remainingMinutes { payload["remainingMin"] = minutes }
+            if let traveled = nav.traveledKm { payload["traveledKm"] = traveled }
+            payload["legProgress"] = Int((nav.legProgress * 100).rounded())
+        }
         req.httpBody = try? JSONSerialization.data(withJSONObject: payload)
 
         Task {

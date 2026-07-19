@@ -123,12 +123,13 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
         <span class="lvl lvl--ok" id="live-badge" hidden>Canlı</span>
       </div>
       <p id="location-status" class="muted">Kuzey uygulamasından canlı konum bekleniyor…</p>
-      <p><strong>Riga'ya kalan:</strong> <span id="remaining-distance">—</span></p>
-      <p><strong>En yakın durak:</strong> <span id="nearest-stop">—</span></p>
-      <p><strong>Hız:</strong> <span id="live-speed">—</span></p>
+      <p><strong>Şu an:</strong> <span id="live-city">—</span></p>
+      <p><strong>Sıradaki hedef:</strong> <span id="live-next">—</span></p>
+      <p><strong>Kalan:</strong> <span id="live-remaining">—</span></p>
+      <div class="progress" aria-label="Etap ilerlemesi"><span id="live-progress" style="width: 0%"></span></div>
+      <p class="tiny-note" id="live-traveled"></p>
+      <p><strong>Riga'ya:</strong> <span id="remaining-distance">—</span> &nbsp;·&nbsp; <strong>Hız:</strong> <span id="live-speed">—</span></p>
       <p class="tiny-note" id="live-updated"></p>
-      <span id="target-city" hidden>Sofya</span>
-      <span id="remaining-time" hidden></span>
     </article>
 
     <article class="card col-4">
@@ -445,11 +446,17 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
       progressEl.style.width = `${percent}%`;
     };
 
-    // Kuzey iOS uygulamasının yayınladığı canlı konumu çek (60 sn'de bir).
+    // Kuzey iOS uygulamasının yayınladığı CANLI DURUMU çek ve birebir yansıt.
     const liveBadge = document.getElementById('live-badge');
-    const nearestEl = document.getElementById('nearest-stop');
     const speedEl = document.getElementById('live-speed');
     const updatedEl = document.getElementById('live-updated');
+    const cityLiveEl = document.getElementById('live-city');
+    const nextLiveEl = document.getElementById('live-next');
+    const remLiveEl = document.getElementById('live-remaining');
+    const progLiveEl = document.getElementById('live-progress');
+    const travLiveEl = document.getElementById('live-traveled');
+
+    const fmtMin = (m) => (m >= 60 ? `${Math.floor(m / 60)} sa ${m % 60} dk` : `${m} dk`);
 
     const pollLive = async () => {
       try {
@@ -458,16 +465,23 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
         const data = await res.json();
         if (typeof data.lat !== 'number') return;
 
-        const current = { lat: data.lat, lng: data.lng };
-        const remainingKm = haversine(current, riga);
-        distEl.textContent = `${Math.round(remainingKm)} km`;
+        // Riga'ya kalan (istemci tarafı haversine)
+        const remainingRiga = haversine({ lat: data.lat, lng: data.lng }, riga);
+        if (distEl) distEl.textContent = `${Math.round(remainingRiga)} km`;
 
-        let best = null;
-        for (const s of stops) {
-          const d = haversine(current, s);
-          if (!best || d < best.d) best = { s, d };
+        // App'in canlı durumu — birebir yansıtma
+        if (cityLiveEl) cityLiveEl.textContent = data.city || '—';
+        if (nextLiveEl) nextLiveEl.textContent = data.nextStop ? `${data.nextFlag || ''} ${data.nextStop}`.trim() : '—';
+        if (remLiveEl) {
+          const parts = [];
+          if (typeof data.remainingKm === 'number') parts.push(`${data.remainingKm} km`);
+          if (typeof data.remainingMin === 'number') parts.push(fmtMin(data.remainingMin));
+          remLiveEl.textContent = parts.length ? parts.join(' · ') : '—';
         }
-        if (best && nearestEl) nearestEl.textContent = `${best.s.name} · ${Math.round(best.d)} km`;
+        if (progLiveEl && typeof data.legProgress === 'number') {
+          progLiveEl.style.width = `${Math.max(0, Math.min(100, data.legProgress))}%`;
+        }
+        if (travLiveEl) travLiveEl.textContent = typeof data.traveledKm === 'number' ? `Gidilen ${data.traveledKm} km` : '';
         if (speedEl) speedEl.textContent = data.speedKmh != null ? `${data.speedKmh} km/s` : '—';
 
         const ts = new Date(data.ts);
@@ -494,7 +508,7 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
 
     setTaskProgress();
     pollLive();
-    const liveInterval = setInterval(pollLive, 60000);
+    const liveInterval = setInterval(pollLive, 20000);
     window.addEventListener('pagehide', () => clearInterval(liveInterval));
 
     // Kuzey uygulamasının yayınladığı harcama TOPLAMINI çek (yalnızca toplam; kalem yok).

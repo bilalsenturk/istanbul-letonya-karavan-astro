@@ -13,6 +13,9 @@ export const prerender = false;
 
 const BLOB_PATH = 'kuzey/expenses.json';
 
+// Yerel dev fallback (Blob yokken dev sunucu belleğinde tutulur).
+let memRecord: string | null = null;
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -28,11 +31,6 @@ export const POST: APIRoute = async ({ request }) => {
   const secret = import.meta.env.LIVE_POST_SECRET;
   if (!secret || request.headers.get('x-live-secret') !== secret) {
     return json({ error: 'unauthorized' }, 401);
-  }
-
-  // Yerel geliştirmede Blob yapılandırılmamış olabilir; sessizce kabul et.
-  if (!import.meta.env.BLOB_READ_WRITE_TOKEN) {
-    return json({ ok: true, stored: false });
   }
 
   let body: { totalEur?: number; count?: number; byCategory?: Record<string, number>; ts?: string };
@@ -55,17 +53,27 @@ export const POST: APIRoute = async ({ request }) => {
     receivedAt: new Date().toISOString(),
   };
 
-  await put(BLOB_PATH, JSON.stringify(record), {
-    access: 'public',
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    contentType: 'application/json',
-  });
+  const payload = JSON.stringify(record);
+  if (import.meta.env.BLOB_READ_WRITE_TOKEN) {
+    await put(BLOB_PATH, payload, {
+      access: 'public',
+      addRandomSuffix: false,
+      allowOverwrite: true,
+      contentType: 'application/json',
+    });
+  } else {
+    memRecord = payload; // yerel dev fallback
+  }
 
   return json({ ok: true });
 };
 
 export const GET: APIRoute = async () => {
+  if (!import.meta.env.BLOB_READ_WRITE_TOKEN) {
+    return memRecord ? new Response(memRecord, {
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' },
+    }) : json({ error: 'no data yet' }, 404);
+  }
   try {
     const meta = await head(BLOB_PATH);
     const res = await fetch(meta.downloadUrl, { cache: 'no-store' });

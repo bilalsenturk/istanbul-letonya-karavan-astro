@@ -27,6 +27,9 @@ struct KaravanApp: App {
                 .task {
                     await NotificationManager.shared.requestAuthorization()
                     weather.notifier = NotificationManager.shared
+                    locationManager.nav = navProgress
+                    locationManager.trip = store
+                    locationManager.routeStore = routeStore
                     if let departure = store.trip?.departureDate {
                         NotificationManager.shared.scheduleDepartureReminders(departure: departure)
                     }

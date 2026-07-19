@@ -6,6 +6,7 @@ struct DashboardView: View {
     @EnvironmentObject var weather: WeatherService
     @EnvironmentObject var expenses: ExpenseStore
     @EnvironmentObject var routeStore: RouteStore
+    @EnvironmentObject var nav: NavProgressStore
 
     var body: some View {
         NavigationStack {
@@ -51,6 +52,7 @@ struct DashboardView: View {
                 async let w: () = weather.refresh(stops: stops)
                 async let r: () = routeStore.computeIfNeeded(stops: stops)
                 _ = await (w, r)
+                await nav.update(location: loc.location, stops: stops, legs: routeStore.routes)
             }
         }
     }
@@ -88,8 +90,29 @@ struct DashboardView: View {
             Text("Letonya Yolculuğu")
                 .font(.system(size: 36, weight: .heavy, design: .rounded))
                 .foregroundStyle(Theme.text)
+            liveStatusLine
         }
         .padding(.top, 8)
+    }
+
+    // Anlık şehir + sıradaki hedefe kalan km/süre (dashboard başlığı altında).
+    @ViewBuilder private var liveStatusLine: some View {
+        if nav.currentCity != nil || nav.nextStop != nil {
+            HStack(spacing: 8) {
+                if let city = nav.currentCity {
+                    Label("Şu an: \(city)", systemImage: "location.fill")
+                        .font(.system(size: 12.5, weight: .bold, design: .rounded))
+                        .foregroundStyle(Theme.c4)
+                }
+                if let next = nav.nextStop, let km = nav.remainingKm {
+                    Text("· Sıradaki \(next.name): \(km) km" + (nav.remainingMinutes != nil ? " · \(nav.remainingTimeText)" : ""))
+                        .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Theme.dim)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.65)
+                }
+            }
+        }
     }
 
     private func metricRow(trip: TripData) -> some View {
