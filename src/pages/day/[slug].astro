@@ -1,0 +1,175 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+import RouteMap from '../../components/RouteMap.astro';
+import CameraPlayer from '../../components/CameraPlayer.astro';
+import { tripData } from '../../data/tripData';
+
+export function getStaticPaths() {
+  return tripData.days.map((day) => ({
+    params: { slug: day.slug },
+  }));
+}
+
+const { slug } = Astro.params;
+const day = tripData.days.find((row) => row.slug === slug);
+
+if (!day) {
+  return Astro.redirect('/');
+}
+
+const stopIndex = tripData.stops.findIndex((s) => s.name === day.origin);
+const endIndex = tripData.stops.findIndex((s) => s.name === day.destination);
+const mapStops = tripData.stops.map((stop) => ({ name: stop.name, lat: stop.lat, lng: stop.lng }));
+const previous = tripData.days.findIndex((row) => row.slug === slug) - 1;
+const next = tripData.days.findIndex((row) => row.slug === slug) + 1;
+---
+
+<MainLayout title={`Günlük Plan: ${day.date} (${day.origin} → ${day.destination})`}>
+  <section class="shell">
+    <div class="day-title">
+      <h1>{day.date}</h1>
+      <span class="tag">{day.origin} → {day.destination}</span>
+    </div>
+    <p class="muted">Her günlük sayfa: hedef kilometre, yakıt, süre, risk senaryoları, kamp alternatifleri ve şehir kamera doğrulama noktaları.</p>
+    <p class="tag-row">
+      <span class="tag">Mesafe: {day.distanceKm}</span>
+      <span class="tag">Sürüş: {day.duration}</span>
+      <span class="tag">Yakıt: {day.fuel}</span>
+    </p>
+  </section>
+
+  <section class="grid">
+    <article class="card col-8">
+      <h3>Rota ve plan</h3>
+      <RouteMap
+        title="Günün Haritası"
+        routeStops={mapStops}
+        activeFrom={day.origin}
+        activeTo={day.destination}
+        height="420px"
+      />
+      <div class="two-col" style="margin-top:10px;">
+        <div>
+          <h4>Kamp</h4>
+          <p><strong>{day.camp.name}</strong> — {day.camp.place}</p>
+          <p class="muted">{day.camp.note}</p>
+          <p>İletişim: {day.camp.contact}</p>
+          {day.camp.email ? <p>E-posta: <a href={`mailto:${day.camp.email}`}>{day.camp.email}</a></p> : null}
+          {day.camp.phone ? <p>Tel: <a href={`tel:${day.camp.phone}`}>{day.camp.phone}</a></p> : null}
+          <p>Rezervasyon şablonu: <em>{day.camp.reservationTemplate}</em></p>
+          <p><a href={day.camp.link} target="_blank" rel="noreferrer">Kamp konumu</a></p>
+        </div>
+        <div>
+          <h4>Canlı Trafik Kontrolü</h4>
+          <iframe
+            title="Trafik"
+            loading="lazy"
+            src={day.trafficEmbed}
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+          <p class="muted">Kaynak: {day.trafficLabel}</p>
+        </div>
+      </div>
+      <div class="tag-row">
+        <a class="btn" href={day.route}>Google Rota Planı (yönlendirme)</a>
+        <a class="btn" href={day.routeEmbed}>Rota (harita gömülü)</a>
+        <a class="btn" href="/">Kontrol Paneline Dön</a>
+      </div>
+    </article>
+
+    <article class="card col-4">
+      <h3>Riskler ve Olasılıklar</h3>
+      <h4>Sorun Senaryoları</h4>
+      <ul>
+        {day.risks.map((item) => <li>{item}</li>)}
+      </ul>
+      <h4>Fırsat ve alternatifler</h4>
+      <ul>
+        {day.opportunities.map((item) => <li>{item}</li>)}
+      </ul>
+      <h4>Kontenjan / Yedek Plan</h4>
+      <ul>
+        {day.contingencies.map((item) => <li>{item}</li>)}
+      </ul>
+    </article>
+  </section>
+
+  <section class="shell">
+    <h3>Yol Üzeri Duraklar</h3>
+    <div class="grid">
+      {day.stops.map((stop) => (
+        <article class="card col-4">
+          <h4>{stop.type} · {stop.name}</h4>
+          <p>{stop.note}</p>
+          <p class="tag-row">
+            <span class="tag">~{stop.estimatedMinutes} dk</span>
+            <a class="btn" href={stop.mapUrl} target="_blank" rel="noreferrer">Haritada Aç</a>
+          </p>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="shell">
+    <h3>Şehir Kameraları</h3>
+    <div class="grid">
+      {day.cityCameras.map((camera) => <div class="col-6"><CameraPlayer camera={camera} /></div>)}
+    </div>
+  </section>
+
+  <section class="shell">
+    <h3>Günün Gelişimi ve Geçiş Kaydı</h3>
+    <div class="grid">
+      {tripData.postArrival.map((item) => (
+        <article class="card col-4">
+          <strong>{item.when}</strong>
+          <h4>{item.title}</h4>
+          <p>{item.text}</p>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="shell">
+    <h3>Geçiş Bağlantıları</h3>
+    <p class="tag-row">
+      {previous >= 0 ? <a class="btn" href={`/day/${tripData.days[previous].slug}`}>Önceki Gün</a> : null}
+      {next < tripData.days.length ? <a class="btn" href={`/day/${tripData.days[next].slug}`}>Sonraki Gün</a> : null}
+    </p>
+  </section>
+</MainLayout>
+
+<style>
+  h4 {
+    margin-bottom: 6px;
+  }
+
+  ul {
+    margin: 4px 0 14px 0;
+    padding-left: 18px;
+  }
+
+  li {
+    margin: 6px 0;
+  }
+
+  iframe {
+    width: 100%;
+    min-height: 240px;
+    border: 1px solid rgba(120, 150, 210, 0.35);
+    border-radius: 10px;
+  }
+
+  .day-title {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .day-title h1 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+</style>

@@ -1,0 +1,208 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import RouteMap from '../components/RouteMap.astro';
+import { tripData } from '../data/tripData';
+
+const departureDate = new Date(tripData.departureAt);
+const today = new Date();
+const daysUntilDeparture = Math.max(0, Math.ceil((departureDate.getTime() - today.getTime()) / 86400000));
+const daySpan = tripData.days.length;
+
+const mapStops = tripData.stops.map((stop) => ({
+  name: stop.name,
+  lat: stop.lat,
+  lng: stop.lng,
+}));
+---
+
+<MainLayout
+  title="İstanbul → Riga Karavan Yolculuğu"
+  description="7-8 günlük karavan rotası, günlük plan, trafik takibi, kamp ve ekipman checklist’i."
+>
+  <section class="shell hero">
+    <h1>İstanbul’dan Letonya’ya: İstanbul → Riga Karavan Brifingi</h1>
+    <p>
+      Bu kontrol paneliyle her gün için ayrı sayfa, rota çizgisi, canlı trafik görünümü,
+      şehir kameraları ve yolculuk öncesi hazırlık durumu tek ekranda takip edilir.
+      Karavan: <strong>{tripData.vehicle.model}</strong> · Plaka: <strong>{tripData.vehicle.plate}</strong>
+    </p>
+    <img class="hero-image" src="/assets/passat-adria-karavan.png" alt="Passat + Adria karavan" loading="lazy" />
+    <div class="header-nav">
+      <a class="btn" href="#plan">Günlere Git</a>
+      <a class="btn" href="#check">Hazırlık Kontrolü</a>
+      <a class="btn" href="#harita">Canlı Harita</a>
+      <a class="btn" href="/day/istanbul-sofya">Bugün Programı</a>
+    </div>
+  </section>
+
+  <section class="grid">
+    <article class="card col-4">
+      <h3>Yola Çıkmaya Kalan Süre</h3>
+      <p id="countdown" class="muted">Yükleniyor…</p>
+      <p>Planlanan çıkış: <strong>{tripData.departureAt}</strong></p>
+      <p>Bugüne kadar kalan gün: <strong id="remaining-days">{daysUntilDeparture}</strong></p>
+      <p>Toplam segment: <strong>{daySpan}</strong> gün.</p>
+      <p class="tag">Yaklaşık toplam bütçe: <strong>{tripData.totalBudget.total}</strong></p>
+      <p>Yakıt bütçesi aralığı: <strong>{tripData.totalBudget.fuel}</strong></p>
+    </article>
+
+    <article class="card col-4">
+      <h3>Konum Takibi</h3>
+      <p id="location-status" class="muted">Konum bilgisi bekleniyor…</p>
+      <p><strong>Şu anki hedef:</strong> <span id="target-city">Sofya</span></p>
+      <p><strong>Kalan mesafe:</strong> <span id="remaining-distance">—</span></p>
+      <p><strong>Tahmini kalan süre:</strong> <span id="remaining-time">—</span></p>
+      <button class="btn" id="locate-btn">Konumumu Güncelle</button>
+      <p class="muted">Not: Telefonun hareket verisi varsa "konum izni" ile daha doğru gösterim yapılır.</p>
+    </article>
+
+    <article class="card col-4">
+      <h3>Araç ve Karavan Durumu</h3>
+      <p><strong>Model:</strong> {tripData.vehicle.model}</p>
+      <p><strong>Plaka:</strong> {tripData.vehicle.plate}</p>
+      <p><strong>Çekme profili:</strong> {tripData.vehicle.towing}</p>
+      <p><strong>Planlanan mesafe:</strong> {tripData.totalKm} km</p>
+      <p class="tag">Yakıt: {tripData.totalBudget.fuel} · Toplam: {tripData.totalBudget.total}</p>
+    </article>
+  </section>
+
+  <section id="check" class="shell">
+    <h3>Yola Çıkmadan Önce Hazırlık Kontrol Listesi</h3>
+    <p class="muted">İlerleme ve son tarih takibi, görev tamamlandıkça otomatik olarak cihaza kaydedilir.</p>
+    <div class="grid">
+      {tripData.checklist.map((item) => (
+        <label class="card col-6">
+          <input type="checkbox" class="task-check" data-task={item.id} />
+          <strong>{item.due}</strong>
+          <p>{item.task}</p>
+        </label>
+      ))}
+    </div>
+    <div class="grid">
+      <article class="card col-12">
+        <h4>İlk 10 Adım</h4>
+        <ol>
+          <li>Deutsche Schule Riga’ya e-posta teyit</li>
+          <li>Buz pateni kulüplerine ön başvuru</li>
+          <li>PMLP randevusunu 1 gün içinde netleştirme</li>
+          <li>Şirket kurulum sürecini başlat</li>
+          <li>Yeşil kart + yol yardım</li>
+          <li>Karavan elektrik arızası onayı</li>
+          <li>Yolcu ve yol yardımı kontrolleri</li>
+          <li>Sofya / Bükreş / Budapeşte kamp teyitleri</li>
+          <li>Deva ve Suwałki geçiş testleri</li>
+          <li>Riga kamp ve adres dokümanları</li>
+          <li>Rezervasyon ve finans tamponu</li>
+        </ol>
+      </article>
+    </div>
+  </section>
+
+  <section id="harita" class="shell">
+    <h3>Rota Haritası (gerçek harita)</h3>
+    <RouteMap title="İstanbul → Riga Tam Rota" routeStops={mapStops} activeFrom="İstanbul" activeTo="Riga" height="430px" />
+  </section>
+
+  <section id="plan" class="shell">
+    <h3>Günlük Yolculuk Planı</h3>
+    <div class="grid">
+      {tripData.days.map((day) => (
+        <a href={`/day/${day.slug}`} class="card col-6">
+          <div class="day-link">
+            <strong>{day.date}</strong>
+            <span class="tag">{day.origin} → {day.destination}</span>
+          </div>
+          <div class="tag-row">
+            <span class="tag">Mesafe {day.distanceKm}</span>
+            <span class="tag">Süre {day.duration}</span>
+            <span class="tag">{day.fuel}</span>
+          </div>
+          <p>{day.risks[0]}</p>
+        </a>
+      ))}
+    </div>
+  </section>
+</MainLayout>
+
+<script is:inline define:vars={{ routeData: tripData.routeGuide, stopsData: tripData.stops }}>
+  (() => {
+    const departure = new Date('2026-08-03T05:00:00+03:00');
+    const countdown = document.getElementById('countdown');
+    const remaining = document.getElementById('remaining-days');
+    const distEl = document.getElementById('remaining-distance');
+    const timeEl = document.getElementById('remaining-time');
+    const cityEl = document.getElementById('target-city');
+    const locStatus = document.getElementById('location-status');
+
+    const updateCountdown = () => {
+      const diff = departure.getTime() - Date.now();
+      if (diff <= 0) {
+        countdown.textContent = 'Yola çıkış zamanı aktif.';
+        return;
+      }
+      const days = Math.floor(diff / 86400000);
+      const hours = Math.floor((diff % 86400000) / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      countdown.textContent = `${days} gün ${hours} saat ${mins} dakika kaldı.`;
+      remaining.textContent = String(days);
+    };
+
+    updateCountdown();
+    setInterval(updateCountdown, 60000);
+
+    const route = routeData;
+    const nextTarget = route[0]?.to || '';
+    if (cityEl) cityEl.textContent = nextTarget;
+
+    const haversine = (a, b) => {
+      const toRad = (d) => (d * Math.PI) / 180;
+      const R = 6371;
+      const dLat = toRad(b.lat - a.lat);
+      const dLng = toRad(b.lng - a.lng);
+      const sinLat = Math.sin(dLat / 2);
+      const sinLng = Math.sin(dLng / 2);
+      const aa =
+        sinLat * sinLat +
+        Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sinLng * sinLng;
+      return 2 * R * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa));
+    };
+
+    const stops = stopsData;
+    const riga = stops[stops.length - 1];
+
+    const updateLocation = () => {
+      if (!navigator.geolocation) {
+        locStatus.textContent = 'Bu cihazda konum servisi desteklenmiyor.';
+        return;
+      }
+
+      locStatus.textContent = 'Konum alınıyor…';
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          const remainingKm = haversine(current, riga);
+          distEl.textContent = `${remainingKm.toFixed(1)} km`;
+          timeEl.textContent = `~${Math.max(4, Math.round(remainingKm / 95))} saat`;
+          locStatus.textContent = 'Konum alındı';
+        },
+        () => {
+          locStatus.textContent = 'Konum izni yok. "Konumumu Güncelle" ile deneyin.';
+        },
+        { enableHighAccuracy: false, timeout: 12000 },
+      );
+    };
+
+    updateLocation();
+    document.getElementById('locate-btn')?.addEventListener('click', updateLocation);
+
+    const checks = document.querySelectorAll('.task-check');
+    checks.forEach((item) => {
+      const key = `trip-check-${item.dataset.task}`;
+      const saved = localStorage.getItem(key) === '1';
+      item.checked = saved;
+      item.addEventListener('change', () => {
+        localStorage.setItem(key, item.checked ? '1' : '0');
+      });
+    });
+  })();
+</script>
