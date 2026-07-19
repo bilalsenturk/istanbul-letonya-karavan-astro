@@ -166,9 +166,9 @@ const { title, description } = Astro.props;
       }
 
       .container {
-        width: min(1200px, 92vw);
+        width: min(1320px, 94vw);
         margin: 0 auto;
-        padding: 20px 0 72px;
+        padding: 16px 0 72px;
       }
 
       .shell {
@@ -288,67 +288,124 @@ const { title, description } = Astro.props;
         margin-bottom: 16px;
       }
 
-      /* HERO */
-      .hero {
+      /* ---- TAM GENİŞLİK IMMERSIVE HERO ---- */
+      .hero-full {
         position: relative;
+        width: 100vw;
+        margin: -64px calc(50% - 50vw) 30px;
+        min-height: min(90vh, 820px);
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
-        padding: 34px;
-        background:
-          radial-gradient(120% 130% at 100% 0%, color-mix(in srgb, var(--c3) 20%, transparent), transparent 52%),
-          radial-gradient(100% 120% at 0% 100%, color-mix(in srgb, var(--c1) 18%, transparent), transparent 52%),
-          var(--panel);
+        isolation: isolate;
+        /* Hero her iki temada da koyu görsel üzerinde açık metin kullanır */
+        --text: #ffffff;
+        --text-dim: rgba(255, 255, 255, 0.84);
+        --muted: rgba(255, 255, 255, 0.6);
+        --line: rgba(255, 255, 255, 0.16);
+        --line-strong: rgba(255, 255, 255, 0.32);
+        --panel-solid: rgba(255, 255, 255, 0.14);
+        --card-bg: rgba(255, 255, 255, 0.08);
       }
 
-      .hero::after {
-        content: "";
+      .hero-full__bg {
         position: absolute;
-        inset: 0 0 auto 0;
-        height: 3px;
-        background: var(--grad);
-        background-size: 200% 100%;
-        animation: slide 6s linear infinite;
+        inset: 0;
+        z-index: -2;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 72% center;
       }
 
-      .hero > * {
-        position: relative;
-        z-index: 1;
+      .hero-full__scrim {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background:
+          linear-gradient(
+            96deg,
+            rgba(7, 8, 13, 0.95) 0%,
+            rgba(7, 8, 13, 0.82) 34%,
+            rgba(7, 8, 13, 0.34) 64%,
+            rgba(7, 8, 13, 0.08) 100%
+          ),
+          linear-gradient(0deg, rgba(7, 8, 13, 0.96) 2%, transparent 32%),
+          radial-gradient(80% 60% at 10% 20%, color-mix(in srgb, var(--c2) 22%, transparent), transparent 60%);
       }
 
-      .hero p {
-        color: var(--text-dim);
-        margin-top: 8px;
-        max-width: 70ch;
+      .hero-full__inner {
+        width: min(1320px, 94vw);
+        margin: 0 auto;
       }
 
-      .hero-top {
-        display: grid;
-        grid-template-columns: 1.3fr 1fr;
-        gap: 28px;
+      .hero-full > .hero-full__inner {
+        flex: 1;
+        display: flex;
         align-items: center;
       }
 
-      .countdown-block {
+      .hero-full__content {
+        max-width: 680px;
+        padding: 128px 0 44px;
+      }
+
+      .hero-full h1 {
+        color: #fff;
+        font-size: clamp(2.4rem, 5.4vw, 4.3rem);
+        line-height: 1.02;
+        margin: 14px 0 0;
+      }
+
+      .hero-full__lead {
+        color: rgba(255, 255, 255, 0.82);
+        max-width: 52ch;
+        margin: 18px 0 0;
+        font-size: 1.06rem;
+        line-height: 1.5;
+      }
+
+      .hero-metrics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px 40px;
+        margin-top: 30px;
+      }
+
+      .hero-metric {
         display: flex;
         flex-direction: column;
-        gap: 6px;
-        padding: 6px 0;
+        gap: 3px;
       }
 
-      .countdown-label {
+      .hero-metric__label {
         font-family: var(--font-mono);
+        font-size: 0.64rem;
         text-transform: uppercase;
-        letter-spacing: 0.28em;
-        font-size: 0.7rem;
-        font-weight: 500;
-        color: var(--muted);
+        letter-spacing: 0.2em;
+        color: rgba(255, 255, 255, 0.58);
       }
 
+      .hero-metric__value {
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: clamp(1.8rem, 3vw, 2.4rem);
+        line-height: 1;
+        color: #fff;
+      }
+
+      .hero-metric__unit {
+        font-family: var(--font-mono);
+        font-size: 0.74rem;
+        color: rgba(255, 255, 255, 0.62);
+      }
+
+      /* Geri sayım = odak sayısı */
       .countdown-number {
         font-family: var(--font-display);
         font-weight: 700;
-        font-size: clamp(4.5rem, 13vw, 9rem);
-        line-height: 0.84;
-        letter-spacing: -0.045em;
+        line-height: 0.86;
+        letter-spacing: -0.03em;
         background: var(--grad);
         background-size: 200% 100%;
         -webkit-background-clip: text;
@@ -357,42 +414,60 @@ const { title, description } = Astro.props;
         animation: slide 9s linear infinite;
       }
 
-      .countdown-unit {
-        font-size: 0.95rem;
-        color: var(--text-dim);
-        margin-top: 2px;
+      .hero-metric--count .hero-metric__value.countdown-number {
+        font-size: clamp(3.6rem, 6.5vw, 5.4rem);
       }
 
       .countdown-clock {
-        font-family: var(--font-mono);
         font-variant-numeric: tabular-nums;
-        color: var(--text);
+        color: #fff;
         font-weight: 500;
-      }
-
-      .hero-image {
-        margin: 0;
-        border-radius: var(--radius-sm);
-        width: 100%;
-        height: 100%;
-        min-height: 190px;
-        object-fit: cover;
-        border: 1px solid var(--line-strong);
-        box-shadow: var(--shadow);
-        background: var(--grad-warm);
       }
 
       .hero-badges {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
-        margin-top: 22px;
+        margin-top: 32px;
       }
 
+      .btn--glass {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.26);
+        color: #fff;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+
+      .btn--glass:hover {
+        background: rgba(255, 255, 255, 0.18);
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+
+      .hero-full__stepper {
+        padding: 16px 0 22px;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+        background: linear-gradient(0deg, rgba(7, 8, 13, 0.55), transparent);
+      }
+
+      /* Gün sayfalarındaki stepper (shell içinde) */
       .hero-stepper {
-        margin-top: 24px;
-        padding-top: 20px;
+        margin-top: 20px;
+        padding-top: 18px;
         border-top: 1px solid var(--line);
+      }
+
+      @media (max-width: 720px) {
+        .hero-full {
+          margin-top: -56px;
+          min-height: 88vh;
+        }
+        .hero-full__content {
+          padding-top: 104px;
+        }
+        .hero-full__bg {
+          object-position: 68% center;
+        }
       }
 
       .grid {

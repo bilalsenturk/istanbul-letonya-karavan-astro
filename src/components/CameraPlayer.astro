@@ -14,7 +14,10 @@ interface Props {
 }
 
 const { camera } = Astro.props;
-const kind = camera.kind || 'web';
+const url = camera.url || '';
+const isImageUrl = /\.(jpg|jpeg|png|webp)(\?.*)?$/i.test(url);
+const detectedKind = camera.kind || (isImageUrl ? 'image' : 'web');
+const kind = detectedKind;
 const isImage = kind === 'image';
 const isVideo = kind === 'video';
 const openUrl = camera.openUrl ?? camera.url;

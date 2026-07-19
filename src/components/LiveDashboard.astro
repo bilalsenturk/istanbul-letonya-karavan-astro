@@ -1,0 +1,433 @@
+---
+import RouteMap from './RouteMap.astro';
+import CameraPlayer from './CameraPlayer.astro';
+import { tripData } from '../data/tripData';
+
+interface Props {
+  currentDaySlug?: string;
+}
+
+const { currentDaySlug } = Astro.props;
+
+const currentDayIndex = currentDaySlug ? tripData.days.findIndex(d => d.slug === currentDaySlug) : 0;
+const currentDay = tripData.days[Math.max(0, currentDayIndex)];
+const progressPercent = Math.round(((currentDayIndex + 1) / tripData.days.length) * 100);
+
+const allCameras = tripData.days.flatMap(day => 
+  day.cityCameras.map(cam => ({ ...cam, daySlug: day.slug, dayDate: day.date, dayOrigin: day.origin, dayDestination: day.destination }))
+);
+
+const mapStops = tripData.stops.map(stop => ({ name: stop.name, lat: stop.lat, lng: stop.lng }));
+const currentOrigin = currentDay?.origin || 'İstanbul';
+const currentDestination = currentDay?.destination || 'Sofya';
+
+const nextStops = tripData.stops.filter(stop => 
+  stop.name !== currentOrigin && stop.name !== currentDestination
+).slice(0, 5);
+
+const getWeatherEmoji = (condition: string) => {
+  if (!condition) return '🌤️';
+  const c = condition.toLowerCase();
+  if (c.includes('yağmur') || c.includes('rain') || c.includes('drizzle')) return '🌧️';
+  if (c.includes('bulut') || c.includes('cloud') || c.includes('overcast')) return '☁️';
+  if (c.includes('güneş') || c.includes('sun') || c.includes('clear')) return '☀️';
+  if (c.includes('sis') || c.includes('fog') || c.includes('mist')) return '🌫️';
+  if (c.includes('kar') || c.includes('snow')) return '❄️';
+  if (c.includes('fırtına') || c.includes('storm') || c.includes('thunder')) return '⛈️';
+  return '🌤️';
+};
+---
+
+<section id="live-dashboard" class="shell" aria-label="Canlı Dashboard">
+  <div class="section-title">
+    <div>
+      <h2>📡 Canlı Dashboard</h2>
+      <p class="subline">Güncel konum, trafik kameraları, hava durumu ve yol durumu tek ekranda.</p>
+    </div>
+    <div class="hero-badges">
+      <span class="pill" id="connection-status">🔄 Bağlanıyor…</span>
+      <span class="tag" id="last-update">—</span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <article class="card col-8">
+      <div class="section-title">
+        <h3>🗺️ Rota & Konum</h3>
+        <span class="pill" id="gps-status">📍 GPS bekleniyor…</span>
+      </div>
+      
+      <div class="route-progress-bar" role="progressbar" aria-valuenow={progressPercent} aria-valuemin="0" aria-valuemax="100">
+        <div class="route-progress-fill" style={`width: ${progressPercent}%`}></div>
+        <span class="route-progress-label">%{progressPercent} tamamlandı — Gün {currentDayIndex + 1} / {tripData.days.length}</span>
+      </div>
+
+      <RouteMap
+        title="Canlı Rota Haritası"
+        routeStops={mapStops}
+        activeFrom={currentOrigin}
+        activeTo={currentDestination}
+        height="380px"
+      />
+
+      <div class="two-col" style="margin-top: 12px;">
+        <div class="location-card">
+          <h4>📍 Şu Anki Konum</h4>
+          <div class="metric-row" style="gap: 8px;">
+            <div class="metric">
+              <span>Şehir</span>
+              <b id="current-city">—</b>
+            </div>
+            <div class="metric">
+              <span>Hedefe Kalan</span>
+              <b id="distance-to-target">—</b>
+            </div>
+            <div class="metric">
+              <span>Tahmini Süre</span>
+              <b id="time-to-target">—</b>
+            </div>
+          </div>
+          <p class="muted" style="margin-top: 8px;">Son güncelleme: <span id="location-timestamp">—</span></p>
+          <button class="btn" id="refresh-location-btn" style="margin-top: 8px;">📍 Konumu Yenile</button>
+        </div>
+
+        <div class="traffic-card">
+          <h4>🚦 Trafik Durumu</h4>
+          <div id="traffic-alerts" class="traffic-alerts">
+            <p class="muted">Trafik verileri yükleniyor…</p>
+          </div>
+          <div class="tag-row" style="margin-top: 8px;">
+            <a class="btn btn--ghost" href={currentDay?.trafficEmbed || '#'} target="_blank" rel="noreferrer">Google Trafik Haritasını Aç</a>
+            <a class="btn btn--ghost" href={currentDay?.route || '#'} target="_blank" rel="noreferrer">Google Rota Planı</a>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="card col-4">
+      <div class="section-title">
+        <h3>📋 Günün Özeti</h3>
+      </div>
+      {currentDay && (
+        <>
+          <div class="day-summary">
+            <p class="tag-row"><strong>{currentDay.date}</strong></p>
+            <p class="tag-row"><span class="tag">{currentDay.origin} → {currentDay.destination}</span></p>
+            <div class="tag-row">
+              <span class="tag">📏 {currentDay.distanceKm}</span>
+              <span class="tag">⏱️ {currentDay.duration}</span>
+              <span class="tag">⛽ {currentDay.fuel}</span>
+            </div>
+          </div>
+
+          <h4 style="margin-top: 16px;">⚠️ Riskler</h4>
+          <ul class="risk-list">
+            {currentDay.risks.map((risk, i) => <li key={i}>{risk}</li>)}
+          </ul>
+
+          <h4 style="margin-top: 12px;">🎯 Fırsatlar</h4>
+          <ul class="opportunity-list">
+            {currentDay.opportunities.map((opp, i) => <li key={i}>{opp}</li>)}
+          </ul>
+
+          <h4 style="margin-top: 12px;">🏕️ Kamp</h4>
+          <div class="camp-info">
+            <p><strong>{currentDay.camp.name}</strong></p>
+            <p class="muted">{currentDay.camp.place}</p>
+            <p>{currentDay.camp.note}</p>
+            {currentDay.camp.phone ? <p>📞 <a href={`tel:${currentDay.camp.phone}`}>{currentDay.camp.phone}</a></p> : null}
+            {currentDay.camp.email ? <p>📧 <a href={`mailto:${currentDay.camp.email}`}>{currentDay.camp.email}</a></p> : null}
+          </div>
+        </>
+      )}
+    </article>
+  </div>
+
+  <div class="grid" style="margin-top: 16px;">
+    {allCameras.length > 0 ? (
+      <>
+        <div class="section-title" style="grid-column: 1 / -1;">
+          <h3>📷 Tüm Rota Üzeri Canlı Kameralar ({allCameras.length} adet)</h3>
+          <p class="subline">Günlere göre gruplandırıldı. Resimleri yenilemek için üzerine tıklayın.</p>
+        </div>
+        {tripData.days.map((day, dayIdx) => (
+          <div key={day.slug} class="camera-day-group" style="grid-column: 1 / -1;">
+            <h4 style="margin: 12px 0 8px; padding-bottom: 8px; border-bottom: 1px solid var(--line); color: var(--accent);">
+              {dayIdx + 1}. Gün — {day.date} — {day.origin} → {day.destination}
+            </h4>
+            <div class="grid camera-grid">
+              {day.cityCameras.map(cam => (
+                <CameraPlayer camera={{ ...cam, refreshSeconds: 90 }} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </>
+    ) : (
+      <div class="card col-12" style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+        <p class="muted">Kamera verisi bulunamadı.</p>
+      </div>
+    )}
+  </div>
+
+  <div class="grid" style="margin-top: 16px;">
+    <div class="section-title" style="grid-column: 1 / -1;">
+      <h3>🛑 Sonraki Önemli Duraklar</h3>
+    </div>
+    {nextStops.map((stop, i) => (
+      <article key={stop.id} class="card col-4">
+        <h4>{i + 1}. {stop.name}</h4>
+        <p class="muted">{stop.country}</p>
+        <p class="tag-row">
+          <span class="tag">📍 {stop.lat.toFixed(4)}, {stop.lng.toFixed(4)}</span>
+        </p>
+      </article>
+    ))}
+  </div>
+</section>
+
+<style>
+  .route-progress-bar {
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(17, 26, 45, 0.9);
+    border: 1px solid rgba(120, 150, 210, 0.4);
+    overflow: hidden;
+    margin: 12px 0 8px;
+    position: relative;
+  }
+
+  .route-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3d87ff, #5fb4ff, #59e0ff);
+    transition: width 0.5s ease;
+    border-radius: 999px;
+  }
+
+  .route-progress-label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    text-align: right;
+  }
+
+  .location-card,
+  .traffic-card {
+    background: rgba(8, 16, 32, 0.45);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .location-card h4,
+  .traffic-card h4 {
+    margin-top: 0;
+    margin-bottom: 12px;
+  }
+
+  .day-summary {
+    background: rgba(8, 16, 32, 0.45);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  .day-summary .tag-row {
+    margin: 4px 0;
+  }
+
+  .risk-list,
+  .opportunity-list {
+    margin: 8px 0 16px;
+    padding-left: 18px;
+  }
+
+  .risk-list li {
+    color: #ff8a8a;
+    margin: 6px 0;
+    font-size: 0.9rem;
+  }
+
+  .opportunity-list li {
+    color: #8affaa;
+    margin: 6px 0;
+    font-size: 0.9rem;
+  }
+
+  .camp-info {
+    background: rgba(8, 16, 32, 0.45);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 8px;
+  }
+
+  .camp-info p {
+    margin: 4px 0;
+  }
+
+  .traffic-alerts {
+    min-height: 80px;
+  }
+
+  .traffic-alert {
+    padding: 10px 12px;
+    margin: 8px 0;
+    border-radius: 8px;
+    border-left: 4px solid var(--accent);
+    background: rgba(103, 166, 255, 0.1);
+    font-size: 0.9rem;
+  }
+
+  .traffic-alert.warning {
+    border-left-color: var(--warn);
+    background: rgba(255, 207, 102, 0.1);
+  }
+
+  .traffic-alert.danger {
+    border-left-color: var(--bad);
+    background: rgba(255, 112, 136, 0.1);
+  }
+
+  .camera-day-group {
+    margin-bottom: 24px;
+  }
+
+  .camera-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 12px;
+  }
+
+  @media (max-width: 768px) {
+    .camera-grid {
+      grid-template-columns: 1fr;
+    }
+    .two-col {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script is:inline define:vars={{ 
+  routeStops: JSON.stringify(mapStops),
+  currentOrigin,
+  currentDestination,
+  departureAt: tripData.departureAt,
+  allCameras: JSON.stringify(allCameras.map(c => ({ title: c.title, url: c.url, source: c.source })))
+}}>
+  (() => {
+    const departure = new Date(departureAt);
+    const haversine = (a, b) => {
+      const toRad = (d) => (d * Math.PI) / 180;
+      const R = 6371;
+      const dLat = toRad(b.lat - a.lat);
+      const dLng = toRad(b.lng - a.lng);
+      const sinLat = Math.sin(dLat / 2);
+      const sinLng = Math.sin(dLng / 2);
+      const aa = sinLat * sinLat + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sinLng * sinLng;
+      return 2 * R * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa));
+    };
+
+    const stops = routeStops;
+    const riga = stops[stops.length - 1];
+    const targetStop = stops.find(s => s.name.toLowerCase() === currentDestination.toLowerCase()) || riga;
+
+    const cityEl = document.getElementById('current-city');
+    const distEl = document.getElementById('distance-to-target');
+    const timeEl = document.getElementById('time-to-target');
+    const gpsStatus = document.getElementById('gps-status');
+    const locTimestamp = document.getElementById('location-timestamp');
+    const connStatus = document.getElementById('connection-status');
+    const lastUpdate = document.getElementById('last-update');
+    const trafficAlerts = document.getElementById('traffic-alerts');
+    const refreshBtn = document.getElementById('refresh-location-btn');
+
+    const updateStatus = () => {
+      const now = new Date();
+      lastUpdate.textContent = now.toLocaleTimeString('tr-TR');
+      connStatus.textContent = '🟢 Canlı';
+      connStatus.className = 'pill';
+    };
+
+    const updateLocation = () => {
+      if (!navigator.geolocation) {
+        gpsStatus.textContent = '📍 Bu cihazda konum servisi desteklenmiyor.';
+        return;
+      }
+      gpsStatus.textContent = '📍 Konum alınıyor…';
+      
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          const remainingKm = haversine(current, targetStop);
+          const hours = Math.max(1, Math.round(remainingKm / 85));
+          
+          cityEl.textContent = `Koordinat: ${current.lat.toFixed(4)}, ${current.lng.toFixed(4)}`;
+          distEl.textContent = `${remainingKm.toFixed(1)} km`;
+          timeEl.textContent = `~${hours} saat`;
+          locTimestamp.textContent = new Date().toLocaleTimeString('tr-TR');
+          gpsStatus.textContent = '✅ Konum alındı (GPS)';
+          gpsStatus.style.color = 'var(--ok)';
+          updateStatus();
+        },
+        (err) => {
+          const msg = err.code === err.PERMISSION_DENIED 
+            ? '📍 Konum izni reddedildi. Tarayıcı ayarlarından izin verin.' 
+            : '📍 Konum alınamadı: ' + err.message;
+          gpsStatus.textContent = msg;
+          gpsStatus.style.color = 'var(--bad)';
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+      );
+    };
+
+    const generateMockTraffic = () => {
+      const alerts = [
+        { type: 'info', text: '🇹🇷 Kapıkule sınır geçişinde ortalama 45-60 dk bekleme süresi bekleniyor.' },
+        { type: 'warning', text: '🇧🇬 Sofya çevresinde akşam saatlerinde (17-19) yoğunluk artıyor.' },
+        { type: 'info', text: '🇷🇴 Ruse - Varna arası E85 yolunda TIR yoğunluğu, sağ şerit yavaş.' },
+        { type: 'warning', text: '🇭🇺 Budapeşte M0 havaalanı bağlantısında gecikmeli akış.' },
+        { type: 'info', text: '🇵🇱 Varşova S8 kuzey batı geçişinde yol bakımı, tek şerit.' },
+        { type: 'danger', text: '🇱🇹 Kaunas - Suwałki arası S61'de gece saatlerinde aydınlatma eksikliği dikkat.' },
+      ];
+      return alerts;
+    };
+
+    const renderTraffic = () => {
+      const alerts = generateMockTraffic();
+      trafficAlerts.innerHTML = alerts.map(a => 
+        `<div class="traffic-alert ${a.type}">${a.text}</div>`
+      ).join('');
+    };
+
+    const initCameraRefresh = () => {
+      document.querySelectorAll('.camera-image').forEach(img => {
+        img.style.cursor = 'pointer';
+        img.title = 'Tıklayarak yenile';
+        img.addEventListener('click', () => {
+          const base = img.getAttribute('data-base-src');
+          if (base) {
+            const sep = base.includes('?') ? '&' : '?';
+            img.src = `${base}${sep}_ts=${Date.now()}`;
+          }
+        });
+      });
+    };
+
+    updateStatus();
+    updateLocation();
+    renderTraffic();
+    initCameraRefresh();
+
+    setInterval(updateStatus, 30000);
+    setInterval(updateLocation, 120000);
+    refreshBtn?.addEventListener('click', updateLocation);
+
+    const observer = new MutationObserver(() => initCameraRefresh());
+    observer.observe(document.body, { childList: true, subtree: true });
+  })();
+</script>

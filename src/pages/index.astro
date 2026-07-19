@@ -43,37 +43,50 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
   title="İstanbul → Riga Karavan Yolculuğu"
   description="7-8 günlük karavan rotası, günlük plan, trafik takibi, kamp ve ekipman checklist'i."
 >
-  <section class="shell hero">
-    <div class="hero-top">
-      <div>
-        <h1>İstanbul'dan Letonya'ya Karavan Brifingi</h1>
-        <div class="countdown-block">
-          <span class="countdown-label">Yola çıkmaya kalan</span>
-          <span class="countdown-number" id="remaining-days">{daysUntilDeparture}</span>
-          <span class="countdown-unit">gün · <span class="countdown-clock" id="countdown">yükleniyor…</span></span>
-        </div>
-        <p class="subline" style="margin-top: 14px;">
-          <strong>Araç:</strong> {tripData.vehicle.model} · <strong>Plaka:</strong> {tripData.vehicle.plate}
+  <section class="hero-full">
+    <img
+      class="hero-full__bg"
+      src="/assets/passat-adria-karavan.png"
+      alt="Passat + Adria karavan Riga yolunda"
+      fetchpriority="high"
+    />
+    <div class="hero-full__scrim"></div>
+    <div class="hero-full__inner">
+      <div class="hero-full__content">
+        <span class="eyebrow">İstanbul → Riga · {tripData.totalKm.toLocaleString('tr-TR')} km · {tripData.countryGuides.length} ülke</span>
+        <h1>İstanbul'dan Letonya'ya<br />Karavan Brifingi</h1>
+        <p class="hero-full__lead">
+          {daySpan} günlük karavan rotası, günlük plan, canlı trafik, kamp ve ekipman kontrol listesi — tek ekranda.
         </p>
+        <div class="hero-metrics">
+          <div class="hero-metric hero-metric--count">
+            <span class="hero-metric__label">Yola çıkmaya kalan</span>
+            <span class="hero-metric__value countdown-number" id="remaining-days">{daysUntilDeparture}</span>
+            <span class="hero-metric__unit">gün · <span class="countdown-clock" id="countdown">yükleniyor…</span></span>
+          </div>
+          <div class="hero-metric">
+            <span class="hero-metric__label">Toplam mesafe</span>
+            <span class="hero-metric__value">{tripData.totalKm.toLocaleString('tr-TR')}</span>
+            <span class="hero-metric__unit">kilometre</span>
+          </div>
+          <div class="hero-metric">
+            <span class="hero-metric__label">Yakıt bütçesi</span>
+            <span class="hero-metric__value">{tripData.totalBudget.fuel}</span>
+            <span class="hero-metric__unit">tahmini</span>
+          </div>
+        </div>
+        <div class="hero-badges">
+          <a class="btn btn--road" href="/day/istanbul-sofya">Bugünün Güzergâhı</a>
+          <a class="btn btn--primary" href="#plan">Günlük Plan</a>
+          <a class="btn btn--glass" href="#ulkeler">Ülke Brifingi</a>
+          <a class="btn btn--glass" href="#harita">Canlı Harita</a>
+        </div>
       </div>
-      <img
-        class="hero-image"
-        src="/assets/passat-adria-karavan.png"
-        alt="Passat + Adria karavan"
-        loading="lazy"
-        width="1180"
-        height="664"
-      />
     </div>
-    <div class="hero-badges">
-      <a class="btn btn--road" href="/day/istanbul-sofya">Bugünün Güzergâhı</a>
-      <a class="btn btn--primary" href="#plan">Günlük Plan</a>
-      <a class="btn btn--ghost" href="#check">Hazırlık Listesi</a>
-      <a class="btn btn--ghost" href="#harita">Canlı Harita</a>
-      <a class="btn btn--ghost" href="/day/suwalki-riga">Riga Yaklaşımı</a>
-    </div>
-    <div class="hero-stepper">
-      <RouteStepper stops={stepperStops} activeIndex={-1} />
+    <div class="hero-full__stepper">
+      <div class="hero-full__inner">
+        <RouteStepper stops={stepperStops} activeIndex={-1} />
+      </div>
     </div>
   </section>
 
@@ -81,45 +94,28 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
     <article class="card col-4">
       <h3>Yolculuk Özeti</h3>
       <p><strong>Planlanan çıkış:</strong> {new Date(tripData.departureAt).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-      <p><strong>Toplam segment:</strong> {daySpan} gün · {tripData.stops.length} durak</p>
-      <p class="tiny-note">{tripData.countryGuides.length} ülke brifingi: {countryChain}</p>
-      <div class="metric-row">
-        <div class="metric">
-          <span>Toplam yakıt bütçesi</span>
-          <b>{tripData.totalBudget.fuel}</b>
-        </div>
-        <div class="metric">
-          <span>Toplam hedef aralık</span>
-          <b>{tripData.totalBudget.total}</b>
-        </div>
-        <div class="metric">
-          <span>Tahmini toplam mesafe</span>
-          <b>{tripData.totalKm} km</b>
-        </div>
-      </div>
+      <p><strong>Süre:</strong> {daySpan} gün · {tripData.stops.length} durak</p>
+      <p><strong>Pratik bütçe hedefi:</strong> {tripData.totalBudget.total}</p>
     </article>
 
     <article class="card col-4">
       <h3>Konum Takibi</h3>
-      <p id="location-status" class="muted">Konum bilgisi bekleniyor…</p>
-      <p><strong>Hedef şehir:</strong> <span id="target-city">Sofya</span></p>
+      <p id="location-status" class="muted">Konumunu paylaşınca Riga'ya kalan mesafe hesaplanır.</p>
       <p><strong>Kalan mesafe:</strong> <span id="remaining-distance">—</span></p>
-      <p><strong>Tahmini varış süresi:</strong> <span id="remaining-time">—</span></p>
+      <p><strong>Tahmini varış:</strong> <span id="remaining-time">—</span></p>
+      <span id="target-city" hidden>Sofya</span>
       <div class="metric-row" style="margin-top: 12px;">
-        <button class="btn" id="locate-btn">Konumumu Yenile</button>
-        <span class="pill">Telefon konumu + kullanıcı izniyle daha doğru sonuç</span>
+        <button class="btn btn--primary" id="locate-btn">Konumumu Paylaş</button>
       </div>
     </article>
 
     <article class="card col-4">
-      <h3>Araç & Karavan Durumu</h3>
+      <h3>Hazırlık Durumu</h3>
       <p><strong>Çekim:</strong> {tripData.vehicle.towing}</p>
-      <p><strong>Model:</strong> {tripData.vehicle.model}</p>
-      <p><strong>Plaka:</strong> {tripData.vehicle.plate}</p>
-      <p><strong>Yükleme prensibi:</strong> Ağır eşyalar dingile yakın, hassas eşyalar sabitlenmiş.</p>
+      <p><strong>Yükleme:</strong> Ağır eşyalar dingile yakın, hassas eşyalar sabitlenmiş.</p>
       <div class="progress-wrap">
         <div class="tag-row">
-          <span class="tag">Hazırlık ilerlemesi</span>
+          <span class="tag">Kontrol listesi</span>
           <span class="tiny-note" id="task-status">0 / {tripData.checklist.length}</span>
         </div>
         <div class="progress" aria-label="Hazırlık ilerleme çubuğu">
@@ -133,7 +129,7 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
     <div class="section-title">
       <div>
         <h3>Yola Çıkmadan Önce Hazırlık Kontrol Listesi</h3>
-        <p class="subline">İşaretledikleriniz otomatik lokal olarak saklanır.</p>
+        <p class="subline">İşaretlediklerin bu tarayıcıda saklanır.</p>
       </div>
       <a class="btn btn--ghost" href="#plan">Plan Modülüne Git</a>
     </div>
@@ -143,7 +139,6 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
           <input type="checkbox" class="task-check" data-task={item.id} />
           <div>
             <p><strong>{item.due}</strong> — {item.task}</p>
-            <span class="due muted">Görev ID: {item.id}</span>
           </div>
         </label>
       ))}
@@ -169,7 +164,7 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
   </section>
 
   <section id="harita" class="shell">
-    <h3>Rota Haritası (gerçek harita)</h3>
+    <h3>Rota Haritası</h3>
     <RouteMap
       title="İstanbul → Riga Tam Rota"
       routeStops={mapStops}
@@ -294,8 +289,11 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
   </section>
 
   <section id="plan" class="shell">
-    <h3>Günlük Yolculuk Planı</h3>
-    <p class="subline">Her gün için ayrı sayfaya geçerek risk, alternatif ve kamp detaylarını detaylı inceleyebilirsin.</p>
+    <div class="sec-head">
+      <span class="eyebrow">Gün Gün Plan · {daySpan} etap</span>
+      <h2>Günlük Yolculuk Planı</h2>
+      <p class="subline">Her güne tıklayarak risk, alternatif ve kamp detaylarına in.</p>
+    </div>
     <div class="grid">
       {tripData.days.map((day, i) => {
         const level = dayLevel(day);
@@ -317,7 +315,6 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
             <p class="muted">{day.risks[0]}</p>
             <div class="tag-row" style="margin-top: 8px;">
               <span class="pill">Kamp: {day.camp.place}</span>
-              <span class="pill">Kamera: {day.cityCameras.length} adet</span>
             </div>
           </a>
         );
@@ -412,7 +409,7 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
           locStatus.textContent = 'Konum alındı';
         },
         () => {
-          locStatus.textContent = 'Konum izni kapalı. "Konumumu Yenile" ile tekrar deneyin.';
+          locStatus.textContent = 'Konum izni verilmedi. Butona tekrar dokunarak deneyebilirsin.';
         },
         { enableHighAccuracy: false, timeout: 12000 },
       );
@@ -430,7 +427,6 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
     });
 
     setTaskProgress();
-    updateLocation();
     document.getElementById('locate-btn')?.addEventListener('click', updateLocation);
 
     if ('serviceWorker' in navigator) {
