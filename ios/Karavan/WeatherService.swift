@@ -1,12 +1,13 @@
 import Foundation
 
 // Open-Meteo: API anahtarı gerektirmez. Web ile aynı kaynak.
+// Görsel: sistem SF Symbols (multicolor) — native hava widget'ı hissi.
 struct StopWeather: Identifiable {
     let id: String
     let name: String
     let flag: String
     let temp: Int
-    let icon: String
+    let symbol: String
     let desc: String
     let isRaining: Bool
 }
@@ -16,14 +17,16 @@ final class WeatherService: ObservableObject {
     @Published var items: [StopWeather] = []
     @Published var updatedAt: Date?
 
+    // WMO kodu → (SF Symbol, Türkçe açıklama)
     private static let wmo: [Int: (String, String)] = [
-        0: ("☀️", "Açık"), 1: ("🌤️", "Genelde açık"), 2: ("⛅", "Parçalı bulutlu"), 3: ("☁️", "Bulutlu"),
-        45: ("🌫️", "Sisli"), 48: ("🌫️", "Kırağı sisi"),
-        51: ("🌦️", "Hafif çisenti"), 53: ("🌦️", "Çisenti"), 55: ("🌦️", "Yoğun çisenti"),
-        61: ("🌧️", "Hafif yağmur"), 63: ("🌧️", "Yağmur"), 65: ("🌧️", "Kuvvetli yağmur"),
-        71: ("🌨️", "Hafif kar"), 73: ("🌨️", "Kar"), 75: ("🌨️", "Yoğun kar"),
-        80: ("🌦️", "Sağanak"), 81: ("🌧️", "Sağanak"), 82: ("⛈️", "Kuvvetli sağanak"),
-        95: ("⛈️", "Gök gürültülü"), 96: ("⛈️", "Dolu + fırtına"), 99: ("⛈️", "Dolu + fırtına"),
+        0: ("sun.max.fill", "Açık"), 1: ("sun.min.fill", "Genelde açık"),
+        2: ("cloud.sun.fill", "Parçalı bulutlu"), 3: ("cloud.fill", "Bulutlu"),
+        45: ("cloud.fog.fill", "Sisli"), 48: ("cloud.fog.fill", "Kırağı sisi"),
+        51: ("cloud.drizzle.fill", "Hafif çisenti"), 53: ("cloud.drizzle.fill", "Çisenti"), 55: ("cloud.drizzle.fill", "Yoğun çisenti"),
+        61: ("cloud.rain.fill", "Hafif yağmur"), 63: ("cloud.rain.fill", "Yağmur"), 65: ("cloud.heavyrain.fill", "Kuvvetli yağmur"),
+        71: ("cloud.snow.fill", "Hafif kar"), 73: ("cloud.snow.fill", "Kar"), 75: ("cloud.snow.fill", "Yoğun kar"),
+        80: ("cloud.sun.rain.fill", "Sağanak"), 81: ("cloud.rain.fill", "Sağanak"), 82: ("cloud.heavyrain.fill", "Kuvvetli sağanak"),
+        95: ("cloud.bolt.rain.fill", "Gök gürültülü"), 96: ("cloud.bolt.rain.fill", "Dolu + fırtına"), 99: ("cloud.bolt.rain.fill", "Dolu + fırtına"),
     ]
 
     private struct OMCurrent: Decodable {
@@ -61,14 +64,14 @@ final class WeatherService: ObservableObject {
         var result: [StopWeather] = []
         for (i, stop) in stops.enumerated() where i < responses.count {
             let cur = responses[i].current
-            let (icon, desc) = Self.wmo[cur.weather_code] ?? ("🌡️", "—")
+            let (symbol, desc) = Self.wmo[cur.weather_code] ?? ("thermometer.medium", "—")
             result.append(
                 StopWeather(
                     id: stop.id,
                     name: stop.name,
                     flag: stop.flag,
                     temp: Int(cur.temperature_2m.rounded()),
-                    icon: icon,
+                    symbol: symbol,
                     desc: desc,
                     isRaining: cur.precipitation > 0
                 )

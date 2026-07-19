@@ -1,17 +1,17 @@
-name: Karavan
+name: Kuzey
 options:
   bundleIdPrefix: com.bilalsenturk
   deploymentTarget:
     iOS: "17.0"
 targets:
-  Karavan:
+  Kuzey:
     type: application
     platform: iOS
     sources:
       - path: Karavan
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.bilalsenturk.karavan
+        PRODUCT_BUNDLE_IDENTIFIER: com.bilalsenturk.kuzey
         GENERATE_INFOPLIST_FILE: YES
         CODE_SIGN_STYLE: Automatic
         TARGETED_DEVICE_FAMILY: "1,2"
@@ -19,11 +19,11 @@ targets:
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "5.9"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        INFOPLIST_KEY_CFBundleDisplayName: Karavan
+        INFOPLIST_KEY_CFBundleDisplayName: Kuzey
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
-        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Canlı yolculuk takibi: Riga'ya kalan mesafe ve sıradaki durak konumunuza göre hesaplanır."
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Canlı yolculuk takibi: Riga'ya kalan mesafe, hız ve sıradaki durak konumunuza göre hesaplanır."
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait"
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleLightContent

@@ -8,7 +8,7 @@ struct KaravanApp: App {
 
     var body: some Scene {
         WindowGroup {
-            DashboardView()
+            ContentView()
                 .environmentObject(store)
                 .environmentObject(locationManager)
                 .environmentObject(weather)

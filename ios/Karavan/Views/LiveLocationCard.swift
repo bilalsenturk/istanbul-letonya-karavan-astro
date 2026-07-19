@@ -37,6 +37,20 @@ struct LiveLocationCard: View {
                             value: nearestText(trip: trip),
                             label: "En yakın durak"
                         )
+                        Divider().background(Theme.line).padding(.vertical, 4)
+                        stat(
+                            value: loc.speedKmh.map { "\($0) km/s" } ?? "0 km/s",
+                            label: "Hız"
+                        )
+                    }
+                    if loc.lastPublished != nil {
+                        HStack(spacing: 5) {
+                            Image(systemName: "antenna.radiowaves.left.and.right")
+                                .font(.system(size: 10, weight: .bold))
+                            Text("Web'e yayınlanıyor")
+                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        }
+                        .foregroundStyle(Theme.c4)
                     }
                 } else {
                     Button {

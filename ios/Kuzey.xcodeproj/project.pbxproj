@@ -1,0 +1,398 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		042CD6553C4C9F181A24D979 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F5C959C02D3AEB61D35B2E4 /* DashboardView.swift */; };
+		0BE5A7664A79AAEAC5B197F1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9AEF46AA6EEEAA6BB1DFD19E /* Assets.xcassets */; };
+		1F27EF2FD3A054C89EB215C4 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A9CB73E03C832207007A05A /* ContentView.swift */; };
+		27D303E4234299F590A82DC4 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D158F3DF63E4C9036FB22C7 /* Config.swift */; };
+		3B014CAF3ED8C77379FD5729 /* Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35155F1CE413BCBF9F18829E /* Navigation.swift */; };
+		68B14299CB90DBF724E88AA2 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC44A961C70396158E35B2A1 /* Models.swift */; };
+		83113E5D1FBE09DAB2A20E48 /* PlanScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC66F61F5A93C2097EF6381 /* PlanScreen.swift */; };
+		89784D251FA5CFB972CFACF6 /* KaravanApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48DBB19FBCDD52DE1F4E55F8 /* KaravanApp.swift */; };
+		BB1181756AD31C2121B413CD /* CountdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD74465F353E94FA714455D0 /* CountdownView.swift */; };
+		BE94D409F9E37AE2C0E79B9C /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEB2A1F70C4BD191A5BA233B /* WeatherService.swift */; };
+		D639120DCFB9ED1C9D94A027 /* trip.json in Resources */ = {isa = PBXBuildFile; fileRef = 854400F42C0A6BF3D1C19B27 /* trip.json */; };
+		DCA192F45DFD629CE1326455 /* DayDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50EC37896D44D59908E84F08 /* DayDetailView.swift */; };
+		DD27A9E6C1CCB53B5B5F0E24 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B82E5004A631A77716317D /* LocationManager.swift */; };
+		E7CC729324E01B0041BFBEE5 /* LiveLocationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C443FE724E722869D208BAC /* LiveLocationCard.swift */; };
+		EE7E4F5FFF6937FF414394D1 /* TripStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CFA86E52D515272F7F13F10 /* TripStore.swift */; };
+		EF3F584FDB22426380668F50 /* MapScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86097054B82CA8512E4AA874 /* MapScreen.swift */; };
+		FAD7DD8D7AC36626072723B3 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00954AF5EE56487B60F675E1 /* Theme.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		00954AF5EE56487B60F675E1 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		21B82E5004A631A77716317D /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
+		35155F1CE413BCBF9F18829E /* Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Navigation.swift; sourceTree = "<group>"; };
+		39518EF9591A8B60BC9FB024 /* Kuzey.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Kuzey.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		48DBB19FBCDD52DE1F4E55F8 /* KaravanApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaravanApp.swift; sourceTree = "<group>"; };
+		4CC66F61F5A93C2097EF6381 /* PlanScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanScreen.swift; sourceTree = "<group>"; };
+		4D158F3DF63E4C9036FB22C7 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
+		50EC37896D44D59908E84F08 /* DayDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayDetailView.swift; sourceTree = "<group>"; };
+		5A9CB73E03C832207007A05A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		5CFA86E52D515272F7F13F10 /* TripStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripStore.swift; sourceTree = "<group>"; };
+		854400F42C0A6BF3D1C19B27 /* trip.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = trip.json; sourceTree = "<group>"; };
+		86097054B82CA8512E4AA874 /* MapScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapScreen.swift; sourceTree = "<group>"; };
+		8C443FE724E722869D208BAC /* LiveLocationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveLocationCard.swift; sourceTree = "<group>"; };
+		9AEF46AA6EEEAA6BB1DFD19E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		9F5C959C02D3AEB61D35B2E4 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		CD74465F353E94FA714455D0 /* CountdownView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountdownView.swift; sourceTree = "<group>"; };
+		DC44A961C70396158E35B2A1 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		DEB2A1F70C4BD191A5BA233B /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		433F4FB75A37C6DA9CE24E46 /* Karavan */ = {
+			isa = PBXGroup;
+			children = (
+				9AEF46AA6EEEAA6BB1DFD19E /* Assets.xcassets */,
+				4D158F3DF63E4C9036FB22C7 /* Config.swift */,
+				48DBB19FBCDD52DE1F4E55F8 /* KaravanApp.swift */,
+				21B82E5004A631A77716317D /* LocationManager.swift */,
+				DC44A961C70396158E35B2A1 /* Models.swift */,
+				35155F1CE413BCBF9F18829E /* Navigation.swift */,
+				00954AF5EE56487B60F675E1 /* Theme.swift */,
+				5CFA86E52D515272F7F13F10 /* TripStore.swift */,
+				DEB2A1F70C4BD191A5BA233B /* WeatherService.swift */,
+				832D862B0C1892D7807B4DEA /* Resources */,
+				6D724DEAA6E11EF7CA49C584 /* Views */,
+			);
+			path = Karavan;
+			sourceTree = "<group>";
+		};
+		6D724DEAA6E11EF7CA49C584 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				5A9CB73E03C832207007A05A /* ContentView.swift */,
+				CD74465F353E94FA714455D0 /* CountdownView.swift */,
+				9F5C959C02D3AEB61D35B2E4 /* DashboardView.swift */,
+				50EC37896D44D59908E84F08 /* DayDetailView.swift */,
+				8C443FE724E722869D208BAC /* LiveLocationCard.swift */,
+				86097054B82CA8512E4AA874 /* MapScreen.swift */,
+				4CC66F61F5A93C2097EF6381 /* PlanScreen.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		832D862B0C1892D7807B4DEA /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				854400F42C0A6BF3D1C19B27 /* trip.json */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		92EFC62F5F0E9F38B4CD5897 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				39518EF9591A8B60BC9FB024 /* Kuzey.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E1263EA303CDCFC6E0EE7C09 = {
+			isa = PBXGroup;
+			children = (
+				433F4FB75A37C6DA9CE24E46 /* Karavan */,
+				92EFC62F5F0E9F38B4CD5897 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		3167D9C5382665B02E9A7C38 /* Kuzey */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 89DEA7AFA7536A6DB2B54E3D /* Build configuration list for PBXNativeTarget "Kuzey" */;
+			buildPhases = (
+				AAD2C22B584E710B0762EB93 /* Sources */,
+				51E32836BBAEC0C70617C472 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Kuzey;
+			packageProductDependencies = (
+			);
+			productName = Kuzey;
+			productReference = 39518EF9591A8B60BC9FB024 /* Kuzey.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		507E19ED42AFA9950322BDC4 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					3167D9C5382665B02E9A7C38 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 8BFF79D106AA3D2DEFAE569C /* Build configuration list for PBXProject "Kuzey" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = E1263EA303CDCFC6E0EE7C09;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 92EFC62F5F0E9F38B4CD5897 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				3167D9C5382665B02E9A7C38 /* Kuzey */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		51E32836BBAEC0C70617C472 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0BE5A7664A79AAEAC5B197F1 /* Assets.xcassets in Resources */,
+				D639120DCFB9ED1C9D94A027 /* trip.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AAD2C22B584E710B0762EB93 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				27D303E4234299F590A82DC4 /* Config.swift in Sources */,
+				1F27EF2FD3A054C89EB215C4 /* ContentView.swift in Sources */,
+				BB1181756AD31C2121B413CD /* CountdownView.swift in Sources */,
+				042CD6553C4C9F181A24D979 /* DashboardView.swift in Sources */,
+				DCA192F45DFD629CE1326455 /* DayDetailView.swift in Sources */,
+				89784D251FA5CFB972CFACF6 /* KaravanApp.swift in Sources */,
+				E7CC729324E01B0041BFBEE5 /* LiveLocationCard.swift in Sources */,
+				DD27A9E6C1CCB53B5B5F0E24 /* LocationManager.swift in Sources */,
+				EF3F584FDB22426380668F50 /* MapScreen.swift in Sources */,
+				68B14299CB90DBF724E88AA2 /* Models.swift in Sources */,
+				3B014CAF3ED8C77379FD5729 /* Navigation.swift in Sources */,
+				83113E5D1FBE09DAB2A20E48 /* PlanScreen.swift in Sources */,
+				FAD7DD8D7AC36626072723B3 /* Theme.swift in Sources */,
+				EE7E4F5FFF6937FF414394D1 /* TripStore.swift in Sources */,
+				BE94D409F9E37AE2C0E79B9C /* WeatherService.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		4F0EC3B3537CE4C5233D7A57 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		701ED5A7602CB45EDA59F386 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Kuzey;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Canlı yolculuk takibi: Riga'ya kalan mesafe, hız ve sıradaki durak konumunuza göre hesaplanır.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bilalsenturk.kuzey;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		EDE5AAC1F882B848C4E19C5A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Kuzey;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Canlı yolculuk takibi: Riga'ya kalan mesafe, hız ve sıradaki durak konumunuza göre hesaplanır.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bilalsenturk.kuzey;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		F40D9D08B931D8BCAAD73595 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		89DEA7AFA7536A6DB2B54E3D /* Build configuration list for PBXNativeTarget "Kuzey" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				701ED5A7602CB45EDA59F386 /* Debug */,
+				EDE5AAC1F882B848C4E19C5A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		8BFF79D106AA3D2DEFAE569C /* Build configuration list for PBXProject "Kuzey" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F40D9D08B931D8BCAAD73595 /* Debug */,
+				4F0EC3B3537CE4C5233D7A57 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 507E19ED42AFA9950322BDC4 /* Project object */;
+}

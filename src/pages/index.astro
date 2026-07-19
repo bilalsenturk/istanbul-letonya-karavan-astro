@@ -47,8 +47,8 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
 ---
 
 <MainLayout
-  title="İstanbul → Riga Karavan Yolculuğu"
-  description="7-8 günlük karavan rotası, günlük plan, trafik takibi, kamp ve ekipman checklist'i."
+  title="Kuzey — Letonya Yolculuğu"
+  description="İstanbul'dan Riga'ya karavan rotası: günlük plan, canlı hava ve konum, kamp ve hazırlık listesi."
 >
   <section class="hero-full">
     <img
@@ -61,7 +61,7 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
     <div class="hero-full__inner">
       <div class="hero-full__content">
         <span class="eyebrow">İstanbul → Riga · {tripData.totalKm.toLocaleString('tr-TR')} km · {tripData.countryGuides.length} ülke</span>
-        <h1>İstanbul'dan Letonya'ya<br />Karavan Brifingi</h1>
+        <h1>Letonya Yolculuğu</h1>
         <p class="hero-full__lead">
           {daySpan} günlük karavan rotası, günlük plan, canlı trafik, kamp ve ekipman kontrol listesi — tek ekranda.
         </p>
@@ -118,14 +118,17 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
     </article>
 
     <article class="card col-4">
-      <h3>Konum Takibi</h3>
-      <p id="location-status" class="muted">Konumunu paylaşınca Riga'ya kalan mesafe hesaplanır.</p>
-      <p><strong>Kalan mesafe:</strong> <span id="remaining-distance">—</span></p>
-      <p><strong>Tahmini varış:</strong> <span id="remaining-time">—</span></p>
-      <span id="target-city" hidden>Sofya</span>
-      <div class="metric-row" style="margin-top: 12px;">
-        <button class="btn btn--primary" id="locate-btn">Konumumu Paylaş</button>
+      <div class="section-title">
+        <h3>Karavan Nerede?</h3>
+        <span class="lvl lvl--ok" id="live-badge" hidden>Canlı</span>
       </div>
+      <p id="location-status" class="muted">Kuzey uygulamasından canlı konum bekleniyor…</p>
+      <p><strong>Riga'ya kalan:</strong> <span id="remaining-distance">—</span></p>
+      <p><strong>En yakın durak:</strong> <span id="nearest-stop">—</span></p>
+      <p><strong>Hız:</strong> <span id="live-speed">—</span></p>
+      <p class="tiny-note" id="live-updated"></p>
+      <span id="target-city" hidden>Sofya</span>
+      <span id="remaining-time" hidden></span>
     </article>
 
     <article class="card col-4">
@@ -429,26 +432,40 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
       progressEl.style.width = `${percent}%`;
     };
 
-    const updateLocation = () => {
-      if (!navigator.geolocation) {
-        locStatus.textContent = 'Bu cihazda konum servisi desteklenmiyor.';
-        return;
-      }
+    // Kuzey iOS uygulamasının yayınladığı canlı konumu çek (60 sn'de bir).
+    const liveBadge = document.getElementById('live-badge');
+    const nearestEl = document.getElementById('nearest-stop');
+    const speedEl = document.getElementById('live-speed');
+    const updatedEl = document.getElementById('live-updated');
 
-      locStatus.textContent = 'Konum alınıyor…';
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          const remainingKm = haversine(current, riga);
-          distEl.textContent = `${remainingKm.toFixed(1)} km`;
-          timeEl.textContent = `~${Math.max(4, Math.round(remainingKm / 95))} saat`;
-          locStatus.textContent = 'Konum alındı';
-        },
-        () => {
-          locStatus.textContent = 'Konum izni verilmedi. Butona tekrar dokunarak deneyebilirsin.';
-        },
-        { enableHighAccuracy: false, timeout: 12000 },
-      );
+    const pollLive = async () => {
+      try {
+        const res = await fetch('/api/location', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (typeof data.lat !== 'number') return;
+
+        const current = { lat: data.lat, lng: data.lng };
+        const remainingKm = haversine(current, riga);
+        distEl.textContent = `${Math.round(remainingKm)} km`;
+
+        let best = null;
+        for (const s of stops) {
+          const d = haversine(current, s);
+          if (!best || d < best.d) best = { s, d };
+        }
+        if (best && nearestEl) nearestEl.textContent = `${best.s.name} · ${Math.round(best.d)} km`;
+        if (speedEl) speedEl.textContent = data.speedKmh != null ? `${data.speedKmh} km/s` : '—';
+
+        const ts = new Date(data.ts);
+        if (updatedEl && !isNaN(ts.getTime())) {
+          updatedEl.textContent = `Son güncelleme: ${ts.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`;
+        }
+        if (liveBadge) liveBadge.hidden = false;
+        if (locStatus) locStatus.textContent = 'Karavandan canlı veri alınıyor.';
+      } catch (_) {
+        /* sessiz: app henüz yayın yapmıyor olabilir */
+      }
     };
 
     const checks = document.querySelectorAll('.task-check');
@@ -463,7 +480,9 @@ const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(
     });
 
     setTaskProgress();
-    document.getElementById('locate-btn')?.addEventListener('click', updateLocation);
+    pollLive();
+    const liveInterval = setInterval(pollLive, 60000);
+    window.addEventListener('pagehide', () => clearInterval(liveInterval));
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});

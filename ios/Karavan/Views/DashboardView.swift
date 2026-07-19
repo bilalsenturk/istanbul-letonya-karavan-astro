@@ -24,7 +24,6 @@ struct DashboardView: View {
                             metricRow(trip: trip)
                             LiveLocationCard()
                             weatherStrip
-                            timeline(trip: trip)
                         } else {
                             ProgressView().tint(.white).padding(40)
                         }
@@ -72,15 +71,17 @@ struct DashboardView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text("🚐")
-                MonoLabel(text: "İstanbul → Riga", color: Theme.dim)
+                Image(systemName: "location.north.circle.fill")
+                    .font(.system(size: 17))
+                    .foregroundStyle(Theme.grad)
+                MonoLabel(text: "Kuzey · İstanbul → Riga", color: Theme.dim)
                 Spacer()
                 if let t = weather.updatedAt {
                     MonoLabel(text: t.formatted(date: .omitted, time: .shortened))
                 }
             }
-            Text("Karavan Brifingi")
-                .font(.system(size: 38, weight: .heavy, design: .rounded))
+            Text("Letonya Yolculuğu")
+                .font(.system(size: 36, weight: .heavy, design: .rounded))
                 .foregroundStyle(Theme.text)
         }
         .padding(.top, 8)
@@ -123,26 +124,28 @@ struct DashboardView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(weather.items) { w in
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 7) {
                             HStack(spacing: 5) {
                                 Text(w.flag).font(.system(size: 13))
                                 Text(w.name)
                                     .font(.system(size: 12, weight: .semibold, design: .rounded))
                                     .foregroundStyle(Theme.dim)
                             }
-                            HStack(spacing: 7) {
-                                Text(w.icon).font(.system(size: 22))
+                            HStack(spacing: 8) {
+                                Image(systemName: w.symbol)
+                                    .symbolRenderingMode(.multicolor)
+                                    .font(.system(size: 24))
                                 Text("\(w.temp)°")
-                                    .font(.system(size: 26, weight: .heavy, design: .rounded))
+                                    .font(.system(size: 27, weight: .heavy, design: .rounded))
                                     .foregroundStyle(Theme.text)
                             }
-                            Text(w.isRaining ? "\(w.desc) · ☔" : w.desc)
+                            Text(w.desc)
                                 .font(.system(size: 10.5, weight: .medium))
-                                .foregroundStyle(Theme.muted)
+                                .foregroundStyle(w.isRaining ? Theme.c2 : Theme.muted)
                                 .lineLimit(1)
                         }
                         .padding(12)
-                        .frame(width: 128, alignment: .leading)
+                        .frame(width: 130, alignment: .leading)
                         .background(
                             w.isRaining ? Theme.c2.opacity(0.13) : Color.white.opacity(0.055),
                             in: RoundedRectangle(cornerRadius: 15, style: .continuous)
@@ -152,22 +155,6 @@ struct DashboardView: View {
                                 .strokeBorder(w.isRaining ? Theme.c2.opacity(0.45) : Theme.line, lineWidth: 1)
                         )
                     }
-                }
-            }
-        }
-    }
-
-    private func timeline(trip: TripData) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            MonoLabel(text: "Gün gün plan · \(trip.days.count) etap", color: Theme.c2)
-            VStack(spacing: 12) {
-                ForEach(Array(trip.days.enumerated()), id: \.element.id) { index, day in
-                    NavigationLink {
-                        DayDetailView(day: day, index: index)
-                    } label: {
-                        TimelineRow(day: day, index: index, isLast: index == trip.days.count - 1)
-                    }
-                    .buttonStyle(.plain)
                 }
             }
         }
@@ -210,13 +197,16 @@ struct TimelineRow: View {
                     .foregroundStyle(Theme.text)
 
                 if !day.isRestDay {
-                    Text("🛣️ \(day.distanceKm)  ·  ⏱️ \(day.duration)")
-                        .font(.system(size: 12.5, weight: .medium))
-                        .foregroundStyle(Theme.dim)
+                    HStack(spacing: 12) {
+                        Label(day.distanceKm, systemImage: "road.lanes")
+                        Label(day.duration, systemImage: "clock.fill")
+                    }
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Theme.dim)
                 }
 
                 HStack {
-                    Text("⛺ \(day.camp.place)")
+                    Label(day.camp.place, systemImage: "tent.fill")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(Theme.muted)
                         .lineLimit(1)

@@ -3,6 +3,11 @@ import SwiftUI
 struct DayDetailView: View {
     let day: DayPlan
     let index: Int
+    @EnvironmentObject var store: TripStore
+
+    private var destinationStop: Stop? {
+        store.trip?.stop(matching: day.destination)
+    }
 
     var body: some View {
         ZStack {
@@ -23,6 +28,36 @@ struct DayDetailView: View {
                             chip("⏱️ \(day.duration)")
                         }
                         chip("⛽ \(day.fuel)")
+
+                        if let dest = destinationStop {
+                            HStack(spacing: 10) {
+                                Button {
+                                    NavApp.openAppleMaps(to: dest)
+                                } label: {
+                                    Label("Apple Maps'te sür", systemImage: "arrow.triangle.turn.up.right.circle.fill")
+                                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                                        .foregroundStyle(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                        .background(Theme.gradWarm, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                                }
+                                Button {
+                                    NavApp.openGoogleMaps(to: dest)
+                                } label: {
+                                    Label("Google Maps", systemImage: "globe.europe.africa.fill")
+                                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                                        .foregroundStyle(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                        .background(Theme.panel, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                                                .strokeBorder(Theme.line, lineWidth: 1)
+                                        )
+                                }
+                            }
+                            .padding(.top, 4)
+                        }
                     }
 
                     section("Sorun senaryoları", items: day.risks, tint: Theme.bad)

@@ -6,9 +6,8 @@ final class TripStore: ObservableObject {
     @Published var lastRefreshed: Date?
 
     // Deploy edilen sitedeki güncel veri. Site her deploy olduğunda app içeriği
-    // de tazelenir — app'i yeniden kurmak gerekmez. Boş bırakılırsa yalnızca
-    // gömülü veri kullanılır.
-    static let remoteDataURL = URL(string: "https://istanbul-letonya-karavan-astro.vercel.app/trip-data.json")
+    // de tazelenir — app'i yeniden kurmak gerekmez. (Adres: Config.swift)
+    static let remoteDataURL = Config.tripDataURL
 
     init() {
         loadBundled()

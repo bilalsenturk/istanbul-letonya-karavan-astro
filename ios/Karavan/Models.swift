@@ -78,3 +78,10 @@ struct ChecklistItem: Codable, Identifiable {
     let due: String
     let task: String
 }
+
+extension TripData {
+    /// "Bükreş Güney" gibi gün adlarını durak koordinatına eşler
+    func stop(matching name: String) -> Stop? {
+        stops.first { name.contains($0.name) || $0.name.contains(name) }
+    }
+}
