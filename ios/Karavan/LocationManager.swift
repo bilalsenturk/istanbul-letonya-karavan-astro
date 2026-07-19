@@ -92,6 +92,11 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                 body: "Kontrol: tüp gaz kapalı mı · elektrik/su · sınır belgeleri hazır mı?",
                 id: "arrival-\(region.identifier)"
             )
+            var rigaKm: Int?
+            if let riga = self.trip?.trip?.stops.last, let km = self.distanceKm(to: riga) {
+                rigaKm = Int(km.rounded())
+            }
+            AnnouncementService.shared.announceArrival(stopName: region.identifier, remainingToFinalKm: rigaKm)
         }
     }
 
@@ -105,6 +110,10 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                 await self.nav?.update(location: last, stops: stops, legs: self.routeStore?.legs ?? [])
             }
             self.publishToWeb(last)
+            // Her ~100 km / yaklaşınca sesli mesafe anonsu
+            if let name = self.nav?.nextStop?.name, let km = self.nav?.remainingKm {
+                AnnouncementService.shared.progressUpdate(nextStop: name, remainingKm: km)
+            }
         }
     }
 

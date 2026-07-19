@@ -63,11 +63,13 @@ const countryCodes: Record<string, string> = {
 >
   <section class="hero-full">
     <img
-      class="hero-full__bg"
+      class="hero-full__bg is-active"
       src="/assets/passat-adria-karavan.png"
       alt="Passat + Adria karavan Riga yolunda"
       fetchpriority="high"
     />
+    <img class="hero-full__bg" src="/assets/hero/forest.jpg" alt="Orman yolunda karavan" loading="lazy" />
+    <img class="hero-full__bg" src="/assets/hero/highway.jpg" alt="Budapeşte otoyolunda karavan" loading="lazy" />
     <div class="hero-full__scrim"></div>
     <div class="hero-full__inner">
       <div class="hero-full__content">
@@ -384,6 +386,19 @@ const countryCodes: Record<string, string> = {
     const countdownInterval = setInterval(updateCountdown, 1000);
     window.addEventListener('pagehide', () => clearInterval(countdownInterval));
 
+    // Hero görsel galerisi: yüklenenler arasında geçiş; eksik görselleri sessizce at.
+    const heroImgs = Array.from(document.querySelectorAll('.hero-full__bg'));
+    heroImgs.forEach((img) => img.addEventListener('error', () => img.remove()));
+    let heroIdx = 0;
+    const heroInterval = setInterval(() => {
+      const imgs = Array.from(document.querySelectorAll('.hero-full__bg'));
+      if (imgs.length < 2) return;
+      imgs.forEach((i) => i.classList.remove('is-active'));
+      heroIdx = (heroIdx + 1) % imgs.length;
+      imgs[heroIdx].classList.add('is-active');
+    }, 5500);
+    window.addEventListener('pagehide', () => clearInterval(heroInterval));
+
     const haversine = (a, b) => {
       const toRad = (d) => (d * Math.PI) / 180;
       const R = 6371;
@@ -512,6 +527,15 @@ const countryCodes: Record<string, string> = {
 </script>
 
 <style>
+  /* Hero görsel galerisi (çapraz geçiş) */
+  .hero-full__bg {
+    opacity: 0;
+    transition: opacity 1.2s ease;
+  }
+  .hero-full__bg.is-active {
+    opacity: 1;
+  }
+
   .hero-live {
     display: flex;
     align-items: center;

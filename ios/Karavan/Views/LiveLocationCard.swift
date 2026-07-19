@@ -28,7 +28,20 @@ struct LiveLocationCard: View {
                     .frame(height: 210)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                carPlayButton(trip: trip)
+                HStack(spacing: 10) {
+                    carPlayButton(trip: trip)
+                    Button {
+                        AnnouncementService.shared.announceDeparture(nextStop: nav.nextStop?.name)
+                    } label: {
+                        Image(systemName: "megaphone.fill")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(Theme.c1)
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .background(Theme.panel, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
+                    }
+                }
 
                 if loc.location != nil {
                     nextDestinationPanel(trip: trip)

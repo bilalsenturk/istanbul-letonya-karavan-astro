@@ -33,6 +33,10 @@ struct KaravanApp: App {
                     locationManager.trip = store
                     locationManager.routeStore = routeStore
                     altimeter.start()
+                    // Araç (CarPlay/araç ses yolu) bağlanınca: kaptan esprisi + sıradaki durak + hadi başlat
+                    AnnouncementService.shared.onCarConnected = {
+                        AnnouncementService.shared.announceDeparture(nextStop: navProgress.nextStop?.name)
+                    }
                     if let stops = store.trip?.stops {
                         locationManager.startMonitoringStops(stops)
                     }

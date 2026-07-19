@@ -37,6 +37,8 @@ final class NotificationManager: NSObject, ObservableObject {
              cal.date(byAdding: .day, value: -1, to: departure)),
             ("2 saate kalkış ⏱️", "Karavan bağlantıları, lastik ve evrakları son kez kontrol et.",
              cal.date(byAdding: .hour, value: -2, to: departure)),
+            ("Gitmeye hazır mısın? 🚐", "30 dakikaya yola çıkıyoruz. Kemerler, gaz, evraklar — hadi!",
+             cal.date(byAdding: .minute, value: -30, to: departure)),
         ]
         for (i, item) in plan.enumerated() {
             guard let fireDate = item.2, fireDate > Date() else { continue }
