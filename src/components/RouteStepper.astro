@@ -79,9 +79,9 @@ const progressPct =
     display: block;
     height: 100%;
     border-radius: 999px;
-    background: linear-gradient(90deg, var(--road), var(--accent));
-    box-shadow: 0 0 12px rgba(255, 157, 77, 0.45);
-    transition: width 400ms ease;
+    background: var(--grad, linear-gradient(90deg, var(--road), var(--accent)));
+    box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 55%, transparent);
+    transition: width 500ms cubic-bezier(0.2, 0.7, 0.2, 1);
   }
 
   .stepper__nodes {
@@ -108,11 +108,11 @@ const progressPct =
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
+    width: 36px;
+    height: 36px;
     border-radius: 999px;
-    background: var(--panel);
-    border: 2px solid var(--line);
+    background: var(--panel-solid, var(--panel));
+    border: 2px solid var(--line-strong, var(--line));
     font-size: 15px;
     line-height: 1;
     transition:
@@ -143,10 +143,10 @@ const progressPct =
 
   .step--active .step__dot {
     border-color: var(--accent);
-    transform: scale(1.15);
+    transform: scale(1.18);
     box-shadow:
-      0 0 0 4px rgba(103, 166, 255, 0.16),
-      0 8px 20px rgba(0, 0, 0, 0.35);
+      0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent),
+      0 0 18px color-mix(in srgb, var(--accent) 45%, transparent);
   }
 
   .step--active .step__flag {

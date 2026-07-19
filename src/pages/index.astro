@@ -21,6 +21,22 @@ function dayLevel(day: (typeof tripData.days)[number]): 'ok' | 'warn' | 'bad' {
   return 'ok';
 }
 const levelText = { ok: 'Rahat gün', warn: 'Dikkatli', bad: 'Uzun etap' };
+
+// Ülke bayrakları
+const countryFlags: Record<string, string> = {
+  'Türkiye': '🇹🇷',
+  'Bulgaristan': '🇧🇬',
+  'Romanya': '🇷🇴',
+  'Macaristan': '🇭🇺',
+  'Slovakya': '🇸🇰',
+  'Çekya': '🇨🇿',
+  'Polonya': '🇵🇱',
+  'Litvanya': '🇱🇹',
+  'Letonya': '🇱🇻',
+};
+
+// "Nüfus: 85 milyon" → "85 milyon"
+const stripLabel = (s: string): string => (s.includes(': ') ? s.slice(s.indexOf(': ') + 2) : s);
 ---
 
 <MainLayout
@@ -163,87 +179,116 @@ const levelText = { ok: 'Rahat gün', warn: 'Dikkatli', bad: 'Uzun etap' };
       />
   </section>
 
-  <section class="shell">
-    <div class="section-title">
-      <h3>Yol boyunca ülke ve rota brifingi</h3>
+  <section class="shell" id="ulkeler">
+    <div class="sec-head section-title">
+      <div>
+        <span class="eyebrow">Ülke Brifingi · {tripData.countryGuides.length} ülke</span>
+        <h2>Yol boyunca geçilecek ülkeler</h2>
+        <p class="subline">Her ülke için künye, öne çıkan duraklar, alışveriş/mola stratejisi ve yol notu.</p>
+      </div>
       <a class="btn btn--ghost" href="#plan">Gün planına geç</a>
     </div>
     <div class="grid">
       {tripData.countryGuides.map((country) => (
         <article class="card col-6">
-          <h4>{country.country}</h4>
-          <p class="tiny-note">{country.population} · {country.language} · {country.currency}</p>
+          <div class="card-head">
+            <span class="flag">{countryFlags[country.country] ?? '🏳️'}</span>
+            <h4>{country.country}</h4>
+          </div>
+          <div class="stat-row">
+            <span class="stat">👥 {stripLabel(country.population)}</span>
+            <span class="stat">💬 {stripLabel(country.language)}</span>
+            <span class="stat">💱 {stripLabel(country.currency)}</span>
+            <span class="stat">🚗 {stripLabel(country.traffic)}</span>
+          </div>
           <p>{country.profile}</p>
+          <div class="hl-tags">
+            {country.highlights.map((item) => <span class="tag tag--road">{item}</span>)}
+          </div>
+          <div class="callout">
+            <span class="callout__label">Alışveriş / Mola tercihi</span>
+            <p>{country.shopping}</p>
+          </div>
           <details>
-            <summary>Öne çıkan noktalar ve operasyon notu</summary>
-            <ul>
-              {country.highlights.map((item) => <li>{item}</li>)}
-            </ul>
-            <p class="muted"><strong>Net karar:</strong> {country.highlightsAdvice}</p>
-            <p>
-              <strong>Kritik mola tercihi:</strong> {country.shopping}
-            </p>
+            <summary>Operasyon notları</summary>
+            <p class="muted">{stripLabel(country.religion)} · {stripLabel(country.traffic)}</p>
             {country.shoppingAdvice ? <p class="muted">{country.shoppingAdvice}</p> : null}
-            <p class="muted">{country.roadNote}</p>
+            <p><strong>Net karar:</strong> {country.highlightsAdvice}</p>
+            <p class="muted"><strong>Yol notu:</strong> {country.roadNote}</p>
           </details>
         </article>
       ))}
     </div>
   </section>
 
-  <section class="shell">
-    <div class="section-title">
-      <h3>Etap özeti: hangi gün neye odaklanmalı</h3>
-      <span class="pill">Rotaların net yorumu</span>
+  <section class="shell" id="etaplar">
+    <div class="sec-head section-title">
+      <div>
+        <span class="eyebrow">Etap Analizi · {tripData.segmentGuides.length} etap</span>
+        <h2>Hangi gün neye odaklanmalı</h2>
+        <p class="subline">Her etabın yol üstü görülecekleri ve net kararı.</p>
+      </div>
     </div>
     <div class="grid">
       {tripData.segmentGuides.map((segment) => (
         <article class="card col-6">
-          <h4>{segment.segment}</h4>
-          <p class="tiny-note">{segment.from} → {segment.to}</p>
-          <ul>
-            {segment.highlights.map((item) => <li>{item}</li>)}
-          </ul>
-          <p><strong>Net karar:</strong> {segment.netComment}</p>
+          <div class="day-link">
+            <strong>{segment.segment}</strong>
+            <span class="tag tag--road">{segment.from} → {segment.to}</span>
+          </div>
+          <div class="hl-tags">
+            {segment.highlights.map((item) => <span class="tag">{item}</span>)}
+          </div>
+          <div class="net-note">
+            <strong>Net karar:</strong> {segment.netComment}
+          </div>
         </article>
       ))}
     </div>
   </section>
 
-  <section class="shell">
-    <div class="section-title">
-      <h3>Yeme-içme ve mola stratejisi</h3>
-      <span class="pill">Kahve, restoran ve ara kontrol modeli</span>
+  <section class="shell" id="strateji">
+    <div class="sec-head">
+      <span class="eyebrow">Saha Stratejisi</span>
+      <h2>Yeme-içme ve mola modeli</h2>
+      <p class="subline">Kahve, yemek ve kamp seçimi için sabit kurallar.</p>
     </div>
     <div class="grid">
       <article class="card col-6">
-        <h4>{tripData.coffeeStrategy.title}</h4>
-        <ul>
+        <div class="card-head"><span class="flag">☕</span><h4>{tripData.coffeeStrategy.title}</h4></div>
+        <ul class="strat-list">
           {tripData.coffeeStrategy.coffeeStops.map((item) => <li>{item}</li>)}
         </ul>
       </article>
       <article class="card col-6">
-        <h4>{tripData.mealStrategy.title}</h4>
-        <ul>
+        <div class="card-head"><span class="flag">🍽️</span><h4>{tripData.mealStrategy.title}</h4></div>
+        <ul class="strat-list">
           {tripData.mealStrategy.items.map((item) => <li>{item}</li>)}
         </ul>
       </article>
     </div>
-    <div class="card" style="margin-top: 14px;">
-      <h4>Kamp mantığı: ana + yedek model</h4>
-      <p>{tripData.campLogic.title}</p>
+
+    <div class="card col-12" style="margin-top: 16px;">
+      <div class="card-head"><span class="flag">⛺</span><h4>{tripData.campLogic.title}</h4></div>
+      <p class="subline">Her durakta tek kampa güvenme: ana tercih + yedek plan.</p>
       <div class="grid">
-        <article class="card col-12">
-          {tripData.campLogic.items.map((item) => (
-            <details>
-              <summary>{item.city}</summary>
-              <p><strong>Ana tercih:</strong> {item.primary}</p>
-              <p><strong>Alternatif:</strong> {item.alternative}</p>
-              <p class="muted"><strong>Avantaj:</strong> {item.advantages}</p>
-              <p class="muted"><strong>Dezavantaj:</strong> {item.disadvantages}</p>
-            </details>
-          ))}
-        </article>
+        {tripData.campLogic.items.map((item) => (
+          <details class="col-6">
+            <summary>{item.city}</summary>
+            <div class="camp-split">
+              <div class="camp-opt camp-opt--primary">
+                <span class="camp-opt__tag">✓ Ana tercih</span>
+                {item.primary}
+              </div>
+              <div class="camp-opt camp-opt--alt">
+                <span class="camp-opt__tag">↺ Alternatif</span>
+                {item.alternative}
+              </div>
+            </div>
+            <p class="muted"><strong>Avantaj:</strong> {item.advantages}</p>
+            <p class="muted"><strong>Dezavantaj:</strong> {item.disadvantages}</p>
+          </details>
+        ))}
       </div>
     </div>
   </section>
@@ -284,10 +329,11 @@ const levelText = { ok: 'Rahat gün', warn: 'Dikkatli', bad: 'Uzun etap' };
 <script
   is:inline
   lang="ts"
-  define:vars={{ routeData: tripData.routeGuide, stopsData: tripData.stops, checklistSize: tripData.checklist.length }}
+  define:vars={{ routeData: tripData.routeGuide, stopsData: tripData.stops, checklistSize: tripData.checklist.length, departureAt: tripData.departureAt }}
 >
   (() => {
-    const departure = new Date('{tripData.departureAt}');
+    const departure = new Date(departureAt);
+    const departureValid = !isNaN(departure.getTime());
     const countdown = document.getElementById('countdown');
     const remaining = document.getElementById('remaining-days');
     const distEl = document.getElementById('remaining-distance');
@@ -298,6 +344,7 @@ const levelText = { ok: 'Rahat gün', warn: 'Dikkatli', bad: 'Uzun etap' };
     const progressEl = document.getElementById('task-progress');
 
     const updateCountdown = () => {
+      if (!departureValid) return;
       const diff = departure.getTime() - Date.now();
       if (diff <= 0) {
         if (remaining) remaining.textContent = '0';
