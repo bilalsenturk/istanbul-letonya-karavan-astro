@@ -170,6 +170,7 @@ final class JournalStore: ObservableObject {
         pendingDeleteIds.insert(entry.id)
         persist()
         Task { await drainQueue() }
+        publishShared()   // paylaşılmış kayıt silindiyse web'den de düşsün
     }
 
     func setShared(_ entry: JournalEntry, shared: Bool) {
@@ -178,6 +179,7 @@ final class JournalStore: ObservableObject {
         queue.enqueue(entry.id)
         persist()
         Task { await drainQueue() }
+        publishShared()
     }
 
     // MARK: - Kuyruk boşaltma
@@ -275,6 +277,38 @@ final class JournalStore: ObservableObject {
                 : "iCloud'a gönderilemeyen kayıtlar var — otomatik olarak tekrar denenecek."
         }
         persist()
+    }
+
+    // MARK: - Paylaşılanları web'e yansıt
+
+    /// YALNIZCA isShared=true kayıtlar gider. Gizli kayıt cihazdan çıkmaz.
+    func publishShared() {
+        guard let url = Config.journalPostURL else { return }
+        let shared = entries.filter(\.isShared)
+
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime]
+        let payload: [String: Any] = [
+            "entries": shared.map { e -> [String: Any] in
+                var d: [String: Any] = [
+                    "id": e.id,
+                    "text": e.text,
+                    "createdAt": iso.string(from: e.createdAt),
+                ]
+                if let mood = e.mood { d["mood"] = mood }
+                if let stopId = e.stopId { d["stopId"] = stopId }
+                return d
+            },
+        ]
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(Config.livePostSecret, forHTTPHeaderField: "x-live-secret")
+        request.timeoutInterval = 12
+        request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+
+        Task { _ = try? await URLSession.shared.data(for: request) }
     }
 
     /// Azami deneme sayısına ulaşıp `.failed` durumuna düşmüş, bu yüzden

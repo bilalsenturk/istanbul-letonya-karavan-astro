@@ -26,6 +26,9 @@ enum Config {
     /// Plan düzenlemelerinin cihazlar arası ortak kaynağı (GET okur, POST yazar).
     static var editsURL: URL? { siteURL?.appendingPathComponent("api/edits") }
 
+    /// Paylaşılan günlük kayıtlarının web'e gönderileceği uç nokta.
+    static var journalPostURL: URL? { siteURL?.appendingPathComponent("api/journal") }
+
     /// Yol bülteni: dizel fiyatı + sınır beklemesi + döviz kuru.
     static var roadFeedURL: URL? { siteURL?.appendingPathComponent("api/roadfeed") }
 
