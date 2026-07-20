@@ -44,7 +44,12 @@ enum NotificationRules {
     }
 
     /// Yalnızca navigasyon açıkken uyarılır — telefon cepteyken %20 pil sorun değil.
+    /// `level` negatifse (pil izleme kapalı/bilinmiyor durumu — bkz.
+    /// UIDevice.current.batteryLevel dokümantasyonu) düşük pil SAYILMAZ:
+    /// aksi halde -1 <= 0.20 her zaman doğru olur ve navigasyon açıkken
+    /// pil durumu bilinmese bile sahte "düşük pil" uyarısı üretilir.
     static func lowBattery(level: Float, navigating: Bool) -> Bool {
-        navigating && level <= 0.20
+        guard level >= 0 else { return false }
+        return navigating && level <= 0.20
     }
 }
