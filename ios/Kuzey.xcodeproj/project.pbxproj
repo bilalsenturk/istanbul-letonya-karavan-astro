@@ -50,6 +50,7 @@
 		B47A0043B3BC95932E1E9FF4 /* NavProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 482F782E822AB4C91884E391 /* NavProgressStore.swift */; };
 		B5BB5F4E53ED589205C49D3C /* DayGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B055BA45F55F6532F6A8AC1 /* DayGalleryView.swift */; };
 		B6457A92111DDF5D3124F173 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6790699333DDE82AB63E47 /* LiveActivityManager.swift */; };
+		B65BD13ED30E6DDEF50DE64A /* JournalCloud.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA874B77CFA113ECD47C697F /* JournalCloud.swift */; };
 		BAB25C259F8D50E1A0C11988 /* AnnouncementEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 595B5CFD2B80EBAC767989A6 /* AnnouncementEngine.swift */; };
 		BB1181756AD31C2121B413CD /* CountdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD74465F353E94FA714455D0 /* CountdownView.swift */; };
 		BE94D409F9E37AE2C0E79B9C /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEB2A1F70C4BD191A5BA233B /* WeatherService.swift */; };
@@ -149,6 +150,7 @@
 		BBD2D245D3ADDC9A38B3E287 /* TripActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripActivityAttributes.swift; sourceTree = "<group>"; };
 		BC2167794D2466CE9840E18E /* RoadFeedCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadFeedCard.swift; sourceTree = "<group>"; };
 		BF11ED9C0D36687D9A03CBB8 /* ScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerView.swift; sourceTree = "<group>"; };
+		CA874B77CFA113ECD47C697F /* JournalCloud.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalCloud.swift; sourceTree = "<group>"; };
 		CC31A690DED678C7D744BD9E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		CD74465F353E94FA714455D0 /* CountdownView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountdownView.swift; sourceTree = "<group>"; };
 		CE6790699333DDE82AB63E47 /* LiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityManager.swift; sourceTree = "<group>"; };
@@ -166,6 +168,7 @@
 		2A250CBCA9C112E1771EF84C /* Journal */ = {
 			isa = PBXGroup;
 			children = (
+				CA874B77CFA113ECD47C697F /* JournalCloud.swift */,
 				2EAFE219BA8402205F2B4D91 /* JournalEntry.swift */,
 				03DCAD8D74B488556BEED891 /* JournalQueue.swift */,
 			);
@@ -434,6 +437,7 @@
 				5D29D5A948AD1618A9D6EBB2 /* ExpenseStore.swift in Sources */,
 				C11853ABEDB233B5100F09D2 /* ExpensesView.swift in Sources */,
 				57F6FED64EAD6A1A38073877 /* GalleryStore.swift in Sources */,
+				B65BD13ED30E6DDEF50DE64A /* JournalCloud.swift in Sources */,
 				63250E33AB66EC4D9F9CC7BA /* JournalEntry.swift in Sources */,
 				9D8DDBECC20E225D43C47798 /* JournalQueue.swift in Sources */,
 				89784D251FA5CFB972CFACF6 /* KaravanApp.swift in Sources */,
