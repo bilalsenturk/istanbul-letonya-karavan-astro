@@ -29,12 +29,14 @@
 		819C7A10A5135905BECC845D /* PhotoJournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5A0D47F97A6BC761EC4A1D7 /* PhotoJournalView.swift */; };
 		824EE6AFA799BA7C35C68EDA /* TripSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC538794F9ED1EDBD743061F /* TripSettingsView.swift */; };
 		83113E5D1FBE09DAB2A20E48 /* PlanScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC66F61F5A93C2097EF6381 /* PlanScreen.swift */; };
+		87236A869E46056C5C288964 /* PlanPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E7775AD4AAF14FD3D40306D /* PlanPublisher.swift */; };
 		89784D251FA5CFB972CFACF6 /* KaravanApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48DBB19FBCDD52DE1F4E55F8 /* KaravanApp.swift */; };
 		8A8CCD1D954E11A6C346CFB6 /* AppleMapsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31D0A33B6EDB7280B5616C20 /* AppleMapsService.swift */; };
 		8B1F02A46352AE9EC070FBFA /* TripActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD2D245D3ADDC9A38B3E287 /* TripActivityAttributes.swift */; };
 		8E67C1D2643A6A1CCA151B8A /* VoiceExpenseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29ABE562CEC889DE4C44F20A /* VoiceExpenseView.swift */; };
 		9D65F8215A7804576B305FB9 /* StopExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25CA028A20B4BE8F4D0ED411 /* StopExploreView.swift */; };
 		A9E4066FE143338D37E04117 /* SharedSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AB974EC178B45C5E8C2D43D /* SharedSnapshot.swift */; };
+		B3292928A880EA90FBC6160A /* Adaptive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D776FB862EE977F4B986DF6 /* Adaptive.swift */; };
 		B47A0043B3BC95932E1E9FF4 /* NavProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 482F782E822AB4C91884E391 /* NavProgressStore.swift */; };
 		B6457A92111DDF5D3124F173 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6790699333DDE82AB63E47 /* LiveActivityManager.swift */; };
 		BB1181756AD31C2121B413CD /* CountdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD74465F353E94FA714455D0 /* CountdownView.swift */; };
@@ -81,6 +83,8 @@
 
 /* Begin PBXFileReference section */
 		00954AF5EE56487B60F675E1 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		0E7775AD4AAF14FD3D40306D /* PlanPublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanPublisher.swift; sourceTree = "<group>"; };
+		1D776FB862EE977F4B986DF6 /* Adaptive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Adaptive.swift; sourceTree = "<group>"; };
 		21B82E5004A631A77716317D /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		25CA028A20B4BE8F4D0ED411 /* StopExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopExploreView.swift; sourceTree = "<group>"; };
 		28429416E3925FE7D2879869 /* KuzeyWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = KuzeyWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -150,6 +154,7 @@
 				35155F1CE413BCBF9F18829E /* Navigation.swift */,
 				482F782E822AB4C91884E391 /* NavProgressStore.swift */,
 				5DC95431B932CB4DFD5412C9 /* Notifications.swift */,
+				0E7775AD4AAF14FD3D40306D /* PlanPublisher.swift */,
 				DEDCB70244A1866C05724B7B /* RouteStore.swift */,
 				00954AF5EE56487B60F675E1 /* Theme.swift */,
 				B4035201F31588EB77A1717A /* TripPlanner.swift */,
@@ -165,6 +170,7 @@
 		6D724DEAA6E11EF7CA49C584 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				1D776FB862EE977F4B986DF6 /* Adaptive.swift */,
 				45DECAA1995A716526093E8C /* CampImage.swift */,
 				5A9CB73E03C832207007A05A /* ContentView.swift */,
 				CD74465F353E94FA714455D0 /* CountdownView.swift */,
@@ -353,6 +359,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B3292928A880EA90FBC6160A /* Adaptive.swift in Sources */,
 				757502C0180B0C08065C603D /* AltimeterService.swift in Sources */,
 				E4C01FD27953FBA51E4F5EE2 /* AnnouncementService.swift in Sources */,
 				56EE74EA476E806AFA335715 /* AppIntentsSupport.swift in Sources */,
@@ -378,6 +385,7 @@
 				3B014CAF3ED8C77379FD5729 /* Navigation.swift in Sources */,
 				FA3A58E4C230882AAD9F18EB /* Notifications.swift in Sources */,
 				819C7A10A5135905BECC845D /* PhotoJournalView.swift in Sources */,
+				87236A869E46056C5C288964 /* PlanPublisher.swift in Sources */,
 				83113E5D1FBE09DAB2A20E48 /* PlanScreen.swift in Sources */,
 				44D26612235CC1CD1C2EAA37 /* RouteStore.swift in Sources */,
 				5172E3495206A3FEC5E36CEF /* ScannerView.swift in Sources */,

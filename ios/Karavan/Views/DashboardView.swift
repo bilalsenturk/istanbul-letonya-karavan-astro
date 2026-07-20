@@ -9,6 +9,7 @@ struct DashboardView: View {
     @EnvironmentObject var nav: NavProgressStore
     @EnvironmentObject var altimeter: AltimeterService
     @EnvironmentObject var plan: TripPlanStore
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var showSettings = false
 
     // Sürüş Focus filtresi (Ayarlar → Odak → Sürüş → Kuzey): sade panel.
@@ -40,11 +41,14 @@ struct DashboardView: View {
                                 CountdownView(departure: plan.departure(trip))
                             }
                             if !simpleMode { metricRow(trip: trip) }
-                            if !simpleMode { expenseCard(trip: trip) }
-                            LiveLocationCard()
-                            if !simpleMode {
-                                arrivalsCard
-                                weatherStrip
+                            // iPad'de kartlar iki sütuna açılır, iPhone'da tek sütun kalır.
+                            AdaptiveColumns(spacing: 16) {
+                                if !simpleMode { expenseCard(trip: trip) }
+                                LiveLocationCard()
+                                if !simpleMode {
+                                    arrivalsCard
+                                    weatherStrip
+                                }
                             }
                         } else {
                             ProgressView().tint(.white).padding(40)
@@ -52,7 +56,7 @@ struct DashboardView: View {
                     }
                     .padding(.horizontal, 18)
                     .padding(.bottom, 34)
-                    .frame(maxWidth: 760)
+                    .frame(maxWidth: Adaptive.contentWidth(sizeClass))
                     .frame(maxWidth: .infinity)
                 }
                 .refreshable {

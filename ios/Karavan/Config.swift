@@ -20,6 +20,9 @@ enum Config {
     /// Harcama toplamının web'e gönderileceği endpoint (POST). Kalemler cihazda kalır.
     static var expensesPostURL: URL? { siteURL?.appendingPathComponent("api/expenses") }
 
+    /// Hesaplanmış takvimin (kalkış + gün tarihleri) web'e gönderileceği endpoint.
+    static var planPostURL: URL? { siteURL?.appendingPathComponent("api/plan") }
+
     /// Kamp görsellerinin kök adresi (JSON'daki "/assets/..." yolları buna göre çözülür)
     static var imageBaseURL: URL? { siteURL }
 

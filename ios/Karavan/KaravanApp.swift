@@ -49,6 +49,9 @@ struct KaravanApp: App {
                     plan.onChange = { _ in applyPlanCascade() }
                     BackgroundWeather.schedule()
                 }
+                .onChange(of: store.lastRefreshed) { _, _ in
+                    applyPlanCascade()   // uzak veri geldi → takvimi yeniden yayınla
+                }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
                         expenses.reload()                 // Siri arka planda eklemiş olabilir
@@ -70,5 +73,6 @@ struct KaravanApp: App {
         NotificationManager.shared.scheduleDepartureReminders(departure: departure)
         store.writeSnapshot()
         LiveActivityManager.shared.reloadWidgetsThrottled()
+        PlanPublisher.publish(trip: store.trip, edits: plan.edits)   // siteye yansıt
     }
 }

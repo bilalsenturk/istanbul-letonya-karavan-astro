@@ -325,7 +325,7 @@ const countryCodes: Record<string, string> = {
             <span class:list={['t-node', { 't-node--rest': rest }]}>{rest ? '☾' : i + 1}</span>
             <div class="t-card">
               <div class="t-head">
-                <span class="t-date">{day.date}</span>
+                <span class="t-date" data-day-slug={day.slug}>{day.date}</span>
                 <span class={`lvl lvl--${level}`}>{levelText[level]}</span>
               </div>
               <div class="t-route">
@@ -355,8 +355,10 @@ const countryCodes: Record<string, string> = {
   define:vars={{ stopsData: tripData.stops, departureAt: tripData.departureAt, budgetMax: tripData.totalBudget.max }}
 >
   (() => {
-    const departure = new Date(departureAt);
-    const departureValid = !isNaN(departure.getTime());
+    // Kalkış: app yayınladıysa onun HESAPLADIĞI takvim, yoksa gömülü veri.
+    // Tarih türetme mantığı app'te (TripPlanner) tek kaynak — burada tekrarlanmaz.
+    let departure = new Date(departureAt);
+    let departureValid = !isNaN(departure.getTime());
     const tiles = document.getElementById('count-tiles');
     const ctD = document.getElementById('ct-d');
     const ctH = document.getElementById('ct-h');
@@ -492,6 +494,42 @@ const countryCodes: Record<string, string> = {
     pollLive();
     const liveInterval = setInterval(pollLive, 20000);
     window.addEventListener('pagehide', () => clearInterval(liveInterval));
+
+    // Uygulamanın hesapladığı TAKVİMİ çek: kalkış değiştiyse geri sayım ve
+    // tüm gün tarihleri buna göre güncellenir (app = tek gerçek kaynak).
+    const trFmt = new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' });
+    const pollPlan = async () => {
+      try {
+        const res = await fetch('/api/plan', { cache: 'no-store' });
+        if (!res.ok) return;
+        const plan = await res.json();
+        if (!plan || typeof plan.departureAt !== 'string') return;
+
+        const newDeparture = new Date(plan.departureAt);
+        if (!isNaN(newDeparture.getTime()) && newDeparture.getTime() !== departure.getTime()) {
+          departure = newDeparture;
+          departureValid = true;
+          live = false;
+          updateCountdown();
+        }
+
+        if (Array.isArray(plan.days)) {
+          for (const d of plan.days) {
+            if (!d || typeof d.slug !== 'string') continue;
+            const el = document.querySelector(`.t-date[data-day-slug="${CSS.escape(d.slug)}"]`);
+            if (!el) continue;
+            const label = d.label || (d.date ? trFmt.format(new Date(d.date)) : null);
+            if (label) el.textContent = d.dayCount > 1 ? `${label} · ${d.dayCount} gün` : label;
+          }
+        }
+      } catch (_) {
+        /* sessiz: app henüz takvim yayınlamamış olabilir */
+      }
+    };
+
+    pollPlan();
+    const planInterval = setInterval(pollPlan, 60000);
+    window.addEventListener('pagehide', () => clearInterval(planInterval));
 
     // Kuzey uygulamasının yayınladığı harcama TOPLAMINI çek (yalnızca toplam; kalem yok).
     const spendAmount = document.getElementById('spend-amount');

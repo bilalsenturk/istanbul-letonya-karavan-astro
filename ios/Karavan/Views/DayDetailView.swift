@@ -7,6 +7,7 @@ struct DayDetailView: View {
     @EnvironmentObject var plan: TripPlanStore
     @EnvironmentObject var routeStore: RouteStore
     @Environment(\.openURL) private var openURL
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var showEdit = false
 
     /// Türetilmiş gün (kullanıcı düzenlemeleri + hesaplanmış tarih).
@@ -139,7 +140,7 @@ struct DayDetailView: View {
                     alternativesSection
                 }
                 .padding(18)
-                .frame(maxWidth: 700)
+                .frame(maxWidth: Adaptive.contentWidth(sizeClass))
                 .frame(maxWidth: .infinity)
             }
         }
