@@ -29,6 +29,8 @@ struct RoadFeed: Codable {
 final class RoadFeedService: ObservableObject {
     @Published private(set) var feed: RoadFeed?
     @Published private(set) var updatedAt: Date?
+    /// Bir önceki çekimdeki kurlar — sıçrama tespiti için.
+    private var previousRates: [String: Double] = [:]
 
     private var lastFetch: Date = .distantPast
 
@@ -45,6 +47,20 @@ final class RoadFeedService: ObservableObject {
         feed = decoded
         updatedAt = Date()
         lastFetch = Date()
+
+        // Kur sıçraması bildirimi + yakıt fiyatlarını bildirim katmanına ver.
+        if let feed {
+            for (code, rate) in feed.rates {
+                if let old = previousRates[code] {
+                    TripNotifier.shared.onCurrency(previous: old, current: rate, code: code)
+                }
+            }
+            previousRates = feed.rates
+
+            // Yakıt karşılaştırması konumu bilmeyi gerektiriyor; fiyatları
+            // bildirim katmanına verip kararı orada veriyoruz.
+            TripNotifier.shared.updateFuelPrices(feed.fuel)
+        }
     }
 
     // MARK: - Yardımcılar

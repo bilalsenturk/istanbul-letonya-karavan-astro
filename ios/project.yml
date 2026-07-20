@@ -17,6 +17,10 @@ targets:
       properties:
         com.apple.security.application-groups:
           - group.com.bilalsenturk.kuzey
+        com.apple.developer.icloud-services:
+          - CloudKit
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.bilalsenturk.kuzey
     info:
       path: Support/Info.plist
       properties:

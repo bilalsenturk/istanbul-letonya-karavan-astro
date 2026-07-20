@@ -109,6 +109,22 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
             if let stops = self.trip?.trip?.stops, stops.count >= 2 {
                 await self.nav?.update(location: last, stops: stops, route: self.routeStore)
             }
+            await MainActor.run {
+                TripNotifier.shared.onLocation(
+                    remainingKm: self.nav?.remainingKm,
+                    nextStopName: self.nav?.nextStop?.name,
+                    speedKmh: self.speedKmh,
+                    currentCountry: self.currentStop()?.country,
+                    nextCountry: self.nav?.nextStop?.country,
+                    currentCode: self.currentStop()?.code,
+                    nextCountryCode: self.nav?.nextStop?.code
+                )
+                // "nextStop != nil" sekiz günlük yolculuğun neredeyse tamamında doğrudur
+                // (mola/kamp/gece dahil) — gerçek "navigasyondayım" sinyali değil.
+                // LiveActivityManager.shared.isActive, hız eşiğine (25 km/s) dayanan
+                // gerçek sürüş durumunu yansıtır; düşük pil uyarısını bu sinyale bağla.
+                TripNotifier.shared.checkBattery(navigating: LiveActivityManager.shared.isActive)
+            }
             self.publishToWeb(last)
             // Her ~100 km / yaklaşınca sesli mesafe anonsu
             if let name = self.nav?.nextStop?.name, let km = self.nav?.remainingKm {
@@ -197,6 +213,13 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     func distanceKm(to stop: Stop) -> Double? {
         guard let location else { return nil }
         return location.distance(from: CLLocation(latitude: stop.lat, longitude: stop.lng)) / 1000
+    }
+
+    /// Bulunduğun etabın BAŞLANGIÇ durağı — sınır geçişi ve yakıt karşılaştırması için.
+    func currentStop() -> Stop? {
+        guard let stops = trip?.trip?.stops, let leg = nav?.currentLegIndex,
+              stops.indices.contains(leg) else { return nil }
+        return stops[leg]
     }
 
     func nearestStop(in stops: [Stop]) -> (stop: Stop, km: Double)? {
