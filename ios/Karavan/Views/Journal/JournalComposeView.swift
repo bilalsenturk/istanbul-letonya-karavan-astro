@@ -14,6 +14,7 @@ struct JournalComposeView: View {
     @State private var mood: String?
     @State private var photos: [Data] = []
     @State private var showPhotoPicker = false
+    @State private var showCamera = false
     @State private var textBeforeDictation = ""
 
     private let moods = ["keyifli", "yorgun", "heyecanlı", "sakin", "sinirli"]
@@ -52,6 +53,10 @@ struct JournalComposeView: View {
             }
             .sheet(isPresented: $showPhotoPicker) {
                 JournalPhotoPicker { data in photos.append(contentsOf: data) }
+            }
+            .sheet(isPresented: $showCamera) {
+                JournalCamera { data in photos.append(data) }
+                    .ignoresSafeArea()
             }
         }
         .preferredColorScheme(.dark)
@@ -145,17 +150,31 @@ struct JournalComposeView: View {
     private var photoRow: some View {
         VStack(alignment: .leading, spacing: 8) {
             MonoLabel(text: "Fotoğraf · \(photos.count)", color: Theme.c3)
-            Button { showPhotoPicker = true } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "photo.badge.plus").font(.system(size: 16))
-                    Text("Fotoğraf ekle").font(.system(size: 15, weight: .semibold, design: .rounded))
-                    Spacer()
+            HStack(spacing: 8) {
+                Button { showCamera = true } label: {
+                    HStack(spacing: 7) {
+                        Image(systemName: "camera.fill").font(.system(size: 15))
+                        Text("Çek").font(.system(size: 14, weight: .semibold, design: .rounded))
+                    }
+                    .foregroundStyle(Theme.c1)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(Theme.panel, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
-                .foregroundStyle(Theme.c3)
-                .padding(13)
-                .background(Theme.panel, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .buttonStyle(.plain)
+
+                Button { showPhotoPicker = true } label: {
+                    HStack(spacing: 7) {
+                        Image(systemName: "photo.badge.plus").font(.system(size: 15))
+                        Text("Seç").font(.system(size: 14, weight: .semibold, design: .rounded))
+                    }
+                    .foregroundStyle(Theme.c3)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(Theme.panel, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
     }
 
