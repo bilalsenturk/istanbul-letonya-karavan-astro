@@ -29,6 +29,16 @@ final class JournalStore: ObservableObject {
     /// CloudKit'te sonsuza dek öksüz kalır ve başka cihazda görünmeye devam eder.
     private var pendingDeleteIds: Set<String> = []
 
+    /// Bekleyen silmeler için geri çekilme durumu. `JournalQueue` kayıt başına
+    /// deneme sayar; silmeler için bu kadar hassasiyete gerek yok — tüm
+    /// bekleyen silmeleri TEK bir zaman damgasıyla birlikte erteliyoruz.
+    /// Aksi halde her drainQueue() tetiklemesinde (açılış, öne gelme, yeni
+    /// kayıt, paylaşım değişimi — yani çok sık) tüm silmeler anında yeniden
+    /// denenir ve sinyalsiz bölgede CloudKit'i gereksiz yorup rate-limit'e
+    /// sürükler.
+    private var pendingDeleteAttempts = 0
+    private var pendingDeleteLastAttemptAt: Date?
+
     private var dir: URL {
         let d = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("journal", isDirectory: true)
@@ -39,6 +49,15 @@ final class JournalStore: ObservableObject {
     private var entriesFile: URL { dir.appendingPathComponent("entries.json") }
     private var queueFile: URL { dir.appendingPathComponent("queue.json") }
     private var pendingDeletesFile: URL { dir.appendingPathComponent("pending-deletes.json") }
+
+    /// `pendingDeletesFile`'ın disk üzerindeki şekli — id listesiyle birlikte
+    /// geri çekilme durumu da kalıcı olsun ki uygulama kapanıp açılsa bile
+    /// art arda başarısız silmeler yeniden hemen denenmesin.
+    private struct PendingDeletesState: Codable {
+        var ids: Set<String>
+        var attempts: Int
+        var lastAttemptAt: Date?
+    }
 
     init() {
         load()
@@ -56,8 +75,10 @@ final class JournalStore: ObservableObject {
             queue = decoded
         }
         if let data = try? Data(contentsOf: pendingDeletesFile),
-           let decoded = try? JSONDecoder().decode(Set<String>.self, from: data) {
-            pendingDeleteIds = decoded
+           let decoded = try? JSONDecoder().decode(PendingDeletesState.self, from: data) {
+            pendingDeleteIds = decoded.ids
+            pendingDeleteAttempts = decoded.attempts
+            pendingDeleteLastAttemptAt = decoded.lastAttemptAt
         }
         refreshQueueStats()
     }
@@ -69,7 +90,10 @@ final class JournalStore: ObservableObject {
         if let data = try? JSONEncoder().encode(queue) {
             try? data.write(to: queueFile, options: .atomic)
         }
-        if let data = try? JSONEncoder().encode(pendingDeleteIds) {
+        let deleteState = PendingDeletesState(
+            ids: pendingDeleteIds, attempts: pendingDeleteAttempts, lastAttemptAt: pendingDeleteLastAttemptAt
+        )
+        if let data = try? JSONEncoder().encode(deleteState) {
             try? data.write(to: pendingDeletesFile, options: .atomic)
         }
         refreshQueueStats()
@@ -93,6 +117,7 @@ final class JournalStore: ObservableObject {
     func add(_ entry: JournalEntry, photos: [Data]) -> JournalEntry {
         var saved = entry
         var names: [String] = []
+        var failedPhotoCount = 0
         for (i, data) in photos.enumerated() {
             let name = "\(entry.id)-\(i).jpg"
             do {
@@ -102,15 +127,21 @@ final class JournalStore: ObservableObject {
                 // Yazılamayan dosyanın adı listeye GİRMEMELİ — aksi halde
                 // kayıt var olmayan bir dosyaya işaret eder ve galeri
                 // sekmesinde kırık görsel olarak kalır.
+                failedPhotoCount += 1
             }
         }
         saved.photoFilenames = names
 
-        // Hiç fotoğraf yazılamadıysa kullanıcı sessizce veri kaybetmesin —
-        // "eklendi" sanıp bir daha kontrol etmeyebilir.
-        photoWarning = (!photos.isEmpty && names.isEmpty)
-            ? "Fotoğraflar kaydedilemedi — cihaz depolaması dolu olabilir."
-            : nil
+        // Kısmi başarısızlık da sessiz kalmamalı: 3 fotoğraftan biri
+        // yazılamazsa kullanıcı "hepsi eklendi" sanır ve o fotoğrafın sessizce
+        // kaybolduğunu asla öğrenemez — kaç tanesinin gittiğini söyle.
+        if failedPhotoCount == 0 {
+            photoWarning = nil
+        } else if names.isEmpty {
+            photoWarning = "Fotoğraflar kaydedilemedi — cihaz depolaması dolu olabilir."
+        } else {
+            photoWarning = "\(failedPhotoCount) fotoğraf kaydedilemedi — cihaz depolaması dolu olabilir."
+        }
 
         entries.insert(saved, at: 0)
         queue.enqueue(saved.id)
@@ -214,22 +245,70 @@ final class JournalStore: ObservableObject {
         // vazgeçilmiş (failed) bir kayıt varken temizlemek kullanıcıya
         // "sorun yok" yanılgısı verir — oysa kayıt hâlâ cihazda takılı,
         // hiçbir yere gitmedi.
-        if !queue.items.contains(where: { $0.attempts > 0 }) {
+        let failedNow = queue.items.filter { $0.state == .failed }.count
+        let hasFailed = failedNow > 0
+        let hasBackoffPending = queue.items.contains { $0.state != .failed && $0.attempts > 0 }
+
+        if !hasFailed && !hasBackoffPending {
             cloudProblem = nil
         } else if cloudProblem == nil {
             // Bu turda hiçbir gönderim denenmedi (hepsi geri çekilme
             // bekliyor) ya da önceki oturumdan kalan mesaj kalıcı değildi
             // (uygulama yeniden başlatıldı) — kuyrukta yine de sorunlu kayıt
             // var, kullanıcıyı habersiz bırakma.
-            cloudProblem = "iCloud'a gönderilemeyen kayıtlar var — otomatik olarak tekrar denenecek."
+            //
+            // .failed olan kayıtlar için "otomatik olarak tekrar denenecek"
+            // demek YALAN olur: nextToSend() .failed durumundaki kaydı bir
+            // daha asla seçmez ve enqueue() zaten kuyrukta olan kayıt için
+            // no-op'tur — o kayıt otomatik hiçbir zaman gitmez. Kullanıcıya
+            // gerçeği söyle ve elle bir çıkış yolu olduğunu belirt
+            // (retryFailed()).
+            cloudProblem = hasFailed
+                ? "iCloud'a gönderilemeyen \(failedNow) kayıt var — otomatik deneme hakları bitti, tekrar denemek için dokunman gerekiyor."
+                : "iCloud'a gönderilemeyen kayıtlar var — otomatik olarak tekrar denenecek."
         }
         persist()
     }
 
+    /// Azami deneme sayısına ulaşıp `.failed` durumuna düşmüş, bu yüzden
+    /// `nextToSend()` tarafından bir daha asla seçilmeyecek kayıtları
+    /// yeniden dener. `cloudProblem` bu kayıtlar için "otomatik tekrar
+    /// denenecek" diyemediğinden (bu doğru olmazdı), kullanıcıya sunulacak
+    /// elle çıkış yolu budur.
+    func retryFailed() {
+        let failedIds = queue.items.filter { $0.state == .failed }.map { $0.entryId }
+        guard !failedIds.isEmpty else { return }
+        for id in failedIds {
+            // JournalQueue'ya "deneme sayısını sıfırla" diye bir metot
+            // eklemeden aynı sonucu elde etmenin yolu: kayıtları kuyruktan
+            // tamamen düşürüp (markSynced) sıfır denemeyle yeniden kuyruğa
+            // almak (enqueue) — JournalQueue'nun mevcut açık yüzeyiyle.
+            queue.markSynced(id)
+            queue.enqueue(id)
+        }
+        persist()
+        Task { await drainQueue() }
+    }
+
     /// Bulutta silinmeyi bekleyen kayıtları tekrar dener. `notFound` başarı
     /// sayılır — kayıt zaten sunucuda yok, silme amacına ulaşılmış demektir.
+    ///
+    /// `drainQueue()` açılışta, öne gelince, kayıt eklenince, paylaşım
+    /// değişince — yani çok sık — tetikleniyor. Geri çekilme olmadan burada
+    /// TÜM bekleyen silmeleri her seferinde anında yeniden denemek,
+    /// sinyalsiz bölgede app'i sık açıp kapatan bir kullanıcıda CloudKit'i
+    /// gereksiz yükler ve rate-limit'e sürükleyebilir. Kaydetme tarafındaki
+    /// gibi (JournalQueue.backoff) üstel bir geri çekilme uyguluyoruz; ama
+    /// silmeler kayıt başına değil TEK bir zaman damgasıyla birlikte
+    /// erteleniyor — JournalQueue'ya dokunmadan yeterli basitlikte bir çözüm.
     private func drainPendingDeletes() async {
         guard !pendingDeleteIds.isEmpty else { return }
+        if pendingDeleteAttempts > 0, let last = pendingDeleteLastAttemptAt,
+           Date().timeIntervalSince(last) < JournalQueue.backoff(attempts: pendingDeleteAttempts) {
+            return
+        }
+
+        var anyFailed = false
         for id in Array(pendingDeleteIds) {
             do {
                 try await JournalCloud.shared.delete(id: id)
@@ -237,10 +316,16 @@ final class JournalStore: ObservableObject {
             } catch JournalCloudError.notFound {
                 pendingDeleteIds.remove(id)
             } catch {
-                // Ağ/hesap sorunu — listede kalır, bir sonraki drainQueue
-                // tetiklemesinde tekrar denenir.
+                // Ağ/hesap sorunu — listede kalır, geri çekilme süresi
+                // dolunca bir sonraki drainQueue tetiklemesinde tekrar
+                // denenir.
+                anyFailed = true
             }
         }
+        // Tüm kalan silmeler bu turda başarılıysa (anyFailed false) geri
+        // çekilmeyi sıfırla; en az biri hâlâ başarısızsa süreyi uzat.
+        pendingDeleteLastAttemptAt = Date()
+        pendingDeleteAttempts = anyFailed ? pendingDeleteAttempts + 1 : 0
         persist()
     }
 }
