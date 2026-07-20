@@ -20,6 +20,7 @@
 		2E0CC94E730350C7E25125E9 /* DepartureModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB48E89533130C8995F3673F /* DepartureModal.swift */; };
 		3B014CAF3ED8C77379FD5729 /* Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35155F1CE413BCBF9F18829E /* Navigation.swift */; };
 		3E6ECC20772D44BE6DDBD7CC /* KuzeyWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 28429416E3925FE7D2879869 /* KuzeyWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		43529647794C069DB3288EF5 /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FCA86BC2BD7CA0F2439A51B /* JournalView.swift */; };
 		44D26612235CC1CD1C2EAA37 /* RouteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDCB70244A1866C05724B7B /* RouteStore.swift */; };
 		44FFBA9436CD2F461A4CC31D /* KuzeyWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92433716A15BEBCD592B63E2 /* KuzeyWidgets.swift */; };
 		5172E3495206A3FEC5E36CEF /* ScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF11ED9C0D36687D9A03CBB8 /* ScannerView.swift */; };
@@ -146,6 +147,7 @@
 		86097054B82CA8512E4AA874 /* MapScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapScreen.swift; sourceTree = "<group>"; };
 		8B055BA45F55F6532F6A8AC1 /* DayGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayGalleryView.swift; sourceTree = "<group>"; };
 		8C443FE724E722869D208BAC /* LiveLocationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveLocationCard.swift; sourceTree = "<group>"; };
+		8FCA86BC2BD7CA0F2439A51B /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
 		92433716A15BEBCD592B63E2 /* KuzeyWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KuzeyWidgets.swift; sourceTree = "<group>"; };
 		9AEF46AA6EEEAA6BB1DFD19E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9F5C959C02D3AEB61D35B2E4 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
@@ -190,6 +192,7 @@
 			children = (
 				D15A7CA5BF2EB50B47129E9B /* JournalComposeView.swift */,
 				6E826910845682027B3A136D /* JournalPhotoPicker.swift */,
+				8FCA86BC2BD7CA0F2439A51B /* JournalView.swift */,
 			);
 			path = Journal;
 			sourceTree = "<group>";
@@ -463,6 +466,7 @@
 				99F5012B3D2DA7222B949BC2 /* JournalPhotoPicker.swift in Sources */,
 				9D8DDBECC20E225D43C47798 /* JournalQueue.swift in Sources */,
 				1BFC8EFF51E1F11FD0BDF86F /* JournalStore.swift in Sources */,
+				43529647794C069DB3288EF5 /* JournalView.swift in Sources */,
 				89784D251FA5CFB972CFACF6 /* KaravanApp.swift in Sources */,
 				883BEC398B00CCF797F0D409 /* LegLauncher.swift in Sources */,
 				B6457A92111DDF5D3124F173 /* LiveActivityManager.swift in Sources */,
