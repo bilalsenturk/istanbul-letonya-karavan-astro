@@ -101,8 +101,8 @@ struct MapScreen: View {
                 if let speed = loc.speedKmh {
                     pill("gauge.with.dots.needle.67percent", "\(speed) km/s")
                 }
-                if let riga = trip.stops.last, let km = loc.distanceKm(to: riga) {
-                    pill("flag.checkered", "Riga \(Int(km.rounded())) km")
+                if let km = nav.remainingToFinalKm {
+                    pill("flag.checkered", "Riga \(km) km")
                 }
                 if let near = loc.nearestStop(in: trip.stops) {
                     pill("mappin.and.ellipse", "\(near.stop.name) \(Int(near.km.rounded())) km")

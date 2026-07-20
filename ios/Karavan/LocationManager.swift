@@ -92,11 +92,10 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                 body: "Kontrol: tüp gaz kapalı mı · elektrik/su · sınır belgeleri hazır mı?",
                 id: "arrival-\(region.identifier)"
             )
-            var rigaKm: Int?
-            if let riga = self.trip?.trip?.stops.last, let km = self.distanceKm(to: riga) {
-                rigaKm = Int(km.rounded())
-            }
-            AnnouncementService.shared.announceArrival(stopName: region.identifier, remainingToFinalKm: rigaKm)
+            AnnouncementService.shared.announceArrival(
+                stopName: region.identifier,
+                remainingToFinalKm: self.nav?.remainingToFinalKm
+            )
             LiveActivityManager.shared.endCurrent()   // etap bitti → kilit ekranı kartını kapat
         }
     }
@@ -241,6 +240,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                 payload["nextFlag"] = next.flag
             }
             if let km = nav.remainingKm { payload["remainingKm"] = km }
+            if let km = nav.remainingToFinalKm { payload["remainingToFinalKm"] = km }
             if let minutes = nav.remainingMinutes { payload["remainingMin"] = minutes }
             if let traveled = nav.traveledKm { payload["traveledKm"] = traveled }
             payload["legProgress"] = Int((nav.legProgress * 100).rounded())

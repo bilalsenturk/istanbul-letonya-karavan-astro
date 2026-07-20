@@ -15,6 +15,9 @@ struct StopArrival: Identifiable {
 final class NavProgressStore: ObservableObject {
     @Published var nextStop: Stop?
     @Published var remainingKm: Int?
+    /// Riga'ya kalan GERÇEK yol: sıradaki durağa sürüş + kalan etapların rota mesafeleri.
+    /// Kuş uçuşu DEĞİL — düz çizgi İstanbul→Riga ~1800 km, yol ise ~3300 km.
+    @Published var remainingToFinalKm: Int?
     @Published var remainingMinutes: Int?
     @Published var traveledKm: Int?
     @Published var legProgress: Double = 0     // 0…1
@@ -87,6 +90,22 @@ final class NavProgressStore: ObservableObject {
             remainingKm = Int((remainingMeters / 1000).rounded())
             remainingMinutes = Int((remainingMeters / 1000) / 80 * 60) // ~80 km/s tahmini
         }
+
+        // 2b) Riga'ya kalan: sıradaki durağa sürüş + aradaki etapların rota mesafeleri.
+        // Etap bilgisi yoksa kuş uçuşu × 1.25 (Avrupa karayolu sapma payı) ile tahmin edilir.
+        var toFinal = remainingMeters
+        if idx < stops.count - 1 {
+            for k in idx ..< (stops.count - 1) {
+                if let info = route?.legInfo(k) {
+                    toFinal += info.distance
+                } else {
+                    let straight = CLLocation(latitude: stops[k].lat, longitude: stops[k].lng)
+                        .distance(from: CLLocation(latitude: stops[k + 1].lat, longitude: stops[k + 1].lng))
+                    toFinal += straight * 1.25
+                }
+            }
+        }
+        remainingToFinalKm = Int((toFinal / 1000).rounded())
 
         // 3) Gidilen yol + ilerleme (etabın toplamından).
         let legTotal: Double

@@ -440,9 +440,14 @@ const countryCodes: Record<string, string> = {
         const data = await res.json();
         if (typeof data.lat !== 'number') return;
 
-        // Riga'ya kalan (istemci tarafı haversine)
-        const remainingRiga = haversine({ lat: data.lat, lng: data.lng }, riga);
-        if (distEl) distEl.textContent = `${Math.round(remainingRiga)} km`;
+        // Riga'ya kalan GERÇEK yol — app hesaplayıp gönderiyor (sıradaki durağa
+        // sürüş + kalan etapların rota mesafeleri). App henüz göndermediyse
+        // kuş uçuşu × 1.25 ile tahmin edilir; düz çizgi tek başına ~1800 km
+        // gösterip gerçek 3300 km'lik yolu yarı yarıya yanlış veriyordu.
+        const remainingRiga = typeof data.remainingToFinalKm === 'number'
+          ? data.remainingToFinalKm
+          : Math.round(haversine({ lat: data.lat, lng: data.lng }, riga) * 1.25);
+        if (distEl) distEl.textContent = `${remainingRiga} km`;
 
         // App'in canlı durumu — birebir yansıtma
         if (cityLiveEl) cityLiveEl.textContent = data.city || '—';
@@ -464,7 +469,7 @@ const countryCodes: Record<string, string> = {
           const bits = [];
           if (data.city) bits.push('Şu an: ' + data.city);
           if (data.nextStop) bits.push('Sıradaki ' + data.nextStop + (typeof data.remainingKm === 'number' ? ' · ' + data.remainingKm + ' km' : ''));
-          bits.push("Riga'ya " + Math.round(remainingRiga) + ' km');
+          bits.push("Riga'ya " + remainingRiga + ' km');
           heroLiveText.textContent = bits.join('  ·  ');
           heroLive.hidden = false;
         }

@@ -31,7 +31,7 @@ export const POST: APIRoute = async ({ request }) => {
   let body: {
     lat?: number; lng?: number; speedKmh?: number; ts?: string;
     city?: string; nextStop?: string; nextFlag?: string;
-    remainingKm?: number; remainingMin?: number; traveledKm?: number; legProgress?: number;
+    remainingKm?: number; remainingToFinalKm?: number; remainingMin?: number; traveledKm?: number; legProgress?: number;
   };
   try {
     body = await request.json();
@@ -56,6 +56,7 @@ export const POST: APIRoute = async ({ request }) => {
     nextStop: str(body.nextStop),
     nextFlag: str(body.nextFlag),
     remainingKm: num(body.remainingKm),
+    remainingToFinalKm: num(body.remainingToFinalKm),
     remainingMin: num(body.remainingMin),
     traveledKm: num(body.traveledKm),
     legProgress: num(body.legProgress),

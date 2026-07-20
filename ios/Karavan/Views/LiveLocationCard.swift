@@ -126,8 +126,8 @@ struct LiveLocationCard: View {
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .foregroundStyle(Theme.muted)
                 Spacer()
-                if let riga = trip.stops.last, let km = loc.distanceKm(to: riga) {
-                    Text("Riga'ya \(Int(km.rounded())) km")
+                if let km = nav.remainingToFinalKm {
+                    Text("Riga'ya \(km) km")
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
                         .foregroundStyle(Theme.muted)
                 }

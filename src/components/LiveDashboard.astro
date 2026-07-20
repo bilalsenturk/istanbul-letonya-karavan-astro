@@ -363,7 +363,8 @@ const getWeatherEmoji = (condition: string) => {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          const remainingKm = haversine(current, targetStop);
+          // Kuş uçuşu değil: karayolu sapma payı (~1.25) ile yaklaşık sürüş mesafesi.
+          const remainingKm = haversine(current, targetStop) * 1.25;
           const hours = Math.max(1, Math.round(remainingKm / 85));
           
           cityEl.textContent = `Koordinat: ${current.lat.toFixed(4)}, ${current.lng.toFixed(4)}`;
