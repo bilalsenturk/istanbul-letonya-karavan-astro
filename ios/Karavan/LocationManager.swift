@@ -119,7 +119,11 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                     currentCode: self.currentStop()?.code,
                     nextCountryCode: self.nav?.nextStop?.code
                 )
-                TripNotifier.shared.checkBattery(navigating: self.nav?.nextStop != nil)
+                // "nextStop != nil" sekiz günlük yolculuğun neredeyse tamamında doğrudur
+                // (mola/kamp/gece dahil) — gerçek "navigasyondayım" sinyali değil.
+                // LiveActivityManager.shared.isActive, hız eşiğine (25 km/s) dayanan
+                // gerçek sürüş durumunu yansıtır; düşük pil uyarısını bu sinyale bağla.
+                TripNotifier.shared.checkBattery(navigating: LiveActivityManager.shared.isActive)
             }
             self.publishToWeb(last)
             // Her ~100 km / yaklaşınca sesli mesafe anonsu

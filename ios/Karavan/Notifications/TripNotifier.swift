@@ -48,14 +48,18 @@ final class TripNotifier: ObservableObject {
 
         // Sınır yaklaşımı — yaklaşık: sıradaki durak farklı ülkedeyse
         // o etapta sınır var, mesafe durağa olan mesafeyle tahmin edilir.
-        if let km = remainingKm, let country = nextCountry, country != currentCountry {
+        // currentCountry da açıkça çözülür: ülke bilinmiyorsa (nil) sınır kararı
+        // verilemez — "nil != "HU"" her zaman true döner ve bu, ülke henüz
+        // belirlenmemişken sahte sınır/yakıt bildirimine yol açardı.
+        if let km = remainingKm, let country = nextCountry,
+           let currentCountryName = currentCountry, country != currentCountryName {
             onBorderDistance(Double(km), countryName: country, now: now)
 
             // Sınırı geçmeden önce: buradaki dizel sıradaki ülkeden ucuz mu?
             if let hereCode = currentCode, let nextCode = nextCountryCode,
                let here = fuelPrices[hereCode], let next = fuelPrices[nextCode] {
                 onFuel(here: here, next: next,
-                       hereCountry: currentCountry ?? hereCode,
+                       hereCountry: currentCountryName,
                        nextCountry: country, now: now)
             }
         }
