@@ -12,6 +12,7 @@ struct KaravanApp: App {
     @StateObject private var plan = TripPlanStore()
     @StateObject private var gallery = GalleryStore()
     @StateObject private var roadFeed = RoadFeedService()
+    @StateObject private var journal = JournalStore()
     @ObservedObject private var departurePrompt = DeparturePrompt.shared
     @Environment(\.scenePhase) private var scenePhase
 
@@ -36,6 +37,7 @@ struct KaravanApp: App {
                 .environmentObject(plan)
                 .environmentObject(gallery)
                 .environmentObject(roadFeed)
+                .environmentObject(journal)
                 .preferredColorScheme(.dark)
                 // Kalkış saati gelince ekrana düşen modal (kullanıcı isteği).
                 .sheet(item: $departurePrompt.pendingStop) { stop in
@@ -66,6 +68,7 @@ struct KaravanApp: App {
                     await AnnouncementEngine.shared.load()
                     await MusicPlayer.shared.load()
                     await roadFeed.refresh()
+                    await journal.drainQueue()
                     await AnnouncementAudio.shared.loadManifest()   // kayıtlı sesler (varsa)
                     // Araç (CarPlay/araç ses yolu) bağlanınca: kaptan esprisi + sıradaki durak + hadi başlat
                     AnnouncementService.shared.onCarConnected = {
@@ -90,6 +93,7 @@ struct KaravanApp: App {
                     if phase == .active {
                         expenses.reload()                 // Siri arka planda eklemiş olabilir
                         locationManager.applyPowerMode()  // termal/güç durumu değişmiş olabilir
+                        Task { await journal.drainQueue() }
                         // Öne gelince planı tazele: sahip cihazda tarih değişmiş olabilir.
                         Task {
                             await plan.syncFromWeb()

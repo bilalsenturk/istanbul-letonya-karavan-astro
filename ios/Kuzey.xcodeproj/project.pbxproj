@@ -13,6 +13,7 @@
 		07E1D644A4C3B81B0BBBA38F /* TripPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4035201F31588EB77A1717A /* TripPlanner.swift */; };
 		0BE5A7664A79AAEAC5B197F1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9AEF46AA6EEEAA6BB1DFD19E /* Assets.xcassets */; };
 		1310D1136D2AF73540137D03 /* AnnouncementCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5516267C5F1A1EBE3E7C8578 /* AnnouncementCatalog.swift */; };
+		1BFC8EFF51E1F11FD0BDF86F /* JournalStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81CE9A05E62626B4DCFCFF0D /* JournalStore.swift */; };
 		1F27EF2FD3A054C89EB215C4 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A9CB73E03C832207007A05A /* ContentView.swift */; };
 		27D303E4234299F590A82DC4 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D158F3DF63E4C9036FB22C7 /* Config.swift */; };
 		2E0CC94E730350C7E25125E9 /* DepartureModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB48E89533130C8995F3673F /* DepartureModal.swift */; };
@@ -136,6 +137,7 @@
 		6AB974EC178B45C5E8C2D43D /* SharedSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedSnapshot.swift; sourceTree = "<group>"; };
 		6E08E05BDE1D73F0761AE46D /* RoadFeedService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadFeedService.swift; sourceTree = "<group>"; };
 		805F78AAB9DA84F69009C2E2 /* AltimeterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AltimeterService.swift; sourceTree = "<group>"; };
+		81CE9A05E62626B4DCFCFF0D /* JournalStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalStore.swift; sourceTree = "<group>"; };
 		854400F42C0A6BF3D1C19B27 /* trip.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = trip.json; sourceTree = "<group>"; };
 		86097054B82CA8512E4AA874 /* MapScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapScreen.swift; sourceTree = "<group>"; };
 		8B055BA45F55F6532F6A8AC1 /* DayGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayGalleryView.swift; sourceTree = "<group>"; };
@@ -171,6 +173,7 @@
 				CA874B77CFA113ECD47C697F /* JournalCloud.swift */,
 				2EAFE219BA8402205F2B4D91 /* JournalEntry.swift */,
 				03DCAD8D74B488556BEED891 /* JournalQueue.swift */,
+				81CE9A05E62626B4DCFCFF0D /* JournalStore.swift */,
 			);
 			path = Journal;
 			sourceTree = "<group>";
@@ -440,6 +443,7 @@
 				B65BD13ED30E6DDEF50DE64A /* JournalCloud.swift in Sources */,
 				63250E33AB66EC4D9F9CC7BA /* JournalEntry.swift in Sources */,
 				9D8DDBECC20E225D43C47798 /* JournalQueue.swift in Sources */,
+				1BFC8EFF51E1F11FD0BDF86F /* JournalStore.swift in Sources */,
 				89784D251FA5CFB972CFACF6 /* KaravanApp.swift in Sources */,
 				883BEC398B00CCF797F0D409 /* LegLauncher.swift in Sources */,
 				B6457A92111DDF5D3124F173 /* LiveActivityManager.swift in Sources */,
