@@ -14,6 +14,7 @@ struct JournalComposeView: View {
     @State private var mood: String?
     @State private var photos: [Data] = []
     @State private var showPhotoPicker = false
+    @State private var textBeforeDictation = ""
 
     private let moods = ["keyifli", "yorgun", "heyecanlı", "sakin", "sinirli"]
 
@@ -55,7 +56,19 @@ struct JournalComposeView: View {
         }
         .preferredColorScheme(.dark)
         .onChange(of: speech.transcript) { _, new in
-            if !new.isEmpty { text = new }
+            if !new.isEmpty {
+                // Dikte sırasında tanıma sonuçları güncellenirken, mevcut metne append et.
+                // Metin boşsa tanımayı doğrudan yaz, doluysa araya boşluk girsin.
+                if textBeforeDictation.isEmpty {
+                    text = new
+                } else {
+                    text = textBeforeDictation + " " + new
+                }
+            }
+        }
+        .onDisappear {
+            // Sheet kapatılırken bile ses oturumunu kapat — AV kategorisinin .record'da takılı kalmasını engelle.
+            speech.stop()
         }
     }
 
@@ -87,7 +100,13 @@ struct JournalComposeView: View {
 
     private var dictateButton: some View {
         Button {
-            if speech.recording { speech.stop() } else { try? speech.start() }
+            if speech.recording {
+                speech.stop()
+            } else {
+                // Dikte başlamadan önce mevcut metni hatırla — tanıma sonucunu üzerine yazacağız.
+                textBeforeDictation = text
+                try? speech.start()
+            }
         } label: {
             HStack(spacing: 9) {
                 Image(systemName: speech.recording ? "stop.circle.fill" : "mic.fill")
