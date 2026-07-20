@@ -12,7 +12,11 @@ struct KaravanApp: App {
     @StateObject private var plan = TripPlanStore()
     @StateObject private var gallery = GalleryStore()
     @StateObject private var roadFeed = RoadFeedService()
+    @ObservedObject private var departurePrompt = DeparturePrompt.shared
     @Environment(\.scenePhase) private var scenePhase
+
+    /// Kalkış saatini dakikada bir yokla (modal ±30 dk penceresinde açılır).
+    private let departureTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     init() {
         // Kamp görsellerini tek sefer indir, tekrar kullan (hız + veri tasarrufu).
@@ -33,6 +37,24 @@ struct KaravanApp: App {
                 .environmentObject(gallery)
                 .environmentObject(roadFeed)
                 .preferredColorScheme(.dark)
+                // Kalkış saati gelince ekrana düşen modal (kullanıcı isteği).
+                .sheet(item: $departurePrompt.pendingStop) { stop in
+                    DepartureModal(
+                        stop: stop,
+                        remainingKm: navProgress.remainingKm,
+                        remainingTimeText: navProgress.remainingTimeText,
+                        onStart: {
+                            LegLauncher.start(stop: stop, nav: navProgress,
+                                              speedKmh: locationManager.speedKmh)
+                            departurePrompt.dismiss()
+                        },
+                        onSnooze: { departurePrompt.snooze() }
+                    )
+                }
+                .onReceive(departureTimer) { _ in
+                    departurePrompt.checkIfDue(departure: plan.departure(store.trip),
+                                               nextStop: navProgress.nextStop)
+                }
                 .task {
                     await NotificationManager.shared.requestAuthorization()
                     weather.notifier = NotificationManager.shared

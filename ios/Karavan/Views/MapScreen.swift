@@ -11,6 +11,9 @@ struct MapScreen: View {
 
     @State private var position: MapCameraPosition = .automatic
     @State private var selectedStop: Stop?
+    /// Harita ilk açılışta KONUMUNDAN başlar; .automatic tüm rotayı sığdırdığı için
+    /// İstanbul–Riga arasında bir yerde, nerede olduğun görünmeyecek kadar uzakta açılıyordu.
+    @State private var didCenterOnUser = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -52,10 +55,12 @@ struct MapScreen: View {
             }
         }
         .onChange(of: loc.location?.timestamp) { _, _ in
+            centerOnUserOnce()
             if let stops = store.trip?.stops {
                 Task { await nav.update(location: loc.location, stops: stops, route: routeStore) }
             }
         }
+        .onAppear { centerOnUserOnce() }
         .sheet(item: $selectedStop) { stop in
             StopExploreView(stop: stop)
         }
@@ -88,8 +93,55 @@ struct MapScreen: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: - Kamera
+
+    /// İlk konum gelince haritayı oraya al (bir kez; sonra kullanıcı serbest gezer).
+    private func centerOnUserOnce() {
+        guard !didCenterOnUser, let l = loc.location else { return }
+        didCenterOnUser = true
+        withAnimation(.easeInOut(duration: 0.6)) {
+            position = .region(MKCoordinateRegion(
+                center: l.coordinate,
+                latitudinalMeters: 30_000,
+                longitudinalMeters: 30_000
+            ))
+        }
+    }
+
+    /// Tüm rotayı ekrana sığdır.
+    private func fitWholeRoute() {
+        withAnimation(.easeInOut(duration: 0.6)) { position = .automatic }
+    }
+
     private func overlay(trip: TripData) -> some View {
         VStack(spacing: 8) {
+            // Sonraki etabı başlat: anons + kilit ekranı kartı + Apple Haritalar sürüşü.
+            if let next = nav.nextStop {
+                Button {
+                    LegLauncher.start(stop: next, nav: nav, speedKmh: loc.speedKmh)
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "play.circle.fill").font(.system(size: 17, weight: .bold))
+                        Text("\(next.name) rotasını başlat")
+                            .font(.system(size: 15, weight: .heavy, design: .rounded))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 12)
+                    .background(Theme.gradWarm, in: Capsule())
+                    .shadow(color: .black.opacity(0.35), radius: 6, y: 2)
+                }
+                .buttonStyle(.plain)
+            }
+            HStack(spacing: 10) {
+                Button { fitWholeRoute() } label: { pill("map", "Tüm rota") }
+                    .buttonStyle(.plain)
+                Button {
+                    didCenterOnUser = false
+                    centerOnUserOnce()
+                } label: { pill("location.fill", "Konumum") }
+                    .buttonStyle(.plain)
+            }
             if let next = nav.nextStop, let km = nav.remainingKm {
                 pill("arrow.triangle.turn.up.right.circle.fill", "\(next.name) · \(km) km · \(nav.remainingTimeText)")
             } else if routeStore.hasRoute {
