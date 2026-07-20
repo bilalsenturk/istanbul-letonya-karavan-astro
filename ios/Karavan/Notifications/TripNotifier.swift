@@ -7,6 +7,16 @@ import UIKit
 final class TripNotifier: ObservableObject {
     static let shared = TripNotifier()
 
+    /// Sınır yaklaşımı ve yakıt karşılaştırma bildirimleri KAPALI.
+    /// Neden: ikisi de "sıradaki DURAK" verisini sınır konumu yerine kullanıyor —
+    /// mesafe sınıra değil sıradaki durağa olan mesafe, ülke adı da sıradaki
+    /// durağın ülkesi. Gerçek rotada transit ülkeler (Slovakya, Litvanya) durak
+    /// listesinde hiç yok ve bir ülkede birden fazla durak olabiliyor; bu yüzden
+    /// bildirim yanlış anda ve/veya yanlış ülke adıyla çıkabiliyor. Yanlış bilgi
+    /// vermektense hiç vermemek daha iyi — rota mimarisi geldiğinde (gerçek sınır
+    /// noktaları rota geometrisinden hesaplandığında) bu bayrak true yapılabilir.
+    static let borderAndFuelEnabled = false
+
     private var budget = NotificationBudget()
     private var driveStartedAt: Date?
     private var lastMovingAt: Date?
@@ -51,7 +61,11 @@ final class TripNotifier: ObservableObject {
         // currentCountry da açıkça çözülür: ülke bilinmiyorsa (nil) sınır kararı
         // verilemez — "nil != "HU"" her zaman true döner ve bu, ülke henüz
         // belirlenmemişken sahte sınır/yakıt bildirimine yol açardı.
-        if let km = remainingKm, let country = nextCountry,
+        //
+        // `borderAndFuelEnabled` false olduğu sürece bu blok tamamen atlanır —
+        // bkz. bayrağın tanımındaki not: mesafe/ülke bilgisi yanlış.
+        if Self.borderAndFuelEnabled,
+           let km = remainingKm, let country = nextCountry,
            let currentCountryName = currentCountry, country != currentCountryName {
             onBorderDistance(Double(km), countryName: country, now: now)
 

@@ -320,6 +320,44 @@ final class JournalStore: ObservableObject {
                 : "iCloud'a gönderilemeyen kayıtlar var — otomatik olarak tekrar denenecek."
         }
         persist()
+
+        // Yazma tarafı (kuyruk boşaltma) burada bitti — okuma tarafını da
+        // çalıştır. Tasarım "CloudKit kaynak, yerel önce" diyordu ama fetchAll()
+        // hiç çağrılmıyordu: aynı iCloud hesabındaki iPhone/iPad günlüğü
+        // paylaşmıyordu, uygulama silinip kurulunca cihazdaki kayıtlar
+        // görünmüyordu (CloudKit'te dururken). drainQueue() açılışta ve öne
+        // gelince zaten tetiklendiği için ayrı bir "açılış" kancasına gerek yok.
+        await mergeFromCloud()
+    }
+
+    /// CloudKit'teki kayıtları yerel `entries` ile birleştirir (okuma tarafı).
+    /// Çakışmada YEREL kazanır: kullanıcının bu cihazda henüz senkronlanmamış
+    /// bir düzenlemesi, başka cihazdan/CloudKit'ten gelen eski bir kopya
+    /// tarafından ASLA ezilmez — yalnızca yerelde hiç olmayan uzak kayıtlar
+    /// eklenir. Bu yüzden kuyrukta gönderilmeyi bekleyen yerel kayıtlar da
+    /// (zaten `entries` içinde id'leriyle var oldukları için) dokunulmadan kalır.
+    ///
+    /// `pendingDeleteIds`'teki kayıtlar bilerek dışlanır: aksi halde kullanıcının
+    /// az önce sildiği ama CloudKit'e silme isteği henüz ulaşmamış bir kayıt,
+    /// bu fetch ile geri dirilirdi.
+    ///
+    /// Hesap yoksa/ağ yoksa sessizce geç — mevcut yerel veri olduğu gibi kalır.
+    private func mergeFromCloud() async {
+        guard cloudAvailable else { return }
+        let remote: [JournalEntry]
+        do {
+            remote = try await JournalCloud.shared.fetchAll()
+        } catch {
+            return
+        }
+
+        let localIds = Set(entries.map(\.id))
+        let newFromRemote = remote.filter { !localIds.contains($0.id) && !pendingDeleteIds.contains($0.id) }
+        guard !newFromRemote.isEmpty else { return }
+
+        entries.append(contentsOf: newFromRemote)
+        entries.sort { $0.createdAt > $1.createdAt }
+        persist()
     }
 
     // MARK: - Paylaşılanları web'e yansıt
