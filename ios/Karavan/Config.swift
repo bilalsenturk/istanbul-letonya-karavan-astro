@@ -23,6 +23,9 @@ enum Config {
     /// Hesaplanmış takvimin (kalkış + gün tarihleri) web'e gönderileceği endpoint.
     static var planPostURL: URL? { siteURL?.appendingPathComponent("api/plan") }
 
+    /// Yol bülteni: dizel fiyatı + sınır beklemesi + döviz kuru.
+    static var roadFeedURL: URL? { siteURL?.appendingPathComponent("api/roadfeed") }
+
     /// Kamp/galeri görsellerinin kök adresi (JSON'daki "/assets/..." yolları buna göre çözülür).
     /// Görselleri Cloudflare R2 gibi bir CDN'e taşırsan yalnızca burayı değiştir.
     static var imageBaseURL: URL? { mediaBaseURL ?? siteURL }

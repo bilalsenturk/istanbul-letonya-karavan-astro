@@ -75,16 +75,15 @@ final class AnnouncementService: NSObject, ObservableObject {
 
     // MARK: - Kaptan esprileri (Leyla'ya özel)
 
-    /// Sırayla döner; kayıt varsa aynı anahtarın farklı kayıtlarından rastgele çalınır.
-    func nextCaptainClip() -> AnnouncementCatalog.Clip {
-        let clips = AnnouncementCatalog.captain
-        defer { captainIndex = (captainIndex + 1) % clips.count }
-        return clips[captainIndex]
+    /// Bir kategoriden kural-uyumlu anons çal (motor seçer). Uygun yoksa sessiz kalır.
+    func announce(_ category: String) {
+        guard let clip = AnnouncementEngine.shared.pick(category) else { return }
+        say(clip)
     }
 
-    /// Araç bağlanınca / yola çıkarken: kaptan esprisi + sıradaki durak + hadi başlat.
+    /// Araç bağlanınca / yola çıkarken: TEK kaptan anonsu + sıradaki durak.
     func announceDeparture(nextStop: String?) {
-        say(nextCaptainClip())
+        announce("captain")
         if let nextStop {
             speak("Sıradaki durak: \(nextStop). Hadi başlat!")
         }
@@ -92,9 +91,10 @@ final class AnnouncementService: NSObject, ObservableObject {
 
     // MARK: - Yerel dilde karşılama (varışta)
 
-    /// Bir durağa varışta: Türkçe karşılama + yerel dilde + (varsa) Riga'ya kalan.
+    /// Bir durağa varışta: Türkçe varyant + yerel dilde + (varsa) Riga'ya kalan.
     func announceArrival(stopName: String, remainingToFinalKm: Int?) {
-        for clip in AnnouncementCatalog.arrival(for: stopName) {
+        let slug = AnnouncementCatalog.citySlug(for: stopName)
+        for clip in AnnouncementEngine.shared.arrivalClips(citySlug: slug) {
             say(clip)
         }
         if let km = remainingToFinalKm, km > 0 {

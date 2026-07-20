@@ -47,6 +47,7 @@ struct DashboardView: View {
                                 LiveLocationCard()
                                 if !simpleMode {
                                     arrivalsCard
+                                    RoadFeedCard()
                                     weatherStrip
                                 }
                             }

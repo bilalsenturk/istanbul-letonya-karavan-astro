@@ -50,7 +50,7 @@ final class AltimeterService: ObservableObject {
                 title: "Basınç düşüyor — fırtına yaklaşıyor olabilir",
                 body: "Hava kötüleşebilir; kamp/mola planını gözden geçir."
             )
-            AnnouncementService.shared.say(AnnouncementCatalog.storm)
+            AnnouncementService.shared.announce(AnnouncementCatalog.Category.storm)
         }
         baselinePressure = base + (hpa - base) * 0.05   // baz çizgiyi yavaş takip et
     }

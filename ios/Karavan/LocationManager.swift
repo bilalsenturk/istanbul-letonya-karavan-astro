@@ -145,7 +145,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
             deviationStreak += 1
             if deviationStreak >= 3, Date().timeIntervalSince(lastDeviationAlert) > 900 {
                 lastDeviationAlert = Date()
-                AnnouncementService.shared.say(AnnouncementCatalog.deviation)
+                AnnouncementService.shared.announce(AnnouncementCatalog.Category.deviation)
                 NotificationManager.shared.notify(
                     title: "Rotadan saptın",
                     body: "Planlanan yoldan \(Int(minDist / 1000)) km uzaktasın. Bilerek mi? Araçlar'dan konumunu paylaşabilirsin.",
