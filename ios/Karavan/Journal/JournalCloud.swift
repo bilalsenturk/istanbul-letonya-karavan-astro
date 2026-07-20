@@ -110,40 +110,76 @@ actor JournalCloud {
         }
     }
 
+    /// CloudKit sunucudan tüm sayfaları TOPLAYARAK döner. `db.records(matching:)`
+    /// tüm sonuçları otomatik sayfalamaz — özellikle CKAsset (fotoğraf)
+    /// yüklü kayıtlarda sunucu sayfayı erken böler ve dönen `queryCursor` ile
+    /// `db.records(continuingMatchFrom:)` ile devam edilmesi gerekir. Bu cursor
+    /// önceden yok sayılıyordu; adı "fetchAll" olsa da yalnızca ilk sayfayı
+    /// çekiyordu — birden çok sayfa varsa (ör. çok sayıda fotoğraflı kayıt)
+    /// başka bir cihaz günlüğün yalnızca bir kısmını görürdü.
+    ///
+    /// `maxPages` sonsuz döngüye karşı bir üst sınırdır (hatalı/beklenmedik
+    /// bir durumda sunucu hep aynı cursor'ı döndürseydi bu döngü asla
+    /// bitmezdi); sınıra ulaşılırsa kalan sayfalar loglanıp atlanır, elde
+    /// olanla devam edilir.
     func fetchAll() async throws -> [JournalEntry] {
         try await ensureAccountAvailable()
 
         let query = CKQuery(recordType: Self.recordType, predicate: NSPredicate(value: true))
         query.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
 
-        do {
-            let (results, _) = try await db.records(matching: query)
-            // Bozuk/eşlenemeyen tek bir kayıt yüzünden kullanıcı günlüğünün
-            // bir kısmını SESSİZCE kaybetmesin diye düşürülen her kayıt
-            // loglanır ve toplam sayı uyarı olarak basılır.
-            var droppedCount = 0
-            let entries: [JournalEntry] = results.compactMap { recordID, result in
+        // Bozuk/eşlenemeyen tek bir kayıt yüzünden kullanıcı günlüğünün
+        // bir kısmını SESSİZCE kaybetmesin diye düşürülen her kayıt
+        // loglanır ve toplam sayı uyarı olarak basılır.
+        var droppedCount = 0
+        var entries: [JournalEntry] = []
+        var cursor: CKQueryOperation.Cursor?
+        var pageIndex = 0
+        let maxPages = 20
+
+        func consume(_ matchResults: [(CKRecord.ID, Result<CKRecord, Error>)]) {
+            for (recordID, result) in matchResults {
                 switch result {
                 case .success(let record):
                     if let entry = Self.entry(from: record) {
-                        return entry
+                        entries.append(entry)
+                    } else {
+                        droppedCount += 1
+                        logger.error("Günlük kaydı ayrıştırılamadı, atlandı: \(recordID.recordName, privacy: .public)")
                     }
-                    droppedCount += 1
-                    logger.error("Günlük kaydı ayrıştırılamadı, atlandı: \(recordID.recordName, privacy: .public)")
-                    return nil
                 case .failure(let error):
                     droppedCount += 1
                     logger.error("Günlük kaydı çekilemedi, atlandı: \(recordID.recordName, privacy: .public) — \(String(describing: error), privacy: .public)")
-                    return nil
                 }
             }
-            if droppedCount > 0 {
-                logger.warning("fetchAll: \(droppedCount, privacy: .public) kayıt düşürüldü")
-            }
-            return entries
+        }
+
+        do {
+            repeat {
+                let matchResults: [(CKRecord.ID, Result<CKRecord, Error>)]
+                let nextCursor: CKQueryOperation.Cursor?
+                if let cursor {
+                    (matchResults, nextCursor) = try await db.records(continuingMatchFrom: cursor)
+                } else {
+                    (matchResults, nextCursor) = try await db.records(matching: query)
+                }
+                consume(matchResults)
+                cursor = nextCursor
+                pageIndex += 1
+
+                if cursor != nil, pageIndex >= maxPages {
+                    logger.warning("fetchAll: sayfa sınırına (\(maxPages, privacy: .public)) ulaşıldı, kalan sayfalar atlanıyor")
+                    cursor = nil
+                }
+            } while cursor != nil
         } catch let error as CKError {
             throw Self.mapError(error)
         }
+
+        if droppedCount > 0 {
+            logger.warning("fetchAll: \(droppedCount, privacy: .public) kayıt düşürüldü")
+        }
+        return entries
     }
 
     func delete(id: String) async throws {

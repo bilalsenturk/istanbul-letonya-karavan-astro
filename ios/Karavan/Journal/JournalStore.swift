@@ -55,6 +55,23 @@ final class JournalStore: ObservableObject {
     private var sharePublishAttempts = 0
     private var sharePublishLastAttemptAt: Date?
 
+    /// `mergeFromCloud()` için bellek-içi (KALICI OLMAYAN) son BAŞARILI çekim
+    /// zamanı. `drainQueue()` çok sık tetikleniyor: her kayıt eklemede, silmede,
+    /// paylaşım değişiminde, uygulama açılışında, her öne gelmede. Bunun
+    /// sonunda koşulsuz tam bir CKQuery (`fetchAll()`) atmak — kullanıcı bir
+    /// oturumda birkaç kayıt eklerse aynı dakikada birkaç kez tüm tabloyu
+    /// sorgulamak demek. `drainPendingDeletes()`/`attemptPublishShared()`
+    /// bu tür sık tetiklenme riskini bilinçle geri çekilmeyle önlüyor;
+    /// `mergeFromCloud` bu özenden yoksundu. nil'den başlaması (ilk merge
+    /// hiç yaşanmamış) uygulama açılışında ilk merge'ün her zaman çalışmasını
+    /// sağlar; kalıcı yapmaya gerek yok — her açılışta bir kez taze çekmek
+    /// zaten makul.
+    private var lastCloudMergeAt: Date?
+    /// Minimum merge aralığı: zayıf sinyalli sınır bölgesinde sık tetiklenen
+    /// drainQueue()'nun her seferinde tam tabloyu sorgulaması hem gereksiz
+    /// pil/veri tüketir hem de CloudKit rate-limit riskini artırır.
+    private static let cloudMergeMinInterval: TimeInterval = 5 * 60
+
     private var dir: URL {
         let d = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("journal", isDirectory: true)
@@ -342,14 +359,32 @@ final class JournalStore: ObservableObject {
     /// bu fetch ile geri dirilirdi.
     ///
     /// Hesap yoksa/ağ yoksa sessizce geç — mevcut yerel veri olduğu gibi kalır.
+    ///
+    /// Debounce: `drainQueue()` çok sık tetiklendiği (her ekleme/silme/paylaşım
+    /// değişimi/açılış/öne gelme) ve tetikleyen sinyal zayıf olduğu (CloudKit'in
+    /// gerçekten yeni veri olup olmadığını bilmiyoruz) için, son BAŞARILI
+    /// merge'ün üstünden `cloudMergeMinInterval` geçmediyse yeni bir fetch
+    /// atmadan sessizce geç. Aksi halde sık tetiklenmede CloudKit gereksiz
+    /// yorulur ve rate-limit'e sürüklenebilir (bkz. `drainPendingDeletes`/
+    /// `attemptPublishShared`'daki aynı gerekçe). Uygulama açılışında
+    /// `lastCloudMergeAt` henüz nil olduğu için ilk merge her zaman çalışır.
     private func mergeFromCloud() async {
         guard cloudAvailable else { return }
+        if let last = lastCloudMergeAt, Date().timeIntervalSince(last) < Self.cloudMergeMinInterval {
+            return
+        }
+
         let remote: [JournalEntry]
         do {
             remote = try await JournalCloud.shared.fetchAll()
         } catch {
             return
         }
+        // Zaman damgası yalnızca BAŞARILI bir çekimden sonra güncellenir —
+        // aksi halde geçici bir ağ hatası, kullanıcıyı sonraki tetiklemelerde
+        // (öne gelme vb.) gereksiz yere `cloudMergeMinInterval` kadar
+        // bekletirdi.
+        lastCloudMergeAt = Date()
 
         let localIds = Set(entries.map(\.id))
         let newFromRemote = remote.filter { !localIds.contains($0.id) && !pendingDeleteIds.contains($0.id) }
