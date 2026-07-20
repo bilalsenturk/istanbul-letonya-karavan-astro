@@ -8,7 +8,7 @@ enum Config {
     static let siteURL = URL(string: "http://localhost:4321")
     #else
     /// Gerçek cihaz / yayın: deploy edilen sitenin kökü (sonda / yok)
-    static let siteURL = URL(string: "https://istanbul-riga.vercel.app")
+    static let siteURL = URL(string: "https://istanbul-letonya-karavan-astro.vercel.app")
     #endif
 
     /// Uzak gezi verisi (site her deploy olduğunda app içeriği tazelenir)

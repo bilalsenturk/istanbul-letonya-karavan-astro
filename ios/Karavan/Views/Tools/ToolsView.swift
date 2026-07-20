@@ -92,7 +92,7 @@ struct ToolsView: View {
     // MARK: - SMS konum paylaşımı
 
     private func shareLocationViaSMS() {
-        var lines = ["Kuzey 🚐 İstanbul→Riga canlı takip: https://istanbul-riga.vercel.app"]
+        var lines = ["Kuzey 🚐 İstanbul→Riga canlı takip: https://istanbul-letonya-karavan-astro.vercel.app"]
         if let l = loc.location {
             lines.append("Şu an: https://maps.apple.com/?ll=\(l.coordinate.latitude),\(l.coordinate.longitude)")
         }
