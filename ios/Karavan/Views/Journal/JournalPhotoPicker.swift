@@ -12,6 +12,8 @@ struct JournalPhotoPicker: View {
     @State private var assets: [PHAsset] = []
     @State private var selected: Set<String> = []
     @State private var status: PHAuthorizationStatus = .notDetermined
+    @State private var isLoadingImages: Bool = false
+    @State private var loadingTask: Task<Void, Never>? = nil
 
     private let columns = [GridItem(.adaptive(minimum: 100), spacing: 4)]
 
@@ -39,15 +41,29 @@ struct JournalPhotoPicker: View {
                     Button("Vazgeç") { dismiss() }.tint(Theme.muted)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Ekle (\(selected.count))") { pickSelected() }
-                        .font(.system(size: 15, weight: .bold))
+                    if isLoadingImages {
+                        HStack(spacing: 6) {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("Yükleniyor...")
+                                .font(.system(size: 15, weight: .bold))
+                        }
                         .tint(Theme.c2)
-                        .disabled(selected.isEmpty)
+                    } else {
+                        Button("Ekle (\(selected.count))") { pickSelected() }
+                            .font(.system(size: 15, weight: .bold))
+                            .tint(Theme.c2)
+                            .disabled(selected.isEmpty)
+                    }
                 }
             }
         }
         .preferredColorScheme(.dark)
         .task { await load() }
+        .onDisappear {
+            // View kapanırken devam eden Task'i iptal et — böylece onPick çağrılmaz.
+            loadingTask?.cancel()
+        }
     }
 
     private var deniedState: some View {
@@ -100,15 +116,32 @@ struct JournalPhotoPicker: View {
     }
 
     private func pickSelected() {
+        // Eğer yükleme zaten sürüyorsa, ikinci kez başlatmayı engelle.
+        guard !isLoadingImages else { return }
+
+        isLoadingImages = true
+
         let chosen = assets.filter { selected.contains($0.localIdentifier) }
-        Task {
+
+        // Task'i @State'te tut — View kapanıp Task iptal olursa, onPick çağrılmayacak.
+        let task = Task {
             var out: [Data] = []
             for asset in chosen {
+                // Eğer Task iptal edildi ise hemen çık.
+                if Task.isCancelled { return }
                 if let data = await Self.jpeg(from: asset) { out.append(data) }
             }
-            onPick(out)
-            dismiss()
+
+            // Task iptal edilmemişse callback'i çağır.
+            if !Task.isCancelled {
+                onPick(out)
+                dismiss()
+            }
+
+            isLoadingImages = false
         }
+
+        loadingTask = task
     }
 
     /// Fotoğrafı makul boyutta JPEG'e indir — iCloud kotasını ve yüklemeyi hafifletir.
