@@ -9,6 +9,7 @@ struct KaravanApp: App {
     @StateObject private var routeStore = RouteStore()
     @StateObject private var navProgress = NavProgressStore()
     @StateObject private var altimeter = AltimeterService()
+    @StateObject private var plan = TripPlanStore()
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -26,6 +27,7 @@ struct KaravanApp: App {
                 .environmentObject(routeStore)
                 .environmentObject(navProgress)
                 .environmentObject(altimeter)
+                .environmentObject(plan)
                 .preferredColorScheme(.dark)
                 .task {
                     await NotificationManager.shared.requestAuthorization()
@@ -41,9 +43,10 @@ struct KaravanApp: App {
                     if let stops = store.trip?.stops {
                         locationManager.startMonitoringStops(stops)
                     }
-                    if let departure = store.trip?.departureDate {
-                        NotificationManager.shared.scheduleDepartureReminders(departure: departure)
-                    }
+                    // Kalkış tarihi kullanıcı düzenlemesiyle değişebilir → tek kaynak: plan
+                    store.effectiveDeparture = { [weak store] in plan.departure(store?.trip) }
+                    applyPlanCascade()
+                    plan.onChange = { _ in applyPlanCascade() }
                     BackgroundWeather.schedule()
                 }
                 .onChange(of: scenePhase) { _, phase in
@@ -57,5 +60,15 @@ struct KaravanApp: App {
         .backgroundTask(.appRefresh(BackgroundWeather.taskId)) {
             await BackgroundWeather.run()
         }
+    }
+
+    /// Kalkış/plan değiştiğinde tek noktadan kaskat:
+    /// bildirimleri yeniden kur → widget snapshot'ını tazele → widget'ları yenile.
+    @MainActor
+    private func applyPlanCascade() {
+        let departure = plan.departure(store.trip)
+        NotificationManager.shared.scheduleDepartureReminders(departure: departure)
+        store.writeSnapshot()
+        LiveActivityManager.shared.reloadWidgetsThrottled()
     }
 }

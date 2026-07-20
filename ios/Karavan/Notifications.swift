@@ -29,8 +29,11 @@ final class NotificationManager: NSObject, ObservableObject {
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: nil))
     }
 
-    /// Kalkışa göre hatırlatmalar (1 gün ve 2 saat kala).
+    /// Kalkışa göre hatırlatmalar. Kalkış değişince eskiler İPTAL edilip yeniden kurulur.
     func scheduleDepartureReminders(departure: Date) {
+        let ids = (0 ..< 3).map { "departure-\($0)" }
+        center.removePendingNotificationRequests(withIdentifiers: ids)
+
         let cal = Calendar.current
         let plan: [(String, String, Date?)] = [
             ("Yarın yola çıkıyoruz 🚐", "Kuzey · İstanbul → Riga. Son kontrol listesine göz at.",

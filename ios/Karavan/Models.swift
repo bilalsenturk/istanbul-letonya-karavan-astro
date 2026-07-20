@@ -68,6 +68,8 @@ struct Stop: Codable, Identifiable {
 
 struct DayPlan: Codable, Identifiable {
     let slug: String
+    /// JSON'daki sabit görüntü metni — YALNIZCA yedek. Gerçek tarih kalkıştan
+    /// türetilir (bkz. TripPlanner), böylece kalkış değişince kaskatlanır.
     let date: String
     let origin: String
     let destination: String
@@ -79,8 +81,47 @@ struct DayPlan: Codable, Identifiable {
     let contingencies: [String]
     let camp: Camp
 
+    // Web verisinde zaten var olan, app'in şimdiye kadar kullanmadığı zengin alanlar
+    let waypoints: [DayWaypoint]?
+    let route: String?
+    let trafficLabel: String?
+    let cityCameras: [CityCamera]?
+
     var id: String { slug }
     var isRestDay: Bool { origin == destination }
+
+    private enum CodingKeys: String, CodingKey {
+        case slug, date, origin, destination, distanceKm, duration, fuel
+        case risks, opportunities, contingencies, camp
+        case waypoints = "stops"          // JSON'da "stops" = günün ara durakları
+        case route, trafficLabel, cityCameras
+    }
+}
+
+/// Gün içindeki ara durak (petrol, mola, market…)
+struct DayWaypoint: Codable, Identifiable {
+    let type: String
+    let name: String
+    let note: String?
+
+    var id: String { "\(type)-\(name)" }
+
+    var icon: String {
+        let t = type.lowercased()
+        if t.contains("petrol") || t.contains("yakıt") { return "fuelpump.fill" }
+        if t.contains("mola") || t.contains("dinlen") { return "cup.and.saucer.fill" }
+        if t.contains("market") || t.contains("alışveriş") { return "cart.fill" }
+        if t.contains("sınır") { return "flag.2.crossed.fill" }
+        if t.contains("kamp") { return "tent.fill" }
+        return "mappin.circle.fill"
+    }
+}
+
+struct CityCamera: Codable, Identifiable {
+    let title: String
+    let url: String
+
+    var id: String { url }
 }
 
 struct Camp: Codable {

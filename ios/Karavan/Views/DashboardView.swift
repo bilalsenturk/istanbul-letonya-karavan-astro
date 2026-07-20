@@ -8,6 +8,8 @@ struct DashboardView: View {
     @EnvironmentObject var routeStore: RouteStore
     @EnvironmentObject var nav: NavProgressStore
     @EnvironmentObject var altimeter: AltimeterService
+    @EnvironmentObject var plan: TripPlanStore
+    @State private var showSettings = false
 
     // Sürüş Focus filtresi (Ayarlar → Odak → Sürüş → Kuzey): sade panel.
     @AppStorage(SharedSnapshot.Key.simpleMode, store: SharedSnapshot.defaults)
@@ -23,11 +25,19 @@ struct DashboardView: View {
                     VStack(alignment: .leading, spacing: 18) {
                         header
                         if let trip = store.trip {
-                            if let departure = trip.departureDate {
-                                VStack(alignment: .leading, spacing: 10) {
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
                                     MonoLabel(text: "Yola çıkmaya kalan", color: Theme.c1)
-                                    CountdownView(departure: departure)
+                                    Spacer()
+                                    Button { showSettings = true } label: {
+                                        Label(plan.edits.departureAt == nil ? "Tarihi değiştir" : "Düzenlendi",
+                                              systemImage: "calendar.badge.plus")
+                                            .font(.system(size: 11, weight: .semibold))
+                                            .foregroundStyle(plan.edits.departureAt == nil ? Theme.muted : Theme.c4)
+                                    }
                                 }
+                                // Kalkış = düzenleme > web verisi (tek kaynak: TripPlanner)
+                                CountdownView(departure: plan.departure(trip))
                             }
                             if !simpleMode { metricRow(trip: trip) }
                             if !simpleMode { expenseCard(trip: trip) }
@@ -66,6 +76,7 @@ struct DashboardView: View {
         .onChange(of: loc.location?.timestamp) { _, _ in
             altimeter.stationary = (loc.speedKmh ?? 0) < 5   // yalnızca dururken fırtına kontrolü
         }
+        .sheet(isPresented: $showSettings) { TripSettingsView() }
     }
 
     // MARK: - Parçalar
@@ -297,6 +308,12 @@ struct TimelineRow: View {
     let index: Int
     let isLast: Bool
 
+    @EnvironmentObject private var store: TripStore
+    @EnvironmentObject private var plan: TripPlanStore
+
+    /// Türetilmiş tarih (kalkış değişince kendiliğinden güncellenir).
+    private var effective: EffectiveDay? { plan.day(store.trip, slug: day.slug) }
+
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
             VStack(spacing: 0) {
@@ -318,7 +335,7 @@ struct TimelineRow: View {
             .frame(width: 38)
 
             VStack(alignment: .leading, spacing: 8) {
-                Text(day.date.uppercased())
+                Text((effective?.dateText ?? day.date).uppercased())
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     .kerning(1.0)
                     .foregroundStyle(Theme.muted)

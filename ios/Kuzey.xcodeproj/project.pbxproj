@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		042CD6553C4C9F181A24D979 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F5C959C02D3AEB61D35B2E4 /* DashboardView.swift */; };
+		054FCB4E10C16B21E3D45902 /* DayEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFCA663A470C8DD3B775062E /* DayEditView.swift */; };
+		07E1D644A4C3B81B0BBBA38F /* TripPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4035201F31588EB77A1717A /* TripPlanner.swift */; };
 		0BE5A7664A79AAEAC5B197F1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9AEF46AA6EEEAA6BB1DFD19E /* Assets.xcassets */; };
 		1F27EF2FD3A054C89EB215C4 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A9CB73E03C832207007A05A /* ContentView.swift */; };
 		27D303E4234299F590A82DC4 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D158F3DF63E4C9036FB22C7 /* Config.swift */; };
@@ -25,6 +27,7 @@
 		77F34D3C5BFAC1E0F9C01DE9 /* VignettesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA4F669DC75CC46692AB425F /* VignettesView.swift */; };
 		7E537C5724BCAD205276581C /* ToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D8C58A0890E58CEDB4C1744 /* ToolsView.swift */; };
 		819C7A10A5135905BECC845D /* PhotoJournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5A0D47F97A6BC761EC4A1D7 /* PhotoJournalView.swift */; };
+		824EE6AFA799BA7C35C68EDA /* TripSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC538794F9ED1EDBD743061F /* TripSettingsView.swift */; };
 		83113E5D1FBE09DAB2A20E48 /* PlanScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC66F61F5A93C2097EF6381 /* PlanScreen.swift */; };
 		89784D251FA5CFB972CFACF6 /* KaravanApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48DBB19FBCDD52DE1F4E55F8 /* KaravanApp.swift */; };
 		8A8CCD1D954E11A6C346CFB6 /* AppleMapsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31D0A33B6EDB7280B5616C20 /* AppleMapsService.swift */; };
@@ -37,6 +40,7 @@
 		BB1181756AD31C2121B413CD /* CountdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD74465F353E94FA714455D0 /* CountdownView.swift */; };
 		BE94D409F9E37AE2C0E79B9C /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEB2A1F70C4BD191A5BA233B /* WeatherService.swift */; };
 		C11853ABEDB233B5100F09D2 /* ExpensesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 370CBB45D2A76FE6AC6681D0 /* ExpensesView.swift */; };
+		C1B584C0CEEF5E5EDC3E249B /* TripPlanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48245403E32764040394E43C /* TripPlanStore.swift */; };
 		C1CD5BD742E28B2406B8C33B /* CampImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45DECAA1995A716526093E8C /* CampImage.swift */; };
 		CCB6AEAC47B82E9BEC59EFC4 /* SharedSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AB974EC178B45C5E8C2D43D /* SharedSnapshot.swift */; };
 		D639120DCFB9ED1C9D94A027 /* trip.json in Resources */ = {isa = PBXBuildFile; fileRef = 854400F42C0A6BF3D1C19B27 /* trip.json */; };
@@ -88,6 +92,7 @@
 		39518EF9591A8B60BC9FB024 /* Kuzey.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Kuzey.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4198F36A45B4A90AFAEB6D59 /* DocumentVaultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentVaultView.swift; sourceTree = "<group>"; };
 		45DECAA1995A716526093E8C /* CampImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CampImage.swift; sourceTree = "<group>"; };
+		48245403E32764040394E43C /* TripPlanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripPlanStore.swift; sourceTree = "<group>"; };
 		482F782E822AB4C91884E391 /* NavProgressStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavProgressStore.swift; sourceTree = "<group>"; };
 		48DBB19FBCDD52DE1F4E55F8 /* KaravanApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaravanApp.swift; sourceTree = "<group>"; };
 		4CC66F61F5A93C2097EF6381 /* PlanScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanScreen.swift; sourceTree = "<group>"; };
@@ -109,6 +114,7 @@
 		92433716A15BEBCD592B63E2 /* KuzeyWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KuzeyWidgets.swift; sourceTree = "<group>"; };
 		9AEF46AA6EEEAA6BB1DFD19E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9F5C959C02D3AEB61D35B2E4 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		B4035201F31588EB77A1717A /* TripPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripPlanner.swift; sourceTree = "<group>"; };
 		BA4F669DC75CC46692AB425F /* VignettesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VignettesView.swift; sourceTree = "<group>"; };
 		BBD2D245D3ADDC9A38B3E287 /* TripActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripActivityAttributes.swift; sourceTree = "<group>"; };
 		BF11ED9C0D36687D9A03CBB8 /* ScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerView.swift; sourceTree = "<group>"; };
@@ -119,7 +125,9 @@
 		DEB2A1F70C4BD191A5BA233B /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
 		DEDCB70244A1866C05724B7B /* RouteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStore.swift; sourceTree = "<group>"; };
 		E5A0D47F97A6BC761EC4A1D7 /* PhotoJournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoJournalView.swift; sourceTree = "<group>"; };
+		EC538794F9ED1EDBD743061F /* TripSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripSettingsView.swift; sourceTree = "<group>"; };
 		F7D97DFDF05438A70096EC2B /* Kuzey.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Kuzey.entitlements; sourceTree = "<group>"; };
+		FFCA663A470C8DD3B775062E /* DayEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayEditView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -144,6 +152,8 @@
 				5DC95431B932CB4DFD5412C9 /* Notifications.swift */,
 				DEDCB70244A1866C05724B7B /* RouteStore.swift */,
 				00954AF5EE56487B60F675E1 /* Theme.swift */,
+				B4035201F31588EB77A1717A /* TripPlanner.swift */,
+				48245403E32764040394E43C /* TripPlanStore.swift */,
 				5CFA86E52D515272F7F13F10 /* TripStore.swift */,
 				DEB2A1F70C4BD191A5BA233B /* WeatherService.swift */,
 				832D862B0C1892D7807B4DEA /* Resources */,
@@ -160,11 +170,13 @@
 				CD74465F353E94FA714455D0 /* CountdownView.swift */,
 				9F5C959C02D3AEB61D35B2E4 /* DashboardView.swift */,
 				50EC37896D44D59908E84F08 /* DayDetailView.swift */,
+				FFCA663A470C8DD3B775062E /* DayEditView.swift */,
 				370CBB45D2A76FE6AC6681D0 /* ExpensesView.swift */,
 				8C443FE724E722869D208BAC /* LiveLocationCard.swift */,
 				86097054B82CA8512E4AA874 /* MapScreen.swift */,
 				4CC66F61F5A93C2097EF6381 /* PlanScreen.swift */,
 				25CA028A20B4BE8F4D0ED411 /* StopExploreView.swift */,
+				EC538794F9ED1EDBD743061F /* TripSettingsView.swift */,
 				C13B2A1A3F7026F90978E75F /* Tools */,
 			);
 			path = Views;
@@ -351,6 +363,7 @@
 				BB1181756AD31C2121B413CD /* CountdownView.swift in Sources */,
 				042CD6553C4C9F181A24D979 /* DashboardView.swift in Sources */,
 				DCA192F45DFD629CE1326455 /* DayDetailView.swift in Sources */,
+				054FCB4E10C16B21E3D45902 /* DayEditView.swift in Sources */,
 				73E54B6EC9AF640FB442E727 /* DocumentVaultView.swift in Sources */,
 				6A8F57A39EEEB2A7FA64075F /* Expense.swift in Sources */,
 				5D29D5A948AD1618A9D6EBB2 /* ExpenseStore.swift in Sources */,
@@ -373,6 +386,9 @@
 				FAD7DD8D7AC36626072723B3 /* Theme.swift in Sources */,
 				7E537C5724BCAD205276581C /* ToolsView.swift in Sources */,
 				F141E4DDF91017C2B4BE29E0 /* TripActivityAttributes.swift in Sources */,
+				C1B584C0CEEF5E5EDC3E249B /* TripPlanStore.swift in Sources */,
+				07E1D644A4C3B81B0BBBA38F /* TripPlanner.swift in Sources */,
+				824EE6AFA799BA7C35C68EDA /* TripSettingsView.swift in Sources */,
 				EE7E4F5FFF6937FF414394D1 /* TripStore.swift in Sources */,
 				77F34D3C5BFAC1E0F9C01DE9 /* VignettesView.swift in Sources */,
 				8E67C1D2643A6A1CCA151B8A /* VoiceExpenseView.swift in Sources */,

@@ -28,10 +28,18 @@ final class TripStore: ObservableObject {
         writeSnapshot()
     }
 
+    /// Kullanıcı düzenlemeleri kalkışı değiştirebildiği için snapshot dışarıdan beslenir.
+    var effectiveDeparture: (() -> Date?)?
+
     /// Widget'ların ihtiyacı olan sabitleri App Group'a yaz.
-    private func writeSnapshot() {
+    func writeSnapshot() {
         guard let trip else { return }
-        var values: [String: Any] = [SharedSnapshot.Key.departureAt: trip.departureAt]
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime]
+        let departure = effectiveDeparture?() ?? trip.departureDate
+        var values: [String: Any] = [
+            SharedSnapshot.Key.departureAt: departure.map { iso.string(from: $0) } ?? trip.departureAt
+        ]
         if let max = trip.totalBudget.max { values[SharedSnapshot.Key.budgetMax] = Double(max) }
         SharedSnapshot.write(values)
     }
