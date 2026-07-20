@@ -304,7 +304,11 @@ final class JournalStore: ObservableObject {
     private func drainPendingDeletes() async {
         guard !pendingDeleteIds.isEmpty else { return }
         if pendingDeleteAttempts > 0, let last = pendingDeleteLastAttemptAt,
-           Date().timeIntervalSince(last) < JournalQueue.backoff(attempts: pendingDeleteAttempts) {
+           // Geri çekilme süresi sınırlandırılmalı: üst sınır olmadan deneme sayısı
+           // arttıkça süre günlere hatta yıllara çıkar (10. denemede ~91 gün,
+           // 12. denemede ~4 yıl). Gönderim tarafındaki gibi maxAttempts ile sınırla
+           // ki süre ~2 saatte durabilsin.
+           Date().timeIntervalSince(last) < JournalQueue.backoff(attempts: min(pendingDeleteAttempts, JournalQueue.maxAttempts)) {
             return
         }
 
