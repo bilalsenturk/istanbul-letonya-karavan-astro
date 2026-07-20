@@ -54,6 +54,49 @@ final class NotificationManager: NSObject, ObservableObject {
             center.add(UNNotificationRequest(identifier: "departure-\(i)", content: content, trigger: trigger))
         }
     }
+
+    /// Her akşam "bugünü günlüğe yaz" hatırlatması. Tekrarlayan; bir kez kurulur.
+    func scheduleDailyJournalReminder(hour: Int = 21) {
+        let id = "journal-daily"
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+
+        let content = UNMutableNotificationContent()
+        content.title = "Bugünü yaz"
+        content.body = "Bugün ne oldu? Bir iki cümle bile yeter — istersen sesli."
+        content.sound = .default
+
+        var components = DateComponents()
+        components.hour = hour
+        components.minute = 0
+
+        center.add(UNNotificationRequest(
+            identifier: id,
+            content: content,
+            trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+        ))
+    }
+
+    /// Sabah gün özeti. İçerik gönderim anında değil kurulum anında sabitlenir;
+    /// canlı veri gerektiren kısımlar app açılınca güncellenir.
+    func scheduleDailySummary(hour: Int = 8) {
+        let id = "summary-daily"
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+
+        let content = UNMutableNotificationContent()
+        content.title = "Bugünün planı"
+        content.body = "Kuzey'i aç: sıradaki durak, hava ve kalan mesafe seni bekliyor."
+        content.sound = .default
+
+        var components = DateComponents()
+        components.hour = hour
+        components.minute = 0
+
+        center.add(UNNotificationRequest(
+            identifier: id,
+            content: content,
+            trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+        ))
+    }
 }
 
 extension NotificationManager: UNUserNotificationCenterDelegate {

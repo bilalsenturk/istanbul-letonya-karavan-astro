@@ -84,6 +84,9 @@ struct KaravanApp: App {
                     // Takipçi cihazlarda planı web'den çek (sahip cihaz kendi kaynağı).
                     await plan.syncFromWeb()
                     applyPlanCascade()
+                    // Akşam günlük hatırlatması + sabah gün özeti: tekrarlayan, tek sefer kurulur.
+                    NotificationManager.shared.scheduleDailyJournalReminder()
+                    NotificationManager.shared.scheduleDailySummary()
                     BackgroundWeather.schedule()
                 }
                 .onChange(of: store.lastRefreshed) { _, _ in
