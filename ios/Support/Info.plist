@@ -41,6 +41,8 @@
 	<string>Canlı yolculuk takibi: Riga'ya kalan mesafe, hız ve sıradaki durak konumunuza göre hesaplanır.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Eller serbest sesli harcama eklemek için mikrofon kullanılır.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Barometreyle irtifa ve hava basıncı okunur: dağ geçitlerinde yükseklik ve ani basınç düşüşünde fırtına uyarısı için.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Yol fotoğraflarını rota haritasına iğnelemek (foto günlüğü) için fotoğraflara erişilir.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

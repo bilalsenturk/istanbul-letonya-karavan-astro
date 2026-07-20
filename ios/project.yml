@@ -30,6 +30,7 @@ targets:
         NSSpeechRecognitionUsageDescription: "Söylediğin harcamayı yazıya çevirmek için konuşma tanıma kullanılır."
         NSPhotoLibraryUsageDescription: "Yol fotoğraflarını rota haritasına iğnelemek (foto günlüğü) için fotoğraflara erişilir."
         NSFaceIDUsageDescription: "Belge kasasını (pasaport, sigorta) yalnızca sana açmak için Face ID kullanılır."
+        NSMotionUsageDescription: "Barometreyle irtifa ve hava basıncı okunur: dağ geçitlerinde yükseklik ve ani basınç düşüşünde fırtına uyarısı için."
         NSSupportsLiveActivities: true
         # Yalnızca standart HTTPS kullanılıyor → ihracat kısıtlamasından muaf.
         # (TestFlight'ta her yüklemede sorulan uyumluluk sorusunu atlar.)
