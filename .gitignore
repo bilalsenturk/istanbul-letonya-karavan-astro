@@ -28,3 +28,6 @@ pnpm-debug.log*
 ios/*.xcodeproj/xcuserdata/
 ios/*.xcodeproj/project.xcworkspace/xcuserdata/
 DerivedData/
+
+# Anons sesleri (Cloudflare R2'de barınır)
+public/audio/
