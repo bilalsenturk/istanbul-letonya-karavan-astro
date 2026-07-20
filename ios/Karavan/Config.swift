@@ -23,6 +23,9 @@ enum Config {
     /// Hesaplanmış takvimin (kalkış + gün tarihleri) web'e gönderileceği endpoint.
     static var planPostURL: URL? { siteURL?.appendingPathComponent("api/plan") }
 
+    /// Plan düzenlemelerinin cihazlar arası ortak kaynağı (GET okur, POST yazar).
+    static var editsURL: URL? { siteURL?.appendingPathComponent("api/edits") }
+
     /// Yol bülteni: dizel fiyatı + sınır beklemesi + döviz kuru.
     static var roadFeedURL: URL? { siteURL?.appendingPathComponent("api/roadfeed") }
 

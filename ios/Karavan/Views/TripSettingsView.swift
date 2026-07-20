@@ -12,6 +12,55 @@ struct TripSettingsView: View {
 
     private var days: [EffectiveDay] { TripPlanner.days(trip: store.trip, edits: previewEdits) }
 
+    // Plan sahipliği: yalnızca BİR cihaz düzenlemeleri yayınlar, diğerleri onu izler.
+    @ViewBuilder private var planOwnerSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            MonoLabel(text: "Cihazlar arası plan", color: Theme.c2)
+            VStack(alignment: .leading, spacing: 10) {
+                Toggle(isOn: $plan.isOwner) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Planı bu cihaz yönetiyor")
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .foregroundStyle(Theme.text)
+                        Text(plan.isOwner
+                             ? "Değişikliklerin diğer telefonlara gider."
+                             : "Bu cihaz planı yalnızca okur; sahip cihaz ne derse o.")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Theme.muted)
+                    }
+                }
+                .tint(Theme.c1)
+
+                if !plan.isOwner {
+                    HStack(spacing: 7) {
+                        Image(systemName: plan.syncing ? "arrow.triangle.2.circlepath" : "checkmark.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(plan.syncing ? Theme.muted : Theme.ok)
+                        Text(syncText)
+                            .font(.system(size: 11.5))
+                            .foregroundStyle(Theme.muted)
+                        Spacer()
+                        Button("Şimdi güncelle") { Task { await plan.syncFromWeb() } }
+                            .font(.system(size: 11.5, weight: .bold))
+                            .tint(Theme.c1)
+                    }
+                }
+            }
+            .padding(13)
+            .background(Theme.panel, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Theme.line, lineWidth: 1))
+        }
+    }
+
+    private var syncText: String {
+        if plan.syncing { return "Güncelleniyor…" }
+        guard let t = plan.lastSyncedAt else { return "Henüz güncellenmedi" }
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return "Son güncelleme \(f.string(from: t))"
+    }
+
     /// Seçilen tarihle canlı önizleme (kaydetmeden).
     private var previewEdits: TripEdits {
         var e = plan.edits
@@ -25,11 +74,15 @@ struct TripSettingsView: View {
                 Theme.bg.ignoresSafeArea()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
+                        planOwnerSection
+
                         VStack(alignment: .leading, spacing: 10) {
                             MonoLabel(text: "Kalkış", color: Theme.c1)
                             DatePicker("Kalkış tarihi ve saati", selection: $departure)
                                 .datePickerStyle(.graphical)
                                 .tint(Theme.c2)
+                                .disabled(!plan.isOwner)
+                                .opacity(plan.isOwner ? 1 : 0.45)
                                 .padding(10)
                                 .background(Theme.panel, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                         }
@@ -73,7 +126,7 @@ struct TripSettingsView: View {
                         }
                         .card()
 
-                        if plan.hasEdits {
+                        if plan.hasEdits, plan.isOwner {
                             Button(role: .destructive) { showResetConfirm = true } label: {
                                 Label("Tüm düzenlemeleri sıfırla (\(plan.editedDayCount) gün)",
                                       systemImage: "arrow.uturn.backward")
@@ -85,7 +138,9 @@ struct TripSettingsView: View {
                             .foregroundStyle(Theme.bad)
                         }
 
-                        Text("Düzenlemeler yalnızca bu cihazda saklanır; site güncellenince taban veri tazelenir, senin değişikliklerin korunur.")
+                        Text(plan.isOwner
+                             ? "Bu cihaz planı yönetiyor: değişikliklerin siteye ve diğer telefonlara gider. Web verisi taban kalır, düzenlemelerin korunur."
+                             : "Planı sahip cihaz yönetiyor. Düzenlemek için oradan değiştir ya da yukarıdan bu cihazı sahip yap.")
                             .font(.system(size: 11.5))
                             .foregroundStyle(Theme.muted)
                     }
@@ -104,6 +159,7 @@ struct TripSettingsView: View {
                         dismiss()
                     }
                     .font(.system(size: 16, weight: .bold)).tint(Theme.c2)
+                    .disabled(!plan.isOwner)
                 }
             }
             .confirmationDialog("Tüm düzenlemeler silinsin mi?", isPresented: $showResetConfirm, titleVisibility: .visible) {

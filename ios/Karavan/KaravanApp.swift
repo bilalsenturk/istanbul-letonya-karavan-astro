@@ -78,6 +78,9 @@ struct KaravanApp: App {
                     store.effectiveDeparture = { [weak store] in plan.departure(store?.trip) }
                     applyPlanCascade()
                     plan.onChange = { _ in applyPlanCascade() }
+                    // Takipçi cihazlarda planı web'den çek (sahip cihaz kendi kaynağı).
+                    await plan.syncFromWeb()
+                    applyPlanCascade()
                     BackgroundWeather.schedule()
                 }
                 .onChange(of: store.lastRefreshed) { _, _ in
@@ -87,6 +90,11 @@ struct KaravanApp: App {
                     if phase == .active {
                         expenses.reload()                 // Siri arka planda eklemiş olabilir
                         locationManager.applyPowerMode()  // termal/güç durumu değişmiş olabilir
+                        // Öne gelince planı tazele: sahip cihazda tarih değişmiş olabilir.
+                        Task {
+                            await plan.syncFromWeb()
+                            applyPlanCascade()
+                        }
                     }
                 }
         }
@@ -104,6 +112,11 @@ struct KaravanApp: App {
         NotificationManager.shared.scheduleDepartureReminders(departure: departure)
         store.writeSnapshot()
         LiveActivityManager.shared.reloadWidgetsThrottled()
-        PlanPublisher.publish(trip: store.trip, edits: plan.edits)   // siteye yansıt
+        // Siteye YALNIZCA sahip cihaz yazar. Aksi hâlde henüz senkron olmamış bir
+        // takipçi (çevrimdışıydı, yeni kuruldu) eski takvimi siteye basıp
+        // sahibin doğru planını ezebilir.
+        if plan.isOwner {
+            PlanPublisher.publish(trip: store.trip, edits: plan.edits)
+        }
     }
 }
