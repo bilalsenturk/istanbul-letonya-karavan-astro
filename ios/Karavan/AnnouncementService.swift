@@ -36,10 +36,16 @@ final class AnnouncementService: NSObject, ObservableObject {
     // MARK: - Konuşma
 
     /// Kayıtlı ses varsa onu (birden fazlaysa rastgele) çalar, yoksa cihaz TTS'i.
+    /// Anons boyunca müzik %25'e kısılır, bitince geri yükselir.
     func say(_ clip: AnnouncementCatalog.Clip) {
         guard enabled else { return }
         lastLine = clip.text
         Task {
+            MusicPlayer.shared.duck()
+            defer { Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 400_000_000)
+                MusicPlayer.shared.unduck()
+            } }
             if await AnnouncementAudio.shared.play(clip.key) { return }
             speak(clip.text, language: clip.lang)
         }

@@ -47,6 +47,7 @@ targets:
         UIBackgroundModes:
           - fetch
           - location
+          - audio
         BGTaskSchedulerPermittedIdentifiers:
           - com.bilalsenturk.kuzey.weather
     settings:

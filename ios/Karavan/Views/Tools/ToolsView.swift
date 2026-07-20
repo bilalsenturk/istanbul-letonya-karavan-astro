@@ -40,6 +40,13 @@ struct ToolsView: View {
                             }
                         }
 
+                        section("Müzik", Theme.c1) {
+                            navRow("music.note.list", "Yolculuk müziği", "Parçalar cihaza inip çevrimdışı çalar") {
+                                MusicView()
+                            }
+                            hintRow("speaker.wave.2.fill", "Anons gelince müzik otomatik kısılır, sonra geri açılır")
+                        }
+
                         section("Yol", Theme.c3) {
                             navRow("photo.stack.fill", "Foto günlüğü", "Konumlu fotoğraflar rota haritasında") {
                                 PhotoJournalView()

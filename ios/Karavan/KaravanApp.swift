@@ -42,6 +42,7 @@ struct KaravanApp: App {
                     altimeter.start()
                     await gallery.load()
                     await AnnouncementEngine.shared.load()
+                    await MusicPlayer.shared.load()
                     await roadFeed.refresh()
                     await AnnouncementAudio.shared.loadManifest()   // kayıtlı sesler (varsa)
                     // Araç (CarPlay/araç ses yolu) bağlanınca: kaptan esprisi + sıradaki durak + hadi başlat

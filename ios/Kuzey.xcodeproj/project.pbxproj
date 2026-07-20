@@ -40,6 +40,8 @@
 		8E67C1D2643A6A1CCA151B8A /* VoiceExpenseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29ABE562CEC889DE4C44F20A /* VoiceExpenseView.swift */; };
 		9D65F8215A7804576B305FB9 /* StopExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25CA028A20B4BE8F4D0ED411 /* StopExploreView.swift */; };
 		A9E4066FE143338D37E04117 /* SharedSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AB974EC178B45C5E8C2D43D /* SharedSnapshot.swift */; };
+		ADA7F1305B6AE1417A407E29 /* MusicView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B705A452531409FB221BD87E /* MusicView.swift */; };
+		B097F1FC8BAE0FF53C1BA62D /* MusicPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED5BDD8DBD5C0590C5E1BC5F /* MusicPlayer.swift */; };
 		B3292928A880EA90FBC6160A /* Adaptive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D776FB862EE977F4B986DF6 /* Adaptive.swift */; };
 		B47A0043B3BC95932E1E9FF4 /* NavProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 482F782E822AB4C91884E391 /* NavProgressStore.swift */; };
 		B5BB5F4E53ED589205C49D3C /* DayGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B055BA45F55F6532F6A8AC1 /* DayGalleryView.swift */; };
@@ -134,6 +136,7 @@
 		9AEF46AA6EEEAA6BB1DFD19E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9F5C959C02D3AEB61D35B2E4 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		B4035201F31588EB77A1717A /* TripPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripPlanner.swift; sourceTree = "<group>"; };
+		B705A452531409FB221BD87E /* MusicView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicView.swift; sourceTree = "<group>"; };
 		BA4F669DC75CC46692AB425F /* VignettesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VignettesView.swift; sourceTree = "<group>"; };
 		BBD2D245D3ADDC9A38B3E287 /* TripActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripActivityAttributes.swift; sourceTree = "<group>"; };
 		BC2167794D2466CE9840E18E /* RoadFeedCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadFeedCard.swift; sourceTree = "<group>"; };
@@ -146,6 +149,7 @@
 		DEDCB70244A1866C05724B7B /* RouteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStore.swift; sourceTree = "<group>"; };
 		E5A0D47F97A6BC761EC4A1D7 /* PhotoJournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoJournalView.swift; sourceTree = "<group>"; };
 		EC538794F9ED1EDBD743061F /* TripSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripSettingsView.swift; sourceTree = "<group>"; };
+		ED5BDD8DBD5C0590C5E1BC5F /* MusicPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicPlayer.swift; sourceTree = "<group>"; };
 		F7D97DFDF05438A70096EC2B /* Kuzey.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Kuzey.entitlements; sourceTree = "<group>"; };
 		FFCA663A470C8DD3B775062E /* DayEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayEditView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -171,6 +175,7 @@
 				CE6790699333DDE82AB63E47 /* LiveActivityManager.swift */,
 				21B82E5004A631A77716317D /* LocationManager.swift */,
 				DC44A961C70396158E35B2A1 /* Models.swift */,
+				ED5BDD8DBD5C0590C5E1BC5F /* MusicPlayer.swift */,
 				35155F1CE413BCBF9F18829E /* Navigation.swift */,
 				482F782E822AB4C91884E391 /* NavProgressStore.swift */,
 				5DC95431B932CB4DFD5412C9 /* Notifications.swift */,
@@ -252,6 +257,7 @@
 			isa = PBXGroup;
 			children = (
 				4198F36A45B4A90AFAEB6D59 /* DocumentVaultView.swift */,
+				B705A452531409FB221BD87E /* MusicView.swift */,
 				E5A0D47F97A6BC761EC4A1D7 /* PhotoJournalView.swift */,
 				BF11ED9C0D36687D9A03CBB8 /* ScannerView.swift */,
 				2D8C58A0890E58CEDB4C1744 /* ToolsView.swift */,
@@ -411,6 +417,8 @@
 				DD27A9E6C1CCB53B5B5F0E24 /* LocationManager.swift in Sources */,
 				EF3F584FDB22426380668F50 /* MapScreen.swift in Sources */,
 				68B14299CB90DBF724E88AA2 /* Models.swift in Sources */,
+				B097F1FC8BAE0FF53C1BA62D /* MusicPlayer.swift in Sources */,
+				ADA7F1305B6AE1417A407E29 /* MusicView.swift in Sources */,
 				B47A0043B3BC95932E1E9FF4 /* NavProgressStore.swift in Sources */,
 				3B014CAF3ED8C77379FD5729 /* Navigation.swift in Sources */,
 				FA3A58E4C230882AAD9F18EB /* Notifications.swift in Sources */,

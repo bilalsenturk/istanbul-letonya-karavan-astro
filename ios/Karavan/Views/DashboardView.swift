@@ -45,6 +45,7 @@ struct DashboardView: View {
                             AdaptiveColumns(spacing: 16) {
                                 if !simpleMode { expenseCard(trip: trip) }
                                 LiveLocationCard()
+                                MiniMusicBar()
                                 if !simpleMode {
                                     arrivalsCard
                                     RoadFeedCard()
