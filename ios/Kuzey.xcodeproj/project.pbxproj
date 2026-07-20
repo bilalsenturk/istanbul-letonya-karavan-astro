@@ -48,6 +48,7 @@
 		99F5012B3D2DA7222B949BC2 /* JournalPhotoPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E826910845682027B3A136D /* JournalPhotoPicker.swift */; };
 		9D65F8215A7804576B305FB9 /* StopExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25CA028A20B4BE8F4D0ED411 /* StopExploreView.swift */; };
 		9D8DDBECC20E225D43C47798 /* JournalQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03DCAD8D74B488556BEED891 /* JournalQueue.swift */; };
+		A59FFDEF88DDBE3125C26C1A /* TripNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D701532F19396FBF2875EA /* TripNotifier.swift */; };
 		A9E4066FE143338D37E04117 /* SharedSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AB974EC178B45C5E8C2D43D /* SharedSnapshot.swift */; };
 		ADA7F1305B6AE1417A407E29 /* MusicView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B705A452531409FB221BD87E /* MusicView.swift */; };
 		B097F1FC8BAE0FF53C1BA62D /* MusicPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED5BDD8DBD5C0590C5E1BC5F /* MusicPlayer.swift */; };
@@ -140,6 +141,7 @@
 		5CFA86E52D515272F7F13F10 /* TripStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripStore.swift; sourceTree = "<group>"; };
 		5DC95431B932CB4DFD5412C9 /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		60D39C5F92694220AE03C259 /* AppIntentsSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntentsSupport.swift; sourceTree = "<group>"; };
+		69D701532F19396FBF2875EA /* TripNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripNotifier.swift; sourceTree = "<group>"; };
 		6AB974EC178B45C5E8C2D43D /* SharedSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedSnapshot.swift; sourceTree = "<group>"; };
 		6E08E05BDE1D73F0761AE46D /* RoadFeedService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadFeedService.swift; sourceTree = "<group>"; };
 		6E826910845682027B3A136D /* JournalPhotoPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalPhotoPicker.swift; sourceTree = "<group>"; };
@@ -291,6 +293,7 @@
 			children = (
 				AA9EC5D3FE46DF622AC25DD1 /* NotificationBudget.swift */,
 				DB162821D5118BBCDA717991 /* NotificationRules.swift */,
+				69D701532F19396FBF2875EA /* TripNotifier.swift */,
 			);
 			path = Notifications;
 			sourceTree = "<group>";
@@ -508,6 +511,7 @@
 				FAD7DD8D7AC36626072723B3 /* Theme.swift in Sources */,
 				7E537C5724BCAD205276581C /* ToolsView.swift in Sources */,
 				F141E4DDF91017C2B4BE29E0 /* TripActivityAttributes.swift in Sources */,
+				A59FFDEF88DDBE3125C26C1A /* TripNotifier.swift in Sources */,
 				C1B584C0CEEF5E5EDC3E249B /* TripPlanStore.swift in Sources */,
 				07E1D644A4C3B81B0BBBA38F /* TripPlanner.swift in Sources */,
 				824EE6AFA799BA7C35C68EDA /* TripSettingsView.swift in Sources */,
