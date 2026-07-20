@@ -10,6 +10,7 @@ struct KaravanApp: App {
     @StateObject private var navProgress = NavProgressStore()
     @StateObject private var altimeter = AltimeterService()
     @StateObject private var plan = TripPlanStore()
+    @StateObject private var gallery = GalleryStore()
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -28,6 +29,7 @@ struct KaravanApp: App {
                 .environmentObject(navProgress)
                 .environmentObject(altimeter)
                 .environmentObject(plan)
+                .environmentObject(gallery)
                 .preferredColorScheme(.dark)
                 .task {
                     await NotificationManager.shared.requestAuthorization()
@@ -36,6 +38,8 @@ struct KaravanApp: App {
                     locationManager.trip = store
                     locationManager.routeStore = routeStore
                     altimeter.start()
+                    await gallery.load()
+                    await AnnouncementAudio.shared.loadManifest()   // kayıtlı sesler (varsa)
                     // Araç (CarPlay/araç ses yolu) bağlanınca: kaptan esprisi + sıradaki durak + hadi başlat
                     AnnouncementService.shared.onCarConnected = {
                         AnnouncementService.shared.announceDeparture(nextStop: navProgress.nextStop?.name)

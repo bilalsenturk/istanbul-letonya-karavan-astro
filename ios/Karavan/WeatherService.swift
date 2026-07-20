@@ -113,11 +113,11 @@ final class WeatherService: ObservableObject {
             guard !isFirstEver, let prev = previous[w.id] else { continue }
 
             if !prev.raining && w.isRaining {
-                notifier?.notify(title: "☔️ \(w.name) · yağmur başladı", body: "\(w.desc), \(w.temp)°")
+                notifier?.notify(title: "\(w.name) · yağmur başladı", body: "\(w.desc), \(w.temp)°")
             } else if prev.raining && !w.isRaining {
-                notifier?.notify(title: "🌤️ \(w.name) · yağmur durdu", body: "\(w.desc), \(w.temp)°")
+                notifier?.notify(title: "\(w.name) · yağmur durdu", body: "\(w.desc), \(w.temp)°")
             } else if prev.desc != w.desc && isSevere(w.desc) {
-                notifier?.notify(title: "⛈️ \(w.name) · \(w.desc)", body: "Dikkatli sür — \(w.temp)°")
+                notifier?.notify(title: "\(w.name) · \(w.desc)", body: "Dikkatli sür — \(w.temp)°")
             }
         }
         lastSnapshot = next

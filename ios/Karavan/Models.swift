@@ -46,7 +46,7 @@ struct Stop: Codable, Identifiable {
         case "Polonya": return "🇵🇱"
         case "Letonya": return "🇱🇻"
         case "Litvanya": return "🇱🇹"
-        default: return "📍"
+        default: return "\u{1F4CD}"
         }
     }
 

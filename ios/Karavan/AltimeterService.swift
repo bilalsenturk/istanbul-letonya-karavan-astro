@@ -47,9 +47,10 @@ final class AltimeterService: ObservableObject {
         if base - hpa > 2.0, Date().timeIntervalSince(lastStormAlert) > 3600 {
             lastStormAlert = Date()
             NotificationManager.shared.notify(
-                title: "⛈️ Basınç düşüyor — fırtına yaklaşıyor olabilir",
+                title: "Basınç düşüyor — fırtına yaklaşıyor olabilir",
                 body: "Hava kötüleşebilir; kamp/mola planını gözden geçir."
             )
+            AnnouncementService.shared.say(AnnouncementCatalog.storm)
         }
         baselinePressure = base + (hpa - base) * 0.05   // baz çizgiyi yavaş takip et
     }

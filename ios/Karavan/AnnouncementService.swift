@@ -35,6 +35,16 @@ final class AnnouncementService: NSObject, ObservableObject {
 
     // MARK: - Konuşma
 
+    /// Kayıtlı ses varsa onu (birden fazlaysa rastgele) çalar, yoksa cihaz TTS'i.
+    func say(_ clip: AnnouncementCatalog.Clip) {
+        guard enabled else { return }
+        lastLine = clip.text
+        Task {
+            if await AnnouncementAudio.shared.play(clip.key) { return }
+            speak(clip.text, language: clip.lang)
+        }
+    }
+
     func speak(_ text: String, language: String = "tr-TR") {
         guard enabled else { return }
         lastLine = text
@@ -65,46 +75,27 @@ final class AnnouncementService: NSObject, ObservableObject {
 
     // MARK: - Kaptan esprileri (Leyla'ya özel)
 
-    private let captainLines = [
-        "Değerli yolcularımız, kaptanınız konuşuyor. Lütfen kemerlerinizi bağlayın. Çiş molası verilmeyecektir.",
-        "Arabada pırt yapmak kesinlikle yasaktır. Leyla, sana bakıyorum.",
-        "Kaptan konuşuyor: müzik seçme yetkisi kaptandadır, itirazlar dinlenmeyecektir.",
-        "Sevgili yolcular, hafif türbülans — yani Balkan yolları — bekleniyor. Kemerler bağlı kalsın.",
-        "Leyla için özel anons: atıştırmalıkların yarısı kaptana aittir. İyi yolculuklar.",
-        "Uçuşumuz, pardon, yolculuğumuz başlıyor. Koltuğunuzu dik konuma getirin ve gülümseyin.",
-    ]
-
-    func nextCaptainLine() -> String {
-        defer { captainIndex = (captainIndex + 1) % captainLines.count }
-        return captainLines[captainIndex]
+    /// Sırayla döner; kayıt varsa aynı anahtarın farklı kayıtlarından rastgele çalınır.
+    func nextCaptainClip() -> AnnouncementCatalog.Clip {
+        let clips = AnnouncementCatalog.captain
+        defer { captainIndex = (captainIndex + 1) % clips.count }
+        return clips[captainIndex]
     }
 
     /// Araç bağlanınca / yola çıkarken: kaptan esprisi + sıradaki durak + hadi başlat.
     func announceDeparture(nextStop: String?) {
-        var line = nextCaptainLine()
-        if let nextStop { line += " Sıradaki durak: \(nextStop). Hadi başlat!" }
-        speak(line)
+        say(nextCaptainClip())
+        if let nextStop {
+            speak("Sıradaki durak: \(nextStop). Hadi başlat!")
+        }
     }
 
     // MARK: - Yerel dilde karşılama (varışta)
 
-    private static let welcomes: [String: (lang: String, text: String)] = [
-        "İstanbul": ("tr-TR", "İstanbul'a hoş geldiniz."),
-        "Sofya": ("bg-BG", "Добре дошли в София."),
-        "Bükreş": ("ro-RO", "Bun venit la București."),
-        "Bükreş Güney": ("ro-RO", "Bun venit la București."),
-        "Deva": ("ro-RO", "Bun venit la Deva."),
-        "Budapeşte": ("hu-HU", "Üdvözöljük Budapesten."),
-        "Katowice": ("pl-PL", "Witamy w Katowicach."),
-        "Suwałki": ("pl-PL", "Witamy w Suwałkach."),
-        "Riga": ("lv-LV", "Laipni lūdzam Rīgā."),
-    ]
-
     /// Bir durağa varışta: Türkçe karşılama + yerel dilde + (varsa) Riga'ya kalan.
     func announceArrival(stopName: String, remainingToFinalKm: Int?) {
-        speak("\(stopName), hoş geldiniz.")
-        if let w = Self.welcomes[stopName], w.lang != "tr-TR" {
-            speak(w.text, language: w.lang)
+        for clip in AnnouncementCatalog.arrival(for: stopName) {
+            say(clip)
         }
         if let km = remainingToFinalKm, km > 0 {
             speak("Riga'ya \(km) kilometre kaldı.")

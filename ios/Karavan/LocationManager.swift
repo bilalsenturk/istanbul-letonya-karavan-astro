@@ -88,7 +88,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     nonisolated func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
         Task { @MainActor in
             NotificationManager.shared.notify(
-                title: "🎉 \(region.identifier) · vardınız!",
+                title: "\(region.identifier) · vardınız!",
                 body: "Kontrol: tüp gaz kapalı mı · elektrik/su · sınır belgeleri hazır mı?",
                 id: "arrival-\(region.identifier)"
             )
@@ -145,8 +145,9 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
             deviationStreak += 1
             if deviationStreak >= 3, Date().timeIntervalSince(lastDeviationAlert) > 900 {
                 lastDeviationAlert = Date()
+                AnnouncementService.shared.say(AnnouncementCatalog.deviation)
                 NotificationManager.shared.notify(
-                    title: "🧭 Rotadan saptın",
+                    title: "Rotadan saptın",
                     body: "Planlanan yoldan \(Int(minDist / 1000)) km uzaktasın. Bilerek mi? Araçlar'dan konumunu paylaşabilirsin.",
                     id: "route-deviation"
                 )

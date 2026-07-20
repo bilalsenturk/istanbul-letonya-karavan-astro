@@ -1,0 +1,418 @@
+[
+  {
+    "city": "istanbul",
+    "cityName": "İstanbul",
+    "file": "/assets/gallery/istanbul/istanbul-01.webp",
+    "caption": "Ayasofya",
+    "credit": "Kirua",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "city": "istanbul",
+    "cityName": "İstanbul",
+    "file": "/assets/gallery/istanbul/istanbul-02.webp",
+    "caption": "Boğaz Köprüsü",
+    "credit": "g",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "city": "istanbul",
+    "cityName": "İstanbul",
+    "file": "/assets/gallery/istanbul/istanbul-03.webp",
+    "caption": "Sultanahmet Camii",
+    "credit": "Wikimedia Commons",
+    "license": "Public domain"
+  },
+  {
+    "city": "istanbul",
+    "cityName": "İstanbul",
+    "file": "/assets/gallery/istanbul/istanbul-04.webp",
+    "caption": "Galata Kulesi",
+    "credit": "Alexxx1979",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "istanbul",
+    "cityName": "İstanbul",
+    "file": "/assets/gallery/istanbul/istanbul-06.webp",
+    "caption": "Kız Kulesi",
+    "credit": "\nHabip Kocak",
+    "license": "CC BY 3.0"
+  },
+  {
+    "city": "sofia",
+    "cityName": "Sofya",
+    "file": "/assets/gallery/sofia/sofia-02.webp",
+    "caption": "Vitoşa Dağı",
+    "credit": "Pascal Reusch",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "sofia",
+    "cityName": "Sofya",
+    "file": "/assets/gallery/sofia/sofia-03.webp",
+    "caption": "Şehir merkezi sokakları",
+    "credit": "Plamen Agov (Пламен Агов)",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "sofia",
+    "cityName": "Sofya",
+    "file": "/assets/gallery/sofia/sofia-04.webp",
+    "caption": "İvan Vazov Ulusal Tiyatrosu",
+    "credit": "Plamen Agov (user:MrPanyGoff)",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "sofia",
+    "cityName": "Sofya",
+    "file": "/assets/gallery/sofia/sofia-05.webp",
+    "caption": "Boyana Kilisesi",
+    "credit": "Aleksander Dragnes",
+    "license": "CC BY 2.0"
+  },
+  {
+    "city": "sofia",
+    "cityName": "Sofya",
+    "file": "/assets/gallery/sofia/sofia-06.webp",
+    "caption": "Şehir parkı",
+    "credit": "Elena Chochkova",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "city": "sofia",
+    "cityName": "Sofya",
+    "file": "/assets/gallery/sofia/sofia-07.webp",
+    "caption": "Banya Başı Camii",
+    "credit": "Pudelek (Marcin Szala)",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "bucharest",
+    "cityName": "Bükreş",
+    "file": "/assets/gallery/bucharest/bucharest-01.webp",
+    "caption": "Parlamento Sarayı",
+    "credit": "Contessa Binter",
+    "license": "Copyrighted free use"
+  },
+  {
+    "city": "bucharest",
+    "cityName": "Bükreş",
+    "file": "/assets/gallery/bucharest/bucharest-02.webp",
+    "caption": "Romen Ateneumu",
+    "credit": "Mastermindsro",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "bucharest",
+    "cityName": "Bükreş",
+    "file": "/assets/gallery/bucharest/bucharest-03.webp",
+    "caption": "Eski şehir (Lipscani)",
+    "credit": "Leontin l",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "city": "bucharest",
+    "cityName": "Bükreş",
+    "file": "/assets/gallery/bucharest/bucharest-04.webp",
+    "caption": "Herăstrău Parkı",
+    "credit": "Crislia",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "city": "bucharest",
+    "cityName": "Bükreş",
+    "file": "/assets/gallery/bucharest/bucharest-05.webp",
+    "caption": "Zafer Takı",
+    "credit": "Korinna",
+    "license": "CC BY-SA 3.0 ro"
+  },
+  {
+    "city": "bucharest",
+    "cityName": "Bükreş",
+    "file": "/assets/gallery/bucharest/bucharest-06.webp",
+    "caption": "Şehir mimarisi",
+    "credit": "Neoclassicism Enthusiast",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "city": "bucharest",
+    "cityName": "Bükreş",
+    "file": "/assets/gallery/bucharest/bucharest-07.webp",
+    "caption": "Köy Müzesi",
+    "credit": "Pudelek (Marcin Szala)",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "deva",
+    "cityName": "Deva",
+    "file": "/assets/gallery/deva/deva-01.webp",
+    "caption": "Deva Kalesi",
+    "credit": "Aakmaros",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "deva",
+    "cityName": "Deva",
+    "file": "/assets/gallery/deva/deva-02.webp",
+    "caption": "Hunyad (Corvin) Kalesi",
+    "credit": "Roamata",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "deva",
+    "cityName": "Deva",
+    "file": "/assets/gallery/deva/deva-03.webp",
+    "caption": "Deva şehri",
+    "credit": "Flavius Ivaşca",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "city": "deva",
+    "cityName": "Deva",
+    "file": "/assets/gallery/deva/deva-04.webp",
+    "caption": "Hunedoara çevresi",
+    "credit": "Luke.ender",
+    "license": "Public domain"
+  },
+  {
+    "city": "deva",
+    "cityName": "Deva",
+    "file": "/assets/gallery/deva/deva-05.webp",
+    "caption": "Retezat Milli Parkı",
+    "credit": "Dioszegi Zoltan",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "city": "deva",
+    "cityName": "Deva",
+    "file": "/assets/gallery/deva/deva-06.webp",
+    "caption": "Transilvanya manzarası",
+    "credit": "C.Stadler/Bwag",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "city": "budapest",
+    "cityName": "Budapeşte",
+    "file": "/assets/gallery/budapest/budapest-01.webp",
+    "caption": "Macar Parlamentosu",
+    "credit": "Dirk Beyer",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "budapest",
+    "cityName": "Budapeşte",
+    "file": "/assets/gallery/budapest/budapest-02.webp",
+    "caption": "Balıkçı Tabyası",
+    "credit": "Jakub Hałun",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "city": "budapest",
+    "cityName": "Budapeşte",
+    "file": "/assets/gallery/budapest/budapest-03.webp",
+    "caption": "Zincirli Köprü",
+    "credit": "Frank Schulenburg",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "budapest",
+    "cityName": "Budapeşte",
+    "file": "/assets/gallery/budapest/budapest-04.webp",
+    "caption": "Széchenyi Kaplıcası",
+    "credit": "Marc Ryckaert (MJJR)",
+    "license": "CC BY 3.0"
+  },
+  {
+    "city": "budapest",
+    "cityName": "Budapeşte",
+    "file": "/assets/gallery/budapest/budapest-05.webp",
+    "caption": "Buda Kalesi",
+    "credit": "Ivanhoe",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "budapest",
+    "cityName": "Budapeşte",
+    "file": "/assets/gallery/budapest/budapest-06.webp",
+    "caption": "Tuna gece manzarası",
+    "credit": "John",
+    "license": "CC BY 2.0"
+  },
+  {
+    "city": "budapest",
+    "cityName": "Budapeşte",
+    "file": "/assets/gallery/budapest/budapest-07.webp",
+    "caption": "Kahramanlar Meydanı",
+    "credit": "User:Sveter (Please credit as \"Petr Šmerkl, Wikipedia\" in case you use this outs",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "budapest",
+    "cityName": "Budapeşte",
+    "file": "/assets/gallery/budapest/budapest-08.webp",
+    "caption": "Büyük Pazar Salonu",
+    "credit": "Dd-ang2s",
+    "license": "Public domain"
+  },
+  {
+    "city": "katowice",
+    "cityName": "Katowice",
+    "file": "/assets/gallery/katowice/katowice-01.webp",
+    "caption": "Spodek Arena",
+    "credit": "Lestat (Jan Mehlich)",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "katowice",
+    "cityName": "Katowice",
+    "file": "/assets/gallery/katowice/katowice-02.webp",
+    "caption": "Şehir meydanı",
+    "credit": "Silar",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "city": "katowice",
+    "cityName": "Katowice",
+    "file": "/assets/gallery/katowice/katowice-03.webp",
+    "caption": "Nikiszowiec tarihi mahallesi",
+    "credit": "Marta Morawa",
+    "license": "CC BY-SA 3.0 pl"
+  },
+  {
+    "city": "katowice",
+    "cityName": "Katowice",
+    "file": "/assets/gallery/katowice/katowice-04.webp",
+    "caption": "Silezya Müzesi",
+    "credit": "Pudelek",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "city": "katowice",
+    "cityName": "Katowice",
+    "file": "/assets/gallery/katowice/katowice-05.webp",
+    "caption": "Modern mimari",
+    "credit": "Lestat (Jan Mehlich)",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "katowice",
+    "cityName": "Katowice",
+    "file": "/assets/gallery/katowice/katowice-06.webp",
+    "caption": "Silezya Parkı",
+    "credit": "Fry72, Karel Frydrýšek",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "city": "suwalki",
+    "cityName": "Suwałki",
+    "file": "/assets/gallery/suwalki/suwalki-01.webp",
+    "caption": "Suwałki şehri",
+    "credit": "Wikimedia Commons",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "suwalki",
+    "cityName": "Suwałki",
+    "file": "/assets/gallery/suwalki/suwalki-02.webp",
+    "caption": "Wigry Gölü",
+    "credit": "Przykuta",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "city": "suwalki",
+    "cityName": "Suwałki",
+    "file": "/assets/gallery/suwalki/suwalki-03.webp",
+    "caption": "Wigry Manastırı",
+    "credit": "Krzysztof Mizera",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "city": "suwalki",
+    "cityName": "Suwałki",
+    "file": "/assets/gallery/suwalki/suwalki-04.webp",
+    "caption": "Suwałki Peyzaj Parkı",
+    "credit": "Olaf",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "suwalki",
+    "cityName": "Suwałki",
+    "file": "/assets/gallery/suwalki/suwalki-05.webp",
+    "caption": "Mazurya gölleri",
+    "credit": "Kgbo",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "city": "suwalki",
+    "cityName": "Suwałki",
+    "file": "/assets/gallery/suwalki/suwalki-06.webp",
+    "caption": "Augustów Kanalı",
+    "credit": "Witia",
+    "license": "CC BY-SA 3.0 pl"
+  },
+  {
+    "city": "riga",
+    "cityName": "Riga",
+    "file": "/assets/gallery/riga/riga-01.webp",
+    "caption": "Eski Riga",
+    "credit": "Christopher Walker from Krakow, Poland",
+    "license": "CC BY 2.0"
+  },
+  {
+    "city": "riga",
+    "cityName": "Riga",
+    "file": "/assets/gallery/riga/riga-02.webp",
+    "caption": "Karabaşlar Evi",
+    "credit": "edituke from ?iauliai, Lithuania",
+    "license": "CC BY-SA 2.0"
+  },
+  {
+    "city": "riga",
+    "cityName": "Riga",
+    "file": "/assets/gallery/riga/riga-03.webp",
+    "caption": "Riga Katedrali",
+    "credit": "Ryzhkov Sergey",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "city": "riga",
+    "cityName": "Riga",
+    "file": "/assets/gallery/riga/riga-04.webp",
+    "caption": "Art Nouveau mimarisi",
+    "credit": "Pudelek (Marcin Szala)",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "riga",
+    "cityName": "Riga",
+    "file": "/assets/gallery/riga/riga-05.webp",
+    "caption": "Merkez Pazar",
+    "credit": "David Holt\nuploaded and derivative work: MrPanyGoff",
+    "license": "CC BY-SA 2.0"
+  },
+  {
+    "city": "riga",
+    "cityName": "Riga",
+    "file": "/assets/gallery/riga/riga-06.webp",
+    "caption": "Özgürlük Anıtı",
+    "credit": "Scotch Mist",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "city": "riga",
+    "cityName": "Riga",
+    "file": "/assets/gallery/riga/riga-07.webp",
+    "caption": "Daugava Nehri",
+    "credit": "Diego Delso",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "riga",
+    "cityName": "Riga",
+    "file": "/assets/gallery/riga/riga-08.webp",
+    "caption": "Jūrmala sahili",
+    "credit": "Paul Berzinn",
+    "license": "CC BY-SA 3.0"
+  }
+]

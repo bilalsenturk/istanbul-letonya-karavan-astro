@@ -36,11 +36,11 @@ final class NotificationManager: NSObject, ObservableObject {
 
         let cal = Calendar.current
         let plan: [(String, String, Date?)] = [
-            ("Yarın yola çıkıyoruz 🚐", "Kuzey · İstanbul → Riga. Son kontrol listesine göz at.",
+            ("Yarın yola çıkıyoruz", "Kuzey · İstanbul → Riga. Son kontrol listesine göz at.",
              cal.date(byAdding: .day, value: -1, to: departure)),
-            ("2 saate kalkış ⏱️", "Karavan bağlantıları, lastik ve evrakları son kez kontrol et.",
+            ("2 saate kalkış", "Karavan bağlantıları, lastik ve evrakları son kez kontrol et.",
              cal.date(byAdding: .hour, value: -2, to: departure)),
-            ("Gitmeye hazır mısın? 🚐", "30 dakikaya yola çıkıyoruz. Kemerler, gaz, evraklar — hadi!",
+            ("Gitmeye hazır mısın?", "30 dakikaya yola çıkıyoruz. Kemerler, gaz, evraklar — hadi!",
              cal.date(byAdding: .minute, value: -30, to: departure)),
         ]
         for (i, item) in plan.enumerated() {

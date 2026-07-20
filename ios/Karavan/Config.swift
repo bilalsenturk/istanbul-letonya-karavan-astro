@@ -23,8 +23,18 @@ enum Config {
     /// Hesaplanmış takvimin (kalkış + gün tarihleri) web'e gönderileceği endpoint.
     static var planPostURL: URL? { siteURL?.appendingPathComponent("api/plan") }
 
-    /// Kamp görsellerinin kök adresi (JSON'daki "/assets/..." yolları buna göre çözülür)
-    static var imageBaseURL: URL? { siteURL }
+    /// Kamp/galeri görsellerinin kök adresi (JSON'daki "/assets/..." yolları buna göre çözülür).
+    /// Görselleri Cloudflare R2 gibi bir CDN'e taşırsan yalnızca burayı değiştir.
+    static var imageBaseURL: URL? { mediaBaseURL ?? siteURL }
+
+    /// Medya (görsel + ses) için opsiyonel harici depo. nil → site ile aynı yer.
+    /// Örn: URL(string: "https://kuzey.<hesabın>.r2.dev")
+    static let mediaBaseURL: URL? = nil
+
+    /// Kayıtlı anons seslerinin manifest'i (yoksa cihaz TTS'i kullanılır).
+    static var audioManifestURL: URL? {
+        (mediaBaseURL ?? siteURL)?.appendingPathComponent("audio/manifest.json")
+    }
 
     /// Web'e veri gönderirken kullanılan paylaşılan gizli anahtar.
     /// Vercel'de LIVE_POST_SECRET env değişkeniyle aynı olmalı.

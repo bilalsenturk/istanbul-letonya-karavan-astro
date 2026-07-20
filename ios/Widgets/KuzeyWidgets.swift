@@ -53,9 +53,9 @@ struct CountdownWidgetView: View {
             switch family {
             case .accessoryInline:
                 if let d = entry.departure, d > .now {
-                    Text("🚐 Riga'ya çıkış: \(d, style: .relative)")
+                    Label { Text("Riga'ya çıkış: \(d, style: .relative)") } icon: { Image(systemName: "car.side.fill") }
                 } else {
-                    Text("🚐 Kuzey yolda")
+                    Label("Kuzey yolda", systemImage: "car.side.fill")
                 }
             case .accessoryRectangular:
                 VStack(alignment: .leading, spacing: 2) {
@@ -85,7 +85,7 @@ struct CountdownWidgetView: View {
                             .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(WTheme.muted)
                     } else {
-                        Text("Yoldayız! 🚐")
+                        Text("Yoldayız!")
                             .font(.system(size: 22, weight: .heavy, design: .rounded))
                             .foregroundStyle(WTheme.text)
                         Text("İstanbul → Riga")

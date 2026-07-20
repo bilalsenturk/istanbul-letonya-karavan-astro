@@ -6,6 +6,7 @@ struct DayDetailView: View {
     @EnvironmentObject var store: TripStore
     @EnvironmentObject var plan: TripPlanStore
     @EnvironmentObject var routeStore: RouteStore
+    @EnvironmentObject var gallery: GalleryStore
     @Environment(\.openURL) private var openURL
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var showEdit = false
@@ -36,7 +37,13 @@ struct DayDetailView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    CampImage(path: day.camp.image, height: 200)
+                    // En üstte: hedef şehrin kaydırmalı foto galerisi (açıklamalı).
+                    let galleryPhotos = gallery.photos(forDestination: destination)
+                    if galleryPhotos.isEmpty {
+                        CampImage(path: day.camp.image, height: 200)
+                    } else {
+                        DayGalleryView(photos: galleryPhotos)
+                    }
 
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 8) {
@@ -69,10 +76,10 @@ struct DayDetailView: View {
 
                     if !isRest {
                         HStack(spacing: 8) {
-                            chip("🛣️ \(e?.distanceKm ?? day.distanceKm)")
-                            chip("⏱️ \(e?.duration ?? day.duration)")
+                            chip("road.lanes", e?.distanceKm ?? day.distanceKm)
+                            chip("clock.fill", e?.duration ?? day.duration)
                         }
-                        chip("⛽ \(e?.fuel ?? day.fuel)")
+                        chip("fuelpump.fill", e?.fuel ?? day.fuel)
 
                         if let dest = destinationStop {
                             HStack(spacing: 10) {
@@ -325,14 +332,20 @@ struct DayDetailView: View {
         }
     }
 
-    private func chip(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(Theme.dim)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Theme.panel, in: Capsule())
-            .overlay(Capsule().strokeBorder(Theme.line, lineWidth: 1))
+    /// Emoji yerine SF Symbol — her cihaz/font'ta render olur (emoji "?" çıkabiliyordu).
+    private func chip(_ symbol: String, _ text: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: symbol)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Theme.c2)
+            Text(text)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Theme.dim)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Theme.panel, in: Capsule())
+        .overlay(Capsule().strokeBorder(Theme.line, lineWidth: 1))
     }
 
     private func section(_ title: String, items: [String], tint: Color) -> some View {

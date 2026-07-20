@@ -11,6 +11,7 @@
 		054FCB4E10C16B21E3D45902 /* DayEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFCA663A470C8DD3B775062E /* DayEditView.swift */; };
 		07E1D644A4C3B81B0BBBA38F /* TripPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4035201F31588EB77A1717A /* TripPlanner.swift */; };
 		0BE5A7664A79AAEAC5B197F1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9AEF46AA6EEEAA6BB1DFD19E /* Assets.xcassets */; };
+		1310D1136D2AF73540137D03 /* AnnouncementCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5516267C5F1A1EBE3E7C8578 /* AnnouncementCatalog.swift */; };
 		1F27EF2FD3A054C89EB215C4 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A9CB73E03C832207007A05A /* ContentView.swift */; };
 		27D303E4234299F590A82DC4 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D158F3DF63E4C9036FB22C7 /* Config.swift */; };
 		3B014CAF3ED8C77379FD5729 /* Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35155F1CE413BCBF9F18829E /* Navigation.swift */; };
@@ -19,6 +20,7 @@
 		44FFBA9436CD2F461A4CC31D /* KuzeyWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92433716A15BEBCD592B63E2 /* KuzeyWidgets.swift */; };
 		5172E3495206A3FEC5E36CEF /* ScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF11ED9C0D36687D9A03CBB8 /* ScannerView.swift */; };
 		56EE74EA476E806AFA335715 /* AppIntentsSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60D39C5F92694220AE03C259 /* AppIntentsSupport.swift */; };
+		57F6FED64EAD6A1A38073877 /* GalleryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56F692B7FF04A1EEFEC89D44 /* GalleryStore.swift */; };
 		5D29D5A948AD1618A9D6EBB2 /* ExpenseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5996AC2B67B4359151F40773 /* ExpenseStore.swift */; };
 		68B14299CB90DBF724E88AA2 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC44A961C70396158E35B2A1 /* Models.swift */; };
 		6A8F57A39EEEB2A7FA64075F /* Expense.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB332D14823389349D9F9A9 /* Expense.swift */; };
@@ -38,6 +40,7 @@
 		A9E4066FE143338D37E04117 /* SharedSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AB974EC178B45C5E8C2D43D /* SharedSnapshot.swift */; };
 		B3292928A880EA90FBC6160A /* Adaptive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D776FB862EE977F4B986DF6 /* Adaptive.swift */; };
 		B47A0043B3BC95932E1E9FF4 /* NavProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 482F782E822AB4C91884E391 /* NavProgressStore.swift */; };
+		B5BB5F4E53ED589205C49D3C /* DayGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B055BA45F55F6532F6A8AC1 /* DayGalleryView.swift */; };
 		B6457A92111DDF5D3124F173 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6790699333DDE82AB63E47 /* LiveActivityManager.swift */; };
 		BB1181756AD31C2121B413CD /* CountdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD74465F353E94FA714455D0 /* CountdownView.swift */; };
 		BE94D409F9E37AE2C0E79B9C /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEB2A1F70C4BD191A5BA233B /* WeatherService.swift */; };
@@ -47,6 +50,7 @@
 		CCB6AEAC47B82E9BEC59EFC4 /* SharedSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AB974EC178B45C5E8C2D43D /* SharedSnapshot.swift */; };
 		D639120DCFB9ED1C9D94A027 /* trip.json in Resources */ = {isa = PBXBuildFile; fileRef = 854400F42C0A6BF3D1C19B27 /* trip.json */; };
 		DCA192F45DFD629CE1326455 /* DayDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50EC37896D44D59908E84F08 /* DayDetailView.swift */; };
+		DD0EDC6C525BA8C722EFFB8F /* AnnouncementAudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0521A93D4BC40C937DF85C12 /* AnnouncementAudio.swift */; };
 		DD27A9E6C1CCB53B5B5F0E24 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B82E5004A631A77716317D /* LocationManager.swift */; };
 		E4C01FD27953FBA51E4F5EE2 /* AnnouncementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F739F17C393A922A8DB2D1B /* AnnouncementService.swift */; };
 		E7CC729324E01B0041BFBEE5 /* LiveLocationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C443FE724E722869D208BAC /* LiveLocationCard.swift */; };
@@ -83,6 +87,7 @@
 
 /* Begin PBXFileReference section */
 		00954AF5EE56487B60F675E1 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		0521A93D4BC40C937DF85C12 /* AnnouncementAudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnouncementAudio.swift; sourceTree = "<group>"; };
 		0E7775AD4AAF14FD3D40306D /* PlanPublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanPublisher.swift; sourceTree = "<group>"; };
 		1D776FB862EE977F4B986DF6 /* Adaptive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Adaptive.swift; sourceTree = "<group>"; };
 		21B82E5004A631A77716317D /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
@@ -103,6 +108,8 @@
 		4D158F3DF63E4C9036FB22C7 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		4F739F17C393A922A8DB2D1B /* AnnouncementService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnouncementService.swift; sourceTree = "<group>"; };
 		50EC37896D44D59908E84F08 /* DayDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayDetailView.swift; sourceTree = "<group>"; };
+		5516267C5F1A1EBE3E7C8578 /* AnnouncementCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnouncementCatalog.swift; sourceTree = "<group>"; };
+		56F692B7FF04A1EEFEC89D44 /* GalleryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryStore.swift; sourceTree = "<group>"; };
 		5996AC2B67B4359151F40773 /* ExpenseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpenseStore.swift; sourceTree = "<group>"; };
 		5A9CB73E03C832207007A05A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		5BB332D14823389349D9F9A9 /* Expense.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Expense.swift; sourceTree = "<group>"; };
@@ -114,6 +121,7 @@
 		805F78AAB9DA84F69009C2E2 /* AltimeterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AltimeterService.swift; sourceTree = "<group>"; };
 		854400F42C0A6BF3D1C19B27 /* trip.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = trip.json; sourceTree = "<group>"; };
 		86097054B82CA8512E4AA874 /* MapScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapScreen.swift; sourceTree = "<group>"; };
+		8B055BA45F55F6532F6A8AC1 /* DayGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayGalleryView.swift; sourceTree = "<group>"; };
 		8C443FE724E722869D208BAC /* LiveLocationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveLocationCard.swift; sourceTree = "<group>"; };
 		92433716A15BEBCD592B63E2 /* KuzeyWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KuzeyWidgets.swift; sourceTree = "<group>"; };
 		9AEF46AA6EEEAA6BB1DFD19E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -139,6 +147,8 @@
 			isa = PBXGroup;
 			children = (
 				805F78AAB9DA84F69009C2E2 /* AltimeterService.swift */,
+				0521A93D4BC40C937DF85C12 /* AnnouncementAudio.swift */,
+				5516267C5F1A1EBE3E7C8578 /* AnnouncementCatalog.swift */,
 				4F739F17C393A922A8DB2D1B /* AnnouncementService.swift */,
 				60D39C5F92694220AE03C259 /* AppIntentsSupport.swift */,
 				31D0A33B6EDB7280B5616C20 /* AppleMapsService.swift */,
@@ -146,6 +156,7 @@
 				4D158F3DF63E4C9036FB22C7 /* Config.swift */,
 				5BB332D14823389349D9F9A9 /* Expense.swift */,
 				5996AC2B67B4359151F40773 /* ExpenseStore.swift */,
+				56F692B7FF04A1EEFEC89D44 /* GalleryStore.swift */,
 				48DBB19FBCDD52DE1F4E55F8 /* KaravanApp.swift */,
 				F7D97DFDF05438A70096EC2B /* Kuzey.entitlements */,
 				CE6790699333DDE82AB63E47 /* LiveActivityManager.swift */,
@@ -177,6 +188,7 @@
 				9F5C959C02D3AEB61D35B2E4 /* DashboardView.swift */,
 				50EC37896D44D59908E84F08 /* DayDetailView.swift */,
 				FFCA663A470C8DD3B775062E /* DayEditView.swift */,
+				8B055BA45F55F6532F6A8AC1 /* DayGalleryView.swift */,
 				370CBB45D2A76FE6AC6681D0 /* ExpensesView.swift */,
 				8C443FE724E722869D208BAC /* LiveLocationCard.swift */,
 				86097054B82CA8512E4AA874 /* MapScreen.swift */,
@@ -361,6 +373,8 @@
 			files = (
 				B3292928A880EA90FBC6160A /* Adaptive.swift in Sources */,
 				757502C0180B0C08065C603D /* AltimeterService.swift in Sources */,
+				DD0EDC6C525BA8C722EFFB8F /* AnnouncementAudio.swift in Sources */,
+				1310D1136D2AF73540137D03 /* AnnouncementCatalog.swift in Sources */,
 				E4C01FD27953FBA51E4F5EE2 /* AnnouncementService.swift in Sources */,
 				56EE74EA476E806AFA335715 /* AppIntentsSupport.swift in Sources */,
 				8A8CCD1D954E11A6C346CFB6 /* AppleMapsService.swift in Sources */,
@@ -371,10 +385,12 @@
 				042CD6553C4C9F181A24D979 /* DashboardView.swift in Sources */,
 				DCA192F45DFD629CE1326455 /* DayDetailView.swift in Sources */,
 				054FCB4E10C16B21E3D45902 /* DayEditView.swift in Sources */,
+				B5BB5F4E53ED589205C49D3C /* DayGalleryView.swift in Sources */,
 				73E54B6EC9AF640FB442E727 /* DocumentVaultView.swift in Sources */,
 				6A8F57A39EEEB2A7FA64075F /* Expense.swift in Sources */,
 				5D29D5A948AD1618A9D6EBB2 /* ExpenseStore.swift in Sources */,
 				C11853ABEDB233B5100F09D2 /* ExpensesView.swift in Sources */,
+				57F6FED64EAD6A1A38073877 /* GalleryStore.swift in Sources */,
 				89784D251FA5CFB972CFACF6 /* KaravanApp.swift in Sources */,
 				B6457A92111DDF5D3124F173 /* LiveActivityManager.swift in Sources */,
 				E7CC729324E01B0041BFBEE5 /* LiveLocationCard.swift in Sources */,
