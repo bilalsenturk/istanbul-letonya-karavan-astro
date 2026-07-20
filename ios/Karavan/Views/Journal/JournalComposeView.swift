@@ -1,5 +1,8 @@
 import CoreLocation
 import SwiftUI
+#if canImport(JournalingSuggestions)
+import JournalingSuggestions
+#endif
 
 // Günlük kaydı oluşturma. Sürerken tek elle kullanılabilir olmalı:
 // büyük dokunma hedefleri, tek dokunuşla dikte başlat/bitir.
@@ -34,6 +37,7 @@ struct JournalComposeView: View {
                         dictateButton
                         moodRow
                         photoRow
+                        suggestionsRow
                     }
                     .padding(16)
                 }
@@ -176,6 +180,49 @@ struct JournalComposeView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    // Apple'ın öneri seçicisi (iOS 17.2+). Seçici ayrı bir süreçte çalışır;
+    // yalnızca kullanıcının orada seçtiği içerik uygulamaya geçer, bu yüzden
+    // ayrıca fotoğraf/konum izni istemez.
+    // ÖNEMLİ: JournalingSuggestions TEK YÖNLÜDÜR — Apple'ın Günlük uygulamasına
+    // yazmak için kullanılamaz, üçüncü taraf hiçbir uygulama oraya giriş ekleyemez.
+    // Bu çerçeve yalnızca Apple'ın o gün için ürettiği önerileri (nerede
+    // olunduğu, kaç fotoğraf çekildiği, kaç km yol gidildiği) bizim günlüğümüze
+    // taşımaya yarar. Dağıtım hedefi iOS 17.0 olduğundan hem canImport hem
+    // #available koruması şart; 17.0–17.1 cihazlarda bölüm sessizce kaybolur,
+    // çökme olmaz.
+    @ViewBuilder private var suggestionsRow: some View {
+        #if canImport(JournalingSuggestions)
+        if #available(iOS 17.2, *) {
+            VStack(alignment: .leading, spacing: 8) {
+                MonoLabel(text: "Bugünden öneriler", color: Theme.c2)
+                JournalingSuggestionsPicker {
+                    HStack(spacing: 8) {
+                        Image(systemName: "sparkles").font(.system(size: 15))
+                        Text("Apple önerilerinden ekle")
+                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        Spacer()
+                    }
+                    .foregroundStyle(Theme.c2)
+                    .padding(13)
+                    .background(Theme.panel, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                } onCompletion: { suggestion in
+                    let title = suggestion.title
+                    await MainActor.run {
+                        // Dikte birleştirme mantığıyla tutarlı: kullanıcının yazdığı
+                        // metnin üzerine yazmak yerine sona ekle, boşsa doğrudan yaz.
+                        if text.isEmpty {
+                            text = title
+                        } else {
+                            text += "\n\n" + title
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        #endif
     }
 
     private func tag(_ icon: String, _ label: String) -> some View {
