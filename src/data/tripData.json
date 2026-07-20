@@ -226,29 +226,6 @@
       "roadNote": "Bratislava çevresinde yalnızca planlı süreyle geçiş yapılır; gereksiz sapmalar çıkarılır."
     },
     {
-      "slug": "cekeya",
-      "country": "Çekya",
-      "population": "Nüfus: Yaklaşık 10,9 milyon",
-      "language": "Resmî dil: Çekçe",
-      "currency": "Para birimi: Çek korunası",
-      "religion": "Baskın dinî yapı: Seküler toplum",
-      "traffic": "Trafik: Sağdan akar",
-      "profile": "Rota Brno ve Ostrava çevresinden geçer. Brno’da şehir içine derin sapma önerilmez.",
-      "highlights": [
-        "Brno",
-        "Špilberk Kalesi",
-        "Olympia Brno"
-      ],
-      "highlightsAdvice": "Brno’da Olympia Brno, kahve/tuvalet/yiyecek ve araç parkını tek noktada toplamak için öncelikli durağı temsil eder.",
-      "importantStops": [
-        "Olympia Brno, yaz döneminde şerit daralması ihtimaline karşı ana mola önerisidir."
-      ],
-      "shopping": "Olympia Brno",
-      "shoppingAdvice": "Otoyola yakınlığı, büyük otoparkı ve menü çeşitliliğiyle yol üstü mola için en pratik seçenektir.",
-      "coffeeFood": "Kafe ve yemek için bu noktada tek seferde tamamlanacak bir mola düzeni uygundur.",
-      "roadNote": "Brno çevresinde yaz döneminde yol çalışması ve şerit daralmalarına karşı dikkat artırılır."
-    },
-    {
       "slug": "polonya",
       "country": "Polonya",
       "population": "Nüfus: Yaklaşık 37,5 milyon",
