@@ -217,6 +217,15 @@ struct JournalComposeView: View {
                         } else {
                             text += "\n\n" + title
                         }
+                        // VERİ KAYBI DÜZELTMESİ: Dikte çalışırken Apple önerisi eklendiyse,
+                        // textBeforeDictation'ı da güncellemeliyiz. Aksi takdirde, bir sonraki
+                        // dikte kısmi sonucu onChange tetiklenip metnin eski textBeforeDictation
+                        // tabanından yeniden yapılmasını ve az önce eklenen önerinin silinmesini
+                        // sağlayacaktır. Önerileri koruyan bu yaklaşım, tek elle kullanımdaki
+                        // gerçek senaryoları karşılar.
+                        if speech.recording {
+                            textBeforeDictation = text
+                        }
                     }
                 }
                 .buttonStyle(.plain)
