@@ -335,9 +335,11 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					3167D9C5382665B02E9A7C38 = {
+						DevelopmentTeam = YQUGG5VXCC;
 						ProvisioningStyle = Automatic;
 					};
 					441C5A360BE7E6D17107BBE4 = {
+						DevelopmentTeam = YQUGG5VXCC;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -517,6 +519,7 @@
 				CODE_SIGN_ENTITLEMENTS = Widgets/KuzeyWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YQUGG5VXCC;
 				INFOPLIST_FILE = Widgets/Support/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -540,6 +543,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YQUGG5VXCC;
 				INFOPLIST_FILE = Support/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -561,6 +565,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YQUGG5VXCC;
 				INFOPLIST_FILE = Support/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -580,6 +585,7 @@
 				CODE_SIGN_ENTITLEMENTS = Widgets/KuzeyWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YQUGG5VXCC;
 				INFOPLIST_FILE = Widgets/Support/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
