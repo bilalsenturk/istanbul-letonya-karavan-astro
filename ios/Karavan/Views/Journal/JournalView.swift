@@ -5,6 +5,10 @@ import SwiftUI
 struct JournalView: View {
     @EnvironmentObject var journal: JournalStore
     @State private var showCompose = false
+    // Silme onayı bekleyen kayıt. `ForEach` içindeki `entryCard` kendi
+    // state'ini tutamaz (View değil, sıradan bir fonksiyon) — bu yüzden
+    // hangi kaydın silineceği burada, üst view'da tutulur.
+    @State private var entryPendingDelete: JournalEntry?
 
     private static let dayFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -22,7 +26,14 @@ struct JournalView: View {
                     emptyState
                 } else {
                     ScrollView {
-                        VStack(alignment: .leading, spacing: 12) {
+                        // LazyVStack: yalnızca ekranda görünen kartlar (ve
+                        // fotoğrafları) çizilir. Düz VStack kullanılsaydı,
+                        // JournalStore'daki pendingCount/cloudProblem/failedCount
+                        // gibi fotoğrafla ilgisiz alanlar değiştiğinde bile
+                        // (açılış, öne gelme, her yeni kayıt, paylaşım değişimi
+                        // — yani sık) TÜM kayıtlar ve TÜM fotoğrafları yeniden
+                        // çizilirdi.
+                        LazyVStack(alignment: .leading, spacing: 12) {
                             // Fotoğraf uyarısı en üstte: kayıt zaten kaydedildi ama
                             // bir görseli kaybetti — kullanıcı fark etmeden geçmemeli.
                             if let warning = journal.photoWarning {
@@ -57,7 +68,42 @@ struct JournalView: View {
             .navigationBarTitleDisplayMode(.large)
         }
         .sheet(isPresented: $showCompose) { JournalComposeView() }
+        // TripSettingsView'daki "tüm düzenlemeleri sıfırla" kalıbıyla aynı:
+        // tek dokunuşla kalıcı silme yerine onay iste. Buradaki silme çok
+        // daha hassas — metni, fotoğrafları VE CloudKit kaydını geri
+        // dönüşsüz siliyor — yine de eskiden onaysızdı.
+        .confirmationDialog(
+            "Bu günlük kaydı silinsin mi?",
+            isPresented: Binding(
+                get: { entryPendingDelete != nil },
+                set: { if !$0 { entryPendingDelete = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Sil", role: .destructive) {
+                if let entry = entryPendingDelete { journal.delete(entry) }
+                entryPendingDelete = nil
+            }
+            Button("Vazgeç", role: .cancel) { entryPendingDelete = nil }
+        } message: {
+            if let entry = entryPendingDelete {
+                Text("\"\(Self.preview(entry.text))\" kaydı, fotoğrafları dahil kalıcı olarak silinecek. Bu işlem geri alınamaz.")
+            }
+        }
         .preferredColorScheme(.dark)
+    }
+
+    /// Onay mesajında hangi kaydın silineceğini belli etmek için kısa bir
+    /// önizleme üretir. Metin boşsa (yalnızca fotoğraflı kayıt) yerine
+    /// tarihini göster ki mesaj boş tırnak olarak kalmasın.
+    private static func preview(_ text: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "Bu kayıt" }
+        let limit = 60
+        if trimmed.count > limit {
+            return String(trimmed.prefix(limit)) + "…"
+        }
+        return trimmed
     }
 
     private var emptyState: some View {
@@ -79,6 +125,16 @@ struct JournalView: View {
             Text(message)
                 .font(.system(size: 12)).foregroundStyle(Theme.muted)
             Spacer()
+            // Uyarı yalnızca bir sonraki kayıt eklemesinde kendiliğinden
+            // temizleniyordu — kullanıcı elle kapatamıyordu. Artık kapatılabilir.
+            Button {
+                journal.clearPhotoWarning()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.muted)
+            }
+            .buttonStyle(.plain)
         }
         .padding(11)
         .background(Theme.panel, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -150,12 +206,9 @@ struct JournalView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         ForEach(entry.photoFilenames, id: \.self) { name in
-                            if let img = UIImage(contentsOfFile: journal.photoURL(name).path) {
-                                Image(uiImage: img)
-                                    .resizable().scaledToFill()
-                                    .frame(width: 88, height: 88)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            }
+                            JournalPhotoThumb(url: journal.photoURL(name))
+                                .frame(width: 88, height: 88)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
                     }
                 }
@@ -174,7 +227,7 @@ struct JournalView: View {
 
                 Spacer()
 
-                Button(role: .destructive) { journal.delete(entry) } label: {
+                Button(role: .destructive) { entryPendingDelete = entry } label: {
                     Image(systemName: "trash").font(.system(size: 12))
                 }
                 .buttonStyle(.plain)
@@ -182,5 +235,49 @@ struct JournalView: View {
             }
         }
         .card()
+    }
+}
+
+// NSCache kendi içinde thread-safe; dosya kapsamında (View'ın MainActor
+// çıkarımının dışında) tutuluyor ki arka plan Task'ından erişim derleyici
+// uyarısı üretmesin.
+private let journalPhotoCache = NSCache<NSString, UIImage>()
+
+// Fotoğraf küçük resmi: diskten yalnızca BİR KEZ okunur ve çözülür, sonra
+// bellek içi önbellekte tutulur. `PhotoJournalView.PhotoThumb` ile aynı
+// kalıp — burada PhotoKit yerine dosya yolundan yükleniyor. Önbellek
+// olmadan her `body` yeniden değerlendirmesinde (ör. pendingCount değişince)
+// aynı fotoğraf yeniden senkron diskten okunup çözülürdü.
+private struct JournalPhotoThumb: View {
+    let url: URL
+    @State private var image: UIImage?
+
+    var body: some View {
+        ZStack {
+            if let image {
+                Image(uiImage: image).resizable().scaledToFill()
+            } else {
+                Theme.panel
+                ProgressView().tint(Theme.muted).scaleEffect(0.7)
+            }
+        }
+        .onAppear {
+            guard image == nil else { return }
+            let key = url.path as NSString
+            if let cached = journalPhotoCache.object(forKey: key) {
+                image = cached
+                return
+            }
+            // Okuma + çözme ana iş parçacığını kilitlemesin diye arka planda;
+            // sonucu küçük boyuta (kart 88pt @2x/@3x) indirip önbelleğe koy.
+            Task.detached(priority: .userInitiated) {
+                guard let original = UIImage(contentsOfFile: url.path) else { return }
+                let thumb = await original.byPreparingThumbnail(ofSize: CGSize(width: 176, height: 176)) ?? original
+                journalPhotoCache.setObject(thumb, forKey: key)
+                await MainActor.run {
+                    self.image = thumb
+                }
+            }
+        }
     }
 }

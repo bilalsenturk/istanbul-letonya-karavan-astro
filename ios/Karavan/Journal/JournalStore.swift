@@ -111,6 +111,13 @@ final class JournalStore: ObservableObject {
         dir.appendingPathComponent(filename)
     }
 
+    /// Fotoğraf uyarısı şeridini kullanıcı elle kapattığında çağrılır.
+    /// Önceden yalnızca bir sonraki `add()` çağrısı bu uyarıyı temizliyordu —
+    /// kullanıcı uyarıyı okuduktan sonra kapatacak bir yolu yoktu.
+    func clearPhotoWarning() {
+        photoWarning = nil
+    }
+
     // MARK: - Düzenleme
 
     @discardableResult
