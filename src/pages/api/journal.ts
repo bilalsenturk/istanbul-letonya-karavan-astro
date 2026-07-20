@@ -40,12 +40,23 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'bad entries' }, 400);
   }
 
+  // Sınırsız uzunlukta metin/id Blob'a yazılabiliyordu — makul bir üst sınır
+  // koy (bozuk/kötü niyetli bir istek depolamayı şişirmesin).
+  const MAX_ID_LEN = 200;
+  const MAX_TEXT_LEN = 5000;
+
   const entries = body.entries
     .filter((e): e is Record<string, unknown> => typeof e === 'object' && e !== null)
     .map((e) => ({
-      id: String(e.id ?? ''),
-      text: String(e.text ?? ''),
-      createdAt: typeof e.createdAt === 'string' ? e.createdAt : null,
+      id: String(e.id ?? '').slice(0, MAX_ID_LEN),
+      text: String(e.text ?? '').slice(0, MAX_TEXT_LEN),
+      // `edits.ts`'deki gibi: sadece string olması yetmez, gerçekten geçerli
+      // bir tarih olmalı — aksi halde geçersiz createdAt'e sahip bozuk bir
+      // kayıt sessizce siteye yazılır.
+      createdAt:
+        typeof e.createdAt === 'string' && !Number.isNaN(Date.parse(e.createdAt))
+          ? e.createdAt
+          : null,
       author: typeof e.author === 'string' ? e.author : null,
       mood: typeof e.mood === 'string' ? e.mood : null,
       stopId: typeof e.stopId === 'string' ? e.stopId : null,

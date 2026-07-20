@@ -39,6 +39,22 @@ final class JournalStore: ObservableObject {
     private var pendingDeleteAttempts = 0
     private var pendingDeleteLastAttemptAt: Date?
 
+    /// Web'e (site) paylaşım yayınının kalıcı durumu. `publishShared()` daha
+    /// önce ateşle-unut çalışıyordu: `Task { _ = try? await ... }` — ağ hatası
+    /// sessizce yutuluyor, tekrar deneme YOKTU. Sınırda sinyal zayıfken
+    /// kullanıcı bir kaydın paylaşımını kaldırırsa (ya da kaydı silerse) ve
+    /// POST zaman aşımına uğrarsa, hiçbir sonraki açılış/öne gelme/senkron bunu
+    /// tekrar denemiyordu — kullanıcı paylaşımı kaldırdığını sanırken metin
+    /// herkese açık web sitesinde kalmaya devam ediyordu (gizlilik sorunu).
+    /// Bu bayrak diske yazıldığı için uygulama kapanıp açılsa bile "bekleyen
+    /// bir yayın var" bilgisi kaybolmaz ve drainQueue() üzerinden yeniden denenir.
+    private var sharePublishPending = false
+    /// Silme kuyruğundaki gibi (`pendingDeleteAttempts`) TEK bir geri çekilme
+    /// zamanlayıcısı: yayın kayıt başına değil, "paylaşılanlar listesi"
+    /// bütünü için tek seferde gönderiliyor.
+    private var sharePublishAttempts = 0
+    private var sharePublishLastAttemptAt: Date?
+
     private var dir: URL {
         let d = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("journal", isDirectory: true)
@@ -49,12 +65,20 @@ final class JournalStore: ObservableObject {
     private var entriesFile: URL { dir.appendingPathComponent("entries.json") }
     private var queueFile: URL { dir.appendingPathComponent("queue.json") }
     private var pendingDeletesFile: URL { dir.appendingPathComponent("pending-deletes.json") }
+    private var sharePublishFile: URL { dir.appendingPathComponent("share-publish.json") }
 
     /// `pendingDeletesFile`'ın disk üzerindeki şekli — id listesiyle birlikte
     /// geri çekilme durumu da kalıcı olsun ki uygulama kapanıp açılsa bile
     /// art arda başarısız silmeler yeniden hemen denenmesin.
     private struct PendingDeletesState: Codable {
         var ids: Set<String>
+        var attempts: Int
+        var lastAttemptAt: Date?
+    }
+
+    /// `sharePublishFile`'ın disk üzerindeki şekli — bkz. `sharePublishPending`.
+    private struct SharePublishState: Codable {
+        var pending: Bool
         var attempts: Int
         var lastAttemptAt: Date?
     }
@@ -80,6 +104,12 @@ final class JournalStore: ObservableObject {
             pendingDeleteAttempts = decoded.attempts
             pendingDeleteLastAttemptAt = decoded.lastAttemptAt
         }
+        if let data = try? Data(contentsOf: sharePublishFile),
+           let decoded = try? JSONDecoder().decode(SharePublishState.self, from: data) {
+            sharePublishPending = decoded.pending
+            sharePublishAttempts = decoded.attempts
+            sharePublishLastAttemptAt = decoded.lastAttemptAt
+        }
         refreshQueueStats()
     }
 
@@ -95,6 +125,12 @@ final class JournalStore: ObservableObject {
         )
         if let data = try? JSONEncoder().encode(deleteState) {
             try? data.write(to: pendingDeletesFile, options: .atomic)
+        }
+        let publishState = SharePublishState(
+            pending: sharePublishPending, attempts: sharePublishAttempts, lastAttemptAt: sharePublishLastAttemptAt
+        )
+        if let data = try? JSONEncoder().encode(publishState) {
+            try? data.write(to: sharePublishFile, options: .atomic)
         }
         refreshQueueStats()
     }
@@ -185,6 +221,13 @@ final class JournalStore: ObservableObject {
     // MARK: - Kuyruk boşaltma
 
     func drainQueue() async {
+        // Web yayını CloudKit'ten tamamen bağımsız bir HTTP çağrısıdır —
+        // iCloud oturumu kapalı/kısıtlı olsa bile bekleyen bir paylaşım
+        // yayını varsa denenmeli. Bu satırı aşağıdaki iCloud guard'ından
+        // ÖNCEYE koyuyoruz; aksi halde iCloud'a girmemiş bir cihazda web'de
+        // unutulmuş bir paylaşım hiçbir zaman düzelmezdi.
+        await attemptPublishShared()
+
         cloudAvailable = await JournalCloud.shared.accountAvailable()
         guard cloudAvailable else {
             cloudProblem = "iCloud oturumu kapalı — kayıtların yalnızca bu cihazda."
@@ -282,10 +325,41 @@ final class JournalStore: ObservableObject {
     // MARK: - Paylaşılanları web'e yansıt
 
     /// YALNIZCA isShared=true kayıtlar gider. Gizli kayıt cihazdan çıkmaz.
+    ///
+    /// Önceden burada doğrudan ateşle-unut bir `Task { _ = try? await ... }`
+    /// vardı: ağ hatası sessizce yutuluyor, tekrar deneme yoktu. Şimdi önce
+    /// "bekleyen bir yayın var" bayrağını KALICI olarak (diske) işaretliyoruz,
+    /// sonra deniyoruz — POST şimdi başarısız olsa bile bayrak diskte kalır ve
+    /// `drainQueue()` her tetiklendiğinde (açılış, öne gelme, senkron) tekrar
+    /// denenir. Aksi halde kullanıcı paylaşımı kaldırdığını/kaydı sildiğini
+    /// sanırken metin herkese açık web sitesinde kalmaya devam edebilirdi.
     func publishShared() {
-        guard let url = Config.journalPostURL else { return }
-        let shared = entries.filter(\.isShared)
+        guard Config.journalPostURL != nil else { return }
+        sharePublishPending = true
+        persist()
+        Task { await attemptPublishShared() }
+    }
 
+    /// Bekleyen web yayınını, geri çekilmeye tabi olarak dener. Gövde HER
+    /// SEFERİNDE bu anki `entries`'ten yeniden üretilir — bayat bir yükü
+    /// tekrar göndermek (ör. arada tekrar gizlenmiş bir kaydı hâlâ pakette
+    /// taşımak) gizlilik ihlalini geri getirebilir.
+    ///
+    /// `drainQueue()` açılışta, öne gelince, kayıt eklenince, paylaşım
+    /// değişince — yani çok sık — tetikleniyor. `drainPendingDeletes()`
+    /// deki gibi geri çekilme süresini `JournalQueue.backoff` ile hesaplayıp
+    /// `maxAttempts` ile ÜST SINIRLIYORUZ — aksi halde deneme sayısı arttıkça
+    /// süre günlere, hatta yıllara çıkar (deponun geçmişinde üst sınırsız
+    /// geri çekilme 12. denemede ~4 yıla çıkmıştı).
+    private func attemptPublishShared() async {
+        guard sharePublishPending, let url = Config.journalPostURL else { return }
+
+        if sharePublishAttempts > 0, let last = sharePublishLastAttemptAt,
+           Date().timeIntervalSince(last) < JournalQueue.backoff(attempts: min(sharePublishAttempts, JournalQueue.maxAttempts)) {
+            return
+        }
+
+        let shared = entries.filter(\.isShared)
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime]
         let payload: [String: Any] = [
@@ -308,7 +382,27 @@ final class JournalStore: ObservableObject {
         request.timeoutInterval = 12
         request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
 
-        Task { _ = try? await URLSession.shared.data(for: request) }
+        sharePublishLastAttemptAt = Date()
+
+        var succeeded = false
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let http = response as? HTTPURLResponse {
+                succeeded = (200...299).contains(http.statusCode)
+            } else {
+                succeeded = true   // HTTPURLResponse olmayan ortamlarda (ör. test) varsayılan başarı
+            }
+        } catch {
+            succeeded = false   // ağ hatası / zaman aşımı — bayrak KALDIRILMAZ, bir sonraki tetiklemede tekrar denenir
+        }
+
+        if succeeded {
+            sharePublishPending = false
+            sharePublishAttempts = 0
+        } else {
+            sharePublishAttempts += 1
+        }
+        persist()
     }
 
     /// Azami deneme sayısına ulaşıp `.failed` durumuna düşmüş, bu yüzden
