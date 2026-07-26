@@ -64,7 +64,19 @@ const trip = foldTripEvents([
     actorUserId: 'user-1',
     type: 'stopAdded',
     payload: {
-      stop: { id: 'sofia', name: 'Sofya', lat: 42.69, lng: 23.32, order: 1, note: 'İlk gece' },
+      stop: {
+        id: 'sofia', name: 'Sofya', lat: 42.69, lng: 23.32, order: 1, note: 'İlk gece',
+        arrivalTarget: {
+          id: 'campuccino', name: 'Camping Campuccino', kind: 'campground',
+          latitude: 42.66, longitude: 23.28, formattedAddress: 'Sofia, Bulgaria',
+          phone: '+359881234567', email: 'hello@example.com', source: 'appleMaps',
+          updatedAt: '2026-07-26T07:01:00.000Z',
+        },
+        stayDetails: {
+          checkIn: '2026-08-03T12:00:00.000Z', checkOut: '2026-08-05T08:00:00.000Z',
+          reservationStatus: 'awaitingReply',
+        },
+      },
     },
   },
   {
@@ -84,11 +96,34 @@ assert.equal(trip.kind, 'standard');
 assert.equal(trip.revision, 4);
 assert.deepEqual(trip.stops.map((stop) => stop.id), ['istanbul', 'sofia']);
 assert.equal(trip.stops[1].note, 'Kamp alanı');
+assert.equal(trip.stops[1].arrivalTarget?.name, 'Camping Campuccino');
+assert.equal(trip.stops[1].arrivalTarget?.phone, '+359881234567');
+assert.equal(trip.stops[1].stayDetails?.reservationStatus, 'awaitingReply');
 assert.deepEqual(trip.members, [{ userId: 'user-1', role: 'owner' }]);
 
 assert.throws(
   () => foldTripEvents([{ ...tripEvent('tripCreated', 1), payload: { name: '', kind: 'standard', ownerUserId: 'u1' } }]),
   /trip_name_required/,
+);
+
+assert.throws(
+  () => foldTripEvents([
+    { ...tripEvent('tripCreated', 1), payload: { name: 'Test', kind: 'standard', ownerUserId: 'u1' } },
+    {
+      ...tripEvent('stopAdded', 2),
+      payload: {
+        stop: {
+          id: 'bad', name: 'Hatalı', lat: 42, lng: 23, order: 0,
+          arrivalTarget: {
+            id: 'bad-target', name: 'Hatalı', kind: 'address', latitude: 120,
+            longitude: 23, formattedAddress: '—', source: 'user',
+            updatedAt: '2026-07-26T07:01:00.000Z',
+          },
+        },
+      },
+    },
+  ]),
+  /invalid_arrival_target/,
 );
 
 function tripEvent(type, revision) {

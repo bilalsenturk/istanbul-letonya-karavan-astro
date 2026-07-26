@@ -1,6 +1,6 @@
 import Foundation
 
-enum ArrivalTargetKind: String, Codable, CaseIterable, Identifiable {
+enum ArrivalTargetKind: String, Codable, CaseIterable, Identifiable, Hashable {
     case campground
     case hotel
     case apartment
@@ -36,13 +36,13 @@ enum ArrivalTargetKind: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-enum ArrivalTargetSource: String, Codable {
+enum ArrivalTargetSource: String, Codable, Hashable {
     case appleMaps
     case user
     case migrated
 }
 
-struct ArrivalTarget: Codable, Equatable, Identifiable {
+struct ArrivalTarget: Codable, Equatable, Identifiable, Hashable {
     let id: String
     var mapItemIdentifier: String?
     var name: String
@@ -93,7 +93,7 @@ struct ArrivalTarget: Codable, Equatable, Identifiable {
     }
 }
 
-enum StayReservationStatus: String, Codable, CaseIterable, Identifiable {
+enum StayReservationStatus: String, Codable, CaseIterable, Identifiable, Hashable {
     case notContacted
     case awaitingReply
     case confirmed
@@ -111,7 +111,7 @@ enum StayReservationStatus: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-struct StayDetails: Codable, Equatable {
+struct StayDetails: Codable, Equatable, Hashable {
     var checkIn: Date?
     var checkOut: Date?
     var reservationStatus: StayReservationStatus
