@@ -73,12 +73,14 @@ check("toplam gün 8 → 10", TripPlanner.totalDays(trip: trip, edits: edits) ==
       "\(TripPlanner.totalDays(trip: trip, edits: edits))")
 check("etap eşlemesi bozulmadı", days[7].legIndex == 6)
 
-print("\n=== 4) Dinlenme günü düzenlemesi etap eşlemesini kaydırıyor ===")
+print("\n=== 4) Dinlenme günü düzenlemesi etap eşlemesini BOZMUYOR ===")
 edits = TripEdits()
 edits.days[trip.days[1].slug] = DayEdit(isRestDay: true)   // 2. günü dinlenme yap
 days = TripPlanner.days(trip: trip, edits: edits)
 check("gün2 artık dinlenme (leg=nil)", days[1].legIndex == nil)
-check("gün3 etabı bir geri kaydı (leg=1)", days[2].legIndex == 1, "\(String(describing: days[2].legIndex))")
+// legIndex artık gün sayımından değil durak konumundan türetiliyor:
+// dinlenme düzenlemesi sonraki günlerin etabını kaydırmaz (DayDetailView doğru etabı gösterir).
+check("gün3 etabı yerinde kalıyor (leg=2)", days[2].legIndex == 2, "\(String(describing: days[2].legIndex))")
 check("tarihler değişmedi (dinlenme gün eklemez)", days.allSatisfy {
     cal.isDate($0.date, inSameDayAs: baseline[$0.index].date)
 })
@@ -88,6 +90,9 @@ edits = TripEdits()
 edits.days["x"] = DayEdit()
 check("boş düzenleme isEmpty", DayEdit().isEmpty)
 check("dolu düzenleme isEmpty değil", !DayEdit(note: "test").isEmpty)
+let legacyDayEdit = try! JSONDecoder().decode(DayEdit.self, from: Data(#"{"note":"eski kayıt"}"#.utf8))
+check("eski gün düzenlemesi kesin hedef olmadan açılır",
+      legacyDayEdit.arrivalTarget == nil && legacyDayEdit.stayDetails == nil)
 
 print("\n=== 6) Sınır durumları ===")
 edits = TripEdits()
@@ -100,6 +105,195 @@ edits.days[trip.days[0].slug] = DayEdit(startHour: 99)
 days = TripPlanner.days(trip: trip, edits: edits)
 check("geçersiz saat kırpıldı", cal.component(.hour, from: days[0].departTime) == 23,
       "\(cal.component(.hour, from: days[0].departTime))")
+
+print("\n=== 7) Saat dilimi: rota günü cihaz saat diliminden bağımsız ===")
+let originalTimeZone = NSTimeZone.default
+NSTimeZone.default = TimeZone(identifier: "America/Los_Angeles")!
+let earlyTrip = TripData(
+    departureAt: "2026-08-03T00:30:00+03:00",
+    totalKm: 1,
+    totalBudget: Budget(fuel: "€1", total: "€1", min: nil, max: nil),
+    stops: [
+        Stop(id: "istanbul", name: "İstanbul", country: "Türkiye", lat: 41.0, lng: 29.0),
+        Stop(id: "sofia", name: "Sofya", country: "Bulgaristan", lat: 42.7, lng: 23.3),
+    ],
+    days: [
+        DayPlan(
+            slug: "istanbul-sofya",
+            date: "3 Ağustos",
+            origin: "İstanbul",
+            destination: "Sofya",
+            distanceKm: "1 km",
+            duration: "1 dk",
+            fuel: "€1",
+            risks: [],
+            opportunities: [],
+            contingencies: [],
+            camp: Camp(name: "Kamp", place: "Sofya", note: "", link: "", image: nil, alternatives: nil),
+            waypoints: nil,
+            route: nil,
+            trafficLabel: nil,
+            cityCameras: nil
+        ),
+    ],
+    checklist: []
+)
+let earlyDay = TripPlanner.days(trip: earlyTrip, edits: TripEdits()).first!
+let routeCalendar = TripPlanner.routeCalendar
+check("erken kalkış rota takviminde 3 Ağustos kalır",
+      routeCalendar.component(.day, from: earlyDay.date) == 3,
+      "\(routeCalendar.component(.day, from: earlyDay.date))")
+NSTimeZone.default = originalTimeZone
+
+print("\n=== 8) Kalkış modalı: aynı gün saat değişirse anahtar yenilenir ===")
+let iso = ISO8601DateFormatter()
+iso.formatOptions = [.withInternetDateTime]
+let sameDayMorning = iso.date(from: "2026-08-03T08:00:00+03:00")!
+let sameDayNoon = iso.date(from: "2026-08-03T12:00:00+03:00")!
+check("aynı gün farklı saat farklı modal anahtarı üretir",
+      DeparturePromptKey.key(stopId: "sofia", departure: sameDayMorning)
+        != DeparturePromptKey.key(stopId: "sofia", departure: sameDayNoon))
+
+print("\n=== 9) Rota başlatma: Live Activity 0/0 metrikle başlamaz ===")
+check("nav yoksa Live Activity payload yok",
+      RouteStartMetrics(remainingKm: nil, remainingMinutes: nil).liveActivityPayload == nil)
+check("0 km/0 dk payload reddedilir",
+      RouteStartMetrics(remainingKm: 0, remainingMinutes: 0).liveActivityPayload == nil)
+check("pozitif metrik payload üretir",
+      RouteStartMetrics(remainingKm: 12, remainingMinutes: 18).liveActivityPayload?.remainingKm == 12)
+
+print("\n=== 10) Rota sapma anonsu yalnız aktif rota döngüsünde çalışır ===")
+check("rota başlamadan sapma anonsu kapalı",
+      RouteAnnouncementPolicy.allowsDeviationAnnouncement(
+        routeStarted: false,
+        activeStopId: nil,
+        nextStopId: "sofia",
+        currentLegIndex: 0,
+        speedKmh: 82,
+        hasLegGeometry: true
+      ) == false)
+check("aktif rota hedefi sıradaki durakla eşleşince sapma anonsu açık",
+      RouteAnnouncementPolicy.allowsDeviationAnnouncement(
+        routeStarted: true,
+        activeStopId: "sofia",
+        nextStopId: "sofia",
+        currentLegIndex: 0,
+        speedKmh: 82,
+        hasLegGeometry: true
+      ) == true)
+check("aktif rota başka hedefteyse sapma anonsu kapalı",
+      RouteAnnouncementPolicy.allowsDeviationAnnouncement(
+        routeStarted: true,
+        activeStopId: "budapest",
+        nextStopId: "sofia",
+        currentLegIndex: 0,
+        speedKmh: 82,
+        hasLegGeometry: true
+      ) == false)
+check("araç ses yolu bağlantısı rota hazır anonsunu otomatik açmaz",
+      RouteAnnouncementPolicy.allowsRouteReadyAnnouncement(
+        triggeredByUserAction: false,
+        routeStarted: false
+      ) == false)
+check("kullanıcı panelden isterse rota hazır anonsu çalabilir",
+      RouteAnnouncementPolicy.allowsRouteReadyAnnouncement(
+        triggeredByUserAction: true,
+        routeStarted: false
+      ) == true)
+check("rota başlamadan mesafe anonsu kapalı",
+      RouteAnnouncementPolicy.allowsRouteProgressAnnouncement(
+        routeStarted: false,
+        activeStopId: nil,
+        nextStopId: "sofia"
+      ) == false)
+check("aktif rota hedefi sıradaki durak değilse mesafe anonsu kapalı",
+      RouteAnnouncementPolicy.allowsRouteProgressAnnouncement(
+        routeStarted: true,
+        activeStopId: "budapest",
+        nextStopId: "sofia"
+      ) == false)
+check("aktif rota hedefi sıradaki duraksa mesafe anonsu açık",
+      RouteAnnouncementPolicy.allowsRouteProgressAnnouncement(
+        routeStarted: true,
+        activeStopId: "sofia",
+        nextStopId: "sofia"
+      ) == true)
+check("rota başlamadan geofence varış anonsu kapalı",
+      RouteAnnouncementPolicy.allowsArrivalAnnouncement(
+        routeStarted: false,
+        activeStopId: nil,
+        enteredStopId: "sofia"
+      ) == false)
+check("aktif rota başka hedefteyse geofence varış anonsu kapalı",
+      RouteAnnouncementPolicy.allowsArrivalAnnouncement(
+        routeStarted: true,
+        activeStopId: "budapest",
+        enteredStopId: "sofia"
+      ) == false)
+check("aktif rota hedef çemberine girince varış anonsu açık",
+      RouteAnnouncementPolicy.allowsArrivalAnnouncement(
+        routeStarted: true,
+        activeStopId: "sofia",
+        enteredStopId: "sofia"
+      ) == true)
+check("rota başlamadan sürüş molası bildirimi kapalı",
+      RouteAnnouncementPolicy.allowsDrivingReminder(routeStarted: false) == false)
+check("rota aktifken sürüş molası bildirimi açık",
+      RouteAnnouncementPolicy.allowsDrivingReminder(routeStarted: true) == true)
+
+print("\n=== 11) Rakım gösterimi: göreli değer mutlak rakım gibi yazılmaz ===")
+let relativeAltitude = AltitudeDisplay.reading(absoluteMeters: nil, relativeMeters: 2)
+check("barometre göreli değerini ayrı etiketler",
+      relativeAltitude?.label == "Rakım değişimi" && relativeAltitude?.text == "+2 m",
+      "\(String(describing: relativeAltitude))")
+let absoluteAltitude = AltitudeDisplay.reading(absoluteMeters: 145.4, relativeMeters: 2)
+check("mutlak rakım varsa önceliklidir",
+      absoluteAltitude?.label == "Rakım" && absoluteAltitude?.text == "145 m",
+      "\(String(describing: absoluteAltitude))")
+
+print("\n=== 12) Rota sırası: yalnız sıradaki etap başlatılır ===")
+let stopIds = trip.stops.map(\.id)
+let sofia = trip.stops[1]
+let bucharest = trip.stops[2]
+let deva = trip.stops[3]
+var completedStops = Set<String>()
+check("başta yalnız 1. etap (Sofya) başlatılabilir",
+      RouteStepPolicy.state(for: sofia.id, orderedStopIds: stopIds, completedStopIds: completedStops, activeStopId: nil) == .available)
+check("Sofya tamamlanmadan 2. etap kilitlidir",
+      RouteStepPolicy.state(for: bucharest.id, orderedStopIds: stopIds, completedStopIds: completedStops, activeStopId: nil) == .locked)
+completedStops.insert(sofia.id)
+check("Sofya tamamlanınca Bükreş sıradaki etap olur",
+      RouteStepPolicy.state(for: bucharest.id, orderedStopIds: stopIds, completedStopIds: completedStops, activeStopId: nil) == .available)
+check("Bükreş aktifken Deva başlatılamaz",
+      RouteStepPolicy.state(for: deva.id, orderedStopIds: stopIds, completedStopIds: completedStops, activeStopId: bucharest.id) == .locked)
+check("aktif hedef kendi durumunu korur",
+      RouteStepPolicy.state(for: bucharest.id, orderedStopIds: stopIds, completedStopIds: completedStops, activeStopId: bucharest.id) == .active)
+completedStops.insert(bucharest.id)
+check("tamamlanan durak tamamlandı görünür",
+      RouteStepPolicy.state(for: bucharest.id, orderedStopIds: stopIds, completedStopIds: completedStops, activeStopId: nil) == .completed)
+
+print("\n=== 13) Rota başlangıcı: aktif navigasyon GPS konumundan hesaplanır ===")
+let currentCoordinate = CoordinateValue(latitude: 41.0123, longitude: 29.1122)
+let plannedOrigin = CoordinateValue(latitude: 41.0172, longitude: 28.9850)
+check("GPS varsa kaynak mevcut konumdur",
+      RouteStartOrigin.coordinate(location: currentCoordinate, plannedOrigin: plannedOrigin) == currentCoordinate)
+check("GPS yoksa plan durağı yedek kaynak olur",
+      RouteStartOrigin.coordinate(location: nil, plannedOrigin: plannedOrigin) == plannedOrigin)
+
+print("\n=== 14) KASKAT: ilk durakta +1 gün tüm sonrayı ve varışı kaydırır ===")
+edits = TripEdits()
+edits.days[trip.days[0].slug] = DayEdit(extraDays: 1)
+days = TripPlanner.days(trip: trip, edits: edits)
+check("ilk gün 2 takvim günü sürer", days[0].dayCount == 2, "\(days[0].dayCount)")
+check("sonraki tüm günler 1 gün kayar", (1 ..< days.count).allSatisfy {
+    cal.dateComponents([.day], from: baseline[$0].date, to: days[$0].date).day == 1
+})
+check("varış tarihi de 1 gün kayar",
+      cal.dateComponents(
+        [.day],
+        from: TripPlanner.arrivalDate(trip: trip, edits: TripEdits())!,
+        to: TripPlanner.arrivalDate(trip: trip, edits: edits)!
+      ).day == 1)
 
 print("\n" + (failures == 0 ? "✅ TÜM KONTROLLER GEÇTİ" : "❌ \(failures) KONTROL BAŞARISIZ"))
 exit(failures == 0 ? 0 : 1)

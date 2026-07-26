@@ -10,6 +10,8 @@ struct DayEdit: Codable, Equatable {
     var note: String?           // kişisel not
     var campName: String?
     var campPlace: String?
+    var arrivalTarget: ArrivalTarget?
+    var stayDetails: StayDetails?
     var isRestDay: Bool?        // nil → origin == destination'dan türetilir
     var extraDays: Int?         // bu durakta fazladan kalınan gün (0 = normal)
     var startHour: Int?         // o günün çıkış saati (nil → kalkış saati / 08:00)
@@ -45,6 +47,8 @@ struct EffectiveDay: Identifiable {
     var fuel: String { edit?.fuel ?? base.fuel }
     var campName: String { edit?.campName ?? base.camp.name }
     var campPlace: String { edit?.campPlace ?? base.camp.place }
+    var arrivalTarget: ArrivalTarget? { edit?.arrivalTarget }
+    var stayDetails: StayDetails { edit?.stayDetails ?? StayDetails() }
     var note: String? { edit?.note?.isEmpty == false ? edit?.note : nil }
     var isRestDay: Bool { edit?.isRestDay ?? (origin == destination) }
     var isEdited: Bool { edit?.isEmpty == false }
@@ -64,9 +68,21 @@ struct EffectiveDay: Identifiable {
 // Saf türetme motoru: (web verisi + düzenlemeler) → kalkış + günler.
 // Hiçbir yan etkisi yok; bu yüzden kaskat davranışı öngörülebilir ve test edilebilir.
 enum TripPlanner {
+    /// Rota planı Türkiye çıkış takvimine göre yazıldı. Cihaz başka saat
+    /// dilimindeyken erken saatli kalkışlar bir önceki güne kaymasın.
+    static let routeTimeZone = TimeZone(identifier: "Europe/Istanbul")!
+
+    static var routeCalendar: Calendar = {
+        var cal = Calendar(identifier: .gregorian)
+        cal.locale = Locale(identifier: "tr_TR")
+        cal.timeZone = routeTimeZone
+        return cal
+    }()
+
     static let dayFormatter: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "tr_TR")
+        f.timeZone = routeTimeZone
         f.dateFormat = "d MMMM · EEEE"
         return f
     }()
@@ -74,20 +90,26 @@ enum TripPlanner {
     static let shortFormatter: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "tr_TR")
+        f.timeZone = routeTimeZone
         f.dateFormat = "d MMM"
         return f
     }()
 
-    /// Geçerli kalkış: kullanıcı düzenlemesi > web verisi > şimdi.
+    /// Geçerli kalkış: kullanıcı düzenlemesi > web verisi > bugünün başlangıcı.
+    /// Web tarihi ayrıştırılamazsa "şimdi"ye sessizce düşmek yerine deterministik
+    /// bir tarih kullan — yoksa gün planı her çağrıda kayar. Yolculuk yoksa "şimdi".
     static func departure(trip: TripData?, edits: TripEdits) -> Date {
-        edits.departureAt ?? trip?.departureDate ?? Date()
+        if let d = edits.departureAt { return d }
+        if let d = trip?.departureDate { return d }
+        guard trip != nil else { return Date() }
+        return routeCalendar.startOfDay(for: Date())
     }
 
     /// Günleri türet. Tarihler kalkıştan kümülatif hesaplanır; `extraDays`
     /// sonraki tüm günleri kaydırır; dinlenme günleri etap tüketmez.
     static func days(trip: TripData?, edits: TripEdits) -> [EffectiveDay] {
         guard let trip else { return [] }
-        let cal = Calendar.current
+        let cal = routeCalendar
         let dep = departure(trip: trip, edits: edits)
         let day0 = cal.startOfDay(for: dep)
         let depHour = cal.component(.hour, from: dep)
@@ -95,7 +117,6 @@ enum TripPlanner {
 
         var result: [EffectiveDay] = []
         var dayOffset = 0
-        var legCounter = 0
 
         for (i, base) in trip.days.enumerated() {
             let edit = edits.days[base.slug]
@@ -112,16 +133,27 @@ enum TripPlanner {
             let departTime = cal.date(bySettingHour: min(23, max(0, hour)),
                                       minute: minute, second: 0, of: date) ?? date
 
+            // Etap indeksi "dinlenmeyen gün sayacı"ndan DEĞİL, günün çıkış durağının
+            // trip.stops'taki konumundan türetilir: bir dinlenme günü düzenlemesi
+            // sonraki günlerin etabını RouteStore'un pozisyonel legs'ine göre kaydırmaz.
+            let legIndex: Int?
+            if rest {
+                legIndex = nil
+            } else if let originStop = trip.stop(matching: origin) {
+                legIndex = trip.stops.firstIndex(where: { $0.id == originStop.id })
+            } else {
+                legIndex = nil
+            }
+
             result.append(
                 EffectiveDay(
                     index: i, base: base, edit: edit,
                     date: date, departTime: departTime,
-                    legIndex: rest ? nil : legCounter,
+                    legIndex: legIndex,
                     dayCount: 1 + extra
                 )
             )
 
-            if !rest { legCounter += 1 }
             dayOffset += 1 + extra
         }
         return result
@@ -135,6 +167,67 @@ enum TripPlanner {
     /// Son durağa varış günü.
     static func arrivalDate(trip: TripData?, edits: TripEdits) -> Date? {
         guard let last = days(trip: trip, edits: edits).last else { return nil }
-        return Calendar.current.date(byAdding: .day, value: last.dayCount - 1, to: last.date)
+        return routeCalendar.date(byAdding: .day, value: last.dayCount - 1, to: last.date)
+    }
+}
+
+enum DeparturePromptKey {
+    private static let formatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "tr_TR")
+        f.timeZone = TripPlanner.routeTimeZone
+        f.dateFormat = "yyyy-MM-dd-HHmm"
+        return f
+    }()
+
+    static func key(prefix: String = "departure-prompt-shown", stopId: String, departure: Date) -> String {
+        "\(prefix)-\(stopId)-\(formatter.string(from: departure))"
+    }
+}
+
+struct LiveActivityStartPayload {
+    let remainingKm: Int
+    let remainingMin: Int
+}
+
+struct RouteStartMetrics {
+    let remainingKm: Int?
+    let remainingMinutes: Int?
+
+    var liveActivityPayload: LiveActivityStartPayload? {
+        guard let remainingKm, let remainingMinutes,
+              remainingKm > 0, remainingMinutes > 0
+        else { return nil }
+        return LiveActivityStartPayload(remainingKm: remainingKm, remainingMin: remainingMinutes)
+    }
+}
+
+struct AltitudeReading: CustomStringConvertible {
+    let text: String
+    let label: String
+    let symbol: String
+
+    var description: String { "\(label): \(text)" }
+}
+
+enum AltitudeDisplay {
+    static func reading(absoluteMeters: Double?, relativeMeters: Double?) -> AltitudeReading? {
+        if let absoluteMeters {
+            return AltitudeReading(
+                text: "\(Int(absoluteMeters.rounded())) m",
+                label: "Rakım",
+                symbol: "mountain.2.fill"
+            )
+        }
+        if let relativeMeters {
+            let rounded = Int(relativeMeters.rounded())
+            let sign = rounded > 0 ? "+" : ""
+            return AltitudeReading(
+                text: "\(sign)\(rounded) m",
+                label: "Rakım değişimi",
+                symbol: "arrow.up.and.down.circle.fill"
+            )
+        }
+        return nil
     }
 }
