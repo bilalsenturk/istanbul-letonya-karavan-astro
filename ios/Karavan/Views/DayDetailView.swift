@@ -7,9 +7,18 @@ struct DayDetailView: View {
     @EnvironmentObject var plan: TripPlanStore
     @EnvironmentObject var routeStore: RouteStore
     @EnvironmentObject var gallery: GalleryStore
+    @EnvironmentObject var role: RoleStore
+    @EnvironmentObject var nav: NavProgressStore
+    @EnvironmentObject var loc: LocationManager
+    @EnvironmentObject var routeSession: RouteSession
+    @EnvironmentObject private var account: AccountSessionStore
+    @EnvironmentObject private var workspace: TripWorkspaceStore
     @Environment(\.openURL) private var openURL
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var showEdit = false
+    @State private var showTargetPicker = false
+    @State private var showTargetEditor = false
+    @State private var targetError: String?
 
     /// Türetilmiş gün (kullanıcı düzenlemeleri + hesaplanmış tarih).
     private var eff: EffectiveDay? {
@@ -18,6 +27,19 @@ struct DayDetailView: View {
 
     private var destinationStop: Stop? {
         store.trip?.stop(matching: eff?.destination ?? day.destination)
+    }
+
+    private var accountDestinationStop: AccountRouteStop? {
+        let destination = eff?.destination ?? day.destination
+        return workspace.selectedTrip?.stops.first { normalized($0.name) == normalized(destination) }
+    }
+
+    private var exactTarget: ArrivalTarget? {
+        accountDestinationStop?.resolvedArrivalTarget ?? eff?.arrivalTarget
+    }
+
+    private var exactStay: StayDetails {
+        accountDestinationStop?.resolvedStayDetails ?? eff?.stayDetails ?? defaultStay
     }
 
     /// Apple Haritalar'ın bu etap için hesapladığı gerçek mesafe/süre.
@@ -81,35 +103,12 @@ struct DayDetailView: View {
                         }
                         chip("fuelpump.fill", e?.fuel ?? day.fuel)
 
-                        if let dest = destinationStop {
-                            HStack(spacing: 10) {
-                                Button {
-                                    NavApp.openAppleMaps(to: dest)
-                                } label: {
-                                    Label("Apple Maps'te sür", systemImage: "arrow.triangle.turn.up.right.circle.fill")
-                                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                                        .foregroundStyle(.white)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 12)
-                                        .background(Theme.gradWarm, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-                                }
-                                Button {
-                                    NavApp.openGoogleMaps(to: dest)
-                                } label: {
-                                    Label("Google Maps", systemImage: "globe.europe.africa.fill")
-                                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                                        .foregroundStyle(.white)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 12)
-                                        .background(Theme.panel, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                                                .strokeBorder(Theme.line, lineWidth: 1)
-                                        )
-                                }
-                            }
-                            .padding(.top, 4)
-                        }
+                    }
+
+                    arrivalTargetSection(isRest: isRest)
+
+                    if let targetError {
+                        Text(targetError).font(.footnote).foregroundStyle(Theme.warn)
                     }
 
                     waypointsSection
@@ -118,31 +117,6 @@ struct DayDetailView: View {
                     section("Sorun senaryoları", items: day.risks, tint: Theme.bad)
                     section("Fırsatlar", items: day.opportunities, tint: Theme.ok)
                     section("Yedek plan", items: day.contingencies, tint: Theme.warn)
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        MonoLabel(text: "Kamp", color: Theme.c4)
-                        Text(e?.campName ?? day.camp.name)
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                            .foregroundStyle(Theme.text)
-                        Text(e?.campPlace ?? day.camp.place)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(Theme.dim)
-                        Text(day.camp.note)
-                            .font(.system(size: 13.5))
-                            .foregroundStyle(Theme.muted)
-                        if let url = URL(string: day.camp.link) {
-                            Link(destination: url) {
-                                Text("Haritada aç")
-                                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 10)
-                                    .background(Theme.gradWarm, in: Capsule())
-                            }
-                            .padding(.top, 4)
-                        }
-                    }
-                    .card()
 
                     alternativesSection
                 }
@@ -165,7 +139,108 @@ struct DayDetailView: View {
         .sheet(isPresented: $showEdit) {
             if let e = eff { DayEditView(day: e) }
         }
+        .sheet(isPresented: $showTargetPicker) {
+            if let city = destinationStop {
+                ArrivalTargetPickerView(
+                    cityName: city.name,
+                    cityCoordinate: city.coordinate,
+                    initialSelection: exactTarget
+                ) { target in
+                    saveTarget(target, stay: derivedStay(from: exactStay))
+                }
+            }
+        }
+        .sheet(isPresented: $showTargetEditor) {
+            if let target = exactTarget {
+                ArrivalTargetEditorView(
+                    target: target,
+                    stay: derivedStay(from: exactStay),
+                    routeId: workspace.selectedTrip?.id ?? "kuzey-local"
+                ) { target, stay in
+                    saveTarget(target, stay: stay)
+                }
+            }
+        }
+        // Web senkronu günü kaldırırsa (eff → nil) açık sheet boş kalırdı — kapat.
+        .onChange(of: eff == nil) { _, gone in
+            if gone { showEdit = false }
+        }
         .preferredColorScheme(.dark)
+    }
+
+    private func routeActionText(_ state: RouteStepState) -> String {
+        switch state {
+        case .available: "Buraya git"
+        case .active: "Rota aktif"
+        case .completed: "Tamamlandı"
+        case .locked: "Sırada değil"
+        case .origin: "Başlangıç"
+        }
+    }
+
+    @ViewBuilder
+    private func arrivalTargetSection(isRest: Bool) -> some View {
+        if let city = destinationStop, let stops = store.trip?.stops {
+            let state = routeSession.state(for: city, stops: stops)
+            let canStart = role.isDriver && state == .available && exactTarget?.hasValidCoordinate == true
+            ArrivalTargetCard(
+                target: exactTarget,
+                isRestDay: isRest,
+                canStart: canStart,
+                actionText: role.isDriver ? routeActionText(state) : "Yalnız sürücü başlatabilir",
+                onChoose: { showTargetPicker = true },
+                onEdit: { showTargetEditor = true },
+                onStart: {
+                    guard canStart else { return }
+                    Task {
+                        await LegLauncher.start(
+                            stop: city,
+                            stops: stops,
+                            nav: nav,
+                            location: loc.location,
+                            speedKmh: loc.speedKmh
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    private var defaultStay: StayDetails {
+        guard let effective = eff else { return StayDetails() }
+        let checkOut = TripPlanner.routeCalendar.date(
+            byAdding: .day, value: effective.dayCount, to: effective.date
+        )
+        return StayDetails(checkIn: effective.date, checkOut: checkOut)
+    }
+
+    private func derivedStay(from value: StayDetails) -> StayDetails {
+        var result = value
+        if result.checkIn == nil { result.checkIn = defaultStay.checkIn }
+        if result.checkOut == nil { result.checkOut = defaultStay.checkOut }
+        return result
+    }
+
+    private func saveTarget(_ target: ArrivalTarget, stay: StayDetails) {
+        plan.setArrivalTarget(target, stay: stay, slug: day.slug)
+        guard var stop = accountDestinationStop, let trip = workspace.selectedTrip,
+              trip.access.canEditStops else { return }
+        stop.arrivalTarget = AccountArrivalTarget(target)
+        stop.stayDetails = AccountStayDetails(stay)
+        Task {
+            do {
+                let changed = try await account.updateStop(trip: trip, stop: stop)
+                workspace.replace(changed)
+                targetError = nil
+            } catch {
+                targetError = "Varış yeri cihazda kaydedildi ancak üyelerle eşitlenemedi: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func normalized(_ value: String) -> String {
+        value.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "tr_TR"))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     // MARK: - Türetilmiş gün bilgileri (gerçek Apple mesafe/süre, varış saati, sınır)

@@ -7,12 +7,15 @@ import Foundation
 final class TripPlanStore: ObservableObject {
     @Published private(set) var edits = TripEdits()
 
-    /// Bu cihaz planı yönetiyor mu? Yalnızca SAHİP yazar, diğerleri okur.
-    /// "Son yazan kazanır" kasten tercih edilmedi: yolda iki kişi aynı anda
-    /// düzenleyince biri sessizce diğerinin değişikliğini siler.
+    /// Bu cihaz planın sahibi mi? GÜN düzenlemelerini artık HER cihaz web'e
+    /// yazar ("kamp planını herkes düzenleyebilir"; sunucu son-yazan-kazanır,
+    /// aile içi kabul edilebilir). Kalkış tarihi ise yalnızca sahip/sürücü
+    /// cihazdan taşınır — ayrıntı: `canMoveDeparture`.
     @Published var isOwner: Bool {
         didSet {
             UserDefaults.standard.set(isOwner, forKey: Self.ownerKey)
+            // Sahipliğe terfide hemen körü körüne yazma: pushToWeb önce uzak
+            // hâlle birleştirir, bayat yerel düzenleme yenilerini ezemez.
             if isOwner { pushToWeb() }
         }
     }
@@ -24,11 +27,21 @@ final class TripPlanStore: ObservableObject {
     /// Kalkış/gün değişince çağrılır: bildirimleri yeniden kur, snapshot/web'i güncelle.
     var onChange: ((TripEdits) -> Void)?
 
-    private static let ownerKey = "plan-owner-device"
+    /// RoleStore ilk açılış tohumu için de okuyor (önceki kurulum tespiti).
+    static let ownerKey = "plan-owner-device"
+
+    /// Son senkron/gönderim anındaki düzenlemeler: 3-yönlü birleştirmede
+    /// "bu cihazda ne değişti" tabanı. Diske yazılır (yeniden başlatmada da geçerli).
+    private var syncBase = TripEdits()
 
     private var fileURL: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("trip-edits.json")
+    }
+
+    private var baseFileURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("trip-edits-sync-base.json")
     }
 
     init() {
@@ -37,57 +50,127 @@ final class TripPlanStore: ObservableObject {
            let decoded = try? JSONDecoder().decode(TripEdits.self, from: data) {
             edits = decoded
         }
+        if let data = try? Data(contentsOf: baseFileURL),
+           let decoded = try? JSONDecoder().decode(TripEdits.self, from: data) {
+            syncBase = decoded
+        }
     }
 
     // MARK: - Cihazlar arası senkron
 
-    /// Takipçi cihazlarda web'deki düzenlemeleri çeker ve uygular.
-    /// Sahip cihaz çekmez — kendi hâli zaten kaynak.
+    /// Web'deki düzenlemeleri çeker; bu cihazda henüz gönderilmemiş yerel
+    /// değişiklikleri koruyarak birleştirir. Gün düzenlemesini herkes
+    /// yapabildiği için sahip cihaz da çeker. Birleşik hâl uzaktakinden
+    /// farklıysa (yerel değişiklik varsa) geri gönderilir.
     func syncFromWeb() async {
-        guard !isOwner, !syncing, let url = Config.editsURL else { return }
+        guard !syncing, let url = Config.editsURL else { return }
         syncing = true
         defer { syncing = false }
 
+        guard let remote = await Self.fetchRemote(url: url) else { return }
+        lastSyncedAt = Date()
+        let merged = merge(local: edits, base: syncBase, remote: remote)
+        syncBase = remote
+        persistBase()
+
+        if merged != edits {
+            edits = merged
+            persist()
+            onChange?(edits)
+            objectWillChange.send()
+        }
+        // Yerel değişiklikler uzaktakinde yoksa birleşik hâli geri gönder.
+        if merged != remote { enqueue(merged, url: url) }
+    }
+
+    /// Düzenlemeleri web'e yazar. Gün düzenlemelerini HER cihaz gönderebilir;
+    /// kalkış tarihi yalnızca sahip/sürücü yükünde yer alır. Gönderimden önce
+    /// uzak hâl çekilip yerel değişikliklerle birleştirilir: bayat cihaz
+    /// başkasının yeni düzenlemesini ezemez. Gönderim outbox üzerinden
+    /// sıralı + yeniden denemeli yapılır.
+    private func pushToWeb() {
+        guard let url = Config.editsURL else { return }
+        Task {
+            var outgoing = edits
+            if let remote = await Self.fetchRemote(url: url) {
+                outgoing = merge(local: edits, base: syncBase, remote: remote)
+                if outgoing != edits {
+                    edits = outgoing
+                    persist()
+                    onChange?(edits)
+                    objectWillChange.send()
+                }
+            }
+            enqueue(outgoing, url: url)
+        }
+    }
+
+    /// Uzak düzenlemeleri GET ile çeker; hata/eksik veride nil.
+    private static func fetchRemote(url: URL) async -> TripEdits? {
         var request = URLRequest(url: url)
         request.cachePolicy = .reloadIgnoringLocalCacheData
         request.timeoutInterval = 12
         guard let (data, response) = try? await URLSession.shared.data(for: request),
               let http = response as? HTTPURLResponse, http.statusCode == 200,
-              let remote = try? Self.decoder.decode(TripEdits.self, from: data)
-        else { return }
-
-        lastSyncedAt = Date()
-        guard remote != edits else { return }   // değişmemişse dokunma
-
-        edits = remote
-        persist()
-        onChange?(edits)
-        objectWillChange.send()
+              let remote = try? decoder.decode(TripEdits.self, from: data)
+        else { return nil }
+        return remote
     }
 
-    /// Sahip cihazda düzenlemeleri web'e yazar.
-    private func pushToWeb() {
-        guard isOwner, let url = Config.editsURL else { return }
-
-        var payload: [String: Any] = ["days": Self.encodeDays(edits.days)]
-        if let dep = edits.departureAt {
-            payload["departureAt"] = ISO8601DateFormatter().string(from: dep)
-        } else {
-            payload["departureAt"] = NSNull()
+    /// 3-yönlü birleştirme: base'den beri BU cihazda değişen günler uzak
+    /// hâlin üstüne bindirilir (yerelde silinen gün uzaktan da silinir).
+    /// Kalkış tarihi yalnızca sahip/sürücü cihazdan alınır; takipçi
+    /// uzaktaki kalkışı aynen korur (asla taşıyamaz).
+    private func merge(local: TripEdits, base: TripEdits, remote: TripEdits) -> TripEdits {
+        var merged = remote
+        for slug in Set(local.days.keys).union(base.days.keys)
+        where local.days[slug] != base.days[slug] {
+            merged.days[slug] = local.days[slug]   // nil → uzaktakini siler
         }
+        if canMoveDeparture, local.departureAt != base.departureAt {
+            merged.departureAt = local.departureAt
+        }
+        return merged
+    }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(Config.livePostSecret, forHTTPHeaderField: "x-live-secret")
-        request.timeoutInterval = 12
-        request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+    /// Kalkış tarihini web'e taşıma yetkisi: sahip cihaz ya da sürücünün cihazı.
+    private var canMoveDeparture: Bool {
+        isOwner || RoleStore.shared.isDriver
+    }
 
-        Task { _ = try? await URLSession.shared.data(for: request) }
+    /// Yükü outbox'a bırakır. Takipçi yükünde departureAt ANAHTARI HİÇ
+    /// GÖNDERİLMEZ: takipçi kalkışı asla taşıyamaz (sunucu eksik anahtarı
+    /// "mevcudu koru" sayar — bkz. src/pages/api/edits.ts).
+    private func enqueue(_ outgoing: TripEdits, url: URL) {
+        var payload: [String: Any] = ["days": Self.encodeDays(outgoing.days)]
+        if canMoveDeparture {
+            if let dep = outgoing.departureAt {
+                payload["departureAt"] = ISO8601DateFormatter().string(from: dep)
+            } else {
+                payload["departureAt"] = NSNull()
+            }
+        }
+        guard let body = try? JSONSerialization.data(withJSONObject: payload) else { return }
+
+        let signature = String(data: body, encoding: .utf8) ?? ""
+        PublishOutbox.shared.enqueue(key: "edits", url: url, body: body, signature: signature)
+        syncBase = outgoing
+        persistBase()
     }
 
     private static func encodeDays(_ days: [String: DayEdit]) -> [String: Any] {
-        guard let data = try? encoder.encode(days),
+        let safeDays = days.mapValues { edit in
+            var safe = edit
+            safe.arrivalTarget = edit.arrivalTarget?.publicSummary
+            if var details = safe.stayDetails {
+                details.reservationReference = nil
+                details.note = nil
+                details.lastContactedAt = nil
+                safe.stayDetails = details
+            }
+            return safe
+        }
+        guard let data = try? encoder.encode(safeDays),
               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { return [:] }
         return obj
@@ -101,7 +184,20 @@ final class TripPlanStore: ObservableObject {
 
     private static let decoder: JSONDecoder = {
         let d = JSONDecoder()
-        d.dateDecodingStrategy = .iso8601
+        // Web yükü kesirli saniyeli ISO-8601 gönderebilir (örn. updatedAt
+        // damgalı kayıtlar); düz .iso8601 bunu okuyamaz ve takipçi senkronu
+        // kalıcı olarak ölür. Önce kesirli saniyeyle, olmazsa düz biçimle dene.
+        d.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let text = try container.decode(String.self)
+            let iso = ISO8601DateFormatter()
+            iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = iso.date(from: text) { return date }
+            iso.formatOptions = [.withInternetDateTime]
+            if let date = iso.date(from: text) { return date }
+            throw DecodingError.dataCorruptedError(
+                in: container, debugDescription: "Geçersiz ISO-8601 tarih: \(text)")
+        }
         return d
     }()
 
@@ -135,6 +231,17 @@ final class TripPlanStore: ObservableObject {
         commit()
     }
 
+    func setArrivalTarget(_ target: ArrivalTarget, stay: StayDetails, slug: String) {
+        update(slug: slug) { edit in
+            edit.arrivalTarget = target.publicSummary
+            var safeStay = stay
+            safeStay.reservationReference = nil
+            safeStay.note = nil
+            safeStay.lastContactedAt = nil
+            edit.stayDetails = safeStay
+        }
+    }
+
     func reset(slug: String) {
         edits.days.removeValue(forKey: slug)
         commit()
@@ -152,17 +259,23 @@ final class TripPlanStore: ObservableObject {
 
     private func commit() {
         persist()
-        pushToWeb()          // yalnızca sahip cihazda etkili
+        pushToWeb()          // her cihaz gün düzenlemesini gönderir; kalkış kısıtlı
         onChange?(edits)
         objectWillChange.send()
     }
 
-    /// Yerel dosya VARSAYILAN tarih biçimini kullanır — init de öyle okuyor.
+    /// Yerel dosyalar VARSAYILAN tarih biçimini kullanır — init de öyle okuyor.
     /// ISO-8601 yalnızca ağ yükünde; yerelde değiştirmek cihazdaki mevcut
     /// düzenlemeleri okunamaz hale getirirdi.
     private func persist() {
         if let data = try? JSONEncoder().encode(edits) {
             try? data.write(to: fileURL, options: .atomic)
+        }
+    }
+
+    private func persistBase() {
+        if let data = try? JSONEncoder().encode(syncBase) {
+            try? data.write(to: baseFileURL, options: .atomic)
         }
     }
 }

@@ -6,30 +6,23 @@ struct DayEditView: View {
     let day: EffectiveDay
 
     @EnvironmentObject var plan: TripPlanStore
+    @EnvironmentObject private var store: TripStore
     @Environment(\.dismiss) private var dismiss
 
-    @State private var origin: String
-    @State private var destination: String
     @State private var distanceKm: String
     @State private var duration: String
     @State private var fuel: String
     @State private var note: String
-    @State private var campName: String
-    @State private var campPlace: String
     @State private var isRestDay: Bool
     @State private var extraDays: Int
     @State private var startHour: Int
 
     init(day: EffectiveDay) {
         self.day = day
-        _origin = State(initialValue: day.origin)
-        _destination = State(initialValue: day.destination)
         _distanceKm = State(initialValue: day.distanceKm)
         _duration = State(initialValue: day.duration)
         _fuel = State(initialValue: day.fuel)
         _note = State(initialValue: day.edit?.note ?? "")
-        _campName = State(initialValue: day.campName)
-        _campPlace = State(initialValue: day.campPlace)
         _isRestDay = State(initialValue: day.isRestDay)
         _extraDays = State(initialValue: max(0, day.edit?.extraDays ?? 0))
         _startHour = State(initialValue: Calendar.current.component(.hour, from: day.departTime))
@@ -43,9 +36,7 @@ struct DayEditView: View {
                     VStack(alignment: .leading, spacing: 18) {
                         infoBanner
 
-                        group("Güzergâh", Theme.c1) {
-                            field("Nereden", text: $origin)
-                            field("Nereye", text: $destination)
+                        group("Gün türü", Theme.c1) {
                             Toggle(isOn: $isRestDay) {
                                 Text("Dinlenme günü")
                                     .font(.system(size: 15, weight: .semibold, design: .rounded))
@@ -66,7 +57,7 @@ struct DayEditView: View {
                             stepperRow(
                                 title: "Çıkış saati",
                                 value: $startHour, range: 0 ... 23,
-                                hint: String(format: "%02d:00", startHour)
+                                hint: startHourHint
                             )
                         }
 
@@ -74,11 +65,6 @@ struct DayEditView: View {
                             field("Mesafe", text: $distanceKm)
                             field("Süre", text: $duration)
                             field("Yakıt", text: $fuel)
-                        }
-
-                        group("Kamp", Theme.c4) {
-                            field("Kamp adı", text: $campName)
-                            field("Yer", text: $campPlace)
                         }
 
                         group("Kişisel not", Theme.c1) {
@@ -112,6 +98,7 @@ struct DayEditView: View {
             }
             .navigationTitle("\(day.index + 1). günü düzenle")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear(perform: refresh)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Vazgeç") { dismiss() }.tint(Theme.muted)
@@ -139,26 +126,41 @@ struct DayEditView: View {
 
     // MARK: - Kaydet (boş/aynı alan → düzenleme yok)
 
+    /// Sheet açılırken formu depodaki TAZE günle doldur — init'teki `day`
+    /// eski bir kopya olabilir (sheet açıkken web senkronu gelmiş olabilir).
+    private func refresh() {
+        let d = plan.day(store.trip, slug: day.base.slug) ?? day
+        distanceKm = d.distanceKm
+        duration = d.duration
+        fuel = d.fuel
+        note = d.edit?.note ?? ""
+        isRestDay = d.isRestDay
+        extraDays = max(0, d.edit?.extraDays ?? 0)
+        startHour = Calendar.current.component(.hour, from: d.departTime)
+    }
+
     private func save() {
-        plan.update(slug: day.base.slug) { e in
-            e.origin = diff(origin, day.base.origin)
-            e.destination = diff(destination, day.base.destination)
-            e.distanceKm = diff(distanceKm, day.base.distanceKm)
-            e.duration = diff(duration, day.base.duration)
-            e.fuel = diff(fuel, day.base.fuel)
-            e.campName = diff(campName, day.base.camp.name)
-            e.campPlace = diff(campPlace, day.base.camp.place)
+        // Diff tabanını KAYIT ANINDA depodan taze çek — sheet açıkken web
+        // senkronu tabanı değiştirmiş olabilir; init'teki `day.base` bayat
+        // kalıp yeni taban değerlerini hayalet düzenlemeye çevirirdi.
+        let base = plan.day(store.trip, slug: day.base.slug)?.base ?? day.base
+        plan.update(slug: base.slug) { e in
+            e.distanceKm = diff(distanceKm, base.distanceKm)
+            e.duration = diff(duration, base.duration)
+            e.fuel = diff(fuel, base.fuel)
 
             let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
             e.note = trimmedNote.isEmpty ? nil : trimmedNote
 
-            let baseRest = (e.origin ?? day.base.origin) == (e.destination ?? day.base.destination)
+            let baseRest = base.origin == base.destination
             e.isRestDay = (isRestDay == baseRest) ? nil : isRestDay
 
             e.extraDays = extraDays == 0 ? nil : extraDays
 
+            // İlk günün varsayılanı GERÇEK kalkış saati (web verisi dahil) —
+            // plan.departure(nil) tripsiz Date()'e düşer ve hayalet startHour yazardı.
             let defaultHour = day.index == 0
-                ? Calendar.current.component(.hour, from: plan.departure(nil))
+                ? Calendar.current.component(.hour, from: plan.departure(store.trip))
                 : 8
             e.startHour = (startHour == defaultHour) ? nil : startHour
         }
@@ -169,6 +171,20 @@ struct DayEditView: View {
     private func diff(_ value: String, _ base: String) -> String? {
         let t = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return (t.isEmpty || t == base) ? nil : t
+    }
+
+    /// Gün 0'da stepper saatlik çalışır ama gerçek varsayılan dakikalı olabilir
+    /// (ör. 08:30). Değer varsayılana eşitse kayıtta nil yazılır ve dakika
+    /// korunur — ipucunda tam saati göster ki görünenle kaydedilen uyuşsun.
+    private var startHourHint: String {
+        guard day.index == 0 else { return String(format: "%02d:00", startHour) }
+        let cal = Calendar.current
+        let dep = plan.departure(store.trip)
+        let defaultHour = cal.component(.hour, from: dep)
+        if startHour == defaultHour, plan.edits.days[day.base.slug]?.startHour == nil {
+            return String(format: "%02d:%02d (kalkış saati)", defaultHour, cal.component(.minute, from: dep))
+        }
+        return String(format: "%02d:00", startHour)
     }
 
     // MARK: - Yapı taşları

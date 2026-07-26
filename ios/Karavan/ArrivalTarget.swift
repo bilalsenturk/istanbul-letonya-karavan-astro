@@ -91,6 +91,15 @@ struct ArrivalTarget: Codable, Equatable, Identifiable, Hashable {
         latitude.isFinite && longitude.isFinite
             && abs(latitude) <= 90 && abs(longitude) <= 180
     }
+
+    var publicSummary: ArrivalTarget {
+        var value = self
+        value.phone = nil
+        value.whatsAppPhone = nil
+        value.email = nil
+        value.websiteURL = nil
+        return value
+    }
 }
 
 struct ArrivalPlaceSnapshot: Equatable, Identifiable {

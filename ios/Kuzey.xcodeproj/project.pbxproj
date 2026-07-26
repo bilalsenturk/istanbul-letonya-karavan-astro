@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		020E8C313C6FBED2120E39DC /* ArrivalTargetEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF4A17AEA5D744333A66588 /* ArrivalTargetEditorView.swift */; };
 		042CD6553C4C9F181A24D979 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F5C959C02D3AEB61D35B2E4 /* DashboardView.swift */; };
 		054FCB4E10C16B21E3D45902 /* DayEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFCA663A470C8DD3B775062E /* DayEditView.swift */; };
 		073A647E142E2160B0668B7B /* announcements.json in Resources */ = {isa = PBXBuildFile; fileRef = 50F734E88085ED4D6DE9044E /* announcements.json */; };
@@ -43,6 +44,7 @@
 		693934A74992D1B4067B8F14 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7756E3E11615E135A656BFAB /* SignInView.swift */; };
 		69DC5A10A13AE08E1F9CEDC3 /* lv-a0-listen-sveiki.wav in Resources */ = {isa = PBXBuildFile; fileRef = E37D025A8C64E0D219CF91D5 /* lv-a0-listen-sveiki.wav */; };
 		6A8F57A39EEEB2A7FA64075F /* Expense.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB332D14823389349D9F9A9 /* Expense.swift */; };
+		6DB49F6FDA63B6E497513F8E /* StayContactProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F74EC0068F98CB8265C4B89 /* StayContactProfileStore.swift */; };
 		6EA5D3285D7A6FC7A3A7E3D3 /* AccountModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45EA2D2DAE7C357998901565 /* AccountModels.swift */; };
 		6FF4D6EBE93C8C9748205DB8 /* RouteBuilderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 152914230381950540AF3C38 /* RouteBuilderView.swift */; };
 		73E54B6EC9AF640FB442E727 /* DocumentVaultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4198F36A45B4A90AFAEB6D59 /* DocumentVaultView.swift */; };
@@ -102,6 +104,7 @@
 		DD0EDC6C525BA8C722EFFB8F /* AnnouncementAudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0521A93D4BC40C937DF85C12 /* AnnouncementAudio.swift */; };
 		DD27A9E6C1CCB53B5B5F0E24 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B82E5004A631A77716317D /* LocationManager.swift */; };
 		DF5A237E41CA4173E3B5904C /* ArrivalTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A527A4E704CE076BEDB5E68 /* ArrivalTarget.swift */; };
+		DFDDFC0C50FBD902FED9A14E /* ArrivalTargetCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96EB120F6B3CEED16E316CB7 /* ArrivalTargetCard.swift */; };
 		E0F513EC31511B915B78587B /* AccountSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79E023B62FCBECADC69DABCB /* AccountSessionStore.swift */; };
 		E4C01FD27953FBA51E4F5EE2 /* AnnouncementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F739F17C393A922A8DB2D1B /* AnnouncementService.swift */; };
 		E7CC729324E01B0041BFBEE5 /* LiveLocationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C443FE724E722869D208BAC /* LiveLocationCard.swift */; };
@@ -167,6 +170,7 @@
 		39518EF9591A8B60BC9FB024 /* Kuzey.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Kuzey.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3D10B03E5964F14677E5F5C0 /* AccountMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountMenuView.swift; sourceTree = "<group>"; };
 		3D9F3A0BB3C15CC80EAAB4C3 /* lv-a0-speak-labdien.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "lv-a0-speak-labdien.wav"; sourceTree = "<group>"; };
+		3DF4A17AEA5D744333A66588 /* ArrivalTargetEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrivalTargetEditorView.swift; sourceTree = "<group>"; };
 		4198F36A45B4A90AFAEB6D59 /* DocumentVaultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentVaultView.swift; sourceTree = "<group>"; };
 		45DECAA1995A716526093E8C /* CampImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CampImage.swift; sourceTree = "<group>"; };
 		45EA2D2DAE7C357998901565 /* AccountModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountModels.swift; sourceTree = "<group>"; };
@@ -192,6 +196,7 @@
 		5CFA86E52D515272F7F13F10 /* TripStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripStore.swift; sourceTree = "<group>"; };
 		5D4F8488E7E8ACA586661498 /* MembersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MembersView.swift; sourceTree = "<group>"; };
 		5DC95431B932CB4DFD5412C9 /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
+		5F74EC0068F98CB8265C4B89 /* StayContactProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StayContactProfileStore.swift; sourceTree = "<group>"; };
 		60381A80163D3A30637AF850 /* lv-a0-phoneme-long-a.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "lv-a0-phoneme-long-a.wav"; sourceTree = "<group>"; };
 		60D39C5F92694220AE03C259 /* AppIntentsSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntentsSupport.swift; sourceTree = "<group>"; };
 		69D701532F19396FBF2875EA /* TripNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripNotifier.swift; sourceTree = "<group>"; };
@@ -214,6 +219,7 @@
 		8FCA86BC2BD7CA0F2439A51B /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
 		92433716A15BEBCD592B63E2 /* KuzeyWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KuzeyWidgets.swift; sourceTree = "<group>"; };
 		951D0A85ADCE46B95E28C1FF /* RouteDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteDraft.swift; sourceTree = "<group>"; };
+		96EB120F6B3CEED16E316CB7 /* ArrivalTargetCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrivalTargetCard.swift; sourceTree = "<group>"; };
 		9AEF46AA6EEEAA6BB1DFD19E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9F5C959C02D3AEB61D35B2E4 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		AA9EC5D3FE46DF622AC25DD1 /* NotificationBudget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationBudget.swift; sourceTree = "<group>"; };
@@ -317,6 +323,7 @@
 				F6C3FE82A4D2A72C6C58B545 /* RouteAnnouncementPolicy.swift */,
 				F573345B05D38B533D7AC738 /* RouteStepPolicy.swift */,
 				DEDCB70244A1866C05724B7B /* RouteStore.swift */,
+				5F74EC0068F98CB8265C4B89 /* StayContactProfileStore.swift */,
 				00954AF5EE56487B60F675E1 /* Theme.swift */,
 				B4035201F31588EB77A1717A /* TripPlanner.swift */,
 				48245403E32764040394E43C /* TripPlanStore.swift */,
@@ -348,6 +355,8 @@
 			isa = PBXGroup;
 			children = (
 				1D776FB862EE977F4B986DF6 /* Adaptive.swift */,
+				96EB120F6B3CEED16E316CB7 /* ArrivalTargetCard.swift */,
+				3DF4A17AEA5D744333A66588 /* ArrivalTargetEditorView.swift */,
 				45DECAA1995A716526093E8C /* CampImage.swift */,
 				5A9CB73E03C832207007A05A /* ContentView.swift */,
 				CD74465F353E94FA714455D0 /* CountdownView.swift */,
@@ -621,6 +630,8 @@
 				8A8CCD1D954E11A6C346CFB6 /* AppleMapsService.swift in Sources */,
 				D16651F68754C7555A38ECE3 /* ArrivalPlaceSearchService.swift in Sources */,
 				DF5A237E41CA4173E3B5904C /* ArrivalTarget.swift in Sources */,
+				DFDDFC0C50FBD902FED9A14E /* ArrivalTargetCard.swift in Sources */,
+				020E8C313C6FBED2120E39DC /* ArrivalTargetEditorView.swift in Sources */,
 				C35AE28C1535B5AE4E04BE01 /* ArrivalTargetPickerView.swift in Sources */,
 				C1CD5BD742E28B2406B8C33B /* CampImage.swift in Sources */,
 				27D303E4234299F590A82DC4 /* Config.swift in Sources */,
@@ -683,6 +694,7 @@
 				A9E4066FE143338D37E04117 /* SharedSnapshot.swift in Sources */,
 				693934A74992D1B4067B8F14 /* SignInView.swift in Sources */,
 				18778F449FCB6B3ECAD42DF8 /* SpeechRecorder.swift in Sources */,
+				6DB49F6FDA63B6E497513F8E /* StayContactProfileStore.swift in Sources */,
 				62D8D612FD80BF4C6EDD2B4B /* StopEditorView.swift in Sources */,
 				9D65F8215A7804576B305FB9 /* StopExploreView.swift in Sources */,
 				FAD7DD8D7AC36626072723B3 /* Theme.swift in Sources */,
