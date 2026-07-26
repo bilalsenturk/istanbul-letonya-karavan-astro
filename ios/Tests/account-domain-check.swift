@@ -92,6 +92,8 @@ struct AccountDomainCheck {
         expect(editableDraft.name == trip.name, "kayıtlı rota aynı editörde açılır")
         expect(editableDraft.transportMode == .walking, "editör ulaşım türünü korur")
         expect(editableDraft.stops.map(\.id) == ["a", "b"], "editör durak sırasını korur")
+        expect(editableDraft.stops[1].arrivalTarget?.id == "campuccino", "editör kesin hedefi korur")
+        expect(editableDraft.apiStops[1].arrivalTarget?.phone == "+359881234567", "API dönüşümü hedef iletişimini korur")
 
         print("\n✅ HESAP VE ROTA MODELİ KONTROLLERİ GEÇTİ")
     }
