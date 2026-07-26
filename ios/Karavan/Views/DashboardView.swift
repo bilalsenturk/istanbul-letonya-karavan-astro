@@ -9,8 +9,10 @@ struct DashboardView: View {
     @EnvironmentObject var nav: NavProgressStore
     @EnvironmentObject var altimeter: AltimeterService
     @EnvironmentObject var plan: TripPlanStore
+    @EnvironmentObject var routeSession: RouteSession
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var showSettings = false
+    @StateObject private var updates = UpdateChecker.shared
 
     // Sürüş Focus filtresi (Ayarlar → Odak → Sürüş → Kuzey): sade panel.
     @AppStorage(SharedSnapshot.Key.simpleMode, store: SharedSnapshot.defaults)
@@ -25,6 +27,7 @@ struct DashboardView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
                         header
+                        if updates.shouldShowBanner { updateBanner }
                         if let trip = store.trip {
                             VStack(alignment: .leading, spacing: 10) {
                                 HStack {
@@ -38,13 +41,18 @@ struct DashboardView: View {
                                     }
                                 }
                                 // Kalkış = düzenleme > web verisi (tek kaynak: TripPlanner)
-                                CountdownView(departure: plan.departure(trip))
+                                CountdownView(
+                                    departure: plan.departure(trip),
+                                    routeStarted: routeSession.isActive,
+                                    activeRouteName: routeSession.activeStopName
+                                )
                             }
                             if !simpleMode { metricRow(trip: trip) }
                             // iPad'de kartlar iki sütuna açılır, iPhone'da tek sütun kalır.
                             AdaptiveColumns(spacing: 16) {
                                 if !simpleMode { expenseCard(trip: trip) }
                                 LiveLocationCard()
+                                if !simpleMode { altitudeCard }
                                 MiniMusicBar()
                                 if !simpleMode {
                                     arrivalsCard
@@ -71,32 +79,102 @@ struct DashboardView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
         }
         .task {
-            loc.request()
-            if let stops = store.trip?.stops {
-                async let w: () = weather.refresh(stops: stops)
-                async let r: () = routeStore.computeIfNeeded(stops: stops)
-                _ = await (w, r)
-                await nav.update(location: loc.location, stops: stops, route: routeStore)
-            }
+            async let u: () = updates.checkIfNeeded()
+            async let b: () = bootstrap()
+            _ = await (u, b)
+        }
+        // .task yolculuk yüklenmeden çalıştıysa (bundled decode + uzaktan
+        // yükleme yarışı) hava/rota/nav başlatılmadan kalırdı — gelince tekrar dene.
+        .onChange(of: store.trip != nil) { _, loaded in
+            if loaded { Task { await bootstrap() } }
         }
         .onChange(of: loc.location?.timestamp) { _, _ in
-            altimeter.stationary = (loc.speedKmh ?? 0) < 5   // yalnızca dururken fırtına kontrolü
+            updateAltimeterMotionGate()
+        }
+        .onChange(of: loc.status) { _, _ in
+            updateAltimeterMotionGate()
         }
         .sheet(isPresented: $showSettings) { TripSettingsView() }
     }
 
     // MARK: - Parçalar
 
+    // TestFlight güncelleme bildirimi (kaynak: sitedeki /kuzey-version.json).
+    // Zorunluysa kapatılamaz; değilse "Sonra" o build için gizler.
+    private var updateBanner: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            HStack {
+                MonoLabel(text: updates.isRequired ? "Güncelleme gerekli" : "Yeni sürüm",
+                          color: updates.isRequired ? Theme.bad : Theme.c1)
+                Spacer()
+                if !updates.isRequired {
+                    Button { updates.snoozeLatest() } label: {
+                        Text("Sonra")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Theme.muted)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            Text(updates.isRequired
+                 ? "Bu sürüm artık desteklenmiyor"
+                 : "Yeni sürüm hazır\(updates.latestBuild.map { " (build \($0))" } ?? "")")
+                .font(.system(size: 17, weight: .heavy, design: .rounded))
+                .foregroundStyle(Theme.text)
+            Text(updates.isRequired
+                 ? "Kuzey'i kullanmaya devam etmek için TestFlight'tan güncelle."
+                 : "TestFlight'ta yeni bir build var; güncellemek için dokun.")
+                .font(.system(size: 12.5, weight: .medium))
+                .foregroundStyle(Theme.dim)
+            if let url = updates.testflightURL {
+                Link(destination: url) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.down.circle.fill")
+                            .font(.system(size: 14, weight: .bold))
+                        Text("TestFlight'ta güncelle")
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        updates.isRequired ? AnyShapeStyle(Theme.bad) : AnyShapeStyle(Theme.gradWarm),
+                        in: RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    )
+                }
+            }
+        }
+        .card()
+    }
+
+    /// Konum izni + hava/rota/nav önyüklemesi. Yolculuk henüz yoksa sessizce
+    /// geçer; trip geldiğinde onChange yeniden çağırır.
+    private func bootstrap() async {
+        loc.request()
+        updateAltimeterMotionGate()
+        if let stops = store.trip?.stops {
+            async let w: () = weather.refresh(stops: stops)
+            async let r: () = routeStore.computeIfNeeded(stops: stops)
+            _ = await (w, r)
+            await nav.update(location: loc.location, stops: stops, route: routeStore)
+        }
+    }
+
+    private func updateAltimeterMotionGate() {
+        altimeter.motionSignalUnavailable = loc.status == .denied || loc.status == .restricted
+        altimeter.updateMotion(speedKmh: loc.speedKmh)
+    }
+
     private var aurora: some View {
         GeometryReader { geo in
             ZStack {
-                Circle().fill(Theme.c3.opacity(0.20))
+                Circle().fill(Theme.c3.opacity(0.08))
                     .frame(width: geo.size.width * 0.9)
-                    .blur(radius: 90)
+                    .blur(radius: 110)
                     .offset(x: geo.size.width * 0.35, y: -geo.size.height * 0.32)
-                Circle().fill(Theme.c1.opacity(0.16))
+                Circle().fill(Theme.c1.opacity(0.07))
                     .frame(width: geo.size.width * 0.8)
-                    .blur(radius: 80)
+                    .blur(radius: 110)
                     .offset(x: -geo.size.width * 0.3, y: geo.size.height * 0.34)
             }
         }
@@ -125,15 +203,25 @@ struct DashboardView: View {
 
     // Anlık şehir + sıradaki hedefe kalan km/süre (dashboard başlığı altında).
     @ViewBuilder private var liveStatusLine: some View {
-        if nav.currentCity != nil || nav.nextStop != nil {
+        let nextRequiredStop = store.trip.flatMap { trip in
+            routeSession.nextStartableStopId(stops: trip.stops)
+                .flatMap { id in trip.stops.first { $0.id == id } }
+        }
+        if nav.currentCity != nil || routeSession.isActive || nextRequiredStop != nil {
             HStack(spacing: 8) {
                 if let city = nav.currentCity {
                     Label("Şu an: \(city)", systemImage: "location.fill")
                         .font(.system(size: 12.5, weight: .bold, design: .rounded))
                         .foregroundStyle(Theme.c4)
                 }
-                if let next = nav.nextStop, let km = nav.remainingKm {
-                    Text("· Sıradaki \(next.name): \(km) km" + (nav.remainingMinutes != nil ? " · \(nav.remainingTimeText)" : ""))
+                if routeSession.isActive, let active = routeSession.activeStopName, let km = nav.remainingKm {
+                    Text("· Aktif rota \(active): \(km) km" + (nav.remainingMinutes != nil ? " · \(nav.remainingTimeText)" : ""))
+                        .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Theme.dim)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.65)
+                } else if let next = nextRequiredStop {
+                    Text("· Sıradaki etap: \(next.name)")
                         .font(.system(size: 12.5, weight: .semibold, design: .rounded))
                         .foregroundStyle(Theme.dim)
                         .lineLimit(1)
@@ -177,9 +265,10 @@ struct DashboardView: View {
     // MARK: - Harcama kartı (dokununca detay liste açılır)
 
     private func expenseCard(trip: TripData) -> some View {
-        let ceiling = Double(trip.totalBudget.max ?? 1795)
-        let ratio = ceiling > 0 ? min(1, expenses.total / ceiling) : 0
-        let percent = Int((ratio * 100).rounded())
+        // Üst sınır web verisinde yoksa sihirli sayıyla oran HESAPLAMA —
+        // bütçe çubuğunu gizle, yalnızca harcanan toplamı göster.
+        let ceiling = trip.totalBudget.max.map(Double.init)
+        let ratio = ceiling.flatMap { $0 > 0 ? min(1, expenses.total / $0) : nil }
         return NavigationLink {
             ExpensesView()
         } label: {
@@ -198,27 +287,36 @@ struct DashboardView: View {
                     Text("€\(expenses.total, specifier: "%.0f")")
                         .font(.system(size: 34, weight: .heavy, design: .rounded))
                         .foregroundStyle(Theme.text)
-                    Text("/ €\(ceiling, specifier: "%.0f") tahmini")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Theme.muted)
-                }
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Color.white.opacity(0.08))
-                        Capsule()
-                            .fill(percent >= 100 ? AnyShapeStyle(Theme.bad) : AnyShapeStyle(Theme.gradWarm))
-                            .frame(width: geo.size.width * ratio)
+                    if let ceiling {
+                        Text("/ €\(ceiling, specifier: "%.0f") tahmini")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Theme.muted)
+                    } else if expenses.expenses.isEmpty {
+                        Text("+ ekle")
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Theme.dim)
                     }
                 }
-                .frame(height: 9)
-                HStack {
-                    Text("%\(percent) harcandı")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .foregroundStyle(percent >= 100 ? Theme.bad : Theme.dim)
-                    Spacer()
-                    Text(expenses.expenses.isEmpty ? "+ ekle" : "kalan €\(max(0, ceiling - expenses.total), specifier: "%.0f")")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Theme.dim)
+                if let ceiling, let ratio {
+                    let percent = Int((ratio * 100).rounded())
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Color.white.opacity(0.08))
+                            Capsule()
+                                .fill(percent >= 100 ? AnyShapeStyle(Theme.bad) : AnyShapeStyle(Theme.gradWarm))
+                                .frame(width: geo.size.width * ratio)
+                        }
+                    }
+                    .frame(height: 9)
+                    HStack {
+                        Text("%\(percent) harcandı")
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundStyle(percent >= 100 ? Theme.bad : Theme.dim)
+                        Spacer()
+                        Text(expenses.expenses.isEmpty ? "+ ekle" : "kalan €\(max(0, ceiling - expenses.total), specifier: "%.0f")")
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Theme.dim)
+                    }
                 }
             }
             .card()
@@ -228,16 +326,11 @@ struct DashboardView: View {
 
     // Kalan tüm duraklara zincirleme varış tahmini (Apple ETA) + rakım.
     @ViewBuilder private var arrivalsCard: some View {
-        if !nav.arrivals.isEmpty {
+        if routeSession.isActive && !nav.arrivals.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     MonoLabel(text: "Tahmini varışlar", color: Theme.c3)
                     Spacer()
-                    if altimeter.available, let alt = altimeter.altitude {
-                        Label("\(Int(alt)) m", systemImage: "mountain.2.fill")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Theme.dim)
-                    }
                 }
                 ForEach(nav.arrivals) { a in
                     HStack(spacing: 10) {
@@ -254,6 +347,69 @@ struct DashboardView: View {
             }
             .card()
         }
+    }
+
+    private var altitudeCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                MonoLabel(text: "Yükseklik", color: Theme.c4)
+                Spacer()
+                if let pressure = altimeter.pressureHpa {
+                    Text("\(Int(pressure.rounded())) hPa")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Theme.muted)
+                }
+            }
+
+            if let reading = AltitudeDisplay.reading(
+                absoluteMeters: altimeter.absoluteAltitude,
+                relativeMeters: altimeter.relativeAltitude
+            ) {
+                HStack(alignment: .center, spacing: 14) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Theme.c4.opacity(0.14))
+                            .frame(width: 54, height: 54)
+                        Image(systemName: reading.symbol)
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundStyle(Theme.c4)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(reading.text)
+                            .font(.system(size: 36, weight: .heavy, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.text)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                        Text(reading.label)
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            .foregroundStyle(Theme.muted)
+                    }
+                    Spacer(minLength: 0)
+                }
+                if altimeter.altitudeIsRelative {
+                    Text("Mutlak barometre yok; değer başlangıca göre değişimi gösterir.")
+                        .font(.system(size: 11.5, weight: .medium))
+                        .foregroundStyle(Theme.muted)
+                } else if altimeter.motionSignalUnavailable {
+                    Text("Konum izni yok; basınç uyarısı hareket ayrımı olmadan izlenir.")
+                        .font(.system(size: 11.5, weight: .medium))
+                        .foregroundStyle(Theme.warn)
+                }
+            } else {
+                HStack(spacing: 10) {
+                    Image(systemName: altimeter.available ? "gauge.with.dots.needle.67percent" : "slash.circle")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(Theme.muted)
+                    Text(altimeter.available ? "Rakım ölçülüyor…" : "Bu cihazda barometre yok")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Theme.muted)
+                    Spacer()
+                }
+                .padding(.vertical, 8)
+            }
+        }
+        .card()
     }
 
     private func etaText(_ date: Date) -> String {
@@ -360,9 +516,13 @@ struct TimelineRow: View {
                 }
 
                 HStack {
-                    Label(day.camp.place, systemImage: "tent.fill")
+                    Label(
+                        effective?.arrivalTarget?.name
+                            ?? (day.isRestDay ? "Konaklama planlanmadı" : "Varış yeri seçilmedi"),
+                        systemImage: effective?.arrivalTarget == nil ? "mappin.slash" : "mappin.and.ellipse"
+                    )
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Theme.muted)
+                        .foregroundStyle(effective?.arrivalTarget == nil ? Theme.c3 : Theme.muted)
                         .lineLimit(1)
                     Spacer()
                     Image(systemName: "chevron.right")
