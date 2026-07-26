@@ -193,8 +193,10 @@ struct DayDetailView: View {
                 onStart: {
                     guard canStart else { return }
                     Task {
+                        guard let target = exactTarget else { return }
                         await LegLauncher.start(
                             stop: city,
+                            target: target,
                             stops: stops,
                             nav: nav,
                             location: loc.location,
@@ -222,6 +224,12 @@ struct DayDetailView: View {
     }
 
     private func saveTarget(_ target: ArrivalTarget, stay: StayDetails) {
+        if routeSession.activeStopId == destinationStop?.id,
+           routeSession.activeTargetId != nil,
+           routeSession.activeTargetId != target.id {
+            routeSession.clear()
+            LiveActivityManager.shared.endCurrent()
+        }
         plan.setArrivalTarget(target, stay: stay, slug: day.slug)
         guard var stop = accountDestinationStop, let trip = workspace.selectedTrip,
               trip.access.canEditStops else { return }

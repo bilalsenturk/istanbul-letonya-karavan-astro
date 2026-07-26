@@ -1,5 +1,6 @@
 import Foundation
 import CoreLocation
+import UIKit
 
 // Canlı konum: cihazın kendi GPS'i. Riga'ya kalan mesafe, hız, sıradaki durak
 // cihazda hesaplanır; istenirse web'e de yayınlanır (bkz. publishToWeb).
@@ -15,15 +16,26 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     weak var nav: NavProgressStore?
     weak var trip: TripStore?
     weak var routeStore: RouteStore?
+    weak var altimeter: AltimeterService?
 
     private let manager = CLLocationManager()
     private var lastPostAt: Date = .distantPast
     private var monitoredStops: [Stop] = []
+    /// UI'siz arka plan uyanışında (SLOC/geofence) nav/trip yedeği — weak
+    /// referanslar view .task'ından gelir; orası çalışmadıysa bunlar devreye girer.
+    private var backgroundNav: NavProgressStore?
+    private var backgroundTrip: TripStore?
 
     override init() {
         super.init()
         manager.delegate = self
         manager.activityType = .automotiveNavigation
+        // Arka plan teslimatı: uygulama arkadayken/ekran kapalıyken de sürüş
+        // güncellemeleri gelsin (varış yaklaşımı, sürüş molası, pil uyarıları).
+        // Always izni yoksa sistem bu bayrağı yok sayar. Otomatik duraklatma
+        // kapalı: sürüş uygulamasında akışın kesilmesi bildirim hattını öldürür.
+        manager.allowsBackgroundLocationUpdates = true
+        manager.pausesLocationUpdatesAutomatically = false
         applyPowerMode()
         NotificationCenter.default.addObserver(self, selector: #selector(powerChanged),
                                                name: .NSProcessInfoPowerStateDidChange, object: nil)
@@ -60,64 +72,126 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     }
 
     /// Varış geofence'i: her durağın çevresinde çember; girince bildirim (app kapalıyken de).
+    /// Bölge kimliği olarak durağın KARARLI id'si kullanılır — web verisinde durak
+    /// yeniden adlandırılsa bile eşleşme bozulmaz.
     func startMonitoringStops(_ stops: [Stop]) {
         monitoredStops = stops
+        monitoredKey = Self.stopsKey(stops)
         guard CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self) else { return }
         for region in manager.monitoredRegions { manager.stopMonitoring(for: region) }
         for stop in stops.prefix(20) {
-            let region = CLCircularRegion(center: stop.coordinate, radius: 3000, identifier: stop.name)
+            let region = CLCircularRegion(center: stop.coordinate, radius: 3000, identifier: stop.id)
             region.notifyOnEntry = true
             region.notifyOnExit = false
             manager.startMonitoring(for: region)
         }
     }
 
+    private var monitoredKey = ""
+
+    private static func stopsKey(_ stops: [Stop]) -> String {
+        stops.map { "\($0.id):\($0.name):\($0.lat),\($0.lng)" }.joined(separator: "|")
+    }
+
+    /// Web yolculuk verisi yenilenip duraklar değişince KaravanApp çağırır —
+    /// çemberler güncel listeyle yeniden kaydedilir. Liste aynıysa hiçbir şey yapmaz.
+    func refreshMonitoredStops(_ stops: [Stop]) {
+        guard Self.stopsKey(stops) != monitoredKey else { return }
+        startMonitoringStops(stops)
+    }
+
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let s = manager.authorizationStatus
         Task { @MainActor in
             self.status = s
+            if s == .authorizedWhenInUse {
+                // Geofence/SLOC ile app KAPALIYKEN uyanmak Always ister — WhenInUse
+                // verilir verilmez yükselt. Yalnızca bir kez dene: reddedildiyse
+                // her açılışta yeniden sormak iOS'ta sessizce yutulur ama temiz olsun.
+                let askedKey = "alwaysUpgradeRequested"
+                if !UserDefaults.standard.bool(forKey: askedKey) {
+                    UserDefaults.standard.set(true, forKey: askedKey)
+                    self.manager.requestAlwaysAuthorization()
+                }
+            }
             if s == .authorizedWhenInUse || s == .authorizedAlways {
                 self.manager.startUpdatingLocation()
                 if !self.monitoredStops.isEmpty {
                     self.startMonitoringStops(self.monitoredStops)
                 }
             }
+            if s == .authorizedAlways {
+                // Önemli konum değişimi: uygulama tamamen kapalıyken bile sistemi
+                // uyandırıp süreci başlatır; neredeyse bedava (hücre bazlı). Arka
+                // planda yağmur/sınır kontrollerinin ana uyanma kanalı.
+                self.manager.startMonitoringSignificantLocationChanges()
+            }
         }
     }
 
+    /// Durak başına son varış bildirimi — tüm varış hattı (bildirim + anons +
+    /// Live Activity kapanışı) yaklaşım başına YALNIZCA BİR KEZ çalışır.
+    private var lastArrivalAt: [String: Date] = [:]
+    /// Az önce varılan durak — nav ilerleyene kadar Live Activity yeniden başlatılmaz.
+    private var arrivedStopId: String?
+
     nonisolated func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
-        Task { @MainActor in
-            NotificationManager.shared.notify(
-                title: "\(region.identifier) · vardınız!",
-                body: "Kontrol: tüp gaz kapalı mı · elektrik/su · sınır belgeleri hazır mı?",
-                id: "arrival-\(region.identifier)"
-            )
-            AnnouncementService.shared.announceArrival(
-                stopName: region.identifier,
-                remainingToFinalKm: self.nav?.remainingToFinalKm
-            )
-            LiveActivityManager.shared.endCurrent()   // etap bitti → kilit ekranı kartını kapat
-        }
+        // Şehir merkezi geofence'i rota varışı değildir. Kesin hedef varışı,
+        // didUpdateLocations içinde hedef koordinatı ve GPS doğruluğuyla ölçülür.
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let last = locations.last else { return }
         Task { @MainActor in
             self.location = last
+            let arrivedStopId = RouteSession.shared.activeStopId
+            let arrivedTargetName = RouteSession.shared.activeTargetName
+            if RouteSession.shared.finishIfArrived(location: last),
+               let arrivedStopId,
+               let stop = (self.trip?.trip?.stops ?? TripStore.bundledTrip()?.stops ?? [])
+                .first(where: { $0.id == arrivedStopId }) {
+                self.arrivedStopId = stop.id
+                NotificationManager.shared.notify(
+                    title: "\(arrivedTargetName ?? stop.name) · vardınız!",
+                    body: "Konaklama ve araç kontrollerini tamamlayın.",
+                    id: "arrival-\(stop.id)"
+                )
+                AnnouncementService.shared.announceArrival(
+                    stopName: arrivedTargetName ?? stop.name,
+                    remainingToFinalKm: self.nav?.remainingToFinalKm
+                )
+                LiveActivityManager.shared.endCurrent()
+            }
+            // UI'siz arka plan uyanışı (SLOC/geofence): nav/trip view .task'ından
+            // bağlanır; orası çalışmadıysa gömülü gezi verisiyle yedek depo kur
+            // ki bildirim hattı (nav, TripNotifier) ölü kalmasın.
+            if self.nav == nil || self.trip == nil {
+                if self.backgroundTrip == nil { self.backgroundTrip = TripStore() }
+                if self.backgroundNav == nil { self.backgroundNav = NavProgressStore() }
+                self.trip = self.trip ?? self.backgroundTrip
+                self.nav = self.nav ?? self.backgroundNav
+            }
             // Konum geldikçe ilerlemeyi güncelle (view zamanlamasına bağlı kalmadan),
             // sonra web'e zengin durumu yayınla.
             if let stops = self.trip?.trip?.stops, stops.count >= 2 {
                 await self.nav?.update(location: last, stops: stops, route: self.routeStore)
             }
             await MainActor.run {
+                let routeStarted = RouteSession.shared.isActive
+                let routeProgressAllowed = RouteAnnouncementPolicy.allowsRouteProgressAnnouncement(
+                    routeStarted: routeStarted,
+                    activeStopId: RouteSession.shared.activeStopId,
+                    nextStopId: self.nav?.nextStop?.id
+                )
                 TripNotifier.shared.onLocation(
-                    remainingKm: self.nav?.remainingKm,
-                    nextStopName: self.nav?.nextStop?.name,
+                    remainingKm: routeProgressAllowed ? self.nav?.remainingKm : nil,
+                    nextStopName: routeProgressAllowed ? self.nav?.nextStop?.name : nil,
                     speedKmh: self.speedKmh,
                     currentCountry: self.currentStop()?.country,
                     nextCountry: self.nav?.nextStop?.country,
                     currentCode: self.currentStop()?.code,
-                    nextCountryCode: self.nav?.nextStop?.code
+                    nextCountryCode: self.nav?.nextStop?.code,
+                    routeStarted: routeStarted
                 )
                 // "nextStop != nil" sekiz günlük yolculuğun neredeyse tamamında doğrudur
                 // (mola/kamp/gece dahil) — gerçek "navigasyondayım" sinyali değil.
@@ -127,11 +201,21 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
             }
             self.publishToWeb(last)
             // Her ~100 km / yaklaşınca sesli mesafe anonsu
-            if let name = self.nav?.nextStop?.name, let km = self.nav?.remainingKm {
+            if RouteAnnouncementPolicy.allowsRouteProgressAnnouncement(
+                routeStarted: RouteSession.shared.isActive,
+                activeStopId: RouteSession.shared.activeStopId,
+                nextStopId: self.nav?.nextStop?.id
+            ), let name = self.nav?.nextStop?.name, let km = self.nav?.remainingKm {
                 AnnouncementService.shared.progressUpdate(nextStop: name, remainingKm: km)
             }
             self.updateSharedAndActivity()
             self.checkRouteDeviation(last)
+            // Arka plandayken (SLOC/geofence uyanışı) hava kontrolünü buradan
+            // yürüt: view .task'ı UI'siz çalışmaz. refreshIfStale'in 45 dk
+            // eşiği sayesinde sık konum güncellemesi maliyetsizdir.
+            if UIApplication.shared.applicationState != .active {
+                await BackgroundWeather.refreshIfStale()
+            }
         }
     }
 
@@ -143,12 +227,19 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     private func checkRouteDeviation(_ current: CLLocation) {
         guard let legIdx = nav?.currentLegIndex,
               let coordsList = routeStore?.displayCoords,
-              coordsList.indices.contains(legIdx),
-              (speedKmh ?? 0) > 20
+              coordsList.indices.contains(legIdx)
         else { deviationStreak = 0; return }
 
         let legCoords = coordsList[legIdx]
-        guard legCoords.count > 1 else { return }
+        guard RouteAnnouncementPolicy.allowsDeviationAnnouncement(
+            routeStarted: RouteSession.shared.isActive,
+            activeStopId: RouteSession.shared.activeStopId,
+            nextStopId: nav?.nextStop?.id,
+            currentLegIndex: legIdx,
+            speedKmh: speedKmh,
+            hasLegGeometry: legCoords.count > 1
+        ) else { deviationStreak = 0; return }
+
         var minDist = Double.infinity
         for c in stride(from: 0, to: legCoords.count, by: 4) {
             let d = current.distance(from: CLLocation(latitude: legCoords[c].latitude, longitude: legCoords[c].longitude))
@@ -175,6 +266,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     /// Widget + Live Activity beslemesi: App Group snapshot'ı yaz, sürüşteyse aktiviteyi güncelle.
     private func updateSharedAndActivity() {
         guard let nav else { return }
+        let routeStarted = RouteSession.shared.isActive
         var values: [String: Any] = [:]
         if let city = nav.currentCity { values[SharedSnapshot.Key.currentCity] = city }
         if let next = nav.nextStop {
@@ -183,19 +275,37 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         }
         if let km = nav.remainingKm { values[SharedSnapshot.Key.remainingKm] = km }
         if let m = nav.remainingMinutes { values[SharedSnapshot.Key.remainingMin] = m }
-        values[SharedSnapshot.Key.legProgress] = Int((nav.legProgress * 100).rounded())
+        values[SharedSnapshot.Key.legProgress] = routeStarted ? Int((nav.legProgress * 100).rounded()) : 0
         SharedSnapshot.write(values)
+        RouteSession.shared.writeSnapshot()
         LiveActivityManager.shared.reloadWidgetsThrottled()
 
-        // Sürüş algısı: 25 km/s üstü → Live Activity başlat/güncelle
+        // Live Activity yalnız kullanıcı Rotalar > Buraya git ile başlattıysa güncellenir.
+        guard routeStarted else {
+            if LiveActivityManager.shared.isActive {
+                LiveActivityManager.shared.endCurrent()
+            }
+            return
+        }
+
         if let next = nav.nextStop, let km = nav.remainingKm, let m = nav.remainingMinutes {
-            let speed = speedKmh ?? 0
-            if speed > 25 || LiveActivityManager.shared.isActive {
-                LiveActivityManager.shared.startOrUpdate(
-                    nextStop: next.name, nextCode: next.code,
-                    remainingKm: km, remainingMin: m,
-                    speedKmh: speed, progress: nav.legProgress
-                )
+            // Varıştan hemen sonra nav henüz ilerlemediyse (nextStop hâlâ varılan
+            // durak) yeni kart AÇMA — durak değişinceye kadar bekle.
+            if arrivedStopId == next.id {
+                // varış kartı zaten kapatıldı; nav'in ilerlemesi bekleniyor
+            } else {
+                arrivedStopId = nil
+                let metrics = RouteStartMetrics(remainingKm: km, remainingMinutes: m)
+                if RouteSession.shared.activeStopId == next.id,
+                   let payload = metrics.liveActivityPayload {
+                    LiveActivityManager.shared.startOrUpdate(
+                        nextStop: next.name, nextCode: next.code,
+                        remainingKm: payload.remainingKm,
+                        remainingMin: payload.remainingMin,
+                        speedKmh: speedKmh ?? 0,
+                        progress: nav.legProgress
+                    )
+                }
             }
         }
     }
@@ -239,7 +349,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     private func publishToWeb(_ loc: CLLocation) {
         guard publishEnabled,
               let url = Config.livePostURL,
-              Date().timeIntervalSince(lastPostAt) > 30
+              Date().timeIntervalSince(lastPostAt) > 60
         else { return }
         lastPostAt = Date()
 
@@ -249,12 +359,21 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         req.setValue(Config.livePostSecret, forHTTPHeaderField: "x-live-secret")
         req.timeoutInterval = 10
 
+        let routeStarted = RouteSession.shared.isActive
         var payload: [String: Any] = [
             "lat": loc.coordinate.latitude,
             "lng": loc.coordinate.longitude,
             "speedKmh": max(0, Int((loc.speed * 3.6).rounded())),
             "ts": ISO8601DateFormatter().string(from: loc.timestamp),
+            "journeyStarted": routeStarted,
         ]
+        if routeStarted {
+            if let stop = RouteSession.shared.activeStopName { payload["activeRouteStop"] = stop }
+            if let code = RouteSession.shared.activeStopCode { payload["activeRouteCode"] = code }
+            if let startedAt = RouteSession.shared.startedAt {
+                payload["activeRouteStartedAt"] = ISO8601DateFormatter().string(from: startedAt)
+            }
+        }
         // App'in canlı durumunu web'e birebir yansıt (dinamik site).
         if let nav {
             if let city = nav.currentCity { payload["city"] = city }
@@ -265,8 +384,33 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
             if let km = nav.remainingKm { payload["remainingKm"] = km }
             if let km = nav.remainingToFinalKm { payload["remainingToFinalKm"] = km }
             if let minutes = nav.remainingMinutes { payload["remainingMin"] = minutes }
-            if let traveled = nav.traveledKm { payload["traveledKm"] = traveled }
-            payload["legProgress"] = Int((nav.legProgress * 100).rounded())
+            if routeStarted {
+                if let traveled = nav.traveledKm { payload["traveledKm"] = traveled }
+                payload["legProgress"] = Int((nav.legProgress * 100).rounded())
+            } else {
+                payload["traveledKm"] = 0
+                payload["legProgress"] = 0
+            }
+        }
+        if let altimeter {
+            payload["altitudeAvailable"] = altimeter.available
+            if let absolute = altimeter.absoluteAltitude {
+                payload["altitudeMeters"] = absolute
+                payload["altitudeKind"] = "absolute"
+                payload["altitudeSource"] = "barometer"
+            } else if let relative = altimeter.relativeAltitude {
+                payload["altitudeMeters"] = relative
+                payload["altitudeKind"] = "relative"
+                payload["altitudeSource"] = "barometer"
+            }
+            if let pressure = altimeter.pressureHpa {
+                payload["pressureHpa"] = (pressure * 10).rounded() / 10
+            }
+        } else if loc.verticalAccuracy >= 0 {
+            payload["altitudeAvailable"] = true
+            payload["altitudeMeters"] = loc.altitude
+            payload["altitudeKind"] = "absolute"
+            payload["altitudeSource"] = "gps"
         }
         req.httpBody = try? JSONSerialization.data(withJSONObject: payload)
 

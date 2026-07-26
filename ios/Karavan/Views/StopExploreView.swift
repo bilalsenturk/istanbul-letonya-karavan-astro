@@ -7,6 +7,11 @@ import MapKit
 struct StopExploreView: View {
     let stop: Stop
 
+    @EnvironmentObject private var store: TripStore
+    @EnvironmentObject private var role: RoleStore
+    @EnvironmentObject private var loc: LocationManager
+    @EnvironmentObject private var nav: NavProgressStore
+    @EnvironmentObject private var routeSession: RouteSession
     @StateObject private var maps = AppleMapsService()
 
     @State private var scene: MKLookAroundScene?
@@ -14,6 +19,7 @@ struct StopExploreView: View {
     @State private var kind: NearbyKind = .camp
     @State private var places: [Place] = []
     @State private var loadingPlaces = false
+    @State private var searchGeneration = 0
 
     var body: some View {
         ZStack {
@@ -78,27 +84,73 @@ struct StopExploreView: View {
 
     // MARK: - Navigasyon
 
+    // Bu durağa sürüş rotası = "rotayı başlat" → yalnızca sürücü
+    // (NavApp'te sert kilit de var; yakındaki POI'lere adım adım navigasyon da
+    // sürücüye bağlıdır — aşağıdaki POI satırlarında aynı kilit uygulanır).
     private var navButtons: some View {
-        HStack(spacing: 10) {
+        return VStack(spacing: 8) {
             Button {
-                NavApp.openAppleMaps(to: stop)
+                NavApp.showInAppleMaps(stop: stop)
             } label: {
-                Label("Apple Maps'te sür", systemImage: "arrow.triangle.turn.up.right.circle.fill")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity).padding(.vertical, 12)
-                    .background(Theme.gradWarm, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                HStack(spacing: 9) {
+                    Image(systemName: "map.fill")
+                        .font(.system(size: 15, weight: .bold))
+                    Text("Apple Maps'te göster")
+                        .font(.system(size: 15, weight: .heavy, design: .rounded))
+                    Spacer()
+                    Text("ROTA BAŞLATMAZ")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.72))
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 13)
+                .background(Theme.gradWarm,
+                            in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
             }
-            Button {
-                NavApp.openGoogleMaps(to: stop)
-            } label: {
-                Label("Google", systemImage: "globe.europe.africa.fill")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity).padding(.vertical, 12)
-                    .background(Theme.panel, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
-            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func routeButtonTitle(_ state: RouteStepState, canStart: Bool) -> String {
+        guard role.isDriver else { return "Sürücü başlatır" }
+        switch state {
+        case .available: return canStart ? "Buraya git" : "Sıradaki etap"
+        case .active: return "Rota aktif"
+        case .completed: return "Tamamlandı"
+        case .locked: return "Sırada değil"
+        case .origin: return "Başlangıç durağı"
+        }
+    }
+
+    private func routeButtonCaption(_ state: RouteStepState) -> String {
+        switch state {
+        case .available: return "Apple Maps"
+        case .active: return "AKTİF"
+        case .completed: return "BİTTİ"
+        case .locked: return "KİLİTLİ"
+        case .origin: return "PLAN"
+        }
+    }
+
+    private func routeButtonIcon(_ state: RouteStepState) -> String {
+        switch state {
+        case .available: return "arrow.triangle.turn.up.right.circle.fill"
+        case .active: return "play.circle.fill"
+        case .completed: return "checkmark.circle.fill"
+        case .locked: return "lock.fill"
+        case .origin: return "house.fill"
+        }
+    }
+
+    private func routeButtonBorder(_ state: RouteStepState) -> Color {
+        switch state {
+        case .available: return Theme.c1.opacity(0.75)
+        case .active: return Theme.ok.opacity(0.75)
+        case .completed: return Theme.ok.opacity(0.35)
+        case .locked, .origin: return Theme.line
         }
     }
 
@@ -132,34 +184,39 @@ struct StopExploreView: View {
 
     private func placeRow(_ place: Place) -> some View {
         Button {
-            NavApp.openAppleMaps(toCoordinate: place.coordinate, name: place.name)
+            NavApp.showInAppleMaps(coordinate: place.coordinate, name: place.name)
         } label: {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle().fill(Theme.c4.opacity(0.16)).frame(width: 38, height: 38)
-                    Image(systemName: kind.icon).font(.system(size: 15)).foregroundStyle(Theme.c4)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(place.name)
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Theme.text)
-                        .lineLimit(1)
-                    if let sub = place.subtitle, !sub.isEmpty {
-                        Text(sub)
-                            .font(.system(size: 12))
-                            .foregroundStyle(Theme.muted)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle().fill(Theme.c4.opacity(0.16)).frame(width: 38, height: 38)
+                        Image(systemName: kind.icon).font(.system(size: 15)).foregroundStyle(Theme.c4)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(place.name)
+                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Theme.text)
                             .lineLimit(1)
+                        if let sub = place.subtitle, !sub.isEmpty {
+                            Text(sub)
+                                .font(.system(size: 12))
+                                .foregroundStyle(Theme.muted)
+                                .lineLimit(1)
+                        }
+                    }
+                    Spacer(minLength: 6)
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("\(place.distanceKm(from: stop.coordinate), specifier: "%.1f") km")
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .foregroundStyle(Theme.dim)
+                        Image(systemName: "map.fill")
+                            .font(.system(size: 15))
+                            .foregroundStyle(Theme.c2)
                     }
                 }
-                Spacer(minLength: 6)
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(place.distanceKm(from: stop.coordinate), specifier: "%.1f") km")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundStyle(Theme.dim)
-                    Image(systemName: "arrow.triangle.turn.up.right.circle.fill")
-                        .font(.system(size: 15))
-                        .foregroundStyle(Theme.c2)
-                }
+                Text("Haritada göster")
+                    .font(.system(size: 11.5, weight: .semibold))
+                    .foregroundStyle(Theme.muted)
             }
             .padding(12)
             .background(Theme.panel, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -193,8 +250,13 @@ struct StopExploreView: View {
     }
 
     private func search() async {
+        let requestedKind = kind
+        searchGeneration += 1
+        let generation = searchGeneration
         loadingPlaces = true
-        places = await maps.searchNearby(kind, around: stop.coordinate)
+        let found = await maps.searchNearby(requestedKind, around: stop.coordinate)
+        guard generation == searchGeneration, requestedKind == kind else { return }
+        places = found
         loadingPlaces = false
     }
 }

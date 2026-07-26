@@ -5,6 +5,7 @@ SRC="$DIR/../Karavan"
 OUT="$(mktemp -d)"
 swiftc -O -o "$OUT/accountcheck" \
   "$DIR/account-domain-check.swift" \
+  "$SRC/RouteStepPolicy.swift" \
   "$SRC/ArrivalTarget.swift" \
   "$SRC/Accounts/AccountModels.swift" \
   "$SRC/Routes/RouteDraft.swift"

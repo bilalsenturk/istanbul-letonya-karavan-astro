@@ -250,6 +250,17 @@ enum ArrivalTargetRequirement {
     }
 }
 
+enum RouteStartPolicy {
+    static func canStart(
+        isRestDay: Bool,
+        target: ArrivalTarget?,
+        stepState: RouteStepState
+    ) -> Bool {
+        !isRestDay && stepState == .available
+            && ArrivalTargetRequirement.canStart(isRestDay: false, target: target)
+    }
+}
+
 enum StayMessageComposer {
     private static let englishDateFormatter: DateFormatter = {
         let formatter = DateFormatter()

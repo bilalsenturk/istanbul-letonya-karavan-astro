@@ -272,6 +272,25 @@ completedStops.insert(bucharest.id)
 check("tamamlanan durak tamamlandı görünür",
       RouteStepPolicy.state(for: bucharest.id, orderedStopIds: stopIds, completedStopIds: completedStops, activeStopId: nil) == .completed)
 
+let exactTarget = ArrivalTarget(
+    id: "campuccino", name: "Camping Campuccino", kind: .campground,
+    latitude: 42.66, longitude: 23.28, formattedAddress: "Sofia, Bulgaria"
+)
+check("kesin hedef olmadan uygun etap da başlamaz",
+      !RouteStartPolicy.canStart(isRestDay: false, target: nil, stepState: .available))
+check("kilitli etap kesin hedefle de başlamaz",
+      !RouteStartPolicy.canStart(isRestDay: false, target: exactTarget, stepState: .locked))
+check("sıradaki etap geçerli kesin hedefle başlar",
+      RouteStartPolicy.canStart(isRestDay: false, target: exactTarget, stepState: .available))
+check("aktif hedef kimliği değişmişse ilerleme anonsu kapanır",
+      !RouteAnnouncementPolicy.allowsRouteProgressAnnouncement(
+        routeStarted: true,
+        activeStopId: "sofia",
+        activeTargetId: "old-target",
+        nextStopId: "sofia",
+        nextTargetId: "campuccino"
+      ))
+
 print("\n=== 13) Rota başlangıcı: aktif navigasyon GPS konumundan hesaplanır ===")
 let currentCoordinate = CoordinateValue(latitude: 41.0123, longitude: 29.1122)
 let plannedOrigin = CoordinateValue(latitude: 41.0172, longitude: 28.9850)
