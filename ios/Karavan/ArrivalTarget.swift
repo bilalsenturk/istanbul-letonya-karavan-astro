@@ -93,6 +93,55 @@ struct ArrivalTarget: Codable, Equatable, Identifiable, Hashable {
     }
 }
 
+struct ArrivalPlaceSnapshot: Equatable, Identifiable {
+    let id: String
+    let name: String
+    let latitude: Double
+    let longitude: Double
+    let formattedAddress: String
+    let phone: String?
+    let websiteURL: URL?
+    let kind: ArrivalTargetKind
+    let mapItemIdentifier: String?
+
+    init(
+        id: String,
+        name: String,
+        latitude: Double,
+        longitude: Double,
+        formattedAddress: String,
+        phone: String? = nil,
+        websiteURL: URL? = nil,
+        kind: ArrivalTargetKind,
+        mapItemIdentifier: String? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.latitude = latitude
+        self.longitude = longitude
+        self.formattedAddress = formattedAddress
+        self.phone = phone
+        self.websiteURL = websiteURL
+        self.kind = kind
+        self.mapItemIdentifier = mapItemIdentifier
+    }
+
+    func makeTarget() -> ArrivalTarget {
+        ArrivalTarget(
+            id: id,
+            mapItemIdentifier: mapItemIdentifier,
+            name: name,
+            kind: kind,
+            latitude: latitude,
+            longitude: longitude,
+            formattedAddress: formattedAddress,
+            phone: phone,
+            websiteURL: websiteURL,
+            source: .appleMaps
+        )
+    }
+}
+
 enum StayReservationStatus: String, Codable, CaseIterable, Identifiable, Hashable {
     case notContacted
     case awaitingReply

@@ -93,6 +93,25 @@ struct ArrivalTargetCheck {
         check("boş telefon reddedilir",
               ContactLinkBuilder.whatsAppURL(phone: " ", message: "x") == nil)
 
+        print("\n=== Apple Maps sonuç eşlemesi ===")
+        let snapshot = ArrivalPlaceSnapshot(
+            id: "apple-campuccino",
+            name: "Camping Campuccino",
+            latitude: 42.66,
+            longitude: 23.28,
+            formattedAddress: "Sofia, Bulgaria",
+            phone: "+359881234567",
+            websiteURL: URL(string: "https://example.com"),
+            kind: .campground
+        )
+        let mapped = snapshot.makeTarget()
+        check("Maps adı, adresi ve telefonu korunur",
+              mapped.name == snapshot.name && mapped.formattedAddress == snapshot.formattedAddress
+                && mapped.phone == snapshot.phone)
+        check("Maps sitesi korunur", mapped.websiteURL == snapshot.websiteURL)
+        check("Maps'in vermediği iletişim alanı uydurulmaz",
+              mapped.email == nil && mapped.whatsAppPhone == nil)
+
         if failures > 0 {
             print("\n❌ \(failures) KONTROL BAŞARISIZ")
             exit(1)
