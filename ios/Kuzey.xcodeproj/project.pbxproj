@@ -786,7 +786,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Widgets/KuzeyWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = YQUGG5VXCC;
 				INFOPLIST_FILE = Widgets/Support/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -810,7 +810,7 @@
 				CODE_SIGN_ENTITLEMENTS = Karavan/Kuzey.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = YQUGG5VXCC;
 				INFOPLIST_FILE = Support/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -832,7 +832,7 @@
 				CODE_SIGN_ENTITLEMENTS = Karavan/Kuzey.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = YQUGG5VXCC;
 				INFOPLIST_FILE = Support/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -852,7 +852,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Widgets/KuzeyWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = YQUGG5VXCC;
 				INFOPLIST_FILE = Widgets/Support/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
