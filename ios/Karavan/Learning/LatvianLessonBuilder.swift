@@ -32,25 +32,45 @@ struct LatvianLessonTarget: Hashable, Sendable {
 /// kadarı **hem tanıma hem üretim** kartında *kalıcı* olarak öğrenildiğinde tamamlanmış
 /// sayılır. "N ders yaptın, geç" değil, "gerçekten biliyor musun".
 ///
-/// Kalıcılık iki koşulla ölçülüyor, ikisi de aynı boşluğu kapatıyor: hatırlanma olasılığı
-/// **tekrar anında tanım gereği 1.0**, dolayısıyla "şu anda hatırlıyor mu" sorusu yalnızca
-/// "az önce gördü mü" demeye geliyor. Bunun yerine soru `masteryHorizon` kadar ileri
-/// taşınıyor ("bugünden N gün sonra da hatırlar mıydı") ve karta en az `minimumReviews`
-/// tekrar şartı konuyor ("bir kez bilmek tesadüf olabilir"). İkisi birden, tek oturumda
-/// arka arkaya ders yaparak kapıyı zorlamayı imkânsız kılıyor.
+/// Kalıcılık kartın **kararlılığından** okunuyor. Kararlılık FSRS'in tanımı gereği zaten
+/// tam olarak aradığımız sayı: "kart görülmeden kaç gün geçerse hatırlanma olasılığı
+/// %90'a iner". `stability >= masteryStabilityDays` demek, "öğrenci bu kelimeyi bu kadar
+/// gün hiç görmese bile hatırlardı" demek. Yanına ikinci bir koşul konuyor —
+/// `reviewCount >= minimumReviews` — çünkü tek bir cevaptan çıkarılan kalıcılık tesadüf
+/// olabilir; kalıcılık ayrı ayrı karşılaşmalarda gösterilmeli.
 ///
-/// İleri taşınan soru tam olarak FSRS'in kararlılığını okuyor: hatırlanma olasılığı
-/// kararlılık kadar gün sonra 0.9'a indiğinden, `retrievability(at: now + H) >= 0.9`
-/// koşulu "kartın kararlılığı en az H kadar" demenin başka bir yazılışı. Gerçek FSRS
-/// kitaplığına geçildiğinde de aynı anlamı taşımaya devam ediyor.
+/// **Neden anlık hatırlama olasılığı değil.** Önceki ölçüt
+/// `retrievability(at: now + 3 gün) >= 0.9` idi; bu, `S >= (son tekrardan beri geçen gün) + 3`
+/// demeye geliyordu. FSRS bir sonraki tekrarı tam olarak `geçen gün = S` anına koyduğundan
+/// (hedef %90 hatırlama), vadesi geldiğinde çalışılan bir kart kapıya göre yapısal olarak
+/// üç gün geride kalıyordu: kapı planlayıcının kendi tanımıyla dövüşüyordu. Ölçüldü —
+/// dört soruda birini yanlış yapan öğrenci gerçek FSRS ile 400 oturumda bile birinci
+/// sahneyi açamıyordu (bkz. `.superpowers/sdd/p2-task-7-report.md`). Kararlılık ölçütü
+/// hem ufku hem eşiği içine aldığı için ikisi de kaldırıldı.
+///
+/// Ölçüt artık saati **okumuyor**: kararlılık kartın kendi durumunda duran, zamandan
+/// bağımsız bir sayı. `now` imzalarda duruyor ki sahne sorguları ders kurgusuyla aynı
+/// "şu an" etrafında toplansın; sonucu değiştirmediği testlerde ayrıca sınanıyor.
 enum LatvianLessonBuilder {
     static let lessonLength = 16
-    /// Kartı hatırlıyor mu: bu olasılığın altındaki kart bilinmiyor sayılıyor.
-    static let masteryThreshold = 0.9
+    /// Kart taze mi: bu olasılığın üstündeki kart "az önce doğru cevaplandı" sayılıyor.
+    /// Hakimiyet ölçütü değil, yeni malzeme süzgeci — bkz. `newPool`.
+    static let freshnessThreshold = 0.9
     /// Sahneyi biliyor mu: kelimelerinin bu kadarı geçmeden sahne kapanmıyor.
     static let masteryCoverage = 0.8
-    /// Kalıcı mı: hatırlama bugün değil, bu kadar zaman sonrası için soruluyor (üç gün).
-    static let masteryHorizon: TimeInterval = 3 * 86_400
+    /// Kalıcı mı: kart bu kadar gün hiç görülmese bile hatırlanabilecek durumda olmalı.
+    ///
+    /// Değer taramayla seçildi (3/5/7/10/14/21 gün, iki planlayıcı, dört öğrenci profili;
+    /// tablo `.superpowers/sdd/p2-task-7-report.md` içinde). Belirleyici olan yapısal
+    /// sınır: gerçek FSRS'te zaman geçmeden yapılan tekrar kararlılığı büyütmüyor —
+    /// hatırlanma tavandayken kazanç çarpanı sıfıra gidiyor — dolayısıyla tek oturumda
+    /// ulaşılabilecek en yüksek kararlılık, ilk `easy` cevabın verdiği **5.8 gün**.
+    /// Eşiği bunun üstüne koymak "tek oturumda sahne bitmez" güvencesini ders kurgusunun
+    /// tesadüfüne değil algoritmanın kendisine bağlıyor; 7 gün, taramada bu şartı sağlayan
+    /// en küçük değer. Daha küçük eşikler (3 gün) ise defalarca unutulmuş kartları —
+    /// FSRS'in zorluğu 10'a dayanmış, kararlılığı 3-5 gün bandında takılı kalan kartlarını —
+    /// hakim saydığı için ölçütü anlamsızlaştırıyordu.
+    static let masteryStabilityDays = 7.0
     /// Tesadüf mü: bir kart bu kadar ayrı tekrar görmeden hakim sayılmıyor.
     static let minimumReviews = 2
 
@@ -70,9 +90,11 @@ enum LatvianLessonBuilder {
 
     /// Tek bir kartın kalıcı olarak öğrenilip öğrenilmediği. Kart hiç yoksa geçmemiş sayılır.
     ///
-    /// İki koşul birden aranıyor: kartın `masteryHorizon` sonrasındaki hatırlanma olasılığı
-    /// eşiği geçmeli **ve** kart en az `minimumReviews` kez tekrar edilmiş olmalı. Yalnızca
-    /// anlık olasılığa bakmak, cevabın üzerinden bir dakika geçmiş her kartı hakim sayardı.
+    /// İki koşul birden aranıyor: kartın kararlılığı `masteryStabilityDays` günü taşımalı
+    /// **ve** kart en az `minimumReviews` kez tekrar edilmiş olmalı. Kararlılık tek başına
+    /// yetmiyor, çünkü ilk cevabı `easy` verilen taze bir kart FSRS'te doğrudan yüksek bir
+    /// kararlılıkla başlıyor; iki koşul birlikte "bir kez tutturmak" ile "biliyor olmak"
+    /// arasındaki farkı koruyor.
     static func isMastered(
         wordId: String,
         modality: LatvianModality,
@@ -82,7 +104,7 @@ enum LatvianLessonBuilder {
         guard let key = LatvianMemoryKey(wordId: wordId, modality: modality),
               let card = progress.card(for: key),
               card.reviewCount >= minimumReviews else { return false }
-        return card.retrievability(at: now.addingTimeInterval(masteryHorizon)) >= masteryThreshold
+        return card.stability >= masteryStabilityDays
     }
 
     /// Kelimenin **iki** tarafı da kalıcı olarak öğrenildi mi.
@@ -106,9 +128,11 @@ enum LatvianLessonBuilder {
 
     /// Sahne bir kez geçildi mi. Şu an hakim olmak ya da geçmişte tamamlamış olmak yeter.
     ///
-    /// Tamamlanma kaydı olmadan yalnızca anlık hakimiyete bakmak, iki hafta ara veren
-    /// öğrencinin ilerlediği sahneleri geri kilitlerdi. Unutulan malzeme zaten aralıklı
-    /// tekrar kotasıyla derse geri geliyor; kilidi geri kapatmanın öğretici bir karşılığı yok.
+    /// Tamamlanma kaydı hâlâ gerekli: kararlılık zamanla düşmüyor ama **yanlış cevapla
+    /// çöküyor**. Aradan sonra dönen öğrenci birkaç kelimeyi unutup yanlış cevaplarsa
+    /// hakimiyet oranı eşiğin altına inebilir; kayıt olmadan bu, geçilmiş sahnelerin geri
+    /// kilitlenmesi demek olurdu. Unutulan malzeme zaten aralıklı tekrar kotasıyla derse
+    /// geri geliyor; kilidi geri kapatmanın öğretici bir karşılığı yok.
     static func isSceneCleared(scene: LatvianScene, progress: LatvianProgress, now: Date) -> Bool {
         progress.hasCompleted(sceneId: scene.id)
             || isSceneMastered(scene: scene, progress: progress, now: now)
@@ -307,7 +331,7 @@ enum LatvianLessonBuilder {
     ) -> Bool {
         guard let key = LatvianMemoryKey(wordId: wordId, modality: modality),
               let card = progress.card(for: key) else { return false }
-        return card.retrievability(at: now) >= masteryThreshold
+        return card.retrievability(at: now) >= freshnessThreshold
     }
 
     /// Tekrar zamanı gelmiş kartlar; sahne farketmeksizin, en zayıf hatırlanan başta.

@@ -833,23 +833,37 @@ struct LatvianEngineCheck {
 
         print("\n=== Sahne kilidi ===")
 
+        // Fikstürler zamanı ilerleterek kuruluyor: kartın vadesinde yapılan tekrar
+        // kararlılığı gerçekten büyütür, aynı anda arka arkaya yapılan tekrar büyütmez —
+        // gerçek FSRS'te hatırlanma tavandayken tekrarın kazancı sıfıra gider.
+        func reviewedOnSchedule(times: Int, rating: LatvianRating) -> LatvianMemoryCard {
+            var card = LatvianMemoryCard.new()
+            var moment = epoch
+            for _ in 0..<times {
+                card = scheduler.review(card: card, rating: rating, now: moment)
+                moment = card.dueAt
+            }
+            return card
+        }
+
         var mastered = LatvianProgress.new()
         for word in pack.scenes[0].words {
             for modality in [LatvianModality.recognition, .production] {
-                var card = LatvianMemoryCard.new()
-                for _ in 0..<6 { card = scheduler.review(card: card, rating: .easy, now: epoch) }
-                mastered.setCard(card, for: memoryKey(word.id, modality))
+                mastered.setCard(reviewedOnSchedule(times: 3, rating: .easy),
+                                 for: memoryKey(word.id, modality))
             }
         }
 
-        expect(LatvianLessonBuilder.masteryThreshold == 0.9, "hakimiyet eşiği 0.9")
+        expect(LatvianLessonBuilder.freshnessThreshold == 0.9, "tazelik eşiği 0.9")
         expect(LatvianLessonBuilder.masteryCoverage == 0.8, "kapsama eşiği 0.8")
         expect(LatvianLessonBuilder.lessonLength == 16, "ders uzunluğu 16")
-        expect(LatvianLessonBuilder.masteryHorizon == 3 * 86_400, "hakimiyet ufku üç gün")
+        expect(LatvianLessonBuilder.masteryStabilityDays == 7, "hakimiyet kararlılık eşiği yedi gün")
         expect(LatvianLessonBuilder.minimumReviews == 2, "hakimiyet en az iki tekrar istiyor")
 
-        // Kapının kapattığı boşluk: `retrievability` tekrar anında tanım gereği tavanda.
-        // Aşağıdaki iki kart da "şu anda hatırlıyor" testini geçerdi; hiçbiri hakim değil.
+        // Kapının kapattığı boşluk: `retrievability` tekrar anında tanım gereği tavanda,
+        // dolayısıyla "şu anda hatırlıyor mu" sorusu yalnızca "az önce gördü mü" demek.
+        // Ölçüt bu yüzden kararlılığı okuyor. Aşağıdaki iki kart da anlık hatırlama
+        // testini geçerdi; hiçbiri hakim değil.
         let justAnswered = scheduler.review(card: .new(), rating: .easy, now: epoch)
         expect(justAnswered.retrievability(at: epoch) > 0.99,
                "az önce kusursuz cevaplanan kart o anda tavanda")
@@ -860,34 +874,55 @@ struct LatvianEngineCheck {
         expect(!LatvianLessonBuilder.isWordMastered(wordId: "w1", progress: singleReview, now: epoch),
                "tek tekrarla bilinen kelime hakim sayılmıyor")
 
-        var shakyCard = LatvianMemoryCard.new()
-        for _ in 0..<LatvianLessonBuilder.minimumReviews {
-            shakyCard = scheduler.review(card: shakyCard, rating: .hard, now: epoch)
-        }
+        let shakyCard = reviewedOnSchedule(times: LatvianLessonBuilder.minimumReviews, rating: .hard)
         var shaky = LatvianProgress.new()
         for modality in [LatvianModality.recognition, .production] {
             shaky.setCard(shakyCard, for: memoryKey("w1", modality))
         }
         expect(shakyCard.reviewCount >= LatvianLessonBuilder.minimumReviews
-               && shakyCard.retrievability(at: epoch) > 0.99,
+               && shakyCard.retrievability(at: shakyCard.lastReviewedAt ?? epoch) > 0.99,
                "zorlanarak cevaplanan kart tekrar sayısını dolduruyor ve o anda tavanda")
         expect(!LatvianLessonBuilder.isWordMastered(wordId: "w1", progress: shaky, now: epoch),
-               "üç gün sonrasını taşımayan kelime hakim sayılmıyor")
+               String(format: "kararlılığı bir haftayı taşımayan kelime hakim sayılmıyor (%.1f gün)",
+                      shakyCard.stability))
 
-        var durableCard = LatvianMemoryCard.new()
-        for _ in 0..<LatvianLessonBuilder.minimumReviews {
-            durableCard = scheduler.review(card: durableCard, rating: .easy, now: epoch)
-        }
+        let durableCard = reviewedOnSchedule(times: LatvianLessonBuilder.minimumReviews, rating: .easy)
         var durable = LatvianProgress.new()
         for modality in [LatvianModality.recognition, .production] {
             durable.setCard(durableCard, for: memoryKey("w1", modality))
         }
+        expect(durableCard.stability >= LatvianLessonBuilder.masteryStabilityDays,
+               String(format: "vadesinde yapılan iki kusursuz tekrar kararlılığı eşiğin üstüne çıkarıyor (%.1f gün)",
+                      durableCard.stability))
         expect(LatvianLessonBuilder.isWordMastered(wordId: "w1", progress: durable, now: epoch),
-               "iki kusursuz tekrar üç günlük ufku taşıyor, kelime hakim sayılıyor")
+               "kararlılığı eşiği taşıyan kelime hakim sayılıyor")
+
+        // Ölçütün iki koşulu da tek tek bağlayıcı: eşiğin hemen altındaki kararlılık kaç
+        // tekrar görülürse görülsün yetmiyor, eşiği taşıyan kart da tek tekrarla geçmiyor.
+        func progressHolding(_ card: LatvianMemoryCard) -> LatvianProgress {
+            var result = LatvianProgress.new()
+            for modality in [LatvianModality.recognition, .production] {
+                result.setCard(card, for: memoryKey("w1", modality))
+            }
+            return result
+        }
+        var justUnder = durableCard
+        justUnder.stability = LatvianLessonBuilder.masteryStabilityDays - 0.01
+        justUnder.reviewCount = 20
         expect(!LatvianLessonBuilder.isWordMastered(
-                wordId: "w1", progress: durable,
-                now: epoch.addingTimeInterval(durableCard.stability * 86_400)),
-               "hakimiyet süresiz değil, kararlılık tükendiğinde düşüyor")
+                wordId: "w1", progress: progressHolding(justUnder), now: epoch),
+               "eşiğin hemen altındaki kararlılık yirmi tekrarla bile hakim saymıyor")
+        var justOver = justUnder
+        justOver.stability = LatvianLessonBuilder.masteryStabilityDays
+        justOver.reviewCount = LatvianLessonBuilder.minimumReviews
+        expect(LatvianLessonBuilder.isWordMastered(
+                wordId: "w1", progress: progressHolding(justOver), now: epoch),
+               "eşiği tam karşılayan kararlılık iki tekrarla hakim sayılıyor")
+        var tooFewReviews = justOver
+        tooFewReviews.reviewCount = LatvianLessonBuilder.minimumReviews - 1
+        expect(!LatvianLessonBuilder.isWordMastered(
+                wordId: "w1", progress: progressHolding(tooFewReviews), now: epoch),
+               "kararlılık yetse de tek tekrar hakim saymıyor")
 
         expect(LatvianLessonBuilder.masteryRatio(scene: pack.scenes[0], progress: mastered, now: epoch) >= 0.8,
                "ezberlenmiş sahnede hakimiyet oranı yüksek")
@@ -896,16 +931,27 @@ struct LatvianEngineCheck {
         expect(!LatvianLessonBuilder.isSceneMastered(scene: pack.scenes[0], progress: LatvianProgress.new(), now: epoch),
                "boş ilerlemede sahne tamamlanmamış")
 
+        // Ölçüt saati okumuyor: kararlılık kartın kendi durumunda duran bir sayı, sorgu
+        // anıyla değişmiyor. Unutma yine de ölçülüyor — ama tekrar edilip yanlış
+        // cevaplandığında kararlılık çöktüğü için, takvimden değil cevaptan.
         let staleMoment = epoch.addingTimeInterval(86_400 * 3650)
-        expect(!LatvianLessonBuilder.isSceneMastered(scene: pack.scenes[0], progress: mastered, now: staleMoment),
-               "unutulmuş sahne yeniden hakim sayılmıyor")
+        expect(LatvianLessonBuilder.masteryRatio(scene: pack.scenes[0], progress: mastered, now: staleMoment)
+               == LatvianLessonBuilder.masteryRatio(scene: pack.scenes[0], progress: mastered, now: epoch),
+               "hakimiyet oranı sorgu anına bağlı değil")
+        expect(LatvianLessonBuilder.isSceneMastered(scene: pack.scenes[0], progress: mastered, now: staleMoment),
+               "on yıl sonra sorulduğunda da aynı sahne hakim sayılıyor")
+        let lapsedAfterBreak = scheduler.review(card: durableCard, rating: .again, now: staleMoment)
+        expect(lapsedAfterBreak.stability < LatvianLessonBuilder.masteryStabilityDays
+               && !LatvianLessonBuilder.isWordMastered(
+                    wordId: "w1", progress: progressHolding(lapsedAfterBreak), now: staleMoment),
+               String(format: "aradan sonra yanlış cevaplanan kart hakimiyeti kaybediyor (%.1f gün)",
+                      lapsedAfterBreak.stability))
 
         // Hakimiyet iki modaliteyi birden istiyor: yalnızca tanıma tarafı yetmiyor.
         var recognitionOnly = LatvianProgress.new()
         for word in pack.scenes[0].words {
-            var card = LatvianMemoryCard.new()
-            for _ in 0..<6 { card = scheduler.review(card: card, rating: .easy, now: epoch) }
-            recognitionOnly.setCard(card, for: memoryKey(word.id, .recognition))
+            recognitionOnly.setCard(reviewedOnSchedule(times: 3, rating: .easy),
+                                    for: memoryKey(word.id, .recognition))
         }
         expect(LatvianLessonBuilder.masteryRatio(scene: pack.scenes[0], progress: recognitionOnly, now: epoch) == 0,
                "yalnızca tanıma tarafı bilinen sahnede hakimiyet oranı sıfır")
@@ -1097,6 +1143,12 @@ struct LatvianEngineCheck {
         // her soruyu ilk denemede ve hızlı bilen öğrenci. Sorular arasında 20 saniye
         // geçiyor, gün geçmiyor. "Az önce doğru cevapladım" hakimiyet değildir; bu yol
         // kaç ders sürerse sürsün sahneyi açmamalı.
+        //
+        // Gerçek FSRS'te bu güvence yapısal: zaman geçmeden yapılan tekrar kararlılığı
+        // büyütmediğinden tek oturumda ulaşılabilen en yüksek kararlılık 5.8 gün, eşik ise
+        // 7 gün. Buradaki yer tutucu planlayıcı kararlılığı geçen süreden bağımsız
+        // çarptığı için aynı yapısal sınıra sahip değil; onda kapıyı tutan, ders kurgusunun
+        // tek oturumda dolaşabildiği kelime sayısının sınırlı kalması.
         var sprinter = LatvianProgress.new()
         var sprinterMoment = epoch
         var sprinterUnlockedAt: Int?
@@ -1267,6 +1319,14 @@ struct LatvianEngineCheck {
         expect((mixedUnlockedAt ?? 0) > (unlockedAtLesson ?? 0),
                "yanlış yapan öğrenci kusursuz öğrenciden daha çok ders yapıyor"
                + " (\(mixedUnlockedAt ?? 0) > \(unlockedAtLesson ?? 0))")
+        // Üst sınır, kapının asıl arızasına karşı: ölçüm sırasında (7 günlük kararlılık
+        // eşiği, yer tutucu planlayıcı) bu öğrenci 44. oturumda geçiyordu. Kapı ya da
+        // planlayıcı bozulup öğrenciyi sonsuza dek "biraz daha çalış" durumunda bırakırsa
+        // bu satır sessiz kalmasın diye ölçülen değerin biraz üstüne bir tavan konuyor.
+        let mixedBudget = 60
+        expect((mixedUnlockedAt ?? mixedLimit) <= mixedBudget,
+               "gerçekçi öğrenci makul sürede geçiyor"
+               + " (\(mixedUnlockedAt ?? mixedLimit) ≤ \(mixedBudget) oturum)")
 
         print("\n=== Benzetim: her soruyu yanlış yapan öğrenci ===")
 
