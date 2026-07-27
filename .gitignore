@@ -31,3 +31,9 @@ DerivedData/
 
 # Anons sesleri (Cloudflare R2'de barınır)
 public/audio/
+.env*.local
+.env*
+
+# Letonca üretim CLI'ının ara çıktıları
+data/lv-pack-draft.json
+data/lv-audio/
