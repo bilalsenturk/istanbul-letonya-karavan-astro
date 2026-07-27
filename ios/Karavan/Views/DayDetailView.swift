@@ -157,7 +157,12 @@ struct DayDetailView: View {
                     stay: derivedStay(from: exactStay),
                     routeId: workspace.selectedTrip?.id ?? "kuzey-local",
                     profile: account.user?.travelProfile,
+                    signedOutProfile: account.user == nil
+                        ? StayContactProfileStore(routeId: workspace.selectedTrip?.id ?? "kuzey-local")
+                            .signedOutProfile(vehicleSeed: workspace.selectedTrip?.kind == .kuzey2026 ? TravelProfileVehicleSeed.kuzey : nil)
+                        : nil,
                     transportMode: workspace.selectedTrip?.transportMode ?? .automobile,
+                    camp: day.camp.maximumLengthMeters.map(StayCamp.init),
                     automaticETA: defaultStay.estimatedArrivalWindow,
                     vehicleSeed: workspace.selectedTrip?.kind == .kuzey2026 ? TravelProfileVehicleSeed.kuzey : nil
                 ) { target, stay in
@@ -215,7 +220,9 @@ struct DayDetailView: View {
     private var defaultStay: StayDetails {
         guard let effective = eff else { return StayDetails() }
         let calendar = destinationCalendar
-        let waypointMinutes = day.waypoints?.compactMap(\.estimatedMinutes).reduce(0, +) ?? 0
+        let waypointMinutes = day.waypoints?.compactMap(\.estimatedMinutes).reduce(0) {
+            min(10_080, $0 + min(max(0, $1), 10_080))
+        } ?? 0
         let eta = realLeg.map {
             StayETACalculator.calculate(.init(
                 departure: effective.departTime,

@@ -27,3 +27,7 @@ The brief's example is arithmetically inconsistent: `08:00 + 8 h + 45 min + 90 m
 ## Scope note
 
 `ios/Karavan/Resources/trip.json` and `src/data/tripData.json` already contain a large concurrent route rewrite, so no JSON hunks were staged by this task.
+
+## Fix round 1
+
+Added RED checks for nearest-half-hour ETA and Turkish flight wording; they failed under the previous floor-only calculator and ungated camp wording. GREEN now uses absolute-date nearest-half-hour rounding (ties upward), a ±30 minute window, overflow-clamped ETA additions, DST offset labels when a window crosses an offset change, and automobile-only camp-limit messaging. Planner, account and arrival checks pass in the shared worktree.

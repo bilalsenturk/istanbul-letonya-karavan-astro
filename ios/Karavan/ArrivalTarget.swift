@@ -267,23 +267,30 @@ struct StayETAWindow: Codable, Equatable, Hashable {
         formatter.locale = Locale(identifier: "en_GB")
         formatter.timeZone = calendar.timeZone
         formatter.dateFormat = "HH:mm"
-        return "\(formatter.string(from: start))–\(formatter.string(from: end))"
+        let startText = formatter.string(from: start)
+        let endText = formatter.string(from: end)
+        if calendar.timeZone.secondsFromGMT(for: start) != calendar.timeZone.secondsFromGMT(for: end)
+            || startText == endText {
+            formatter.dateFormat = "HH:mm zzz"
+            return "\(formatter.string(from: start))–\(formatter.string(from: end))"
+        }
+        return "\(startText)–\(endText)"
     }
 }
 
 enum StayETACalculator {
-    /// ETA is expressed in the destination calendar. The lower half-hour containing
-    /// the calculated arrival starts a durable one-hour communication window.
+    /// Round the absolute arrival instant to its nearest half-hour (15-minute ties up),
+    /// then communicate the half-hour on either side as one durable hour.
     static func calculate(_ input: StayETAInput) -> StayETAWindow {
-        let extraSeconds = TimeInterval((input.waypointMinutes + input.borderBufferMinutes) * 60)
-        let center = input.departure.addingTimeInterval(input.drivingSeconds + extraSeconds)
-        let components = input.calendar.dateComponents([.hour, .minute], from: center)
-        let hour = components.hour ?? 0
-        let minute = components.minute ?? 0
-        let roundedMinute = minute < 30 ? 0 : 30
-        let day = input.calendar.startOfDay(for: center)
-        let start = input.calendar.date(bySettingHour: hour, minute: roundedMinute, second: 0, of: day) ?? center
-        let end = input.calendar.date(byAdding: .hour, value: 1, to: start) ?? start.addingTimeInterval(3_600)
+        let maximumExtraSeconds: TimeInterval = 7 * 24 * 60 * 60
+        let waypointSeconds = min(TimeInterval(input.waypointMinutes) * 60, maximumExtraSeconds)
+        let borderSeconds = min(TimeInterval(input.borderBufferMinutes) * 60, maximumExtraSeconds)
+        let center = input.departure.addingTimeInterval(
+            min(input.drivingSeconds + waypointSeconds + borderSeconds, maximumExtraSeconds * 2)
+        )
+        let rounded = (center.timeIntervalSinceReferenceDate / 1_800).rounded(.toNearestOrAwayFromZero) * 1_800
+        let start = Date(timeIntervalSinceReferenceDate: rounded - 1_800)
+        let end = Date(timeIntervalSinceReferenceDate: rounded + 1_800)
         return StayETAWindow(start: start, end: end, timeZoneIdentifier: input.calendar.timeZone.identifier)
     }
 }
@@ -404,7 +411,7 @@ enum StayMessageComposer {
             lines.append(vehicle + ".")
         }
         if transportMode == .automobile, profile.needsElectricity { lines.append("We need an electricity connection.") }
-        if let maximum = camp?.maximumLengthMeters,
+        if transportMode == .automobile, let maximum = camp?.maximumLengthMeters,
            let length = profile.totalLengthMeters,
            length > maximum {
             lines.append(String(format: "Our %.1f m total length exceeds your stated %.1f m limit; could you please confirm that it can be accommodated?", length, maximum))
@@ -433,11 +440,11 @@ enum StayMessageComposer {
     ) -> StayMessage {
         let dates = dateRange(stay)
         var lines = ["Merhaba,", "", "\(target.name) için \(dates.longText) tarihleri arasındaki uygunluğu öğrenmek istiyorum."]
-        let guests = englishGuests(profile)
+        let guests = turkishGuests(profile)
         if !guests.isEmpty { lines.append("\(guests) olarak seyahat ediyoruz.") }
         if transportMode == .automobile, !profile.vehicleDescription.isEmpty { lines.append("Aracımız: \(profile.vehicleDescription).") }
         if transportMode == .automobile, profile.needsElectricity { lines.append("Elektrik bağlantısına ihtiyacımız var.") }
-        if let maximum = camp?.maximumLengthMeters,
+        if transportMode == .automobile, let maximum = camp?.maximumLengthMeters,
            let length = profile.totalLengthMeters,
            length > maximum {
             lines.append(String(format: "Toplam %.1f m uzunluğumuz belirtilen %.1f m sınırını aşıyor; uygunluğu teyit edebilir misiniz?", length, maximum))
@@ -459,6 +466,13 @@ enum StayMessageComposer {
         if profile.adults > 0 { parts.append("\(profile.adults) " + (profile.adults == 1 ? "adult" : "adults")) }
         if profile.children > 0 { parts.append("\(profile.children) " + (profile.children == 1 ? "child" : "children")) }
         return parts.joined(separator: " and ")
+    }
+
+    private static func turkishGuests(_ profile: StayContactProfile) -> String {
+        var parts: [String] = []
+        if profile.adults > 0 { parts.append("\(profile.adults) yetişkin") }
+        if profile.children > 0 { parts.append("\(profile.children) çocuk") }
+        return parts.joined(separator: " ve ")
     }
 
     private static func dateRange(_ stay: StayDetails) -> (longText: String, shortText: String) {

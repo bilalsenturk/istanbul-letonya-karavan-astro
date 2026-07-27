@@ -21,6 +21,7 @@ struct ArrivalTargetEditorView: View {
         stay: StayDetails,
         routeId: String,
         profile: AccountTravelProfile? = nil,
+        signedOutProfile: AccountTravelProfile? = nil,
         transportMode: RouteTransportMode = .automobile,
         camp: StayCamp? = nil,
         automaticETA: StayETAWindow? = nil,
@@ -29,7 +30,7 @@ struct ArrivalTargetEditorView: View {
     ) {
         _target = State(initialValue: target)
         _stay = State(initialValue: stay)
-        self.profile = profile.map(StayContactProfile.init) ?? StayContactProfile()
+        self.profile = (profile ?? signedOutProfile).map(StayContactProfile.init) ?? StayContactProfile()
         self.transportMode = transportMode
         self.camp = camp
         self.automaticETA = automaticETA

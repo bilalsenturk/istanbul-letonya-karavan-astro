@@ -135,6 +135,8 @@ struct Camp: Codable {
     let link: String
     let image: String?                      // "/assets/camps/x.webp" (opsiyonel)
     let alternatives: [CampAlternative]?    // şehir için diğer gerçek kamplar
+    /// Curated kamp sınırı; eski rota JSON'larında yoktur.
+    let maximumLengthMeters: Double?
 }
 
 struct CampAlternative: Codable, Identifiable {

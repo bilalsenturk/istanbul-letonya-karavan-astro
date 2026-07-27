@@ -77,12 +77,21 @@ struct ArrivalTargetCheck {
         // 08:00 + 8 saat + 45 dk ara durak + 90 dk sınır payı = 18:15.
         check("ETA yarım saatlik pencere üretir", eta.text == "18:00–19:00")
 
+        let nearest = StayETACalculator.calculate(.init(
+            departure: departure, drivingSeconds: 11 * 3600 + 5 * 60, calendar: calendar
+        ))
+        check("ETA en yakın yarım saate yuvarlar", nearest.text == "18:30–19:30")
+        let halfBoundary = StayETACalculator.calculate(.init(
+            departure: departure, drivingSeconds: 9 * 3600 + 30 * 60, calendar: calendar
+        ))
+        check("tam yarım saat ETA merkezini korur", halfBoundary.text == "17:00–18:00")
+
         let exactBoundary = StayETACalculator.calculate(.init(
             departure: departure,
             drivingSeconds: 9 * 3600,
             calendar: calendar
         ))
-        check("tam yarım saatte ETA bir saatlik kalır", exactBoundary.text == "17:00–18:00")
+        check("tam saat ETA merkezini korur", exactBoundary.text == "16:30–17:30")
 
         let rollover = StayETACalculator.calculate(.init(
             departure: calendar.date(from: DateComponents(year: 2026, month: 8, day: 3, hour: 23, minute: 50))!,
@@ -98,7 +107,7 @@ struct ArrivalTargetCheck {
             drivingSeconds: 45 * 60,
             calendar: rigaCalendar
         ))
-        check("ETA hedef saat diliminde yaz saati atlamasını taşır", dstETA.text == "04:30–05:30")
+        check("ETA hedef saat diliminde yaz saati atlamasını taşır", dstETA.text == "04:00–05:00")
 
         let flight = StayMessageComposer.compose(
             target: target, stay: stay, profile: profile, transportMode: .flight, camp: nil
@@ -114,6 +123,20 @@ struct ArrivalTargetCheck {
         check("yürüyüş mesajında araç ve elektrik yok",
               !walking.body.contains("Passat") && !walking.body.localizedCaseInsensitiveContains("electricity"))
         check("yürüyüş mesajında ek ihtiyaç kalır", walking.body.contains("Quiet pitch"))
+
+        var turkishProfile = profile
+        turkishProfile.preferredLanguage = .turkish
+        turkishProfile.hasPet = true
+        let turkishFlight = StayMessageComposer.compose(
+            target: target, stay: stay, profile: turkishProfile, transportMode: .flight,
+            camp: .init(maximumLengthMeters: 8)
+        )
+        check("uçak Türkçe mesajında araç sınırı yok",
+              !turkishFlight.body.contains("Passat") && !turkishFlight.body.contains("10.8")
+                && !turkishFlight.body.contains("8.0") && !turkishFlight.body.contains("Elektrik"))
+        check("uçak Türkçe mesajında yolcu pet ve ihtiyaç var",
+              turkishFlight.body.contains("2 yetişkin ve 1 çocuk")
+                && turkishFlight.body.contains("Evcil hayvan") && turkishFlight.body.contains("Quiet pitch"))
 
         let car = StayMessageComposer.compose(
             target: target,
