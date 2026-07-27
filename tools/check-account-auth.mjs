@@ -76,6 +76,58 @@ const migratedLegacy = await legacyRepository.accountById('user-legacy');
 assert.equal(migratedLegacy.travelProfile.contactName, 'Bilal Şentürk');
 assert.equal([...legacyData.keys()].some((path) => path.startsWith('accounts/profiles/user-legacy/revisions/')), true);
 
+const repairRaceData = new Map();
+const repairRaceAccount = structuredClone(seeded);
+repairRaceAccount.travelProfile = undefined;
+repairRaceData.set('accounts/users/user-repair-race.json', repairRaceAccount);
+let pauseFirstRepairAppend = true;
+let repairAppendStarted;
+let releaseRepairAppend;
+const repairAppendGate = new Promise((resolve) => { repairAppendStarted = resolve; });
+const releaseRepairGate = new Promise((resolve) => { releaseRepairAppend = resolve; });
+const repairRaceRepository = createAccountRepository({
+  read: async (path) => repairRaceData.has(path) ? structuredClone(repairRaceData.get(path)) : null,
+  write: async (path, value) => {
+    if (pauseFirstRepairAppend && path.startsWith('accounts/profiles/user-repair-race/revisions/')) {
+      pauseFirstRepairAppend = false;
+      repairAppendStarted();
+      await releaseRepairGate;
+    }
+    repairRaceData.set(path, structuredClone(value));
+  },
+  list: async (prefix) => [...repairRaceData.keys()].filter((path) => path.startsWith(prefix)),
+  subjectId: (subject) => `user-${subject}`,
+});
+const pendingRepair = repairRaceRepository.accountById('user-repair-race');
+await repairAppendGate;
+const patchedRepairRace = await repairRaceRepository.updateTravelProfile('user-repair-race', {
+  ...travelProfile, contactName: 'Newest Repair Profile',
+});
+releaseRepairAppend();
+const repairedReturn = await pendingRepair;
+const repairedReload = await repairRaceRepository.accountById('user-repair-race');
+assert.equal(patchedRepairRace.travelProfile.contactName, 'Newest Repair Profile');
+assert.equal(repairedReturn.travelProfile.contactName, 'Newest Repair Profile');
+assert.equal(repairedReload.travelProfile.contactName, 'Newest Repair Profile');
+
+const malformedTimestampData = new Map();
+const malformedSnapshot = structuredClone(seeded);
+malformedSnapshot.id = 'user-malformed';
+malformedSnapshot.travelProfile.updatedAt = 'not-a-date';
+malformedTimestampData.set('accounts/users/user-malformed.json', malformedSnapshot);
+malformedTimestampData.set('accounts/profiles/user-malformed.json', { ...travelProfile, contactName: 'Bad Fixed', updatedAt: 'bad' });
+malformedTimestampData.set('accounts/profiles/user-malformed/revisions/bad.json', { ...travelProfile, contactName: 'Bad Revision', updatedAt: 'bad' });
+const malformedTimestampRepository = createAccountRepository({
+  read: async (path) => malformedTimestampData.has(path) ? structuredClone(malformedTimestampData.get(path)) : null,
+  write: async (path, value) => { malformedTimestampData.set(path, structuredClone(value)); },
+  list: async (prefix) => [...malformedTimestampData.keys()].filter((path) => path.startsWith(prefix)),
+  subjectId: (subject) => `user-${subject}`,
+});
+const malformedResolved = await malformedTimestampRepository.accountById('user-malformed');
+assert.notEqual(malformedResolved.travelProfile.contactName, 'Bad Fixed');
+assert.notEqual(malformedResolved.travelProfile.contactName, 'Bad Revision');
+assert.match(malformedResolved.travelProfile.updatedAt, /^\d{4}-\d{2}-\d{2}T/);
+
 const firstSeedData = new Map();
 let firstSeedProfileWriteStarted;
 let releaseFirstSeedProfileWrite;

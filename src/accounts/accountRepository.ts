@@ -87,13 +87,19 @@ export const createAccountRepository = (dependencies: AccountStore & {
     const snapshotProfile = account.travelProfile && validTimestamp(account.travelProfile.updatedAt)
       ? { ...account.travelProfile, updatedAt: validTimestamp(account.travelProfile.updatedAt)! }
       : defaultTravelProfile(account.displayName ?? '', account.email, account.updatedAt);
-    const fixed = await dependencies.read<TravelProfileRecord>(profilePath(id));
-    const paths = await dependencies.list?.(revisionPrefix(id)) ?? [];
-    const revisions = await Promise.all(paths.map((path) => dependencies.read<TravelProfileRecord>(path)));
-    const candidates = [fixed, ...revisions, snapshotProfile].filter((profile): profile is TravelProfileRecord =>
-      Boolean(profile && validTimestamp(profile.updatedAt)));
-    const profile = candidates.sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))[0] ?? snapshotProfile;
-    if (paths.length === 0) await appendProfile(id, snapshotProfile);
+    const selectProfile = async () => {
+      const fixed = await dependencies.read<TravelProfileRecord>(profilePath(id));
+      const paths = await dependencies.list?.(revisionPrefix(id)) ?? [];
+      const revisions = await Promise.all(paths.map((path) => dependencies.read<TravelProfileRecord>(path)));
+      const candidates = [fixed, ...revisions, snapshotProfile].filter((profile): profile is TravelProfileRecord =>
+        Boolean(profile && validTimestamp(profile.updatedAt)));
+      return { profile: candidates.sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))[0] ?? snapshotProfile, paths };
+    };
+    let { profile, paths } = await selectProfile();
+    if (paths.length === 0) {
+      await appendProfile(id, snapshotProfile);
+      ({ profile, paths } = await selectProfile());
+    }
     return {
       ...account,
       travelProfile: profile,
