@@ -39,3 +39,8 @@
 - PBX tarafından kullanılan `ios/Support/Info.plist` içine `LSApplicationQueriesSchemes`/`whatsapp` dizisi eklendi; `ios/project.yml` eşdeğer beyanı korunur.
 - `ios/Tests/run-whatsapp-plist-check.sh`, çalışma dizini veya index yerine `HEAD` içeriğini okuyarak iki kaynağın da WhatsApp sorgu şemasını taşıdığını doğrular.
 - Telefon ayrıştırıcısı çevre boşluğunu kırpar; yalnız ilk karakterlerde tek `+`, baştaki `00` veya yalın sayı biçimini kabul eder. Kalan bölüm ASCII sayı/boşluk/tire/parantezle sınırlıdır; iç/çift `+`, `00+`, `(00)`, Unicode sayı ve harfler reddedilir.
+
+## Fix Round 3 — Executable Plist Check
+
+- `ios/Tests/run-whatsapp-plist-check.sh` dosya modu `100755` olarak kaydedildi; doğrulama artık doğrudan `./ios/Tests/run-whatsapp-plist-check.sh` ile çalışır.
+- Doğrudan plist kontrolü ve arrival harness yeniden geçti.
