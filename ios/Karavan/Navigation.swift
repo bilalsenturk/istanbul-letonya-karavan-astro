@@ -1,6 +1,33 @@
 import Foundation
 import MapKit
 import UIKit
+import SwiftUI
+
+enum AppTab: Hashable {
+    case dashboard
+    case plan
+    case journal
+    case tools
+}
+
+@MainActor
+final class AppNavigation: ObservableObject {
+    static let shared = AppNavigation()
+
+    @Published var selectedTab: AppTab = .dashboard
+
+    private init() {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-ui-preview-routes") { selectedTab = .plan }
+        if arguments.contains("-ui-preview-plan") { selectedTab = .plan }
+        if arguments.contains("-ui-preview-map") { selectedTab = .plan }
+        if arguments.contains("-ui-preview-dashboard") { selectedTab = .dashboard }
+        if arguments.contains("-ui-preview-journal") { selectedTab = .journal }
+        if arguments.contains("-ui-preview-tools") { selectedTab = .tools }
+        #endif
+    }
+}
 
 // Gerçek navigasyon: Apple Maps (native) ve Google Maps (evrensel link).
 enum NavApp {
