@@ -309,6 +309,45 @@ func format(_ milliseconds: [Double]) -> String {
     milliseconds.map { String(format: "%.2f", $0) }.joined(separator: " / ")
 }
 
+// MARK: - Ders oturumu için cevap üreticileri
+
+/// Soruyu doğru cevaplayan yanıt. Gerçek paketten kurulan bir dersi baştan sona
+/// oynayabilmek için gerekiyor: her soru tipinin cevabı farklı bir `LatvianAnswer` kipi.
+func correctAnswer(for exercise: LatvianExercise) -> LatvianAnswer {
+    switch exercise.content {
+    case .choice(_, let correctIndex): return .choice(index: correctIndex)
+    case .wordBank(_, let answer): return .words(answer)
+    case .matching(let pairs): return .pairs(pairs)
+    case .typing(let accepted): return .text(accepted.first ?? "")
+    case .speaking(let target): return .spoken(transcript: target)
+    }
+}
+
+/// Soruyu kesinlikle yanlış cevaplayan yanıt. "Kesinlikle" önemli: oturum testleri
+/// belirli sayıda can kaybı bekliyor, dolayısıyla yanlışın tesadüfen doğru çıkması
+/// ölçümü bozardı. Testler ayrıca bu iki üreticiyi gerçek ders üzerinde notlatarak
+/// doğruluyor (bkz. "üreticiler gerçek ders üzerinde doğrulanıyor").
+func wrongAnswer(for exercise: LatvianExercise) -> LatvianAnswer {
+    switch exercise.content {
+    case .choice(let options, let correctIndex):
+        // Seçenekler birbirinden farklı (paket taraması bunu ayrıca sınıyor), yani
+        // doğru dizinden başka herhangi bir dizin yanlış. Tek seçenekli soru üretilmiyor;
+        // yine de aralık dışı bir dizin de yanlış sayıldığı için geri düşüş güvenli.
+        return .choice(index: options.indices.first { $0 != correctIndex } ?? correctIndex + 1)
+    case .wordBank(_, let answer):
+        // Sırayı ters çevirmek tek kelimelik cevapta doğruyu verirdi; fazladan bir
+        // kelime her durumda yanlış.
+        return .words(answer + ["zzz"])
+    case .matching(let pairs):
+        // Çift sayısı tutmayan cevap doğrudan yanlış sayılıyor.
+        return .pairs(Array(pairs.dropLast()))
+    case .typing(let accepted):
+        return .text((accepted.first ?? "") + " zzz")
+    case .speaking(let target):
+        return .spoken(transcript: target + " zzz")
+    }
+}
+
 @main
 struct LatvianEngineCheck {
     static func main() throws {
@@ -1878,6 +1917,319 @@ struct LatvianEngineCheck {
               + String(format: " (ders başına en iyi %.3f ms, bütçe 15 ms)", perLesson))
         expect(perLesson < 15,
                String(format: "ders kurma bütçesi: %.3f ms < 15 ms", perLesson))
+
+        print("\n=== Ders oturumu: akış ===")
+
+        func choice(_ id: String, correct: Int = 0) -> LatvianExercise {
+            LatvianExercise(
+                id: id, kind: .listenChoose, targetWordId: "w-\(id)", prompt: "p",
+                content: .choice(options: ["a", "b"], correctIndex: correct)
+            )
+        }
+
+        let session = LatvianLessonSession(exercises: [choice("q1"), choice("q2"), choice("q3")])
+
+        expect(session.current?.id == "q1", "ilk soru sırada")
+        expect(session.progress == 0, "başlangıçta ilerleme sıfır")
+        expect(session.heartsLeft == LatvianLessonSession.maxHearts, "beş canla başlıyor")
+        expect(!session.isAwaitingAdvance, "başlangıçta bekleyen cevap yok")
+
+        let correctResult = session.submit(.choice(index: 0), elapsed: 2, usedHint: false)
+        expect(correctResult.grade.isCorrect, "doğru cevap doğru notlanıyor")
+        expect(correctResult.rating == .easy, "hızlı doğru easy veriyor")
+        expect(correctResult.comboCount == 1, "kombo başlıyor")
+        expect(correctResult.xpGained == LatvianLessonSession.baseXP, "doğru cevap 10 XP veriyor")
+        expect(correctResult.heartsLeft == LatvianLessonSession.maxHearts, "doğru cevapta can gitmiyor")
+        expect(session.isAwaitingAdvance, "cevap sonrası ilerleme bekleniyor")
+        expect(session.current?.id == "q1", "submit sırayı ilerletmiyor, soru ekranda kalıyor")
+        expect(session.progress == 0, "submit ilerlemeyi tek başına artırmıyor")
+
+        session.advance()
+        expect(session.current?.id == "q2", "sonraki soruya geçiliyor")
+        expect(!session.isAwaitingAdvance, "ilerledikten sonra bekleyen cevap yok")
+        expect(abs(session.progress - 1.0 / 3.0) < 1e-9, "doğru cevap ilerlemeyi artırıyor")
+
+        let wrongResult = session.submit(.choice(index: 1), elapsed: 3, usedHint: false)
+        expect(!wrongResult.grade.isCorrect, "yanlış cevap yanlış notlanıyor")
+        expect(wrongResult.rating == .again, "yanlış cevap again veriyor")
+        expect(wrongResult.heartsLeft == LatvianLessonSession.maxHearts - 1, "yanlış cevapta bir can gidiyor")
+        expect(wrongResult.comboCount == 0, "yanlış cevap komboyu sıfırlıyor")
+        expect(wrongResult.xpGained == 0, "yanlış cevap XP vermiyor")
+
+        session.advance()
+        expect(session.current?.id == "q3", "yanlış sorudan sonra sıradaki soruya geçiliyor")
+        expect(session.remainingCount == 2, "yanlış soru sona geri eklendi")
+        expect(abs(session.progress - 1.0 / 3.0) < 1e-9, "yanlış cevap ilerlemeyi artırmıyor")
+
+        _ = session.submit(.choice(index: 0), elapsed: 2, usedHint: false)
+        session.advance()
+        expect(session.current?.id == "q2", "yanlış yapılan soru tekrar soruluyor")
+        expect(!session.isFinished, "yanlış soru doğrulanmadan ders bitmiyor")
+
+        let retryResult = session.submit(.choice(index: 0), elapsed: 2, usedHint: false)
+        expect(retryResult.rating == .hard,
+               "ikinci denemede doğru bulunan soru hızlı cevaplansa bile hard veriyor")
+        session.advance()
+        expect(session.isFinished, "tüm sorular doğrulanınca ders bitiyor")
+        expect(session.current == nil, "ders bitince sıra boş")
+        expect(session.progress == 1, "biten derste ilerleme tam")
+        expect(!session.isFailed, "canı olan biten ders başarısız değil")
+        expect(session.answerCount == 4 && session.correctCount == 3,
+               "dört cevap gönderildi, üçü doğru")
+        expect(abs(session.accuracy - 0.75) < 1e-9, "doğruluk gönderilen cevap başına ölçülüyor")
+
+        // Derece üretimine giden üç girdi — `elapsed`, `usedHint` ve soru tipinin hız
+        // eşiği — gerçekten bağlanmış mı. Eşiğin tipten geldiğini göstermek için aynı
+        // süre iki farklı tipe veriliyor: 12 saniye `listenChoose`'da (eşik 5) yavaş,
+        // `match`te (eşik 15) hâlâ hızlı.
+        let matchPairs = [
+            LatvianMatchPair(lv: "labdien", tr: "iyi günler"),
+            LatvianMatchPair(lv: "paldies", tr: "teşekkürler"),
+            LatvianMatchPair(lv: "lūdzu", tr: "lütfen"),
+            LatvianMatchPair(lv: "kafija", tr: "kahve"),
+        ]
+        let matching = LatvianExercise(
+            id: "t3", kind: .match, targetWordId: "w-t3", prompt: "p",
+            content: .matching(pairs: matchPairs)
+        )
+        let timing = LatvianLessonSession(exercises: [choice("t1"), choice("t2"), matching])
+        expect(timing.submit(.choice(index: 0), elapsed: 12, usedHint: false).rating == .good,
+               "eşiği aşan doğru cevap good veriyor")
+        timing.advance()
+        expect(timing.submit(.choice(index: 0), elapsed: 1, usedHint: true).rating == .hard,
+               "ipucu alan doğru cevap hard veriyor")
+        timing.advance()
+        expect(timing.submit(.pairs(matchPairs), elapsed: 12, usedHint: false).rating == .easy,
+               "hız eşiği soru tipinden geliyor: eşleştirmede 12 saniye hâlâ hızlı")
+        timing.advance()
+        expect(timing.isFinished, "üç soruluk karışık ders bitiyor")
+
+        print("\n=== Ders oturumu: sıra dışı çağrılar ===")
+
+        // `submit` ve `advance` ayrı olduğu için arayüz ikisini yanlış sırada ya da iki kez
+        // çağırabilir (çift dokunuş, geri gelen ekran). Hiçbiri sayaçları bozmamalı.
+        let guarded = LatvianLessonSession(exercises: [choice("g1"), choice("g2")])
+
+        guarded.advance()
+        expect(guarded.current?.id == "g1", "cevap gönderilmeden advance sırayı ilerletmiyor")
+        expect(guarded.remainingCount == 2, "cevapsız advance kuyruğu değiştirmiyor")
+        expect(guarded.answerCount == 0, "cevapsız advance cevap saymıyor")
+
+        let firstSubmit = guarded.submit(.choice(index: 0), elapsed: 2, usedHint: false)
+        let repeatSubmit = guarded.submit(.choice(index: 1), elapsed: 90, usedHint: true)
+        expect(repeatSubmit == firstSubmit, "ilerlemeden ikinci submit kayıtlı sonucu aynen dönüyor")
+        expect(guarded.xpEarned == LatvianLessonSession.baseXP, "çift submit XP'yi iki kez saymıyor")
+        expect(guarded.answerCount == 1, "çift submit doğruluk paydasını şişirmiyor")
+        expect(guarded.heartsLeft == LatvianLessonSession.maxHearts, "çift submit can eksiltmiyor")
+        expect(guarded.comboCount == 1, "çift submit komboyu iki kez artırmıyor")
+
+        guarded.advance()
+        guarded.advance()
+        expect(guarded.current?.id == "g2", "çift advance bir soru atlamıyor")
+        expect(guarded.remainingCount == 1, "çift advance kuyruktan iki soru düşürmüyor")
+        expect(abs(guarded.progress - 0.5) < 1e-9, "çift advance ilerlemeyi iki kez artırmıyor")
+
+        _ = guarded.submit(.choice(index: 0), elapsed: 2, usedHint: false)
+        guarded.advance()
+        expect(guarded.isFinished, "iki soruluk ders bitiyor")
+        let afterFinish = guarded.submit(.choice(index: 0), elapsed: 2, usedHint: false)
+        expect(afterFinish.xpGained == 0, "biten derse gönderilen cevap XP vermiyor")
+        expect(guarded.xpEarned == 2 * LatvianLessonSession.baseXP, "biten dersin XP'si sabit kalıyor")
+        expect(guarded.answerCount == 2, "biten derse gönderilen cevap sayılmıyor")
+        expect(guarded.isFinished && guarded.progress == 1, "biten ders bitmiş kalıyor")
+
+        // İkinci denemede doğru bulunan soru `attempts == 2` ile derecelendiriliyor; bunun
+        // tek yolu denemelerin soru **konumuna** göre sayılması. Kimliğe göre sayılsaydı
+        // aynı kimliği taşıyan iki soru tek soru sanılırdı.
+        let twins = LatvianLessonSession(exercises: [choice("same"), choice("same")])
+        _ = twins.submit(.choice(index: 0), elapsed: 2, usedHint: false)
+        twins.advance()
+        let twinResult = twins.submit(.choice(index: 0), elapsed: 2, usedHint: false)
+        expect(twinResult.rating == .easy, "aynı kimlikli ikinci soru ilk deneme sayılıyor")
+        twins.advance()
+        expect(twins.isFinished && twins.progress == 1,
+               "aynı kimlikli iki soru ayrı ayrı tamamlanıyor")
+
+        let empty = LatvianLessonSession(exercises: [])
+        expect(empty.isFinished, "boş ders bitmiş sayılıyor")
+        expect(empty.progress == 1, "boş derste ilerleme tam")
+        expect(empty.accuracy == 0, "cevapsız derste doğruluk sıfır")
+        expect(empty.current == nil, "boş derste sıra boş")
+
+        print("\n=== Ders oturumu: kombo kilometre taşları ===")
+
+        let comboSession = LatvianLessonSession(exercises: (1...12).map { choice("c\($0)") })
+        var milestones: [Int] = []
+        for _ in 1...12 {
+            let outcome = comboSession.submit(.choice(index: 0), elapsed: 2, usedHint: false)
+            if outcome.isComboMilestone { milestones.append(outcome.comboCount) }
+            comboSession.advance()
+        }
+        expect(milestones == [3, 5, 10], "kombo 3, 5 ve 10'da kilometre taşı veriyor")
+        expect(comboSession.comboCount == 12, "kombo on ikiye kadar büyüyor")
+        expect(comboSession.xpEarned
+               == 12 * LatvianLessonSession.baseXP + 3 * LatvianLessonSession.comboBonusXP,
+               "kombo bonusu XP'ye ekleniyor (\(comboSession.xpEarned))")
+        expect(comboSession.accuracy == 1, "hatasız derste doğruluk yüzde yüz")
+        expect(comboSession.isFinished && !comboSession.isFailed, "hatasız ders başarıyla bitiyor")
+
+        // Karar: kilometre taşı ders başına **bir kez** veriliyor. Aksi halde kombo
+        // kırıp yeniden kurmak XP kazandırırdı: 3'lük eşiği dört kez toplamak hatasız
+        // koşudan fazla bonus verir ve XP performansın azalan fonksiyonu olurdu.
+        let rebuild = LatvianLessonSession(exercises: (1...9).map { choice("r\($0)") })
+        var rebuildMilestones: [Int] = []
+        for step in 1...9 {
+            // 4. soru bilerek yanlış: kombo sıfırlanıp yeniden 3'e tırmanıyor.
+            let answer: LatvianAnswer = step == 4 ? .choice(index: 1) : .choice(index: 0)
+            let outcome = rebuild.submit(answer, elapsed: 2, usedHint: false)
+            if outcome.isComboMilestone { rebuildMilestones.append(outcome.comboCount) }
+            rebuild.advance()
+        }
+        // Kombo 3'e iki kez çıkıyor (1-2-3, sonra kırılıp 1-2-3-4-5) ama 3'lük eşik yalnız
+        // bir kez ödüllendiriliyor; 5'lik eşik ilk kez görüldüğü için veriliyor.
+        expect(rebuildMilestones == [3, 5],
+               "kombo üçe iki kez çıksa da 3'lük kilometre taşı bir kez veriliyor (\(rebuildMilestones))")
+        expect(rebuildMilestones.filter { $0 == 3 }.count == 1,
+               "aynı kilometre taşı ders içinde tekrarlanmıyor")
+        expect(rebuild.heartsLeft == LatvianLessonSession.maxHearts - 1, "tek yanlış tek can götürüyor")
+
+        print("\n=== Ders oturumu: can bitişi ===")
+
+        let failing = LatvianLessonSession(exercises: (1...8).map { choice("f\($0)") })
+        for _ in 1...5 {
+            _ = failing.submit(.choice(index: 1), elapsed: 2, usedHint: false)
+            failing.advance()
+        }
+        expect(failing.isFailed, "beş yanlıştan sonra ders başarısız")
+        expect(failing.heartsLeft == 0, "canlar tükendi")
+        expect(!failing.isFinished, "başarısız ders tamamlanmış sayılmıyor")
+        expect(failing.progress == 0, "hiç doğru yapılmayan derste ilerleme sıfır")
+
+        // Başarısız ders dönmüyor: kuyruk donuyor, sayaçlar sabit kalıyor.
+        let frozenRemaining = failing.remainingCount
+        let frozenCurrentId = failing.current?.id
+        for _ in 1...20 {
+            _ = failing.submit(.choice(index: 0), elapsed: 2, usedHint: false)
+            failing.advance()
+        }
+        expect(failing.answerCount == 5, "başarısız derse gönderilen cevaplar sayılmıyor (\(failing.answerCount))")
+        expect(failing.xpEarned == 0, "başarısız derste XP birikmiyor")
+        expect(failing.remainingCount == frozenRemaining, "başarısız derste kuyruk dönmüyor")
+        expect(failing.current?.id == frozenCurrentId, "başarısız derste sıra ilerlemiyor")
+        expect(failing.isFailed && !failing.isFinished, "başarısız ders başarısız kalıyor")
+
+        // Tek soruluk ders beş kez yanlış cevaplanınca kuyruk boşalmıyor: aksi halde
+        // `queue.isEmpty` doğru olur ve bitmiş ders sanılırdı.
+        let single = LatvianLessonSession(exercises: [choice("only")])
+        for _ in 1...5 {
+            _ = single.submit(.choice(index: 1), elapsed: 2, usedHint: false)
+            single.advance()
+        }
+        expect(single.isFailed && !single.isFinished, "tek soruluk ders can bitince başarısız")
+        expect(single.remainingCount == 1, "başarısız tek soruluk derste soru kuyrukta kalıyor")
+
+        print("\n=== Ders oturumu: gerçek ders üzerinde üç koşu ===")
+
+        let freshProgress = LatvianProgress.new()
+        let realLesson = LatvianLessonBuilder.build(
+            scene: firstScene, pack: realPack, progress: freshProgress,
+            factory: realFactory, availableAudio: realAudio, seed: 4242, now: epoch
+        )
+        expect(realLesson.count == LatvianLessonBuilder.lessonLength,
+               "gerçek paketten 16 soruluk ders kuruldu (\(realLesson.count))")
+        expect(Set(realLesson.map(\.id)).count == realLesson.count, "gerçek derste soru kimlikleri benzersiz")
+
+        // Cevap üreticileri kendi başlarına doğrulanıyor: koşuların can ve XP sayıları
+        // ancak "doğru" gerçekten doğru, "yanlış" gerçekten yanlışsa anlamlı.
+        let generatorsSound = realLesson.allSatisfy { exercise in
+            LatvianGrader.grade(exercise: exercise, answer: correctAnswer(for: exercise)).isCorrect
+                && !LatvianGrader.grade(exercise: exercise, answer: wrongAnswer(for: exercise)).isCorrect
+        }
+        expect(generatorsSound, "üreticiler gerçek ders üzerinde doğrulanıyor")
+
+        /// Bir koşuyu oynatır. `missIds` içindeki sorular **ilk** karşılaşmada yanlış
+        /// cevaplanır. Dönen sayı, oturumun kabul ettiği cevap sayısı.
+        func play(
+            _ lesson: [LatvianExercise], missIds: Set<String>, maxSubmissions: Int = 200
+        ) -> (session: LatvianLessonSession, milestones: [Int], retryRatings: [LatvianRating]) {
+            let session = LatvianLessonSession(exercises: lesson)
+            var missed: Set<String> = []
+            var milestones: [Int] = []
+            var retryRatings: [LatvianRating] = []
+            var seen: Set<String> = []
+            for _ in 0..<maxSubmissions {
+                guard let exercise = session.current, !session.isFailed else { break }
+                let shouldMiss = missIds.contains(exercise.id) && !missed.contains(exercise.id)
+                let isRetry = seen.contains(exercise.id)
+                seen.insert(exercise.id)
+                let answer = shouldMiss ? wrongAnswer(for: exercise) : correctAnswer(for: exercise)
+                if shouldMiss { missed.insert(exercise.id) }
+                let outcome = session.submit(answer, elapsed: 2, usedHint: false)
+                if outcome.isComboMilestone { milestones.append(outcome.comboCount) }
+                if isRetry { retryRatings.append(outcome.rating) }
+                session.advance()
+            }
+            return (session, milestones, retryRatings)
+        }
+
+        // 1) Kusursuz koşu.
+        let perfect = play(realLesson, missIds: [])
+        print("  kusursuz: \(perfect.session.answerCount) cevap,"
+              + " \(perfect.session.xpEarned) XP, \(perfect.session.heartsLeft) can,"
+              + String(format: " doğruluk %.2f", perfect.session.accuracy))
+        expect(perfect.session.answerCount == 16, "kusursuz koşu 16 cevapta bitiyor (\(perfect.session.answerCount))")
+        expect(perfect.session.xpEarned == 175, "kusursuz koşu 175 XP veriyor (\(perfect.session.xpEarned))")
+        expect(perfect.session.accuracy == 1, "kusursuz koşuda doğruluk 1")
+        expect(perfect.session.heartsLeft == 5, "kusursuz koşuda beş can duruyor")
+        expect(perfect.session.isFinished && !perfect.session.isFailed, "kusursuz koşu başarıyla bitiyor")
+        expect(perfect.session.progress == 1, "kusursuz koşuda ilerleme tam")
+        expect(perfect.milestones == [3, 5, 10], "kusursuz koşuda üç kilometre taşı")
+        expect(perfect.session.comboCount == 16, "kusursuz koşuda kombo on altıya çıkıyor")
+
+        // 2) Birkaç yanlışlı koşu: 3., 8. ve 12. soru ilk karşılaşmada kaçırılıyor.
+        let missIds = Set([2, 7, 11].map { realLesson[$0].id })
+        let mistakes = play(realLesson, missIds: missIds)
+        print("  üç yanlış: \(mistakes.session.answerCount) cevap,"
+              + " \(mistakes.session.xpEarned) XP, \(mistakes.session.heartsLeft) can,"
+              + String(format: " doğruluk %.2f", mistakes.session.accuracy))
+        expect(mistakes.session.answerCount == 19, "üç yanlışlı koşu 19 cevapta bitiyor (\(mistakes.session.answerCount))")
+        expect(mistakes.session.correctCount == 16, "üç yanlışlı koşuda 16 doğru cevap")
+        expect(mistakes.session.heartsLeft == 2, "üç yanlış üç can götürüyor (\(mistakes.session.heartsLeft))")
+        expect(abs(mistakes.session.accuracy - 16.0 / 19.0) < 1e-9, "üç yanlışlı koşuda doğruluk 16/19")
+        expect(mistakes.session.isFinished && !mistakes.session.isFailed, "üç yanlışlı koşu yine de bitiyor")
+        expect(mistakes.session.progress == 1, "üç yanlışlı koşuda her soru tamamlanıyor")
+        expect(mistakes.milestones == [3, 5], "üç yanlışlı koşuda iki kilometre taşı")
+        expect(mistakes.session.xpEarned == 170, "üç yanlışlı koşu 170 XP veriyor (\(mistakes.session.xpEarned))")
+        expect(mistakes.retryRatings == [.hard, .hard, .hard],
+               "tekrar sorulan sorular attempts=2 ile hard alıyor")
+        expect(mistakes.session.xpEarned < perfect.session.xpEarned,
+               "yanlış yapmak XP'yi hiçbir zaman artırmıyor")
+
+        // 3) Beş canın da gittiği koşu: her soru yanlış.
+        let doomed = LatvianLessonSession(exercises: realLesson)
+        for _ in 0..<50 {
+            guard let exercise = doomed.current else { break }
+            _ = doomed.submit(wrongAnswer(for: exercise), elapsed: 2, usedHint: false)
+            doomed.advance()
+        }
+        print("  can biten: \(doomed.answerCount) cevap, \(doomed.xpEarned) XP,"
+              + " \(doomed.heartsLeft) can,"
+              + String(format: " doğruluk %.2f", doomed.accuracy))
+        expect(doomed.answerCount == 5, "can biten koşu beş cevapta duruyor (\(doomed.answerCount))")
+        expect(doomed.xpEarned == 0, "can biten koşuda XP yok")
+        expect(doomed.accuracy == 0, "can biten koşuda doğruluk sıfır")
+        expect(doomed.heartsLeft == 0, "can biten koşuda can kalmıyor")
+        expect(doomed.isFailed && !doomed.isFinished, "can biten koşu başarısız, bitmiş değil")
+        expect(doomed.progress == 0, "can biten koşuda hiç soru tamamlanmıyor")
+        expect(doomed.remainingCount == LatvianLessonBuilder.lessonLength,
+               "can biten koşuda 16 soru kuyrukta kalıyor (\(doomed.remainingCount))")
+
+        // Oturum gerçekten saatsiz: aynı ders iki kez oynanınca sonuç birebir aynı.
+        let replay = play(realLesson, missIds: missIds)
+        expect(replay.session.xpEarned == mistakes.session.xpEarned
+               && replay.session.answerCount == mistakes.session.answerCount
+               && replay.milestones == mistakes.milestones,
+               "aynı koşu iki kez oynandığında aynı sonucu veriyor")
 
         if failures > 0 {
             fputs("\n\(failures) kontrol başarısız.\n", stderr)
