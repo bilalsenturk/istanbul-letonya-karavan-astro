@@ -414,5 +414,59 @@
     "caption": "Jūrmala sahili",
     "credit": "Paul Berzinn",
     "license": "CC BY-SA 3.0"
+  },
+  {
+    "city": "sofia", "cityName": "Sofya", "file": "/assets/gallery/sofia/sofia-08.webp", "caption": "Alexander Nevsky Katedrali", "credit": "Plamen Agov (MrPanyGoff)", "license": "CC BY-SA 4.0", "source": { "url": "https://commons.wikimedia.org/wiki/File:AlexanderNevskyCathedral-Sofia-6.jpg" }
+  },
+  {
+    "city": "sofia", "cityName": "Sofya", "file": "/assets/gallery/sofia/sofia-09.webp", "caption": "Antik Serdika", "credit": "Peter Kirkov", "license": "CC BY-SA 4.0", "source": { "url": "https://commons.wikimedia.org/wiki/File:Fortress_Ulpia_Serdica,_Sofia,_2012_-_001.jpg" }
+  },
+  {
+    "city": "sofia", "cityName": "Sofya", "file": "/assets/gallery/sofia/sofia-10.webp", "caption": "Vrana Parkı", "credit": "Just4Nick", "license": "CC BY-SA 4.0", "source": { "url": "https://commons.wikimedia.org/wiki/File:Vrana_1.JPG" }
+  },
+  {
+    "city": "novi-sad", "cityName": "Novi Sad", "file": "/assets/gallery/novi-sad/novi-sad-01.webp", "caption": "Kovilj Manastırı", "credit": "Фото", "license": "CC BY-SA 3.0", "source": { "url": "https://commons.wikimedia.org/wiki/File:Kovilj3.JPG" }
+  },
+  {
+    "city": "novi-sad", "cityName": "Novi Sad", "file": "/assets/gallery/novi-sad/novi-sad-02.webp", "caption": "Petrovaradin Kalesi", "credit": "Pudelek (Marcin Szala)", "license": "CC BY-SA 3.0 rs", "source": { "url": "https://commons.wikimedia.org/wiki/File:Petrovaradin_(Peterwardein)_-_panorama_from_the_fortress_(by_Pudelek).jpg" }
+  },
+  {
+    "city": "novi-sad", "cityName": "Novi Sad", "file": "/assets/gallery/novi-sad/novi-sad-03.webp", "caption": "Sremski Karlovci", "credit": "Goran Aničić", "license": "CC BY-SA 2.0", "source": { "url": "https://commons.wikimedia.org/wiki/File:Sremski_Karlovci_City_Hall,_Sremski_Karlovci,_Serbia.jpg" }
+  },
+  {
+    "city": "budapest", "cityName": "Budapeşte", "file": "/assets/gallery/budapest/budapest-09.webp", "caption": "Macaristan Parlamentosu", "credit": "Dirk Beyer", "license": "CC BY-SA 3.0", "source": { "url": "https://commons.wikimedia.org/wiki/File:Budapest_Parliament_4604.JPG" }
+  },
+  {
+    "city": "budapest", "cityName": "Budapeşte", "file": "/assets/gallery/budapest/budapest-10.webp", "caption": "Balıkçı Tabyası", "credit": "Jakub Hałun", "license": "CC BY-SA 4.0", "source": { "url": "https://commons.wikimedia.org/wiki/File:20190502_Baszta_Rybacka_w_Budapeszcie_1047_2006_DxO.jpg" }
+  },
+  {
+    "city": "budapest", "cityName": "Budapeşte", "file": "/assets/gallery/budapest/budapest-11.webp", "caption": "Széchenyi Kaplıcası", "credit": "Marc Ryckaert (MJJR)", "license": "CC BY 3.0", "source": { "url": "https://commons.wikimedia.org/wiki/File:Budapest_Sz%C3%A9chenyi_Baths_R02.jpg" }
+  },
+  {
+    "city": "krakow", "cityName": "Kraków", "file": "/assets/gallery/krakow/krakow-01.webp", "caption": "Wawel Tepesi", "credit": "Jakub Hałun", "license": "CC BY-SA 3.0", "source": { "url": "https://commons.wikimedia.org/wiki/File:20110930_Krakow_Wawel_0412.jpg" }
+  },
+  {
+    "city": "krakow", "cityName": "Kraków", "file": "/assets/gallery/krakow/krakow-02.webp", "caption": "Kumaş Pazarı", "credit": "Zygmunt Put", "license": "CC BY-SA 4.0", "source": { "url": "https://commons.wikimedia.org/wiki/File:Krak%C3%B3w_Cloth_Hall,_Caf%C3%A9_Noworolski,_3_Main_Market_square,_Old_Town,_Krakow,_Poland.jpg" }
+  },
+  {
+    "city": "krakow", "cityName": "Kraków", "file": "/assets/gallery/krakow/krakow-03.webp", "caption": "Kazimierz", "credit": "Igor123121", "license": "CC BY 4.0", "source": { "url": "https://commons.wikimedia.org/wiki/File:Medieval_market_square,_Wolnica_Square,_Kazimierz,_Krak%C3%B3w,_Poland.jpg" }
+  },
+  {
+    "city": "warsaw", "cityName": "Varşova", "file": "/assets/gallery/warsaw/warsaw-01.webp", "caption": "Wilanów Sarayı", "credit": "Scotch Mist", "license": "CC BY-SA 4.0", "source": { "url": "https://commons.wikimedia.org/wiki/File:Warsaw_2023_270_Wilanow_Palace_Gate_View.jpg" }
+  },
+  {
+    "city": "warsaw", "cityName": "Varşova", "file": "/assets/gallery/warsaw/warsaw-02.webp", "caption": "Łazienki Kraliyet Parkı", "credit": "Rhododendrites", "license": "CC BY-SA 4.0", "source": { "url": "https://commons.wikimedia.org/wiki/File:Royal_Lazienki_park_(21889).jpg" }
+  },
+  {
+    "city": "warsaw", "cityName": "Varşova", "file": "/assets/gallery/warsaw/warsaw-03.webp", "caption": "Kale Meydanı", "credit": "Rhododendrites", "license": "CC BY-SA 4.0", "source": { "url": "https://commons.wikimedia.org/wiki/File:Castle_Square_(22346p).jpg" }
+  },
+  {
+    "city": "riga", "cityName": "Riga", "file": "/assets/gallery/riga/riga-09.webp", "caption": "Eski Riga", "credit": "Diliff", "license": "CC BY-SA 3.0", "source": { "url": "https://commons.wikimedia.org/wiki/File:House_of_Blackheads_and_St._Peter%27s_Church_Tower,_Riga,_Latvia_-_Diliff.jpg" }
+  },
+  {
+    "city": "riga", "cityName": "Riga", "file": "/assets/gallery/riga/riga-10.webp", "caption": "Riga Art Nouveau", "credit": "Scotch Mist", "license": "CC BY-SA 4.0", "source": { "url": "https://commons.wikimedia.org/wiki/File:Art_Nouveau_Riga_31.jpg" }
+  },
+  {
+    "city": "riga", "cityName": "Riga", "file": "/assets/gallery/riga/riga-11.webp", "caption": "Riga Merkez Pazarı", "credit": "Diego Delso", "license": "CC BY-SA 3.0", "source": { "url": "https://commons.wikimedia.org/wiki/File:Mercado_Central,_Riga,_Letonia,_2012-08-07,_DD_01.JPG" }
   }
 ]

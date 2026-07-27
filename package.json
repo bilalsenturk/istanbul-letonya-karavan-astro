@@ -10,7 +10,14 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "generate:learning-lv": "node --experimental-strip-types tools/generate-latvian-learning-os.mjs",
+    "check:learning-os": "node --experimental-strip-types tools/check-learning-os.mjs",
     "check:latvian-pack": "node --experimental-strip-types tools/check-latvian-pack.mjs",
+    "check:accounts": "node --experimental-strip-types tools/check-account-domain.mjs",
+    "check:account-auth": "node --experimental-strip-types tools/check-account-auth.mjs",
+    "check:trip-api": "node --experimental-strip-types tools/check-trip-api.mjs",
+    "check:web-sync": "node --experimental-strip-types tools/check-web-app-sync.mjs",
+    "check:travel-content": "node tools/check-travel-content.mjs",
     "check": "astro check",
     "lint": "eslint .",
     "format": "prettier --write ."
@@ -20,6 +27,7 @@
     "@astrojs/vercel": "^11.0.3",
     "@vercel/blob": "^2.6.1",
     "astro": "^7.1.1",
+    "jose": "^6.2.4",
     "leaflet": "^1.9.4"
   },
   "devDependencies": {
