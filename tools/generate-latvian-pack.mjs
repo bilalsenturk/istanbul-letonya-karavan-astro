@@ -25,8 +25,9 @@ import { SCENE_PLAN } from '../src/learning-lv/scenes.ts';
 const CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const CONTENT_MODEL = process.env.OPENROUTER_CONTENT_MODEL ?? 'google/gemini-3.5-flash';
 const REVIEW_MODEL = process.env.OPENROUTER_REVIEW_MODEL ?? 'google/gemini-3.5-flash';
-const MAX_FREQ_RANK = 5000;
-const ALLOW_LIST = ['Turcija', 'no Turcijas', 'Latvija', 'Rīga', 'eiro', 'kempings'];
+const MAX_FREQ_RANK = 20000;
+const BASE_ALLOW_LIST = ['Turcija', 'no Turcijas', 'Latvija', 'Rīga', 'eiro', 'kempings'];
+const ALLOW_LIST = [...new Set([...BASE_ALLOW_LIST, ...SCENE_PLAN.flatMap(scene => scene.seedWords)])];
 
 const args = process.argv.slice(2);
 const flagValue = name => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
@@ -34,7 +35,7 @@ const hasFlag = name => args.includes(name);
 
 const root = process.cwd();
 const draftPath = path.join(root, 'data/lv-pack-draft.json');
-const frequencyPath = path.join(root, 'data/lv-frequency-top5000.txt');
+const frequencyPath = path.join(root, 'data/lv-frequency-top20000.txt');
 
 const onlyScene = flagValue('--scene');
 const dryRun = hasFlag('--dry-run');
@@ -83,6 +84,11 @@ for (const scene of SCENE_PLAN) {
     allowList: ALLOW_LIST,
   });
   for (const entry of wordFilter.rejected) console.log(`  ✗ ${entry.lv} — ${entry.reason}`);
+  const invented = wordFilter.rejected.filter(entry => entry.reason.startsWith('frekans listesinde yok')).length;
+  const tooRare = wordFilter.rejected.filter(entry => entry.reason.startsWith('çok nadir')).length;
+  if (invented > 0 || tooRare > 0) {
+    console.log(`  ${scene.title}: ${invented} uydurma (listede yok), ${tooRare} çok nadir`);
+  }
 
   const keptWords = new Set(wordFilter.kept.map(word => word.lv.toLowerCase()));
   const sentences = accepted.sentences
