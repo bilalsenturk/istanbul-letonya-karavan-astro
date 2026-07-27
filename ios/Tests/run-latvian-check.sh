@@ -10,7 +10,9 @@ swiftc -O -parse-as-library -o "$OUT/latviancheck" \
   "$SRC/LatvianExercise.swift" \
   "$SRC/LatvianGrader.swift" \
   "$SRC/LatvianMemory.swift" \
-  "$SRC/LatvianExerciseFactory.swift"
+  "$SRC/LatvianExerciseFactory.swift" \
+  "$SRC/LatvianProgress.swift" \
+  "$SRC/LatvianLessonBuilder.swift"
 "$OUT/latviancheck"
 
 # Süreçler arası belirlenimcilik.

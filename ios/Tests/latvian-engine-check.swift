@@ -49,6 +49,22 @@ let samplePackJSON = """
 }
 """
 
+/// Testlerde anahtar kurmayı kısaltır. `LatvianMemoryKey` yalnızca boş kelime kimliğinde
+/// nil döndüğü için burada başarısızlık programlama hatasıdır.
+func memoryKey(_ wordId: String, _ modality: LatvianModality) -> LatvianMemoryKey {
+    guard let key = LatvianMemoryKey(wordId: wordId, modality: modality) else {
+        fatalError("geçersiz hafıza anahtarı: \(wordId)")
+    }
+    return key
+}
+
+/// Seri hesabı takvime bağlı; testler sistem saat diliminden etkilenmesin diye UTC kullanıyor.
+let utcCalendar: Calendar = {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "UTC") ?? .current
+    return calendar
+}()
+
 // MARK: - Gerçek paket
 
 /// Uygulamanın gerçekten sevk ettiği paket. `Bundle.main` çıplak `swiftc` ikilisinde
@@ -140,6 +156,33 @@ func fingerprintLines() throws -> [String] {
             }
             lines.append(canonicalDescription(exercise))
         }
+    }
+
+    // Ders kurgusu da parmak izine giriyor. Ders kurucusu hafızayı, hata listesini ve
+    // sahne kelimelerini geziyor; bunların herhangi birinde `Set`/`Dictionary` sırasına
+    // sızacak bir belirsizlik yalnızca ayrı süreçlerde görünür hale gelir.
+    let scheduler = LatvianDefaultScheduler()
+    let epoch = Date(timeIntervalSince1970: 1_800_000_000)
+    var progress = LatvianProgress.new()
+    for (index, word) in pack.scenes.flatMap(\.words).enumerated() where index % 3 == 0 {
+        let modality: LatvianModality = index % 2 == 0 ? .recognition : .production
+        let rating: LatvianRating = index % 5 == 0 ? .again : .good
+        progress.registerAnswer(
+            wordId: word.id, modality: modality, rating: rating, scheduler: scheduler, now: epoch
+        )
+    }
+    let lessonMoment = epoch.addingTimeInterval(86_400 * 10)
+    for scene in pack.scenes {
+        let plan = LatvianLessonBuilder.plan(
+            scene: scene, pack: pack, progress: progress, now: lessonMoment
+        )
+        lines.append("plan|\(scene.id)|" + plan.map(\.debugKey).joined(separator: ","))
+        let lesson = LatvianLessonBuilder.build(
+            scene: scene, pack: pack, progress: progress, factory: factory,
+            availableAudio: audio, seed: UInt64(scene.index) &* 101, now: lessonMoment
+        )
+        lines.append("lesson|\(scene.id)|\(lesson.count)")
+        for exercise in lesson { lines.append(canonicalDescription(exercise)) }
     }
     return lines
 }
@@ -649,6 +692,529 @@ struct LatvianEngineCheck {
               + String(format: " (en iyi %.2f ms, bütçe 10 ms, %d üretildi)", buildTiming.best, built / buildTiming.all.count))
         expect(buildTiming.best < 10,
                String(format: "üretim bütçesi: %.2f ms < 10 ms", buildTiming.best))
+
+        print("\n=== İlerleme durumu ===")
+
+        var progress = LatvianProgress.new()
+        expect(progress.hearts == 5, "beş canla başlıyor")
+        expect(progress.xp == 0, "sıfır XP ile başlıyor")
+        expect(progress.streakDays == 0, "seri sıfırdan başlıyor")
+        expect(progress.recentMistakes.isEmpty, "hata listesi boş başlıyor")
+
+        progress.registerAnswer(wordId: "w1", modality: .recognition, rating: .good,
+                                scheduler: scheduler, now: epoch)
+        expect(progress.card(for: memoryKey("w1", .recognition))?.reviewCount == 1,
+               "cevap hafızaya işleniyor")
+        expect(progress.card(for: memoryKey("w1", .production)) == nil,
+               "diğer modalite etkilenmiyor")
+        expect(progress.xp == LatvianProgress.xpPerCorrectAnswer, "doğru cevap XP kazandırıyor")
+
+        progress.registerAnswer(wordId: "w2", modality: .recognition, rating: .again,
+                                scheduler: scheduler, now: epoch)
+        expect(progress.recentMistakes.contains("w2"), "yanlış cevap hata listesine giriyor")
+        expect(!progress.recentMistakes.contains("w1"), "doğru cevap hata listesine girmiyor")
+        expect(progress.xp == LatvianProgress.xpPerCorrectAnswer, "yanlış cevap XP kazandırmıyor")
+
+        progress.registerAnswer(wordId: "w2", modality: .recognition, rating: .good,
+                                scheduler: scheduler, now: epoch.addingTimeInterval(60))
+        expect(!progress.recentMistakes.contains("w2"),
+               "sonradan doğrulanan kelime hata listesinden çıkıyor")
+
+        expect(progress.registerAnswer(wordId: "", modality: .recognition, rating: .good,
+                                       scheduler: scheduler, now: epoch) == false,
+               "boş kelime kimliğiyle cevap sessizce yazılmıyor")
+
+        // Hata listesi sınırsız büyümemeli: her ders yeni hatalar ekliyor.
+        var noisy = LatvianProgress.new()
+        for index in 0..<(LatvianProgress.mistakeMemory * 3) {
+            noisy.registerAnswer(wordId: "n\(index)", modality: .recognition, rating: .again,
+                                 scheduler: scheduler, now: epoch)
+        }
+        expect(noisy.recentMistakes.count == LatvianProgress.mistakeMemory,
+               "hata listesi üst sınırda duruyor (\(noisy.recentMistakes.count))")
+        expect(noisy.recentMistakes.last == "n\(LatvianProgress.mistakeMemory * 3 - 1)",
+               "en yeni hata listenin sonunda")
+        expect(!noisy.recentMistakes.contains("n0"), "en eski hata listeden düşüyor")
+
+        var doubleMistake = LatvianProgress.new()
+        doubleMistake.registerAnswer(wordId: "w1", modality: .recognition, rating: .again,
+                                     scheduler: scheduler, now: epoch)
+        doubleMistake.registerAnswer(wordId: "w1", modality: .production, rating: .again,
+                                     scheduler: scheduler, now: epoch)
+        expect(doubleMistake.recentMistakes == ["w1"],
+               "aynı kelime hata listesinde iki kez yer kaplamıyor")
+
+        // Can
+        var lives = LatvianProgress.new()
+        lives.loseHeart(now: epoch)
+        expect(lives.hearts == 4, "can kaybı işleniyor")
+        lives.loseHeart(now: epoch.addingTimeInterval(3600))
+        expect(lives.hearts == 3, "ikinci can kaybı işleniyor")
+        lives.refillHearts(now: epoch.addingTimeInterval(LatvianProgress.heartRefillInterval))
+        expect(lives.hearts == 4, "dolum süresi dolunca bir can geliyor")
+        lives.refillHearts(now: epoch.addingTimeInterval(86_400 * 365))
+        expect(lives.hearts == LatvianProgress.maxHearts,
+               "uzun aradan sonra canlar dolup üst sınırda duruyor (\(lives.hearts))")
+        expect(lives.lastHeartLostAt == nil, "canlar dolunca dolum sayacı kapanıyor")
+
+        var drained = LatvianProgress.new()
+        for index in 0..<10 {
+            drained.loseHeart(now: epoch.addingTimeInterval(Double(index) * 60))
+        }
+        expect(drained.hearts == 0, "can sıfırın altına inmiyor")
+        drained.refillHearts(now: epoch.addingTimeInterval(LatvianProgress.heartRefillInterval * 2))
+        expect(drained.hearts == 2,
+               "canı bitmiş öğrencide ek kayıplar dolum sayacını ileri itmiyor (\(drained.hearts))")
+
+        // Seri
+        var streak = LatvianProgress.new()
+        streak.registerLessonCompleted(now: epoch, calendar: utcCalendar)
+        expect(streak.streakDays == 1, "ilk ders seriyi bire çıkarıyor")
+        streak.registerLessonCompleted(now: epoch.addingTimeInterval(3600), calendar: utcCalendar)
+        expect(streak.streakDays == 1, "aynı gün ikinci ders seriyi artırmıyor")
+        streak.registerLessonCompleted(now: epoch.addingTimeInterval(86_400), calendar: utcCalendar)
+        expect(streak.streakDays == 2, "ertesi gün seri artıyor")
+        streak.registerLessonCompleted(now: epoch.addingTimeInterval(86_400 * 4), calendar: utcCalendar)
+        expect(streak.streakDays == 1, "günler atlanınca seri baştan başlıyor")
+        streak.registerLessonCompleted(now: epoch.addingTimeInterval(86_400 * 5 - 3600),
+                                       calendar: utcCalendar)
+        expect(streak.streakDays == 2, "gecenin ilerleyen saati de ertesi gün sayılıyor")
+
+        // Kalıcılık
+        let encodedProgress = try progress.encoded()
+        let reloadedProgress = try LatvianProgress.decode(from: encodedProgress)
+        expect(reloadedProgress == progress, "ilerleme birebir kaydedilip geri okunuyor")
+        expect(reloadedProgress.card(for: memoryKey("w1", .recognition))?.reviewCount == 1,
+               "hafıza kartı kaydedilip geri okunuyor")
+        expect(reloadedProgress.hearts == progress.hearts, "can sayısı kalıcı")
+
+        let sandbox = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("latvian-progress-check-\(ProcessInfo.processInfo.processIdentifier)")
+        try? FileManager.default.removeItem(at: sandbox)
+        let progressURL = sandbox.appendingPathComponent("latvian-progress.json")
+        let backupURL = progressURL.appendingPathExtension("bak")
+
+        expect(LatvianProgress.load(from: progressURL).outcome == .fresh,
+               "kayıt yokken sıfırdan başlıyor")
+
+        try progress.save(to: progressURL)
+        let reloaded = LatvianProgress.load(from: progressURL)
+        expect(reloaded.outcome == .loaded && reloaded.progress == progress,
+               "ilerleme dosyaya yazılıp geri okunuyor")
+
+        var later = progress
+        later.registerAnswer(wordId: "w3", modality: .production, rating: .easy,
+                             scheduler: scheduler, now: epoch)
+        try later.save(to: progressURL)
+        try Data("{ yarım".utf8).write(to: progressURL)
+        let recovered = LatvianProgress.load(from: progressURL)
+        expect(recovered.outcome == .recovered && recovered.progress == progress,
+               "bozuk dosya yedekten kurtarılıyor")
+
+        try Data("{ yarım".utf8).write(to: backupURL)
+        let wiped = LatvianProgress.load(from: progressURL)
+        expect(wiped.outcome == .reset && wiped.progress == LatvianProgress.new(),
+               "yedek de bozuksa sıfırlanıyor ve bu bildiriliyor")
+
+        try Data(#"{"xp":40}"#.utf8).write(to: progressURL)
+        let partial = LatvianProgress.load(from: progressURL)
+        expect(partial.outcome == .loaded
+               && partial.progress.xp == 40
+               && partial.progress.hearts == LatvianProgress.maxHearts,
+               "eksik alanlı kayıt varsayılanlarla okunuyor")
+
+        try Data(#"{"hearts":99,"xp":-5,"memory":{"bozuk-anahtar":{"stability":1,"difficulty":5,"dueAt":0,"reviewCount":1,"lapseCount":0}}}"#.utf8)
+            .write(to: progressURL)
+        let clamped = LatvianProgress.load(from: progressURL).progress
+        expect(clamped.hearts == LatvianProgress.maxHearts, "can sayısı üst sınıra kırpılıyor")
+        expect(clamped.xp == 0, "negatif XP sıfıra kırpılıyor")
+        expect(clamped.allCards().isEmpty, "çözülemeyen hafıza anahtarı atılıyor")
+        try? FileManager.default.removeItem(at: sandbox)
+
+        print("\n=== Sahne kilidi ===")
+
+        var mastered = LatvianProgress.new()
+        for word in pack.scenes[0].words {
+            for modality in [LatvianModality.recognition, .production] {
+                var card = LatvianMemoryCard.new()
+                for _ in 0..<6 { card = scheduler.review(card: card, rating: .easy, now: epoch) }
+                mastered.setCard(card, for: memoryKey(word.id, modality))
+            }
+        }
+
+        expect(LatvianLessonBuilder.masteryThreshold == 0.9, "hakimiyet eşiği 0.9")
+        expect(LatvianLessonBuilder.masteryCoverage == 0.8, "kapsama eşiği 0.8")
+        expect(LatvianLessonBuilder.lessonLength == 16, "ders uzunluğu 16")
+
+        expect(LatvianLessonBuilder.masteryRatio(scene: pack.scenes[0], progress: mastered, now: epoch) >= 0.8,
+               "ezberlenmiş sahnede hakimiyet oranı yüksek")
+        expect(LatvianLessonBuilder.isSceneMastered(scene: pack.scenes[0], progress: mastered, now: epoch),
+               "ezberlenmiş sahne tamamlanmış sayılıyor")
+        expect(!LatvianLessonBuilder.isSceneMastered(scene: pack.scenes[0], progress: LatvianProgress.new(), now: epoch),
+               "boş ilerlemede sahne tamamlanmamış")
+
+        let staleMoment = epoch.addingTimeInterval(86_400 * 3650)
+        expect(!LatvianLessonBuilder.isSceneMastered(scene: pack.scenes[0], progress: mastered, now: staleMoment),
+               "unutulmuş sahne yeniden hakim sayılmıyor")
+
+        // Hakimiyet iki modaliteyi birden istiyor: yalnızca tanıma tarafı yetmiyor.
+        var recognitionOnly = LatvianProgress.new()
+        for word in pack.scenes[0].words {
+            var card = LatvianMemoryCard.new()
+            for _ in 0..<6 { card = scheduler.review(card: card, rating: .easy, now: epoch) }
+            recognitionOnly.setCard(card, for: memoryKey(word.id, .recognition))
+        }
+        expect(LatvianLessonBuilder.masteryRatio(scene: pack.scenes[0], progress: recognitionOnly, now: epoch) == 0,
+               "yalnızca tanıma tarafı bilinen sahnede hakimiyet oranı sıfır")
+
+        print("\n=== Ders kurgusu (örnek paket) ===")
+
+        let lesson = LatvianLessonBuilder.build(
+            scene: pack.scenes[0],
+            pack: pack,
+            progress: progress,
+            factory: factory,
+            availableAudio: allAudio,
+            seed: 7,
+            now: epoch
+        )
+
+        expect(lesson.count == LatvianLessonBuilder.lessonLength, "ders 16 sorudan oluşuyor")
+        expect(Set(lesson.map(\.id)).count == lesson.count, "aynı soru iki kez girmiyor")
+
+        var repeatedKind = false
+        var repeatedWord = false
+        for index in 1..<lesson.count {
+            if lesson[index].kind == lesson[index - 1].kind { repeatedKind = true }
+            if lesson[index].targetWordId == lesson[index - 1].targetWordId { repeatedWord = true }
+        }
+        expect(!repeatedKind, "ardışık iki soru aynı tipte değil")
+        expect(!repeatedWord, "ardışık iki soru aynı kelime üzerine değil")
+
+        expect(lesson.allSatisfy { !$0.requiresAudio || allAudio.contains($0.audioId ?? "") },
+               "ses gerektiren her soru sesi olan kelimeden geliyor")
+
+        let silentLesson = LatvianLessonBuilder.build(
+            scene: pack.scenes[0],
+            pack: pack,
+            progress: progress,
+            factory: factory,
+            availableAudio: [],
+            seed: 7,
+            now: epoch
+        )
+        expect(silentLesson.allSatisfy { !$0.requiresAudio }, "ses yokken dinleme sorusu üretilmiyor")
+        expect(silentLesson.count == LatvianLessonBuilder.lessonLength,
+               "ses yokken bile ders tam kuruluyor (\(silentLesson.count))")
+
+        let sameSeed = LatvianLessonBuilder.build(
+            scene: pack.scenes[0], pack: pack, progress: progress, factory: factory,
+            availableAudio: allAudio, seed: 7, now: epoch
+        )
+        expect(sameSeed == lesson, "aynı tohum birebir aynı dersi veriyor")
+
+        let emptyScene = LatvianScene(id: "bos", index: 99, title: "Boş", words: [], sentences: [])
+        expect(LatvianLessonBuilder.build(
+            scene: emptyScene, pack: pack, progress: progress, factory: factory,
+            availableAudio: allAudio, seed: 7, now: epoch
+        ).isEmpty, "kelimesiz sahnede ders kurulmuyor, çökmüyor")
+        expect(LatvianLessonBuilder.masteryRatio(scene: emptyScene, progress: progress, now: epoch) == 1,
+               "kelimesiz sahne hakimiyet hesabını bölmüyor")
+
+        print("\n=== Gerçek paket üzerinde ders kurgusu ===")
+
+        let firstScene = realPack.scenes[0]
+        let firstSceneWordIds = Set(firstScene.words.map(\.id))
+
+        // Hakimiyet iki modaliteyi de istediğine göre, her kelimenin iki modalitede de
+        // öğretilebilir olması gerekiyor; yoksa sahne asla açılamazdı.
+        var untrainable: [String] = []
+        for word in realWords {
+            let kinds = realFactory.supportedKinds(forWordId: word.id, availableAudio: realAudio)
+            if !kinds.contains(where: { $0.modality == .recognition })
+                || !kinds.contains(where: { $0.modality == .production }) {
+                untrainable.append(word.id)
+            }
+        }
+        expect(untrainable.isEmpty,
+               "her kelime hem tanıma hem üretim sorusu üretebiliyor"
+               + (untrainable.isEmpty ? "" : " — eksik: \(untrainable.prefix(3).joined(separator: ", "))"))
+
+        let firstLesson = LatvianLessonBuilder.build(
+            scene: firstScene, pack: realPack, progress: LatvianProgress.new(),
+            factory: realFactory, availableAudio: realAudio, seed: 11, now: epoch
+        )
+        expect(firstLesson.count == LatvianLessonBuilder.lessonLength,
+               "boş ilerlemede birinci sahne dersi 16 soru (\(firstLesson.count))")
+        expect(firstLesson.allSatisfy { firstSceneWordIds.contains($0.targetWordId) },
+               "her sorunun hedef kelimesi sahnenin kendi kelimesi")
+        expect(Set(firstLesson.map(\.id)).count == firstLesson.count,
+               "gerçek pakette aynı soru iki kez girmiyor")
+
+        var realRepeatKind: [String] = []
+        var realRepeatWord: [String] = []
+        for index in 1..<firstLesson.count {
+            if firstLesson[index].kind == firstLesson[index - 1].kind {
+                realRepeatKind.append("\(index): \(firstLesson[index].kind.rawValue)")
+            }
+            if firstLesson[index].targetWordId == firstLesson[index - 1].targetWordId {
+                realRepeatWord.append("\(index): \(firstLesson[index].targetWordId)")
+            }
+        }
+        expect(realRepeatKind.isEmpty,
+               "gerçek pakette ardışık iki soru aynı tipte değil"
+               + (realRepeatKind.isEmpty ? "" : " — \(realRepeatKind.joined(separator: ", "))"))
+        expect(realRepeatWord.isEmpty,
+               "gerçek pakette ardışık iki soru aynı kelime üzerine değil"
+               + (realRepeatWord.isEmpty ? "" : " — \(realRepeatWord.joined(separator: ", "))"))
+
+        // Sesler inmemişken de ders tam kurulmalı: dinleme/dikte/telaffuz düşer ama
+        // gerçek pakette her kelimenin ses gerektirmeyen bir sorusu var.
+        let silentRealLesson = LatvianLessonBuilder.build(
+            scene: firstScene, pack: realPack, progress: LatvianProgress.new(),
+            factory: realFactory, availableAudio: [], seed: 11, now: epoch
+        )
+        expect(silentRealLesson.count == LatvianLessonBuilder.lessonLength,
+               "gerçek pakette ses yokken de ders 16 soru (\(silentRealLesson.count))")
+        expect(silentRealLesson.allSatisfy { !$0.requiresAudio },
+               "ses yokken gerçek pakette de ses gerektiren soru yok")
+
+        let otherSeed = LatvianLessonBuilder.build(
+            scene: firstScene, pack: realPack, progress: LatvianProgress.new(),
+            factory: realFactory, availableAudio: realAudio, seed: 12, now: epoch
+        )
+        expect(otherSeed.map(\.id) != firstLesson.map(\.id), "farklı tohum farklı ders veriyor")
+
+        // Kotalar: üç havuz da doluyken 8 yeni / 5 tekrar / 3 hata.
+        expect(LatvianLessonBuilder.newQuota == 8, "yeni kotası 8 (%50)")
+        expect(LatvianLessonBuilder.reviewQuota == 5, "tekrar kotası 5 (%30)")
+        expect(LatvianLessonBuilder.mistakeQuota == 3, "hata kotası 3 (%20)")
+
+        var mixed = LatvianProgress.new()
+        for word in realPack.scenes[1].words.prefix(8) {
+            for modality in [LatvianModality.recognition, .production] {
+                mixed.registerAnswer(wordId: word.id, modality: modality, rating: .good,
+                                     scheduler: scheduler, now: epoch)
+            }
+        }
+        for word in realPack.scenes[2].words.prefix(4) {
+            mixed.registerAnswer(wordId: word.id, modality: .recognition, rating: .again,
+                                 scheduler: scheduler, now: epoch)
+        }
+        let mixedMoment = epoch.addingTimeInterval(86_400 * 30)
+        let mixedPlan = LatvianLessonBuilder.plan(
+            scene: firstScene, pack: realPack, progress: mixed, now: mixedMoment
+        )
+        expect(mixedPlan.count == LatvianLessonBuilder.lessonLength, "plan 16 hedef içeriyor")
+        expect(mixedPlan.filter { $0.source == .new }.count == LatvianLessonBuilder.newQuota,
+               "yeni kotası doluyor (\(mixedPlan.filter { $0.source == .new }.count))")
+        expect(mixedPlan.filter { $0.source == .review }.count == LatvianLessonBuilder.reviewQuota,
+               "tekrar kotası doluyor (\(mixedPlan.filter { $0.source == .review }.count))")
+        expect(mixedPlan.filter { $0.source == .mistake }.count == LatvianLessonBuilder.mistakeQuota,
+               "hata kotası doluyor (\(mixedPlan.filter { $0.source == .mistake }.count))")
+        expect(Set(mixedPlan.map(\.debugKey)).count == mixedPlan.count,
+               "planda aynı kelime-modalite ikilisi iki kez yok")
+
+        // Havuz boşken kota devrediyor: boş ilerlemede tekrar ve hata havuzu yok.
+        let emptyPlan = LatvianLessonBuilder.plan(
+            scene: firstScene, pack: realPack, progress: LatvianProgress.new(), now: epoch
+        )
+        expect(emptyPlan.count == LatvianLessonBuilder.lessonLength,
+               "havuzlar boşken de plan 16 hedefe ulaşıyor (\(emptyPlan.count))")
+        expect(emptyPlan.allSatisfy { firstSceneWordIds.contains($0.wordId) },
+               "boş ilerlemede tüm hedefler sahneden geliyor")
+        expect(emptyPlan.contains { $0.modality == .production },
+               "ilk derste üretim tarafı da öğretiliyor")
+
+        print("\n=== Benzetim: her soruyu bilen öğrenci ===")
+
+        var learner = LatvianProgress.new()
+        var learnerLessonSizes: [Int] = []
+        var learnerKindClashes = 0
+        var learnerWordClashes = 0
+        var unlockedAtLesson: Int?
+        var learnerMoment = epoch
+        let learnerLimit = 60
+        for lessonIndex in 1...learnerLimit {
+            let start = epoch.addingTimeInterval(Double(lessonIndex - 1) * 86_400)
+            let questions = LatvianLessonBuilder.build(
+                scene: firstScene, pack: realPack, progress: learner,
+                factory: realFactory, availableAudio: realAudio,
+                seed: UInt64(lessonIndex), now: start
+            )
+            learnerLessonSizes.append(questions.count)
+            for index in 1..<max(1, questions.count) {
+                if questions[index].kind == questions[index - 1].kind {
+                    learnerKindClashes += 1
+                }
+                if questions[index].targetWordId == questions[index - 1].targetWordId {
+                    learnerWordClashes += 1
+                }
+            }
+            for (offset, question) in questions.enumerated() {
+                learnerMoment = start.addingTimeInterval(Double(offset + 1) * 20)
+                learner.registerAnswer(
+                    wordId: question.targetWordId, modality: question.modality,
+                    rating: .easy, scheduler: scheduler, now: learnerMoment
+                )
+            }
+            learner.registerLessonCompleted(now: learnerMoment, calendar: utcCalendar)
+            if LatvianLessonBuilder.isSceneMastered(scene: firstScene, progress: learner, now: learnerMoment) {
+                learner.registerSceneCompletion(sceneId: firstScene.id, now: learnerMoment)
+                unlockedAtLesson = lessonIndex
+                break
+            }
+        }
+
+        let ratio = LatvianLessonBuilder.masteryRatio(scene: firstScene, progress: learner, now: learnerMoment)
+        print(String(format: "  hakimiyet oranı: %.2f, seri: %d gün, XP: %d",
+                     ratio, learner.streakDays, learner.xp))
+        if let unlockedAtLesson {
+            print("  sahne \(unlockedAtLesson). derste açıldı")
+        } else {
+            print("  sahne \(learnerLimit) derste açılmadı")
+        }
+        expect(learnerLessonSizes.allSatisfy { $0 == LatvianLessonBuilder.lessonLength },
+               "benzetimdeki her ders 16 soru")
+        expect(learnerKindClashes == 0,
+               "benzetimdeki hiçbir derste ardışık aynı tip yok (\(learnerKindClashes) çakışma)")
+        expect(learnerWordClashes == 0,
+               "benzetimdeki hiçbir derste ardışık aynı kelime yok (\(learnerWordClashes) çakışma)")
+        expect(unlockedAtLesson != nil,
+               "her soruyu bilen öğrenci sahneyi \(learnerLimit) ders içinde tamamlıyor")
+        expect((unlockedAtLesson ?? 0) > 1,
+               "sahne ilk derste açılmıyor, gerçek tekrar gerekiyor (\(unlockedAtLesson ?? 0). ders)")
+        expect(LatvianLessonBuilder.isSceneUnlocked(scene: realPack.scenes[1], pack: realPack,
+                                                    progress: learner, now: learnerMoment),
+               "birinci sahne tamamlanınca ikinci sahne açılıyor")
+        expect(LatvianLessonBuilder.isSceneUnlocked(
+                scene: realPack.scenes[1], pack: realPack, progress: learner,
+                now: learnerMoment.addingTimeInterval(86_400 * 3650)),
+               "bir kez açılan sahne unutma yüzünden geri kilitlenmiyor")
+        expect(!LatvianLessonBuilder.isSceneUnlocked(scene: realPack.scenes[2], pack: realPack,
+                                                     progress: learner, now: learnerMoment),
+               "üçüncü sahne hâlâ kilitli")
+        expect(learner.streakDays == unlockedAtLesson,
+               "her gün bir ders yapan öğrencinin serisi ders sayısına eşit (\(learner.streakDays))")
+
+        print("\n=== Benzetim: gerçekçi öğrenci ===")
+
+        // Dört soruda birini yanlış yapan, kalanını zorlanmadan ama hızlı olmadan
+        // bilen öğrenci. Kusursuz yolun tek veri noktası olmaması için ölçülüyor.
+        var mixedLearner = LatvianProgress.new()
+        var mixedUnlockedAt: Int?
+        var mixedMomentEnd = epoch
+        var answered = 0
+        for lessonIndex in 1...80 {
+            let start = epoch.addingTimeInterval(Double(lessonIndex - 1) * 86_400)
+            let questions = LatvianLessonBuilder.build(
+                scene: firstScene, pack: realPack, progress: mixedLearner,
+                factory: realFactory, availableAudio: realAudio,
+                seed: UInt64(900 + lessonIndex), now: start
+            )
+            for (offset, question) in questions.enumerated() {
+                answered += 1
+                mixedMomentEnd = start.addingTimeInterval(Double(offset + 1) * 20)
+                mixedLearner.registerAnswer(
+                    wordId: question.targetWordId, modality: question.modality,
+                    rating: answered % 4 == 0 ? .again : .good,
+                    scheduler: scheduler, now: mixedMomentEnd
+                )
+            }
+            if LatvianLessonBuilder.isSceneMastered(scene: firstScene, progress: mixedLearner, now: mixedMomentEnd) {
+                mixedUnlockedAt = lessonIndex
+                break
+            }
+        }
+        if let mixedUnlockedAt {
+            print("  sahne \(mixedUnlockedAt). derste açıldı (\(mixedUnlockedAt * 16) soru)")
+        } else {
+            print("  sahne 80 derste açılmadı")
+        }
+        expect(mixedUnlockedAt != nil, "gerçekçi öğrenci de sahneyi eninde sonunda tamamlıyor")
+        expect((mixedUnlockedAt ?? 0) > (unlockedAtLesson ?? 0),
+               "yanlış yapan öğrenci kusursuz öğrenciden daha çok ders yapıyor"
+               + " (\(mixedUnlockedAt ?? 0) > \(unlockedAtLesson ?? 0))")
+
+        print("\n=== Benzetim: her soruyu yanlış yapan öğrenci ===")
+
+        var struggler = LatvianProgress.new()
+        var strugglerLessons: [[String]] = []
+        var strugglerPeakRatio = 0.0
+        var strugglerKindClashes = 0
+        var strugglerWordClashes = 0
+        for lessonIndex in 1...20 {
+            let start = epoch.addingTimeInterval(Double(lessonIndex - 1) * 86_400)
+            let questions = LatvianLessonBuilder.build(
+                scene: firstScene, pack: realPack, progress: struggler,
+                factory: realFactory, availableAudio: realAudio,
+                seed: UInt64(500 + lessonIndex), now: start
+            )
+            strugglerLessons.append(questions.map(\.targetWordId))
+            for index in 1..<max(1, questions.count) {
+                if questions[index].kind == questions[index - 1].kind { strugglerKindClashes += 1 }
+                if questions[index].targetWordId == questions[index - 1].targetWordId {
+                    strugglerWordClashes += 1
+                }
+            }
+            for (offset, question) in questions.enumerated() {
+                struggler.registerAnswer(
+                    wordId: question.targetWordId, modality: question.modality,
+                    rating: .again, scheduler: scheduler,
+                    now: start.addingTimeInterval(Double(offset + 1) * 20)
+                )
+            }
+            // Sahne kilidi ders biter bitmez de bakılabilir; yanlış cevaplanan kart o
+            // anda "az önce görüldü" olduğundan hatırlanma olasılığı tavana yakındır.
+            // Kilit bu boşluktan açılmamalı.
+            let endOfLesson = start.addingTimeInterval(Double(questions.count + 1) * 20)
+            strugglerPeakRatio = max(
+                strugglerPeakRatio,
+                LatvianLessonBuilder.masteryRatio(scene: firstScene, progress: struggler, now: endOfLesson)
+            )
+        }
+        print(String(format: "  ders sonunda ölçülen en yüksek hakimiyet oranı: %.2f", strugglerPeakRatio))
+        expect(strugglerPeakRatio < LatvianLessonBuilder.masteryCoverage,
+               String(format: "yanlış cevaplanan ders bittiği anda bile sahneyi açmıyor (%.2f)", strugglerPeakRatio))
+        let strugglerMoment = epoch.addingTimeInterval(86_400 * 20)
+        expect(strugglerLessons.allSatisfy { $0.count == LatvianLessonBuilder.lessonLength },
+               "yanlış yapan öğrencide de her ders 16 soru")
+        expect(strugglerKindClashes == 0 && strugglerWordClashes == 0,
+               "yanlış yapan öğrencide de ardışık tekrar yok"
+               + " (\(strugglerKindClashes) tip, \(strugglerWordClashes) kelime çakışması)")
+        expect(LatvianLessonBuilder.masteryRatio(scene: firstScene, progress: struggler, now: strugglerMoment) == 0,
+               "hep yanlış yapan öğrencide hakimiyet oranı sıfır")
+        expect(!LatvianLessonBuilder.isSceneMastered(scene: firstScene, progress: struggler, now: strugglerMoment),
+               "hep yanlış yapan öğrencide sahne tamamlanmıyor")
+        expect(!LatvianLessonBuilder.isSceneUnlocked(scene: realPack.scenes[1], pack: realPack,
+                                                     progress: struggler, now: strugglerMoment),
+               "hep yanlış yapan öğrencide ikinci sahne açılmıyor")
+        let lastOverlap = Set(strugglerLessons[18]).intersection(Set(strugglerLessons[19])).count
+        print("  son iki dersin ortak kelime sayısı: \(lastOverlap)")
+        expect(lastOverlap >= 8,
+               "ders kurgusu aynı zayıf kelimelere dönüyor (\(lastOverlap) ortak kelime)")
+        expect(struggler.recentMistakes.count <= LatvianProgress.mistakeMemory,
+               "hata listesi 20 dersten sonra da sınırlı (\(struggler.recentMistakes.count))")
+
+        print("\n=== Ders kurma bütçesi ===")
+
+        var lessonQuestionTotal = 0
+        let lessonTiming = measure {
+            for index in 0..<10 {
+                lessonQuestionTotal += LatvianLessonBuilder.build(
+                    scene: firstScene, pack: realPack, progress: learner,
+                    factory: realFactory, availableAudio: realAudio,
+                    seed: UInt64(index + 1), now: learnerMoment
+                ).count
+            }
+        }
+        expect(lessonQuestionTotal == 10 * lessonTiming.all.count * LatvianLessonBuilder.lessonLength,
+               "bütçe ölçümünde derslerin tamamı kuruldu (\(lessonQuestionTotal) soru)")
+        let perLesson = lessonTiming.best / 10
+        print("  10 ders kurulumu: \(format(lessonTiming.all)) ms"
+              + String(format: " (ders başına en iyi %.3f ms, bütçe 15 ms)", perLesson))
+        expect(perLesson < 15,
+               String(format: "ders kurma bütçesi: %.3f ms < 15 ms", perLesson))
 
         if failures > 0 {
             fputs("\n\(failures) kontrol başarısız.\n", stderr)
