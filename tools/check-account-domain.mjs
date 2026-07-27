@@ -70,11 +70,19 @@ const trip = foldTripEvents([
           id: 'campuccino', name: 'Camping Campuccino', kind: 'campground',
           latitude: 42.66, longitude: 23.28, formattedAddress: 'Sofia, Bulgaria',
           phone: '+359881234567', email: 'hello@example.com', source: 'appleMaps',
+          maximumLengthMeters: 7.5,
           updatedAt: '2026-07-26T07:01:00.000Z',
         },
         stayDetails: {
           checkIn: '2026-08-03T12:00:00.000Z', checkOut: '2026-08-05T08:00:00.000Z',
           reservationStatus: 'awaitingReply',
+          estimatedArrival: '19:00–20:00',
+          estimatedArrivalMode: 'manual',
+          estimatedArrivalWindow: {
+            start: '2026-08-03T16:00:00.000Z',
+            end: '2026-08-03T17:00:00.000Z',
+            timeZoneIdentifier: 'Europe/Sofia',
+          },
         },
       },
     },
@@ -98,7 +106,74 @@ assert.deepEqual(trip.stops.map((stop) => stop.id), ['istanbul', 'sofia']);
 assert.equal(trip.stops[1].note, 'Kamp alanı');
 assert.equal(trip.stops[1].arrivalTarget?.name, 'Camping Campuccino');
 assert.equal(trip.stops[1].arrivalTarget?.phone, '+359881234567');
+assert.equal(trip.stops[1].arrivalTarget?.maximumLengthMeters, 7.5);
 assert.equal(trip.stops[1].stayDetails?.reservationStatus, 'awaitingReply');
+assert.equal(trip.stops[1].stayDetails?.estimatedArrivalMode, 'manual');
+assert.deepEqual(trip.stops[1].stayDetails?.estimatedArrivalWindow, {
+  start: '2026-08-03T16:00:00.000Z',
+  end: '2026-08-03T17:00:00.000Z',
+  timeZoneIdentifier: 'Europe/Sofia',
+});
+
+const roundTrippedTrip = foldTripEvents(JSON.parse(JSON.stringify([
+  {
+    id: 'roundtrip-1', tripId: 'trip-roundtrip', revision: 1,
+    occurredAt: '2026-07-26T07:04:00.000Z', actorUserId: 'user-1', type: 'tripCreated',
+    payload: {
+      name: 'Round trip', kind: 'standard', ownerUserId: 'user-1',
+    },
+  },
+  {
+    id: 'roundtrip-2', tripId: 'trip-roundtrip', revision: 2,
+    occurredAt: '2026-07-26T07:05:00.000Z', actorUserId: 'user-1', type: 'stopAdded',
+    payload: { stop: trip.stops[1] },
+  },
+])));
+assert.equal(roundTrippedTrip.stops[0].arrivalTarget?.maximumLengthMeters, 7.5);
+assert.equal(roundTrippedTrip.stops[0].stayDetails?.estimatedArrivalMode, 'manual');
+assert.equal(roundTrippedTrip.stops[0].stayDetails?.estimatedArrivalWindow?.timeZoneIdentifier, 'Europe/Sofia');
+
+const foldSingleStop = (stop) => foldTripEvents([
+  {
+    id: 'validation-1', tripId: 'trip-validation', revision: 1,
+    occurredAt: '2026-07-26T07:04:00.000Z', actorUserId: 'user-1', type: 'tripCreated',
+    payload: { name: 'Validation', kind: 'standard', ownerUserId: 'user-1' },
+  },
+  {
+    id: 'validation-2', tripId: 'trip-validation', revision: 2,
+    occurredAt: '2026-07-26T07:05:00.000Z', actorUserId: 'user-1', type: 'stopAdded',
+    payload: { stop },
+  },
+]);
+
+assert.throws(
+  () => foldSingleStop({
+    ...trip.stops[1],
+    arrivalTarget: { ...trip.stops[1].arrivalTarget, maximumLengthMeters: 0 },
+  }),
+  /invalid_arrival_target/,
+);
+assert.throws(
+  () => foldSingleStop({
+    ...trip.stops[1],
+    stayDetails: { ...trip.stops[1].stayDetails, estimatedArrivalMode: 'approximate' },
+  }),
+  /invalid_stay_details/,
+);
+assert.throws(
+  () => foldSingleStop({
+    ...trip.stops[1],
+    stayDetails: {
+      ...trip.stops[1].stayDetails,
+      estimatedArrivalWindow: {
+        start: '2026-08-03T18:00:00.000Z',
+        end: '2026-08-03T17:00:00.000Z',
+        timeZoneIdentifier: 'Europe/Sofia',
+      },
+    },
+  }),
+  /invalid_stay_details/,
+);
 assert.deepEqual(trip.members, [{ userId: 'user-1', role: 'owner' }]);
 
 assert.throws(

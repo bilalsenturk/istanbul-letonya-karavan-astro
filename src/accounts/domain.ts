@@ -53,8 +53,17 @@ export type ArrivalTargetRecord = {
   whatsAppPhone?: string;
   email?: string;
   websiteURL?: string;
+  maximumLengthMeters?: number;
   source: ArrivalTargetSource;
   updatedAt: string;
+};
+
+export type StayEstimatedArrivalMode = 'automatic' | 'manual';
+
+export type StayETAWindowRecord = {
+  start: string;
+  end: string;
+  timeZoneIdentifier: string;
 };
 
 export type StayDetailsRecord = {
@@ -64,6 +73,8 @@ export type StayDetailsRecord = {
   reservationReference?: string;
   note?: string;
   estimatedArrival?: string;
+  estimatedArrivalMode?: StayEstimatedArrivalMode;
+  estimatedArrivalWindow?: StayETAWindowRecord;
   lastContactedAt?: string;
 };
 
@@ -350,6 +361,12 @@ const arrivalTarget = (value: unknown): ArrivalTargetRecord => {
   if (!['appleMaps', 'user', 'migrated'].includes(String(source))) throw new Error('invalid_arrival_target');
   const updatedAt = isoDate(raw.updatedAt, 'invalid_arrival_target');
   const websiteURL = optionalURL(raw.websiteURL, 'invalid_arrival_target');
+  const maximumLengthMeters = raw.maximumLengthMeters === undefined || raw.maximumLengthMeters === null
+    ? undefined
+    : finiteNumber(raw.maximumLengthMeters, 'invalid_arrival_target');
+  if (maximumLengthMeters !== undefined && (maximumLengthMeters <= 0 || maximumLengthMeters > 30)) {
+    throw new Error('invalid_arrival_target');
+  }
   const email = optionalString(raw.email, 254);
   if (email && !/^\S+@\S+\.\S+$/.test(email)) throw new Error('invalid_arrival_target');
   return {
@@ -364,6 +381,7 @@ const arrivalTarget = (value: unknown): ArrivalTargetRecord => {
     ...(optionalString(raw.whatsAppPhone, 40) ? { whatsAppPhone: optionalString(raw.whatsAppPhone, 40) } : {}),
     ...(email ? { email } : {}),
     ...(websiteURL ? { websiteURL } : {}),
+    ...(maximumLengthMeters !== undefined ? { maximumLengthMeters } : {}),
     source: source as ArrivalTargetSource,
     updatedAt,
   };
@@ -379,6 +397,14 @@ const stayDetails = (value: unknown): StayDetailsRecord => {
   const checkIn = optionalISODate(raw.checkIn, 'invalid_stay_details');
   const checkOut = optionalISODate(raw.checkOut, 'invalid_stay_details');
   if (checkIn && checkOut && Date.parse(checkOut) <= Date.parse(checkIn)) throw new Error('invalid_stay_details');
+  const estimatedArrivalMode = raw.estimatedArrivalMode;
+  if (estimatedArrivalMode !== undefined && estimatedArrivalMode !== null
+    && !['automatic', 'manual'].includes(String(estimatedArrivalMode))) {
+    throw new Error('invalid_stay_details');
+  }
+  const estimatedArrivalWindow = raw.estimatedArrivalWindow === undefined || raw.estimatedArrivalWindow === null
+    ? undefined
+    : stayETAWindow(raw.estimatedArrivalWindow);
   return {
     ...(checkIn ? { checkIn } : {}),
     ...(checkOut ? { checkOut } : {}),
@@ -386,7 +412,22 @@ const stayDetails = (value: unknown): StayDetailsRecord => {
     ...(optionalString(raw.reservationReference, 160) ? { reservationReference: optionalString(raw.reservationReference, 160) } : {}),
     ...(optionalString(raw.note, 2_000) ? { note: optionalString(raw.note, 2_000) } : {}),
     ...(optionalString(raw.estimatedArrival, 40) ? { estimatedArrival: optionalString(raw.estimatedArrival, 40) } : {}),
+    ...(estimatedArrivalMode ? { estimatedArrivalMode: estimatedArrivalMode as StayEstimatedArrivalMode } : {}),
+    ...(estimatedArrivalWindow ? { estimatedArrivalWindow } : {}),
     ...(optionalISODate(raw.lastContactedAt, 'invalid_stay_details') ? { lastContactedAt: optionalISODate(raw.lastContactedAt, 'invalid_stay_details') } : {}),
+  };
+};
+
+const stayETAWindow = (value: unknown): StayETAWindowRecord => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('invalid_stay_details');
+  const raw = value as Record<string, unknown>;
+  const start = isoDate(raw.start, 'invalid_stay_details');
+  const end = isoDate(raw.end, 'invalid_stay_details');
+  if (Date.parse(end) <= Date.parse(start)) throw new Error('invalid_stay_details');
+  return {
+    start,
+    end,
+    timeZoneIdentifier: limitedRequiredString(raw.timeZoneIdentifier, 100, 'invalid_stay_details'),
   };
 };
 
