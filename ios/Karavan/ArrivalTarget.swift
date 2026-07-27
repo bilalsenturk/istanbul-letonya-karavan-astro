@@ -228,6 +228,7 @@ enum StayEstimatedArrivalMode: String, Codable, Equatable, Hashable {
 }
 
 struct StayETAInput {
+    static let maximumWaypointMinutes = 10_080
     let departure: Date
     let drivingSeconds: TimeInterval
     let waypointMinutes: Int
@@ -246,6 +247,12 @@ struct StayETAInput {
         self.waypointMinutes = max(0, waypointMinutes)
         self.borderBufferMinutes = max(0, borderBufferMinutes)
         self.calendar = calendar
+    }
+
+    static func boundedWaypointMinutes(_ minutes: [Int]) -> Int {
+        minutes.reduce(0) { total, value in
+            min(maximumWaypointMinutes, total + min(max(0, value), maximumWaypointMinutes))
+        }
     }
 }
 
@@ -292,6 +299,21 @@ enum StayETACalculator {
         let start = Date(timeIntervalSinceReferenceDate: rounded - 1_800)
         let end = Date(timeIntervalSinceReferenceDate: rounded + 1_800)
         return StayETAWindow(start: start, end: end, timeZoneIdentifier: input.calendar.timeZone.identifier)
+    }
+}
+
+enum StayArrivalModeResolver {
+    static func applyingAutomaticDefault(_ window: StayETAWindow?, to stay: StayDetails) -> StayDetails {
+        guard stay.estimatedArrivalMode == .automatic else { return stay }
+        return useAutomatic(window, replacing: stay)
+    }
+
+    static func useAutomatic(_ window: StayETAWindow?, replacing stay: StayDetails) -> StayDetails {
+        var result = stay
+        result.estimatedArrivalMode = .automatic
+        result.estimatedArrivalWindow = window
+        result.estimatedArrival = window?.text
+        return result
     }
 }
 

@@ -75,7 +75,7 @@ struct ArrivalTargetCheck {
             calendar: calendar
         ))
         // 08:00 + 8 saat + 45 dk ara durak + 90 dk sınır payı = 18:15.
-        check("ETA yarım saatlik pencere üretir", eta.text == "18:00–19:00")
+        check("ETA bir saatlik pencere üretir", eta.text == "18:00–19:00")
 
         let nearest = StayETACalculator.calculate(.init(
             departure: departure, drivingSeconds: 11 * 3600 + 5 * 60, calendar: calendar
@@ -108,6 +108,36 @@ struct ArrivalTargetCheck {
             calendar: rigaCalendar
         ))
         check("ETA hedef saat diliminde yaz saati atlamasını taşır", dstETA.text == "04:00–05:00")
+
+        let fallBackDeparture = ISO8601DateFormatter().date(from: "2026-10-25T00:15:00Z")!
+        let fallBack = StayETACalculator.calculate(.init(
+            departure: fallBackDeparture, drivingSeconds: 45 * 60, calendar: rigaCalendar
+        ))
+        let fallCenter = fallBackDeparture.addingTimeInterval(45 * 60)
+        check("DST geri saatte pencere mutlak olarak düzgündür",
+              fallBack.start < fallBack.end && fallBack.end.timeIntervalSince(fallBack.start) == 3_600
+                && fallBack.start <= fallCenter && fallCenter <= fallBack.end)
+        check("DST geri saatte saat dilimi metni belirsiz değildir",
+              fallBack.text.contains("GMT") || fallBack.text.contains("EEST") || fallBack.text.contains("EET"))
+
+        let hugeETA = StayETACalculator.calculate(.init(
+            departure: departure, drivingSeconds: 0, waypointMinutes: .max, borderBufferMinutes: .max, calendar: calendar
+        ))
+        check("çok büyük ETA payları sınırlanır", hugeETA.start < hugeETA.end
+            && hugeETA.end.timeIntervalSince(departure) <= 15 * 24 * 60 * 60)
+        check("çok büyük durak toplamı taşmaz", StayETAInput.boundedWaypointMinutes([.max, .max]) == 10_080)
+
+        let manualWindow = StayETAWindow(start: departure, end: departure.addingTimeInterval(3_600), timeZoneIdentifier: "Europe/Istanbul")
+        let manualStay = StayDetails(estimatedArrival: "08:00–09:00", estimatedArrivalMode: .manual, estimatedArrivalWindow: manualWindow)
+        let automaticWindow = StayETAWindow(start: departure.addingTimeInterval(7_200), end: departure.addingTimeInterval(10_800), timeZoneIdentifier: "Europe/Istanbul")
+        check("manuel ETA hesaplanan varsayılanı korur",
+              StayArrivalModeResolver.applyingAutomaticDefault(automaticWindow, to: manualStay) == manualStay)
+        let restored = StayArrivalModeResolver.useAutomatic(automaticWindow, replacing: manualStay)
+        check("otomatik seçimi manuel pencereyi değiştirir",
+              restored.estimatedArrivalMode == .automatic && restored.estimatedArrivalWindow == automaticWindow
+                && restored.estimatedArrival == automaticWindow.text)
+        let roundTrip = AccountStayDetails(restored).resolved
+        check("otomatik ETA hesap senkronunda korunur", roundTrip.estimatedArrivalMode == .automatic && roundTrip.estimatedArrivalWindow == automaticWindow)
 
         let flight = StayMessageComposer.compose(
             target: target, stay: stay, profile: profile, transportMode: .flight, camp: nil

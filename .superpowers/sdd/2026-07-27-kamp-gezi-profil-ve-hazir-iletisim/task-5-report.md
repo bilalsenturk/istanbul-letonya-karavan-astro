@@ -35,3 +35,7 @@ Added RED checks for nearest-half-hour ETA and Turkish flight wording; they fail
 ## Fixture closure
 
 The committed planner fixture now orders `borderBufferMinutes` after `camp` and supplies the new optional camp-length argument. A detached committed-tree compile succeeds. Its runtime planner harness still traps on the pre-existing mismatch between the committed 8-day resource and the separately committed 6-day planner expectations; the shared worktree's synchronized route content passes all three harnesses.
+
+## Fix round 2
+
+RED coverage added for DST fall-back ambiguity, bounded extreme waypoint input, and manual-to-automatic resolution. GREEN uses the production `StayETAInput` bounded total and `StayArrivalModeResolver`; arrival, account, and planner harnesses pass in the synchronized worktree.
