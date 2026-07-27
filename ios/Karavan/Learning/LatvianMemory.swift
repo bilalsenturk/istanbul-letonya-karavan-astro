@@ -11,10 +11,12 @@ enum LatvianRating: Int, Codable, Hashable, Sendable {
     ///   - attempts: Kaçıncı denemede doğru bulundu (1 = ilk).
     ///   - usedHint: Kullanıcı ipucu istedi mi.
     ///   - elapsed: Soruya harcanan saniye.
-    static func from(isCorrect: Bool, attempts: Int, usedHint: Bool, elapsed: TimeInterval) -> LatvianRating {
+    ///   - fastThreshold: Bu sürenin altındaki cevap "easy" sayılır; soru tipine göre değişir
+    ///     (bkz. `LatvianExerciseKind.fastThresholdSeconds`).
+    static func from(isCorrect: Bool, attempts: Int, usedHint: Bool, elapsed: TimeInterval, fastThreshold: TimeInterval) -> LatvianRating {
         guard isCorrect else { return .again }
         if attempts > 1 || usedHint { return .hard }
-        return elapsed <= 5 ? .easy : .good
+        return elapsed <= fastThreshold ? .easy : .good
     }
 }
 
@@ -24,7 +26,9 @@ struct LatvianMemoryKey: Hashable, Sendable {
 
     var storageKey: String { "\(wordId)#\(modality.rawValue)" }
 
-    init(wordId: String, modality: LatvianModality) {
+    /// Boş `wordId` anlamsızdır ve `storageKey`'e kodlanıp geri çözülemez; bu yüzden burada da reddedilir.
+    init?(wordId: String, modality: LatvianModality) {
+        guard !wordId.isEmpty else { return nil }
         self.wordId = wordId
         self.modality = modality
     }
@@ -71,7 +75,7 @@ struct LatvianMemoryCard: Codable, Hashable, Sendable {
         return pow(1 + elapsedDays / (9 * stability), -1)
     }
 
-    var isDue: Bool { dueAt <= Date() }
+    func isDue(at moment: Date) -> Bool { dueAt <= moment }
 }
 
 protocol LatvianScheduler: Sendable {

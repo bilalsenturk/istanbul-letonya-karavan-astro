@@ -20,6 +20,23 @@ extension LatvianExerciseKind {
         }
     }
 
+    /// Cevabın "easy" sayılması için altında kalması gereken süre (saniye).
+    /// Soru tipinin gerektirdiği motor eyleme göre ölçeklenir: bir seçeneğe dokunmak
+    /// birkaç saniye sürer, bir cümleyi dikteyle yazmak ya da konuşmak çok daha uzun sürer;
+    /// tek bir eşik kullanmak yazma/konuşma sorularını hep "good" ile sınırlardı.
+    var fastThresholdSeconds: TimeInterval {
+        switch self {
+        case .listenChoose, .iconChoose, .fillBlank, .caseDrill:
+            return 5
+        case .speak:
+            return 10
+        case .lvToTr, .trToLv, .order, .dictation:
+            return 12
+        case .match:
+            return 15
+        }
+    }
+
     var turkishTitle: String {
         switch self {
         case .listenChoose: return "Dinle ve seç"

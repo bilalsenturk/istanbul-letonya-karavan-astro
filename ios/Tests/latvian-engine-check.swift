@@ -185,16 +185,28 @@ struct LatvianEngineCheck {
 
         print("\n=== Hafıza ===")
 
-        expect(LatvianRating.from(isCorrect: true, attempts: 1, usedHint: false, elapsed: 2) == .easy,
+        expect(LatvianRating.from(isCorrect: true, attempts: 1, usedHint: false, elapsed: 2, fastThreshold: 5) == .easy,
                "ilk denemede hızlı doğru → easy")
-        expect(LatvianRating.from(isCorrect: true, attempts: 1, usedHint: false, elapsed: 9) == .good,
+        expect(LatvianRating.from(isCorrect: true, attempts: 1, usedHint: false, elapsed: 9, fastThreshold: 5) == .good,
                "ilk denemede yavaş doğru → good")
-        expect(LatvianRating.from(isCorrect: true, attempts: 1, usedHint: true, elapsed: 2) == .hard,
+        expect(LatvianRating.from(isCorrect: true, attempts: 1, usedHint: true, elapsed: 2, fastThreshold: 5) == .hard,
                "ipuçlu doğru → hard")
-        expect(LatvianRating.from(isCorrect: true, attempts: 2, usedHint: false, elapsed: 2) == .hard,
+        expect(LatvianRating.from(isCorrect: true, attempts: 2, usedHint: false, elapsed: 2, fastThreshold: 5) == .hard,
                "ikinci denemede doğru → hard")
-        expect(LatvianRating.from(isCorrect: false, attempts: 1, usedHint: false, elapsed: 2) == .again,
+        expect(LatvianRating.from(isCorrect: false, attempts: 1, usedHint: false, elapsed: 2, fastThreshold: 5) == .again,
                "yanlış → again")
+
+        expect(LatvianExerciseKind.listenChoose.fastThresholdSeconds == 5, "seçmeli sorunun hız eşiği 5 sn")
+        expect(LatvianExerciseKind.speak.fastThresholdSeconds == 10, "telaffuz sorusunun hız eşiği 10 sn")
+        expect(LatvianExerciseKind.dictation.fastThresholdSeconds == 12, "dikte sorusunun hız eşiği 12 sn")
+        expect(LatvianExerciseKind.match.fastThresholdSeconds == 15, "eşleştirme sorusunun hız eşiği 15 sn")
+
+        expect(LatvianRating.from(isCorrect: true, attempts: 1, usedHint: false, elapsed: 8,
+                                   fastThreshold: LatvianExerciseKind.listenChoose.fastThresholdSeconds) == .good,
+               "seçmeli soruda 8 sn → good (eşik 5 sn)")
+        expect(LatvianRating.from(isCorrect: true, attempts: 1, usedHint: false, elapsed: 8,
+                                   fastThreshold: LatvianExerciseKind.dictation.fastThresholdSeconds) == .easy,
+               "aynı 8 sn dikte sorusunda → easy (eşik 12 sn)")
 
         let scheduler = LatvianDefaultScheduler()
         let epoch = Date(timeIntervalSince1970: 1_800_000_000)
@@ -202,12 +214,17 @@ struct LatvianEngineCheck {
         let fresh = LatvianMemoryCard.new()
         expect(fresh.reviewCount == 0, "yeni kart hiç tekrar edilmemiş")
         expect(fresh.retrievability(at: epoch) == 0, "hiç görülmemiş kartın hatırlanma olasılığı sıfır")
+        expect(fresh.isDue(at: epoch), "yeni kart her zaman vadesi gelmiş sayılır")
 
         let afterGood = scheduler.review(card: fresh, rating: .good, now: epoch)
         expect(afterGood.reviewCount == 1, "tekrar sayacı artıyor")
         expect(afterGood.stability > fresh.stability, "doğru cevap kararlılığı artırıyor")
         expect(afterGood.dueAt > epoch, "sonraki tekrar ileri tarihte")
         expect(afterGood.retrievability(at: epoch) > 0.99, "tekrar anında hatırlanma olasılığı tam")
+        expect(!afterGood.isDue(at: epoch), "az önce tekrar edilen kart vadesinden önce vadesi gelmemiş sayılır")
+        expect(!afterGood.isDue(at: afterGood.dueAt.addingTimeInterval(-1)), "vade anından hemen önce henüz vadesi gelmemiş")
+        expect(afterGood.isDue(at: afterGood.dueAt), "vade anında kart vadesi gelmiş sayılır")
+        expect(afterGood.isDue(at: afterGood.dueAt.addingTimeInterval(1)), "vade anından sonra da vadesi gelmiş sayılır")
 
         let afterEasy = scheduler.review(card: fresh, rating: .easy, now: epoch)
         expect(afterEasy.stability > afterGood.stability, "easy, good'dan daha uzun aralık veriyor")
@@ -225,13 +242,19 @@ struct LatvianEngineCheck {
         expect(matured.retrievability(at: epoch.addingTimeInterval(86_400 * 3650)) < 0.2,
                "çok uzun aradan sonra hatırlanma olasılığı çöküyor")
 
-        let key = LatvianMemoryKey(wordId: "w1", modality: .production)
+        guard let key = LatvianMemoryKey(wordId: "w1", modality: .production) else {
+            fatalError("beklenen geçerli anahtar oluşturulamadı")
+        }
         expect(key == LatvianMemoryKey(wordId: "w1", modality: .production), "aynı anahtar eşit")
         expect(key != LatvianMemoryKey(wordId: "w1", modality: .recognition), "modalite anahtarı ayırıyor")
         expect(key.storageKey == "w1#production", "anahtar dizeye çevrilebiliyor")
         expect(LatvianMemoryKey(storageKey: "w1#production") == key, "anahtar dizeden geri okunuyor")
+        expect(LatvianMemoryKey(wordId: "", modality: .production) == nil,
+               "boş kelime id'si ile anahtar oluşturulamıyor")
 
-        let separatorKey = LatvianMemoryKey(wordId: "w#1", modality: .recognition)
+        guard let separatorKey = LatvianMemoryKey(wordId: "w#1", modality: .recognition) else {
+            fatalError("beklenen geçerli anahtar oluşturulamadı")
+        }
         expect(separatorKey.storageKey == "w#1#recognition", "ayırıcı içeren kelime id'si anahtara yazılıyor")
         expect(LatvianMemoryKey(storageKey: separatorKey.storageKey) == separatorKey,
                "ayırıcı içeren kelime id'li anahtar dizeden geri okunuyor")
