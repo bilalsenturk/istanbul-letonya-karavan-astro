@@ -31,6 +31,7 @@
 		3531EECCF00A0139CC10380B /* LatvianMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49A48AC8559B1B4926E30E5A /* LatvianMemory.swift */; };
 		38411CC0FB39D09070DD0E7D /* PlacePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A355D39936226682FC6D705 /* PlacePickerView.swift */; };
 		38F08606745B15789AEF0AC6 /* LatvianFSRSAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CE18DB1B8C9E34F0F54CFF1 /* LatvianFSRSAdapter.swift */; };
+		3AA25DFC726E7D73848BF255 /* LatvianMascot.swift in Sources */ = {isa = PBXBuildFile; fileRef = F661AD72C9B1270B55288932 /* LatvianMascot.swift */; };
 		3B014CAF3ED8C77379FD5729 /* Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35155F1CE413BCBF9F18829E /* Navigation.swift */; };
 		3E6ECC20772D44BE6DDBD7CC /* KuzeyWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 28429416E3925FE7D2879869 /* KuzeyWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		43529647794C069DB3288EF5 /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FCA86BC2BD7CA0F2439A51B /* JournalView.swift */; };
@@ -92,6 +93,8 @@
 		9FE1623DC11C12E120FA10A9 /* lv-a0-dictation-paldies.wav in Resources */ = {isa = PBXBuildFile; fileRef = F15DDC22F4EC6AF24FFF8A56 /* lv-a0-dictation-paldies.wav */; };
 		A51EF13DB9098CE6C8877536 /* latvian-pack.json in Resources */ = {isa = PBXBuildFile; fileRef = 0B26009BD58145101C6A2DFB /* latvian-pack.json */; };
 		A59FFDEF88DDBE3125C26C1A /* TripNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D701532F19396FBF2875EA /* TripNotifier.swift */; };
+		A6A5BE609BB235E23115F265 /* LatvianMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = D91E6EAF5244A2A02B41294D /* LatvianMotion.swift */; };
+		A868AB8436148862A02908F9 /* LatvianFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2050E98C6C96AE619583136 /* LatvianFeedback.swift */; };
 		A8B7417A211FD806F76F1893 /* RoutePreviewService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74E0A3E285ECB438FA9A8C55 /* RoutePreviewService.swift */; };
 		A9E4066FE143338D37E04117 /* SharedSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AB974EC178B45C5E8C2D43D /* SharedSnapshot.swift */; };
 		ADA7F1305B6AE1417A407E29 /* MusicView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B705A452531409FB221BD87E /* MusicView.swift */; };
@@ -283,6 +286,7 @@
 		BC2167794D2466CE9840E18E /* RoadFeedCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadFeedCard.swift; sourceTree = "<group>"; };
 		BF11ED9C0D36687D9A03CBB8 /* ScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerView.swift; sourceTree = "<group>"; };
 		C0EF8A869866AAC46A67BBE9 /* lv-tap.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "lv-tap.wav"; sourceTree = "<group>"; };
+		C2050E98C6C96AE619583136 /* LatvianFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianFeedback.swift; sourceTree = "<group>"; };
 		C8C3BF1BEDB7AD0BB8B471AA /* TripsHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripsHomeView.swift; sourceTree = "<group>"; };
 		CA4264125184392A139A1EB7 /* LatvianExercise.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianExercise.swift; sourceTree = "<group>"; };
 		CA874B77CFA113ECD47C697F /* JournalCloud.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalCloud.swift; sourceTree = "<group>"; };
@@ -294,6 +298,7 @@
 		D3638EB3FFB78BC53DDEDF21 /* TravelProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelProfileView.swift; sourceTree = "<group>"; };
 		D374371A328544BA4E8295D1 /* NearbyTravelSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyTravelSections.swift; sourceTree = "<group>"; };
 		D7E574F9940C5A4DDA5BE464 /* JourneyMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyMenuView.swift; sourceTree = "<group>"; };
+		D91E6EAF5244A2A02B41294D /* LatvianMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianMotion.swift; sourceTree = "<group>"; };
 		DB162821D5118BBCDA717991 /* NotificationRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationRules.swift; sourceTree = "<group>"; };
 		DC44A961C70396158E35B2A1 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		DEB2A1F70C4BD191A5BA233B /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
@@ -306,6 +311,7 @@
 		F15DDC22F4EC6AF24FFF8A56 /* lv-a0-dictation-paldies.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "lv-a0-dictation-paldies.wav"; sourceTree = "<group>"; };
 		F19E1ECFBF25163C68CD2418 /* LatvianLearningAudioPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianLearningAudioPlayer.swift; sourceTree = "<group>"; };
 		F573345B05D38B533D7AC738 /* RouteStepPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStepPolicy.swift; sourceTree = "<group>"; };
+		F661AD72C9B1270B55288932 /* LatvianMascot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianMascot.swift; sourceTree = "<group>"; };
 		F6BF3B286DB9B16B42FE2661 /* SpeechRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecorder.swift; sourceTree = "<group>"; };
 		F6C3FE82A4D2A72C6C58B545 /* RouteAnnouncementPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteAnnouncementPolicy.swift; sourceTree = "<group>"; };
 		F7D97DFDF05438A70096EC2B /* Kuzey.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Kuzey.entitlements; sourceTree = "<group>"; };
@@ -433,6 +439,7 @@
 				406E314FFE68077386DBDAD3 /* LatvianAudioStore.swift */,
 				CA4264125184392A139A1EB7 /* LatvianExercise.swift */,
 				977364A8D7BA4B4AA6BF8534 /* LatvianExerciseFactory.swift */,
+				C2050E98C6C96AE619583136 /* LatvianFeedback.swift */,
 				7CE18DB1B8C9E34F0F54CFF1 /* LatvianFSRSAdapter.swift */,
 				67367AF55B30AAC1CE748427 /* LatvianGrader.swift */,
 				F19E1ECFBF25163C68CD2418 /* LatvianLearningAudioPlayer.swift */,
@@ -445,6 +452,15 @@
 				38785537B9A807DF9707224B /* LatvianProgress.swift */,
 			);
 			path = Learning;
+			sourceTree = "<group>";
+		};
+		5E3E86487290CD2AA523C27D /* Latvian */ = {
+			isa = PBXGroup;
+			children = (
+				F661AD72C9B1270B55288932 /* LatvianMascot.swift */,
+				D91E6EAF5244A2A02B41294D /* LatvianMotion.swift */,
+			);
+			path = Latvian;
 			sourceTree = "<group>";
 		};
 		6D724DEAA6E11EF7CA49C584 /* Views */ = {
@@ -473,6 +489,7 @@
 				EC538794F9ED1EDBD743061F /* TripSettingsView.swift */,
 				8451A31269172C807F118FD5 /* Accounts */,
 				342F48173CAFDEA8998C231B /* Journal */,
+				5E3E86487290CD2AA523C27D /* Latvian */,
 				C13B2A1A3F7026F90978E75F /* Tools */,
 				822F6918ECB8EB49663D441D /* Trips */,
 			);
@@ -781,6 +798,7 @@
 				FCCF2202D242C69100E74C61 /* LatvianExercise.swift in Sources */,
 				D019D9086375F911707BF093 /* LatvianExerciseFactory.swift in Sources */,
 				38F08606745B15789AEF0AC6 /* LatvianFSRSAdapter.swift in Sources */,
+				A868AB8436148862A02908F9 /* LatvianFeedback.swift in Sources */,
 				22D96D78997EF1373A786A00 /* LatvianGrader.swift in Sources */,
 				2130C966D5FCAFA0967C5F6E /* LatvianLearningAudioPlayer.swift in Sources */,
 				BF9C7C9EDC24B870DA0927BB /* LatvianLearningModels.swift in Sources */,
@@ -788,7 +806,9 @@
 				22A19743A1935E2794049F5E /* LatvianLearningView.swift in Sources */,
 				FED01ED0C3A6D4D76AA7CE30 /* LatvianLessonBuilder.swift in Sources */,
 				58EA7A67519E9BF7D5C642AA /* LatvianLessonSession.swift in Sources */,
+				3AA25DFC726E7D73848BF255 /* LatvianMascot.swift in Sources */,
 				3531EECCF00A0139CC10380B /* LatvianMemory.swift in Sources */,
+				A6A5BE609BB235E23115F265 /* LatvianMotion.swift in Sources */,
 				59CCAE735CA928B1954CF331 /* LatvianPack.swift in Sources */,
 				D2944533B1415AF848D03C83 /* LatvianProgress.swift in Sources */,
 				883BEC398B00CCF797F0D409 /* LegLauncher.swift in Sources */,
