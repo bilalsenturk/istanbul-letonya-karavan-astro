@@ -1,4 +1,5 @@
 import { filterByFrequency, parseFrequencyList } from '../src/learning-lv/frequency.ts';
+import { buildSceneRequest, parseSceneResponse } from '../src/learning-lv/generate-prompts.ts';
 import { PACK_VERSION, validatePack } from '../src/learning-lv/pack-schema.ts';
 import { SCENE_PLAN } from '../src/learning-lv/scenes.ts';
 
@@ -148,6 +149,45 @@ expect(
   filtered.rejected.some(entry => entry.lv === 'ar kafiju' && entry.reason.includes('listesinde yok')),
   'bileşeni listede olmayan kalıp eleniyor',
 );
+
+console.log('\n=== Üretim istemi ===');
+
+const sceneRequest = buildSceneRequest(SCENE_PLAN[2], 'google/gemini-3.1-flash');
+const userContent = sceneRequest.messages[1].content;
+
+expect(sceneRequest.response_format.type === 'json_object', 'JSON yanıt biçimi isteniyor');
+expect(userContent.includes('kafija'), 'çekirdek kelimeler isteme giriyor');
+expect(userContent.includes('Markette'), 'sahne başlığı isteme giriyor');
+expect(userContent.includes('case_drill'), 'soru tipleri isteme giriyor');
+
+const draft = parseSceneResponse(`\`\`\`json
+{
+  "words": [
+    {"lv":"kafija","tr":"kahve","lemma":"kafija","icon":"☕",
+     "caseForm":{"base":"kafija","form":"ar kafiju","case":"instrumental","suffix":"u","distractorSuffixes":["a","as","u"]}},
+    {"lv":"maize","tr":"ekmek","lemma":"maize"},
+    {"lv":"","tr":"boş","lemma":""}
+  ],
+  "sentences": [
+    {"lv":"Es gribu kafiju.","tr":"Kahve istiyorum.","usesWords":["kafija"],"supports":["tr_to_lv","order","ucan_daire"]},
+    {"lv":"Yalnız kelime.","tr":"x","usesWords":["yok"],"supports":["order"]}
+  ]
+}
+\`\`\``);
+
+expect(draft.words.length === 2, 'boş kelime ayıklanıyor');
+expect(draft.words[0].caseForm.distractorSuffixes.length === 2, 'doğru ekle çakışan çeldirici temizleniyor');
+expect(draft.words[1].caseForm === undefined, 'çekim bilgisi yoksa alan boş kalıyor');
+expect(draft.sentences.length === 1, 'tanımsız kelimeye bağlı cümle ayıklanıyor');
+expect(!draft.sentences[0].supports.includes('ucan_daire'), 'bilinmeyen soru tipi ayıklanıyor');
+expect(draft.sentences[0].supports.length === 2, 'geçerli soru tipleri korunuyor');
+
+try {
+  parseSceneResponse('düz metin');
+  expect(false, 'JSON olmayan yanıt hata veriyor');
+} catch (error) {
+  expect(error.message.includes('JSON değil'), 'JSON olmayan yanıt hata veriyor');
+}
 
 if (failures > 0) {
   console.error(`\n${failures} kontrol başarısız.`);
