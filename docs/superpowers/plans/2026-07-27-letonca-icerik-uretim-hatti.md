@@ -892,6 +892,12 @@ git commit -m "feat: add Latvian scene generation prompt and response parser"
 
 ### Task 5: Denetim geçişi
 
+> **Uyarı — bu bölümün örnek kodu eksik.** Uygulanırken üç açık-tarafa-düşme hatası
+> bulundu ve depoda düzeltildi: `parseReviewResponse` eksik `ok` alanını onay sayıyordu,
+> karar eşleşmesi noktalama/boşluk farkında sessizce ıskalayıp reddedilen maddeyi
+> kabul ediyordu, ve hiç karar almamış maddeler görünmezdi. Doğrusu için depodaki
+> `src/learning-lv/generate-prompts.ts` dosyasına bak; aşağıdaki kodu olduğu gibi kopyalama.
+
 Üretilen içeriği ikinci bir modele doğrulatan katman. Bu, tasarımın "hata pahalı" gerekçesinin uygulaması.
 
 **Files:**
