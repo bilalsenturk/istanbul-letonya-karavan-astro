@@ -106,3 +106,86 @@ Evidence files:
 ## Concurrency and commit safety
 
 The shared checkout remained heavily dirty with unrelated account, navigation, Latvian learning, web, and generated changes. No reset, revert, checkout, or amend was used. XcodeGen's project diff contains exactly 12 added lines for `TravelContentStore.swift`, `NearbyTravelSections.swift`, and `travel-content.json`; it did not capture unrelated untracked resources. Only the explicit Task 7 paths are staged/committed.
+
+---
+
+## Fix Round 1 — 2026-07-27
+
+### Status and commits
+
+Fix Round 1 is implemented and verified. The work is split into four narrow commits:
+
+- `26fed93 fix: preserve travel stay account fields`
+- `1c28f3a fix: validate curated travel content`
+- `e59e6f9 fix: preserve selected camp state`
+- `7d9400e fix: refresh travel content on foreground`
+
+The shared checkout still contains unrelated concurrent edits in `ArrivalTarget.swift`, `KaravanApp.swift`, and other paths. The two overlapping files were staged hunk-by-hunk, so the commits above contain only Fix Round 1 changes.
+
+### RED / GREEN evidence
+
+Account contract RED was captured after adding the round-trip assertion and before changing production parsing:
+
+```text
+npm run check:accounts
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+undefined !== 7.5
+at tools/check-account-domain.mjs:109:8
+exit 1
+```
+
+The store admission/transport RED was captured before exposing and implementing the stricter decoder:
+
+```text
+ios/Tests/run-travel-content-store-check.sh
+error: 'decodeValid' is inaccessible due to 'private' protection level
+error: extra argument 'now' in call
+exit 1
+```
+
+After the first validator implementation, the mutation suite exposed silent policy clamping:
+
+```text
+✗ 25 km üzerindeki şehir politikası sessizce kırpılmadan reddedilir
+❌ 1 STORE KONTROLÜ BAŞARISIZ
+```
+
+The model was then changed to preserve the decoded policy value so admission can reject it. Final GREEN:
+
+```text
+npm run check:accounts                         PASS
+npm run check:account-auth                     PASS
+npm run check:trip-api                         PASS
+ios/Tests/run-travel-content-store-check.sh    PASS
+ios/Tests/run-arrival-target-check.sh          PASS
+ios/Tests/run-travel-content-check.sh           PASS
+xcodebuild ... CODE_SIGNING_ALLOWED=NO build   BUILD SUCCEEDED
+```
+
+### Account contract
+
+The web stop contract now preserves and validates `maximumLengthMeters`, `estimatedArrivalMode`, and `estimatedArrivalWindow` (`start`, `end`, and `timeZoneIdentifier`). The domain test performs a JSON encode/decode round trip through a folded stop update and proves that a 7.5 m limit and manual ETA survive. Invalid/non-positive length, unknown ETA mode, and reversed ETA windows are rejected. Missing fields remain valid for legacy clients. The account auth and trip repository checks also pass.
+
+### Curated-content admission, HTTP, cache, and retry
+
+Admission now requires exactly the six normalized route keys, a positive version, sensible generated/verification dates, a city center, at least two camps and three attractions per destination, finite in-range coordinates, unique IDs, city policy at or below 25 km, and candidates inside the allowed distance. It verifies nonempty factual/media metadata, HTTPS official/photo-source URLs, safe bundled photo paths, representative-photo role/disclosure, and the WOK 8 m and Camping & Yachts 7.5 m restrictions. Content older than 90 days remains admissible and is handled as a UI warning.
+
+Remote loading now requires an HTTP(S) URL, an `HTTPURLResponse`, a 2xx status, JSON or `+json` MIME (parameters allowed), and at most 2 MiB. Tests verify the `Accept` header, 12-second timeout, protocol cache policy, status/MIME/size/non-HTTP rejection, atomic cache success, and cache-write failure without loss of valid memory state. Decode and disk read/write execute through a dedicated actor rather than on the main actor.
+
+Concurrent `loadIfNeeded()` calls coalesce to one request. A fallback result does not permanently suppress a later retry. Foreground refresh is throttled for five minutes and is wired from `KaravanApp`; a refresh after the interval performs a new request. Generation checks still prevent a late cancellation-ignoring response from replacing newer content.
+
+### Selection, contact, permissions, and freshness UI
+
+Candidate contact now opens `ArrivalTargetEditorView` in a dedicated contact-only purpose. That mode has `Bitti`, no `Kaydet`, no save callback, disabled stay/target edits, no profile mutation path, and no post-send reservation-status persistence. Only `Bu kampı seç` opens the curated-camp selection confirmation.
+
+Viewer users cannot open target selection or edit-save controls; an existing target opens in contact-only mode. `saveTarget` checks edit permission before clearing route state, setting the local plan, or starting account synchronization. `supportsCaravan: false` camps disable selection and visibly show `Bu kamp çekme karavan kabul etmiyor; varış yeri olarak seçilemez.` They are never mapped to a selectable caravan-park target.
+
+A local target/stay override is installed before sync and has precedence over stale account data, so an offline or failed update remains visibly selected. Sync failures explicitly say the target is stored on the device but not shared. Each save carries a monotonically increasing revision plus trip and user IDs; canceled, stale, wrong-trip, and wrong-account completions cannot replace workspace state. A successful current response replaces the workspace and clears the local override.
+
+Camp cards, attraction cards, and source sheets use injected `now` values for freshness. The exact warning `Gitmeden önce teyit et` appears only after 90 days. Tests cover the 90-day boundary and the 91-day warning case.
+
+### Remaining concerns
+
+- The revision/trip/user guard and local-override precedence are covered by deterministic policy tests, while transport ordering is covered by the cancellation-ignoring URL protocol fixture. There is no end-to-end test with two real server updates completing out of order; a server-side revision conflict can leave the newest local choice visible with the honest unsynced warning until retry.
+- Fix Round 1 rebuilt the complete iOS simulator target but did not repeat the earlier manual VoiceOver, Dynamic Type, Maps, or contact-composer interaction audit.
+- The pre-existing full `npm run check` TypeScript failures and lint findings documented above were outside this round and were not changed.
