@@ -19,6 +19,7 @@ import {
   assertUsableAudio,
   audioIdFor,
   buildSpeechRequest,
+  buildTtsSpeechRequest,
   extractAudioFromStream,
   wrapPcm16AsWav,
 } from '../src/learning-lv/audio.ts';
@@ -148,6 +149,8 @@ const audioDir = path.join(root, 'public/assets/letonca/ses');
 const packPath = path.join(root, 'ios/Karavan/Resources/latvian-pack.json');
 const SPEECH_MODEL = process.env.OPENROUTER_TTS_MODEL ?? 'openai/gpt-audio-mini';
 const SPEECH_VOICE = process.env.OPENROUTER_TTS_VOICE ?? 'nova';
+const FALLBACK_SPEECH_MODEL = process.env.OPENROUTER_TTS_FALLBACK_MODEL ?? 'google/gemini-3.1-flash-tts-preview';
+const FALLBACK_SPEECH_VOICE = process.env.OPENROUTER_TTS_FALLBACK_VOICE ?? 'Kore';
 const DEFAULT_AUDIO_BASE_URL = 'https://istanbul-letonya-karavan-astro.vercel.app/assets/letonca/ses';
 
 if (stages.audio) {
@@ -279,9 +282,12 @@ function collectAudioTargets(value) {
 }
 
 async function synthesizeWithRetry(text) {
+  let firstError;
+  let secondError;
   try {
     return await synthesize(text);
-  } catch (firstError) {
+  } catch (error) {
+    firstError = error;
     if (!(firstError instanceof AudioContentError)) {
       // Belirlenimci ortam/ağ hatası — ikinci denemede de aynı sonuç çıkar, paralı çağrıyı tekrarlama.
       throw firstError;
@@ -289,11 +295,28 @@ async function synthesizeWithRetry(text) {
     console.error(`    ↻ ilk deneme başarısız, tekrar deneniyor: ${firstError.message}`);
     try {
       return await synthesize(text);
-    } catch (secondError) {
-      throw new Error(
-        `iki deneme de başarısız — 1. deneme: ${firstError.message}; 2. deneme: ${secondError.message}`,
-      );
+    } catch (error2) {
+      secondError = error2;
+      if (!(secondError instanceof AudioContentError)) {
+        throw secondError;
+      }
     }
+  }
+
+  // Birincil sohbet-tabanlı model iki denemede de içerik doğrulamasından geçemedi —
+  // bazı imperatif ifadeler ("Palīdziet!" gibi) modelin metni okumak yerine yanıtlamasına yol açıyor.
+  // Gerçek bir TTS motoruna (yanıt üretemez, yalnızca seslendirir) düşülüyor.
+  console.error(
+    `    ⇄ birincil model iki denemede de başarısız oldu, yedek TTS'e (${FALLBACK_SPEECH_MODEL}) düşülüyor: ${secondError.message}`,
+  );
+  try {
+    const mp3 = await synthesizeWithTts(text);
+    console.log(`    ✓ yedek TTS ile üretildi: "${text}"`);
+    return mp3;
+  } catch (fallbackError) {
+    throw new Error(
+      `iki deneme de ve yedek TTS de başarısız — 1. deneme: ${firstError.message}; 2. deneme: ${secondError.message}; yedek: ${fallbackError.message}`,
+    );
   }
 }
 
@@ -313,6 +336,22 @@ async function synthesize(text) {
     throw new Error(`OpenRouter ${response.status}: ${(await response.text()).slice(0, 200)}`);
   }
   const pcm = extractAudioFromStream(await response.text());
+  assertUsableAudio(pcm, text);
+  return await encodeMp3(wrapPcm16AsWav(pcm));
+}
+
+async function synthesizeWithTts(text) {
+  const request = buildTtsSpeechRequest({
+    apiKey,
+    text,
+    model: FALLBACK_SPEECH_MODEL,
+    voice: FALLBACK_SPEECH_VOICE,
+  });
+  const response = await fetch(request.url, { ...request.init, signal: AbortSignal.timeout(60_000) });
+  if (!response.ok) {
+    throw new Error(`OpenRouter ${response.status}: ${(await response.text()).slice(0, 200)}`);
+  }
+  const pcm = new Uint8Array(await response.arrayBuffer());
   assertUsableAudio(pcm, text);
   return await encodeMp3(wrapPcm16AsWav(pcm));
 }

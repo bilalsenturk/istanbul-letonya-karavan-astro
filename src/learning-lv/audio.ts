@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 export const SPEECH_URL = 'https://openrouter.ai/api/v1/chat/completions';
+export const TTS_SPEECH_URL = 'https://openrouter.ai/api/v1/audio/speech';
 export const SPEECH_SAMPLE_RATE = 24_000;
 
 export interface SpeechInput {
@@ -42,6 +43,33 @@ export function buildSpeechRequest(input: SpeechInput): { url: string; init: Req
           { role: 'user', content: `<read-aloud lang="lv">${input.text}</read-aloud>` },
         ],
         stream: true,
+      }),
+    },
+  };
+}
+
+/**
+ * Birincil sohbet-tabanlı model bazı imperatif ifadeleri (örn. "Palīdziet!") okumak yerine
+ * yanıtlamayı seçiyor. Bu, gerçek bir TTS motoru olan OpenRouter'ın `audio/speech` uç noktası
+ * için istek kurar — bu model türü yanıt üretemez, yalnızca metni seslendirir.
+ * Bu uç nokta yalnızca `response_format: "pcm"` kabul eder; `voice` zorunludur.
+ */
+export function buildTtsSpeechRequest(input: SpeechInput): { url: string; init: RequestInit } {
+  return {
+    url: TTS_SPEECH_URL,
+    init: {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${input.apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://istanbul-letonya-karavan-astro.vercel.app',
+        'X-Title': 'Kuzey Letonca',
+      },
+      body: JSON.stringify({
+        model: input.model,
+        input: input.text,
+        voice: input.voice,
+        response_format: 'pcm',
       }),
     },
   };

@@ -2,8 +2,10 @@ import {
   assertUsableAudio,
   audioIdFor,
   buildSpeechRequest,
+  buildTtsSpeechRequest,
   extractAudioFromStream,
   SPEECH_SAMPLE_RATE,
+  TTS_SPEECH_URL,
   wrapPcm16AsWav,
 } from '../src/learning-lv/audio.ts';
 import { filterByFrequency, parseFrequencyList } from '../src/learning-lv/frequency.ts';
@@ -444,6 +446,22 @@ expect(
     '<read-aloud lang="lv">Šodien ir saulaina diena, paldies!</read-aloud>',
   'Letonca aksan işaretleri sarmalayıcı içinde değişmeden kalıyor',
 );
+
+const ttsRequest = buildTtsSpeechRequest({
+  apiKey: 'test-key',
+  text: 'Lūdzu ēdienkarti!',
+  model: 'google/gemini-3.1-flash-tts-preview',
+  voice: 'Kore',
+});
+expect(ttsRequest.url === TTS_SPEECH_URL, 'yedek istek konuşma uç noktasını hedefliyor');
+expect(ttsRequest.url !== speechRequest.url, 'yedek istek sohbet uç noktasını kullanmıyor');
+const ttsBody = JSON.parse(ttsRequest.init.body);
+expect(ttsBody.response_format === 'pcm', 'yedek istek pcm biçimi istiyor');
+expect(ttsBody.model === 'google/gemini-3.1-flash-tts-preview', 'yedek istek model taşıyor');
+expect(ttsBody.voice === 'Kore', 'yedek istek ses taşıyor');
+expect(ttsBody.input === 'Lūdzu ēdienkarti!', 'yedek istek Letonca metni aksanlarıyla taşıyor');
+expect(ttsBody.modalities === undefined, 'yedek istek sohbet yoluna özgü modalities alanını taşımıyor');
+expect(ttsBody.messages === undefined, 'yedek istek sohbet yoluna özgü messages alanını taşımıyor');
 
 function fakeStream(samples) {
   const buffer = Buffer.alloc(samples.length * 2);
