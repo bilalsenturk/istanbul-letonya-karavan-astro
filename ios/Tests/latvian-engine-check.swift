@@ -259,6 +259,73 @@ struct LatvianEngineCheck {
         expect(LatvianMemoryKey(storageKey: separatorKey.storageKey) == separatorKey,
                "ayırıcı içeren kelime id'li anahtar dizeden geri okunuyor")
 
+        print("\n=== Soru üretici ===")
+
+        let allAudio: Set<String> = ["a1", "a2", "a3", "a4", "a5", "a6"]
+        let factory = LatvianExerciseFactory(pack: pack)
+
+        let listen = factory.makeExercise(wordId: "w1", kind: .listenChoose, seed: 1, availableAudio: allAudio)
+        expect(listen != nil, "dinle-seç üretiliyor")
+        expect(listen?.audioId == "a1", "dinle-seç doğru sesi taşıyor")
+        if case .choice(let options, let correct)? = listen?.content {
+            expect(options.count == 3, "dinle-seç üç seçenekli")
+            expect(options[correct] == "labdien", "doğru seçenek hedef kelime")
+            expect(Set(options).count == 3, "seçenekler birbirinden farklı")
+        } else {
+            expect(false, "dinle-seç seçmeli içerik üretiyor")
+        }
+
+        expect(factory.makeExercise(wordId: "w1", kind: .listenChoose, seed: 1, availableAudio: []) == nil,
+               "sesi olmayan kelimede dinleme sorusu üretilmiyor")
+
+        let icon = factory.makeExercise(wordId: "w1", kind: .iconChoose, seed: 2, availableAudio: allAudio)
+        expect(icon != nil, "emojisi olan kelimede görselden-seç üretiliyor")
+        expect(factory.makeExercise(wordId: "w2", kind: .iconChoose, seed: 2, availableAudio: allAudio) == nil,
+               "emojisi olmayan kelimede görselden-seç üretilmiyor")
+
+        let order = factory.makeExercise(wordId: "w1", kind: .order, seed: 3, availableAudio: allAudio)
+        if case .wordBank(let bank, let answer)? = order?.content {
+            expect(answer == ["Labdien,", "mani", "sauc", "Leyla."], "sıralama doğru cevabı cümlenin kendisi")
+            expect(Set(bank) == Set(answer), "kelime bankası cevabın tüm parçalarını içeriyor")
+        } else {
+            expect(false, "sıralama kelime bankası üretiyor")
+        }
+
+        let caseDrill = factory.makeExercise(wordId: "w4", kind: .caseDrill, seed: 4, availableAudio: allAudio)
+        expect(caseDrill != nil, "çekim bilgisi olan kelimede hal tatbikatı üretiliyor")
+        if case .choice(let options, let correct)? = caseDrill?.content {
+            expect(options.count == 3, "hal tatbikatı üç ek seçeneği sunuyor")
+            expect(options[correct] == "u", "doğru ek işaretli")
+        }
+        expect(caseDrill?.carrier?.contains("kafij") == true, "hal tatbikatı taşıyıcı cümle gösteriyor")
+        expect(factory.makeExercise(wordId: "w1", kind: .caseDrill, seed: 4, availableAudio: allAudio) == nil,
+               "çekim bilgisi olmayan kelimede hal tatbikatı üretilmiyor")
+
+        let dictation = factory.makeExercise(wordId: "w1", kind: .dictation, seed: 5, availableAudio: allAudio)
+        if case .typing(let accepted)? = dictation?.content {
+            expect(accepted.contains("labdien"), "dikte hedef kelimeyi kabul ediyor")
+        } else {
+            expect(false, "dikte yazma içeriği üretiyor")
+        }
+
+        let match = factory.makeExercise(wordId: "w1", kind: .match, seed: 6, availableAudio: allAudio)
+        if case .matching(let pairs)? = match?.content {
+            expect(pairs.count == 4, "eşleştirme dört çift üretiyor")
+            expect(pairs.contains { $0.lv == "labdien" }, "eşleştirme hedef kelimeyi içeriyor")
+        } else {
+            expect(false, "eşleştirme çift üretiyor")
+        }
+
+        let first = factory.makeExercise(wordId: "w1", kind: .listenChoose, seed: 42, availableAudio: allAudio)
+        let second = factory.makeExercise(wordId: "w1", kind: .listenChoose, seed: 42, availableAudio: allAudio)
+        expect(first == second, "aynı tohum aynı soruyu üretiyor")
+
+        let kinds = factory.supportedKinds(forWordId: "w4", availableAudio: allAudio)
+        expect(kinds.contains(.caseDrill), "çekimli kelime hal tatbikatını destekliyor")
+        expect(!factory.supportedKinds(forWordId: "w2", availableAudio: []).contains(.dictation),
+               "sessiz kelime dikteyi desteklemiyor")
+        expect(!kinds.isEmpty, "her kelimenin en az bir soru tipi var")
+
         if failures > 0 {
             fputs("\n\(failures) kontrol başarısız.\n", stderr)
             exit(1)
