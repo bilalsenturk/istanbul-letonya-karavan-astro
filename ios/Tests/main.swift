@@ -197,6 +197,61 @@ check("başarılı yanıttan sonra hesap hedefi tabanın önünde görünür",
         account: accountSelection,
         base: baseSelection
       )?.id == "account-selection")
+let newerPersistedSelection = ScopedArrivalTargetOverride(
+    scope: selectionScope,
+    target: ArrivalTarget(
+        id: "newer-persisted", name: "Yeni kalıcı kamp", kind: .campground,
+        latitude: 42.8, longitude: 23.4, formattedAddress: "Sofya"
+    ),
+    stay: StayDetails(estimatedArrival: "19:00")
+)
+var existingMigrationOverrides = ScopedArrivalTargetOverrides()
+existingMigrationOverrides.set(newerPersistedSelection)
+let legacyMigrationEdits = TripEdits(days: [selectionScope.daySlug: scopedEdit])
+let legacyMigrationBase = legacyMigrationEdits
+var failedMigrationOverrides = existingMigrationOverrides
+var failedMigrationEdits = legacyMigrationEdits
+var failedMigrationBase = legacyMigrationBase
+var failedMigrationEvents: [String] = []
+let failedMigration = ScopedArrivalTargetOverrideMigration.perform(
+    overrides: &failedMigrationOverrides,
+    edits: &failedMigrationEdits,
+    syncBase: &failedMigrationBase,
+    persistOverrides: { candidate in
+        failedMigrationEvents.append("overrides:\(candidate.value(for: selectionScope)?.target.id ?? "nil")")
+        return false
+    },
+    persistEdits: { _ in failedMigrationEvents.append("edits") },
+    persistBase: { _ in failedMigrationEvents.append("base") }
+)
+check("özel depo yazımı başarısızsa eski kaynaklar silinmez",
+      !failedMigration
+        && failedMigrationEdits == legacyMigrationEdits
+        && failedMigrationBase == legacyMigrationBase
+        && failedMigrationEvents == ["overrides:newer-persisted"])
+var successfulMigrationOverrides = existingMigrationOverrides
+var successfulMigrationEdits = legacyMigrationEdits
+var successfulMigrationBase = legacyMigrationBase
+var successfulMigrationEvents: [String] = []
+let successfulMigration = ScopedArrivalTargetOverrideMigration.perform(
+    overrides: &successfulMigrationOverrides,
+    edits: &successfulMigrationEdits,
+    syncBase: &successfulMigrationBase,
+    persistOverrides: { candidate in
+        successfulMigrationEvents.append("overrides:\(candidate.value(for: selectionScope)?.target.id ?? "nil")")
+        return true
+    },
+    persistEdits: { _ in successfulMigrationEvents.append("edits") },
+    persistBase: { _ in successfulMigrationEvents.append("base") }
+)
+check("başarılı göçte özel depo eski dosyalardan önce yazılır",
+      successfulMigration
+        && successfulMigrationEvents == ["overrides:newer-persisted", "edits", "base"])
+check("mevcut tam kapsamlı seçim eski kaydın üstüne yazılmaz",
+      successfulMigrationOverrides.value(for: selectionScope)?.target.id == "newer-persisted")
+check("özel depo yazıldıktan sonra iki ortak kaynak temizlenir",
+      successfulMigrationEdits == legacyMigrationEdits.sharedSyncState
+        && successfulMigrationBase == legacyMigrationBase.sharedSyncState)
 let legacyDay = try! JSONDecoder().decode(DayPlan.self, from: Data(#"{"slug":"old","date":"3 Ağustos","origin":"İstanbul","destination":"Sofya","distanceKm":"1 km","duration":"1 dk","fuel":"€1","risks":[],"opportunities":[],"contingencies":[],"camp":{"name":"Kamp","place":"Sofya","note":"","link":""},"stops":[{"type":"Mola","name":"Eski mola"}]}"#.utf8))
 check("eski gün JSON'u ETA alanları olmadan açılır",
       legacyDay.borderBufferMinutes == nil && legacyDay.waypoints?.first?.estimatedMinutes == nil)

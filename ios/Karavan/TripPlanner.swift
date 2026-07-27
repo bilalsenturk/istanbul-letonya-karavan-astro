@@ -166,6 +166,53 @@ struct TripEdits: Codable, Equatable {
     }
 }
 
+enum ScopedArrivalTargetOverrideMigration {
+    static func perform(
+        overrides: inout ScopedArrivalTargetOverrides,
+        edits: inout TripEdits,
+        syncBase: inout TripEdits,
+        persistOverrides: (ScopedArrivalTargetOverrides) -> Bool,
+        persistEdits: (TripEdits) -> Void,
+        persistBase: (TripEdits) -> Void
+    ) -> Bool {
+        let sources = [edits, syncBase]
+        guard sources.contains(where: { source in
+            source.days.values.contains { $0.arrivalTargetScope != nil }
+        }) else { return true }
+
+        var candidate = overrides
+        for source in sources {
+            for (slug, edit) in source.days {
+                guard let scope = edit.arrivalTargetScope,
+                      scope.daySlug == slug,
+                      let target = edit.arrivalTarget,
+                      candidate.value(for: scope) == nil
+                else { continue }
+                candidate.set(ScopedArrivalTargetOverride(
+                    scope: scope,
+                    target: target.publicSummary,
+                    stay: edit.stayDetails ?? StayDetails()
+                ))
+            }
+        }
+
+        guard persistOverrides(candidate) else { return false }
+
+        let sharedEdits = edits.sharedSyncState
+        let sharedBase = syncBase.sharedSyncState
+        overrides = candidate
+        if sharedEdits != edits {
+            persistEdits(sharedEdits)
+            edits = sharedEdits
+        }
+        if sharedBase != syncBase {
+            persistBase(sharedBase)
+            syncBase = sharedBase
+        }
+        return true
+    }
+}
+
 // Web verisi + kullanıcı düzenlemeleri birleşiminden türetilen tek gerçek gün.
 struct EffectiveDay: Identifiable {
     let index: Int

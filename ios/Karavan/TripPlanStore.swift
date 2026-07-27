@@ -277,7 +277,7 @@ final class TripPlanStore: ObservableObject {
             target: target.publicSummary,
             stay: safeStay
         ))
-        persistArrivalTargetOverrides()
+        _ = persistArrivalTargetOverrides(arrivalTargetOverrides)
         objectWillChange.send()
     }
 
@@ -286,7 +286,7 @@ final class TripPlanStore: ObservableObject {
               arrivalTargetOverrides.value(for: scope) != nil
         else { return }
         arrivalTargetOverrides.remove(scope: scope)
-        persistArrivalTargetOverrides()
+        _ = persistArrivalTargetOverrides(arrivalTargetOverrides)
         objectWillChange.send()
     }
 
@@ -346,38 +346,48 @@ final class TripPlanStore: ObservableObject {
         }
     }
 
-    private func persistArrivalTargetOverrides() {
-        if let data = try? JSONEncoder().encode(arrivalTargetOverrides) {
-            try? data.write(to: arrivalTargetOverridesFileURL, options: .atomic)
+    private func persistArrivalTargetOverrides(_ value: ScopedArrivalTargetOverrides) -> Bool {
+        guard let data = try? JSONEncoder().encode(value) else { return false }
+        do {
+            try data.write(to: arrivalTargetOverridesFileURL, options: .atomic)
+            return true
+        } catch {
+            return false
         }
     }
 
     private func migrateScopedArrivalTargetEdits() {
-        var migrated = false
-        for (slug, edit) in edits.days where edit.arrivalTargetScope != nil {
-            if let scope = edit.arrivalTargetScope,
-               scope.daySlug == slug,
-               let target = edit.arrivalTarget {
-                arrivalTargetOverrides.set(ScopedArrivalTargetOverride(
-                    scope: scope,
-                    target: target.publicSummary,
-                    stay: edit.stayDetails ?? StayDetails()
-                ))
+        var migratedOverrides = arrivalTargetOverrides
+        var migratedEdits = edits
+        var migratedBase = syncBase
+        let succeeded = ScopedArrivalTargetOverrideMigration.perform(
+            overrides: &migratedOverrides,
+            edits: &migratedEdits,
+            syncBase: &migratedBase,
+            persistOverrides: { [arrivalTargetOverridesFileURL] candidate in
+                guard let data = try? JSONEncoder().encode(candidate) else { return false }
+                do {
+                    try data.write(to: arrivalTargetOverridesFileURL, options: .atomic)
+                    return true
+                } catch {
+                    return false
+                }
+            },
+            persistEdits: { [fileURL] value in
+                if let data = try? JSONEncoder().encode(value) {
+                    try? data.write(to: fileURL, options: .atomic)
+                }
+            },
+            persistBase: { [baseFileURL] value in
+                if let data = try? JSONEncoder().encode(value) {
+                    try? data.write(to: baseFileURL, options: .atomic)
+                }
             }
-            migrated = true
-        }
-        let sharedEdits = edits.sharedSyncState
-        let sharedBase = syncBase.sharedSyncState
-        if sharedEdits != edits {
-            edits = sharedEdits
-            persist()
-        }
-        if sharedBase != syncBase {
-            syncBase = sharedBase
-            persistBase()
-        }
-        if migrated {
-            persistArrivalTargetOverrides()
+        )
+        if succeeded {
+            arrivalTargetOverrides = migratedOverrides
+            edits = migratedEdits
+            syncBase = migratedBase
         }
     }
 }
