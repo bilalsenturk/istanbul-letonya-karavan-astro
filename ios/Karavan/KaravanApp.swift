@@ -106,6 +106,7 @@ struct KaravanApp: App {
                         expenses.reload()                 // Siri arka planda eklemiş olabilir
                         locationManager.applyPowerMode()  // termal/güç durumu değişmiş olabilir
                         Task { await journal.drainQueue() }
+                        Task { await travelContent.refreshIfStale() }
                         // Öne gelince planı tazele: sahip cihazda tarih değişmiş olabilir.
                         Task {
                             await plan.syncFromWeb()
