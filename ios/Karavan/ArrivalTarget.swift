@@ -58,6 +58,29 @@ struct ArrivalTarget: Codable, Equatable, Identifiable, Hashable {
     var source: ArrivalTargetSource
     var updatedAt: Date
 
+    private enum CodingKeys: String, CodingKey {
+        case id, mapItemIdentifier, name, kind, latitude, longitude, formattedAddress
+        case phone, whatsAppPhone, email, websiteURL, maximumLengthMeters, source, updatedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(String.self, forKey: .id)
+        mapItemIdentifier = try values.decodeIfPresent(String.self, forKey: .mapItemIdentifier)
+        name = try values.decode(String.self, forKey: .name)
+        kind = try values.decode(ArrivalTargetKind.self, forKey: .kind)
+        latitude = try values.decode(Double.self, forKey: .latitude)
+        longitude = try values.decode(Double.self, forKey: .longitude)
+        formattedAddress = try values.decode(String.self, forKey: .formattedAddress)
+        phone = try values.decodeIfPresent(String.self, forKey: .phone)
+        whatsAppPhone = try values.decodeIfPresent(String.self, forKey: .whatsAppPhone)
+        email = try values.decodeIfPresent(String.self, forKey: .email)
+        websiteURL = try values.decodeIfPresent(URL.self, forKey: .websiteURL)
+        maximumLengthMeters = try values.decodeIfPresent(Double.self, forKey: .maximumLengthMeters)
+        source = try values.decodeIfPresent(ArrivalTargetSource.self, forKey: .source) ?? .migrated
+        updatedAt = try values.decodeIfPresent(Date.self, forKey: .updatedAt) ?? .distantPast
+    }
+
     init(
         id: String,
         mapItemIdentifier: String? = nil,
@@ -338,6 +361,7 @@ enum StayMessageLanguage: String, Codable, CaseIterable, Identifiable {
 
 struct StayContactProfile: Codable, Equatable {
     var contactName: String
+    var contactEmail: String?
     var adults: Int
     var children: Int
     var vehicleDescription: String
@@ -346,9 +370,11 @@ struct StayContactProfile: Codable, Equatable {
     var hasPet: Bool
     var additionalNeeds: String
     var preferredLanguage: StayMessageLanguage
+    var updatedAt: String?
 
     init(
         contactName: String = "",
+        contactEmail: String? = nil,
         adults: Int = 2,
         children: Int = 0,
         vehicleDescription: String = "",
@@ -356,9 +382,11 @@ struct StayContactProfile: Codable, Equatable {
         needsElectricity: Bool = true,
         hasPet: Bool = false,
         additionalNeeds: String = "",
-        preferredLanguage: StayMessageLanguage = .english
+        preferredLanguage: StayMessageLanguage = .english,
+        updatedAt: String? = nil
     ) {
         self.contactName = contactName
+        self.contactEmail = contactEmail
         self.adults = max(0, adults)
         self.children = max(0, children)
         self.vehicleDescription = vehicleDescription
@@ -367,6 +395,7 @@ struct StayContactProfile: Codable, Equatable {
         self.hasPet = hasPet
         self.additionalNeeds = additionalNeeds
         self.preferredLanguage = preferredLanguage
+        self.updatedAt = updatedAt
     }
 }
 

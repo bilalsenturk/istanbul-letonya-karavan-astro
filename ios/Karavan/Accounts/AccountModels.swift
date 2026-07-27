@@ -343,6 +343,7 @@ extension StayContactProfile {
     init(_ profile: AccountTravelProfile) {
         self.init(
             contactName: profile.contactName,
+            contactEmail: profile.contactEmail,
             adults: profile.adults,
             children: profile.children,
             vehicleDescription: profile.vehicleDescription,
@@ -350,7 +351,8 @@ extension StayContactProfile {
             needsElectricity: profile.needsElectricity,
             hasPet: profile.hasPet,
             additionalNeeds: profile.additionalNeeds,
-            preferredLanguage: profile.preferredLanguage
+            preferredLanguage: profile.preferredLanguage,
+            updatedAt: profile.updatedAt
         )
     }
 }

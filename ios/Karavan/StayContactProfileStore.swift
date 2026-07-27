@@ -5,6 +5,18 @@ struct TravelProfileBinding: Equatable {
     let needsSync: Bool
 }
 
+enum TravelProfileEmail {
+    static func normalized(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !normalized.isEmpty else { return nil }
+        guard normalized.count <= 254,
+              normalized.range(of: #"^[^\s@]+@[^\s@]+\.[^\s@]+$"#, options: .regularExpression) != nil
+        else { return nil }
+        return normalized
+    }
+}
+
 enum TravelProfileSeed {
     static func make(
         accountName: String?,
@@ -159,6 +171,7 @@ final class StayContactProfileStore: ObservableObject {
             profile: account.travelProfile
         )
         let migration = consumeLegacyIfNeeded(ownerID: account.id)
+            ?? consumeSignedOutIfNeeded(ownerID: account.id)
         guard let local = accountProfile ?? migration else {
             persistAccount(remote, accountID: account.id)
             return TravelProfileBinding(profile: remote, needsSync: false)
@@ -180,7 +193,7 @@ final class StayContactProfileStore: ObservableObject {
             accountName: nil,
             accountEmail: nil,
             vehicleDescription: vehicleSeed,
-            profile: accountProfile(from: profile, updatedAt: "")
+            profile: accountProfile(from: profile, updatedAt: profile.updatedAt ?? "")
         )
     }
 
@@ -193,6 +206,7 @@ final class StayContactProfileStore: ObservableObject {
     func persistSignedOut(_ value: AccountTravelProfile) {
         profile = StayContactProfile(
             contactName: value.contactName,
+            contactEmail: TravelProfileEmail.normalized(value.contactEmail),
             adults: value.adults,
             children: value.children,
             vehicleDescription: value.vehicleDescription,
@@ -200,7 +214,8 @@ final class StayContactProfileStore: ObservableObject {
             needsElectricity: value.needsElectricity,
             hasPet: value.hasPet,
             additionalNeeds: value.additionalNeeds,
-            preferredLanguage: value.preferredLanguage
+            preferredLanguage: value.preferredLanguage,
+            updatedAt: value.updatedAt
         )
     }
 
@@ -219,9 +234,21 @@ final class StayContactProfileStore: ObservableObject {
         return accountProfile(from: legacy, updatedAt: ISO8601DateFormatter().string(from: now()))
     }
 
+    private func consumeSignedOutIfNeeded(ownerID: String) -> AccountTravelProfile? {
+        let ownerKey = Self.legacyOwnerKey(routeID)
+        let claimedOwner = defaults.string(forKey: ownerKey)
+        guard claimedOwner == nil || claimedOwner == ownerID,
+              let local = Self.decode(StayContactProfile.self, from: defaults, key: Self.signedOutKey(routeID)),
+              local.updatedAt?.trimmed.isEmpty == false
+        else { return nil }
+        defaults.set(ownerID, forKey: ownerKey)
+        return accountProfile(from: local, updatedAt: local.updatedAt ?? ISO8601DateFormatter().string(from: now()))
+    }
+
     private func accountProfile(from local: StayContactProfile, updatedAt: String) -> AccountTravelProfile {
         AccountTravelProfile(
             contactName: local.contactName,
+            contactEmail: TravelProfileEmail.normalized(local.contactEmail),
             adults: local.adults,
             children: local.children,
             vehicleDescription: local.vehicleDescription,

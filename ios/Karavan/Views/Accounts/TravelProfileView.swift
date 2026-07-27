@@ -111,6 +111,12 @@ struct TravelProfileView: View {
 
     private func save() {
         guard !isSaving else { return }
+        if form.contactEmail?.isEmpty == false,
+           TravelProfileEmail.normalized(form.contactEmail) == nil {
+            validationError = "Geçerli bir e-posta adresi girin."
+            return
+        }
+        form.contactEmail = TravelProfileEmail.normalized(form.contactEmail)
         switch TravelProfileLength.parse(totalLengthText) {
         case .failure(.invalid): validationError = "Toplam uzunluğu sayı olarak girin."
         case .failure(.outOfRange): validationError = "Toplam uzunluk 1 ile 30 metre arasında olmalı."

@@ -486,6 +486,50 @@ struct ArrivalTargetCheck {
         check("imzalı dışı taslak B hesabına taşınmaz", boundBAgain.profile.contactName == "B sunucusu")
         check("imzalı dışı taslak ayrı kullanılabilir", freshB.profile.contactName == "Yerel misafir")
 
+        let emailSuiteName = "arrival-profile-email-check"
+        let emailDefaults = UserDefaults(suiteName: emailSuiteName)!
+        emailDefaults.removePersistentDomain(forName: emailSuiteName)
+        let signedOutEmailStore = StayContactProfileStore(
+            routeId: "email-route", defaults: emailDefaults, now: { migrationDate }
+        )
+        signedOutEmailStore.persistSignedOut(AccountTravelProfile(
+            contactName: "Misafir",
+            contactEmail: "guest@example.com",
+            updatedAt: "2026-07-27T12:00:00Z"
+        ))
+        let reloadedEmailStore = StayContactProfileStore(
+            routeId: "email-route", defaults: emailDefaults, now: { migrationDate }
+        )
+        check("imzalı dışı e-posta yeniden açılışta korunur",
+              reloadedEmailStore.signedOutProfile(vehicleSeed: nil).contactEmail == "guest@example.com")
+        let firstSignedIn = AccountUser(
+            id: "email-owner", email: "owner@example.com", displayName: "Hesap",
+            globalRole: .user, createdAt: "2026-07-01T00:00:00Z", updatedAt: "2026-07-01T00:00:00Z",
+            travelProfile: AccountTravelProfile(updatedAt: "2026-07-01T00:00:00Z")
+        )
+        let migratedEmail = reloadedEmailStore.bind(account: firstSignedIn, vehicleSeed: nil)
+        check("imzalı dışı e-posta ilk girişte hesaba taşınır",
+              migratedEmail.profile.contactEmail == "guest@example.com" && migratedEmail.needsSync)
+        let otherEmailAccount = AccountUser(
+            id: "email-other", email: "other@example.com", displayName: "Başka hesap",
+            globalRole: .user, createdAt: "2026-07-01T00:00:00Z", updatedAt: "2026-07-01T00:00:00Z",
+            travelProfile: AccountTravelProfile(updatedAt: "2026-07-02T00:00:00Z")
+        )
+        let isolatedEmailStore = StayContactProfileStore(
+            routeId: "email-route", defaults: emailDefaults, now: { migrationDate }
+        )
+        check("taşınan imzalı dışı e-posta başka hesaba sızmaz",
+              isolatedEmailStore.bind(account: otherEmailAccount, vehicleSeed: nil).profile.contactEmail == "other@example.com")
+        let legacyWithoutEmail = try! JSONDecoder().decode(
+            StayContactProfile.self,
+            from: Data(#"{"contactName":"Eski","adults":2,"children":0,"vehicleDescription":"","totalLengthMeters":null,"needsElectricity":true,"hasPet":false,"additionalNeeds":"","preferredLanguage":"english"}"#.utf8)
+        )
+        check("e-postasız eski yerel profil açılır", legacyWithoutEmail.contactEmail == nil)
+        check("yerel e-posta normalize edilir",
+              TravelProfileEmail.normalized(" GUEST@EXAMPLE.COM ") == "guest@example.com")
+        check("geçersiz yerel e-posta reddedilir",
+              TravelProfileEmail.normalized("guest-at-example") == nil)
+
         check("iki bozuk zaman damgasında sunucu sabit kazanır",
               TravelProfileMerge.resolve(local: malformedLocal, remote: malformedRemote) == malformedRemote)
         check("aynı hesap ve değişmeyen taslak yanıtı kabul eder",
