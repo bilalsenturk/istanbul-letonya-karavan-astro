@@ -9,6 +9,7 @@ swiftc -O -o "$OUT/plannercheck" \
   "$DIR/main.swift" \
   "$SRC/Models.swift" \
   "$SRC/ArrivalTarget.swift" \
+  "$SRC/Accounts/AccountModels.swift" \
   "$SRC/TripPlanner.swift" \
   "$SRC/RouteStepPolicy.swift" \
   "$SRC/RouteAnnouncementPolicy.swift"

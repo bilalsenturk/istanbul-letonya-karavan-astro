@@ -176,7 +176,14 @@ struct StayDetails: Codable, Equatable, Hashable {
     var reservationReference: String?
     var note: String?
     var estimatedArrival: String?
+    var estimatedArrivalMode: StayEstimatedArrivalMode
+    var estimatedArrivalWindow: StayETAWindow?
     var lastContactedAt: Date?
+
+    private enum CodingKeys: String, CodingKey {
+        case checkIn, checkOut, reservationStatus, reservationReference, note, estimatedArrival
+        case estimatedArrivalMode, estimatedArrivalWindow, lastContactedAt
+    }
 
     init(
         checkIn: Date? = nil,
@@ -185,6 +192,8 @@ struct StayDetails: Codable, Equatable, Hashable {
         reservationReference: String? = nil,
         note: String? = nil,
         estimatedArrival: String? = nil,
+        estimatedArrivalMode: StayEstimatedArrivalMode? = nil,
+        estimatedArrivalWindow: StayETAWindow? = nil,
         lastContactedAt: Date? = nil
     ) {
         self.checkIn = checkIn
@@ -193,7 +202,97 @@ struct StayDetails: Codable, Equatable, Hashable {
         self.reservationReference = reservationReference
         self.note = note
         self.estimatedArrival = estimatedArrival
+        self.estimatedArrivalMode = estimatedArrivalMode ?? (estimatedArrival == nil ? .automatic : .manual)
+        self.estimatedArrivalWindow = estimatedArrivalWindow
         self.lastContactedAt = lastContactedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        checkIn = try values.decodeIfPresent(Date.self, forKey: .checkIn)
+        checkOut = try values.decodeIfPresent(Date.self, forKey: .checkOut)
+        reservationStatus = try values.decodeIfPresent(StayReservationStatus.self, forKey: .reservationStatus) ?? .notContacted
+        reservationReference = try values.decodeIfPresent(String.self, forKey: .reservationReference)
+        note = try values.decodeIfPresent(String.self, forKey: .note)
+        estimatedArrival = try values.decodeIfPresent(String.self, forKey: .estimatedArrival)
+        estimatedArrivalWindow = try values.decodeIfPresent(StayETAWindow.self, forKey: .estimatedArrivalWindow)
+        estimatedArrivalMode = try values.decodeIfPresent(StayEstimatedArrivalMode.self, forKey: .estimatedArrivalMode)
+            ?? (estimatedArrival == nil ? .automatic : .manual)
+        lastContactedAt = try values.decodeIfPresent(Date.self, forKey: .lastContactedAt)
+    }
+}
+
+enum StayEstimatedArrivalMode: String, Codable, Equatable, Hashable {
+    case automatic
+    case manual
+}
+
+struct StayETAInput {
+    let departure: Date
+    let drivingSeconds: TimeInterval
+    let waypointMinutes: Int
+    let borderBufferMinutes: Int
+    let calendar: Calendar
+
+    init(
+        departure: Date,
+        drivingSeconds: TimeInterval,
+        waypointMinutes: Int = 0,
+        borderBufferMinutes: Int = 0,
+        calendar: Calendar = .current
+    ) {
+        self.departure = departure
+        self.drivingSeconds = max(0, drivingSeconds)
+        self.waypointMinutes = max(0, waypointMinutes)
+        self.borderBufferMinutes = max(0, borderBufferMinutes)
+        self.calendar = calendar
+    }
+}
+
+struct StayETAWindow: Codable, Equatable, Hashable {
+    let start: Date
+    let end: Date
+    let timeZoneIdentifier: String
+
+    init(start: Date, end: Date, timeZoneIdentifier: String = TimeZone.current.identifier) {
+        self.start = start
+        self.end = end
+        self.timeZoneIdentifier = timeZoneIdentifier
+    }
+
+    var text: String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_GB")
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = "HH:mm"
+        return "\(formatter.string(from: start))–\(formatter.string(from: end))"
+    }
+}
+
+enum StayETACalculator {
+    /// ETA is expressed in the destination calendar. The lower half-hour containing
+    /// the calculated arrival starts a durable one-hour communication window.
+    static func calculate(_ input: StayETAInput) -> StayETAWindow {
+        let extraSeconds = TimeInterval((input.waypointMinutes + input.borderBufferMinutes) * 60)
+        let center = input.departure.addingTimeInterval(input.drivingSeconds + extraSeconds)
+        let components = input.calendar.dateComponents([.hour, .minute], from: center)
+        let hour = components.hour ?? 0
+        let minute = components.minute ?? 0
+        let roundedMinute = minute < 30 ? 0 : 30
+        let day = input.calendar.startOfDay(for: center)
+        let start = input.calendar.date(bySettingHour: hour, minute: roundedMinute, second: 0, of: day) ?? center
+        let end = input.calendar.date(byAdding: .hour, value: 1, to: start) ?? start.addingTimeInterval(3_600)
+        return StayETAWindow(start: start, end: end, timeZoneIdentifier: input.calendar.timeZone.identifier)
+    }
+}
+
+struct StayCamp: Equatable, Hashable {
+    let maximumLengthMeters: Double?
+
+    init(maximumLengthMeters: Double? = nil) {
+        self.maximumLengthMeters = maximumLengthMeters
     }
 }
 
@@ -273,18 +372,22 @@ enum StayMessageComposer {
     static func compose(
         target: ArrivalTarget,
         stay: StayDetails,
-        profile: StayContactProfile
+        profile: StayContactProfile,
+        transportMode: RouteTransportMode = .automobile,
+        camp: StayCamp? = nil
     ) -> StayMessage {
         switch profile.preferredLanguage {
-        case .english: englishMessage(target: target, stay: stay, profile: profile)
-        case .turkish: turkishMessage(target: target, stay: stay, profile: profile)
+        case .english: englishMessage(target: target, stay: stay, profile: profile, transportMode: transportMode, camp: camp)
+        case .turkish: turkishMessage(target: target, stay: stay, profile: profile, transportMode: transportMode, camp: camp)
         }
     }
 
     private static func englishMessage(
         target: ArrivalTarget,
         stay: StayDetails,
-        profile: StayContactProfile
+        profile: StayContactProfile,
+        transportMode: RouteTransportMode,
+        camp: StayCamp?
     ) -> StayMessage {
         let dates = dateRange(stay)
         let guests = englishGuests(profile)
@@ -292,14 +395,20 @@ enum StayMessageComposer {
         lines.append("")
         lines.append("I would like to ask about availability at \(target.name) for \(dates.longText).")
         if !guests.isEmpty { lines.append("We are \(guests).") }
-        if !profile.vehicleDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if transportMode == .automobile,
+           !profile.vehicleDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             var vehicle = "We travel with \(profile.vehicleDescription.trimmingCharacters(in: .whitespacesAndNewlines))"
             if let length = profile.totalLengthMeters, length > 0 {
                 vehicle += String(format: " (%.1f m total length)", length)
             }
             lines.append(vehicle + ".")
         }
-        if profile.needsElectricity { lines.append("We need an electricity connection.") }
+        if transportMode == .automobile, profile.needsElectricity { lines.append("We need an electricity connection.") }
+        if let maximum = camp?.maximumLengthMeters,
+           let length = profile.totalLengthMeters,
+           length > maximum {
+            lines.append(String(format: "Our %.1f m total length exceeds your stated %.1f m limit; could you please confirm that it can be accommodated?", length, maximum))
+        }
         if profile.hasPet { lines.append("We travel with a pet.") }
         if let arrival = stay.estimatedArrival?.trimmingCharacters(in: .whitespacesAndNewlines), !arrival.isEmpty {
             lines.append("Our estimated arrival time is \(arrival).")
@@ -318,12 +427,24 @@ enum StayMessageComposer {
     private static func turkishMessage(
         target: ArrivalTarget,
         stay: StayDetails,
-        profile: StayContactProfile
+        profile: StayContactProfile,
+        transportMode: RouteTransportMode,
+        camp: StayCamp?
     ) -> StayMessage {
         let dates = dateRange(stay)
         var lines = ["Merhaba,", "", "\(target.name) için \(dates.longText) tarihleri arasındaki uygunluğu öğrenmek istiyorum."]
-        if !profile.vehicleDescription.isEmpty { lines.append("Aracımız: \(profile.vehicleDescription).") }
-        if profile.needsElectricity { lines.append("Elektrik bağlantısına ihtiyacımız var.") }
+        let guests = englishGuests(profile)
+        if !guests.isEmpty { lines.append("\(guests) olarak seyahat ediyoruz.") }
+        if transportMode == .automobile, !profile.vehicleDescription.isEmpty { lines.append("Aracımız: \(profile.vehicleDescription).") }
+        if transportMode == .automobile, profile.needsElectricity { lines.append("Elektrik bağlantısına ihtiyacımız var.") }
+        if let maximum = camp?.maximumLengthMeters,
+           let length = profile.totalLengthMeters,
+           length > maximum {
+            lines.append(String(format: "Toplam %.1f m uzunluğumuz belirtilen %.1f m sınırını aşıyor; uygunluğu teyit edebilir misiniz?", length, maximum))
+        }
+        if profile.hasPet { lines.append("Evcil hayvanımızla seyahat ediyoruz.") }
+        let needs = profile.additionalNeeds.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !needs.isEmpty { lines.append("Ek not: \(needs)") }
         if let arrival = stay.estimatedArrival, !arrival.isEmpty { lines.append("Tahmini varış saatimiz \(arrival).") }
         lines.append("Uygunluk, toplam ücret ve giriş bilgisini paylaşabilir misiniz?")
         if !profile.contactName.isEmpty { lines.append("\nTeşekkürler,\n\(profile.contactName)") }

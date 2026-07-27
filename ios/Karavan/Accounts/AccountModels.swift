@@ -127,6 +127,8 @@ struct AccountStayDetails: Codable, Equatable {
     var reservationReference: String?
     var note: String?
     var estimatedArrival: String?
+    var estimatedArrivalMode: StayEstimatedArrivalMode?
+    var estimatedArrivalWindow: StayETAWindow?
     var lastContactedAt: String?
 
     init(_ stay: StayDetails) {
@@ -137,6 +139,8 @@ struct AccountStayDetails: Codable, Equatable {
         reservationReference = stay.reservationReference
         note = stay.note
         estimatedArrival = stay.estimatedArrival
+        estimatedArrivalMode = stay.estimatedArrivalMode
+        estimatedArrivalWindow = stay.estimatedArrivalWindow
         lastContactedAt = stay.lastContactedAt.map(formatter.string(from:))
     }
 
@@ -148,6 +152,8 @@ struct AccountStayDetails: Codable, Equatable {
             reservationReference: reservationReference,
             note: note,
             estimatedArrival: estimatedArrival,
+            estimatedArrivalMode: estimatedArrivalMode,
+            estimatedArrivalWindow: estimatedArrivalWindow,
             lastContactedAt: lastContactedAt.flatMap(ISO8601DateFormatter().date(from:))
         )
     }
@@ -239,6 +245,22 @@ struct AccountTravelProfile: Codable, Equatable {
         self.additionalNeeds = additionalNeeds
         self.preferredLanguage = preferredLanguage
         self.updatedAt = updatedAt
+    }
+}
+
+extension StayContactProfile {
+    init(_ profile: AccountTravelProfile) {
+        self.init(
+            contactName: profile.contactName,
+            adults: profile.adults,
+            children: profile.children,
+            vehicleDescription: profile.vehicleDescription,
+            totalLengthMeters: profile.totalLengthMeters,
+            needsElectricity: profile.needsElectricity,
+            hasPet: profile.hasPet,
+            additionalNeeds: profile.additionalNeeds,
+            preferredLanguage: profile.preferredLanguage
+        )
     }
 }
 

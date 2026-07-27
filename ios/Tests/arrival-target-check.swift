@@ -63,8 +63,71 @@ struct ArrivalTargetCheck {
             totalLengthMeters: 10.8,
             needsElectricity: true,
             hasPet: false,
+            additionalNeeds: "Quiet pitch",
             preferredLanguage: .english
         )
+        let departure = calendar.date(from: DateComponents(year: 2026, month: 8, day: 3, hour: 8))!
+        let eta = StayETACalculator.calculate(.init(
+            departure: departure,
+            drivingSeconds: 8 * 3600,
+            waypointMinutes: 45,
+            borderBufferMinutes: 90,
+            calendar: calendar
+        ))
+        // 08:00 + 8 saat + 45 dk ara durak + 90 dk sınır payı = 18:15.
+        check("ETA yarım saatlik pencere üretir", eta.text == "18:00–19:00")
+
+        let exactBoundary = StayETACalculator.calculate(.init(
+            departure: departure,
+            drivingSeconds: 9 * 3600,
+            calendar: calendar
+        ))
+        check("tam yarım saatte ETA bir saatlik kalır", exactBoundary.text == "17:00–18:00")
+
+        let rollover = StayETACalculator.calculate(.init(
+            departure: calendar.date(from: DateComponents(year: 2026, month: 8, day: 3, hour: 23, minute: 50))!,
+            drivingSeconds: 0,
+            calendar: calendar
+        ))
+        check("ETA gece yarısını aşan pencereyi korur", rollover.text == "23:30–00:30")
+
+        var rigaCalendar = Calendar(identifier: .gregorian)
+        rigaCalendar.timeZone = TimeZone(identifier: "Europe/Riga")!
+        let dstETA = StayETACalculator.calculate(.init(
+            departure: rigaCalendar.date(from: DateComponents(year: 2026, month: 3, day: 29, hour: 2, minute: 45))!,
+            drivingSeconds: 45 * 60,
+            calendar: rigaCalendar
+        ))
+        check("ETA hedef saat diliminde yaz saati atlamasını taşır", dstETA.text == "04:30–05:30")
+
+        let flight = StayMessageComposer.compose(
+            target: target, stay: stay, profile: profile, transportMode: .flight, camp: nil
+        )
+        check("uçak mesajında araç yok",
+              !flight.body.contains("Passat") && !flight.body.localizedCaseInsensitiveContains("electricity"))
+        check("uçak mesajında konuk ve ek ihtiyaç kalır",
+              flight.body.contains("2 adults and 1 child") && flight.body.contains("Additional note:"))
+
+        let walking = StayMessageComposer.compose(
+            target: target, stay: stay, profile: profile, transportMode: .walking, camp: nil
+        )
+        check("yürüyüş mesajında araç ve elektrik yok",
+              !walking.body.contains("Passat") && !walking.body.localizedCaseInsensitiveContains("electricity"))
+        check("yürüyüş mesajında ek ihtiyaç kalır", walking.body.contains("Quiet pitch"))
+
+        let car = StayMessageComposer.compose(
+            target: target,
+            stay: stay,
+            profile: profile,
+            transportMode: .automobile,
+            camp: .init(maximumLengthMeters: 8)
+        )
+        check("uzunluk sınırı teyit edilir", car.body.contains("10.8 m") && car.body.contains("8.0 m"))
+
+        let legacyStay = try! JSONDecoder().decode(StayDetails.self, from: Data(#"{"estimatedArrival":"18:30"}"#.utf8))
+        check("eski konaklama kaydı manuel ETA olur",
+              legacyStay.estimatedArrivalMode == .manual && legacyStay.estimatedArrivalWindow == nil)
+
         let message = StayMessageComposer.compose(target: target, stay: stay, profile: profile)
         check("mesaj hedef adını içerir", message.body.contains("Camping Campuccino"))
         check("mesaj giriş ve çıkış tarihini içerir",

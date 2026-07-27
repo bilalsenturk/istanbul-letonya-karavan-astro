@@ -155,7 +155,11 @@ struct DayDetailView: View {
                 ArrivalTargetEditorView(
                     target: target,
                     stay: derivedStay(from: exactStay),
-                    routeId: workspace.selectedTrip?.id ?? "kuzey-local"
+                    routeId: workspace.selectedTrip?.id ?? "kuzey-local",
+                    profile: account.user?.travelProfile,
+                    transportMode: workspace.selectedTrip?.transportMode ?? .automobile,
+                    automaticETA: defaultStay.estimatedArrivalWindow,
+                    vehicleSeed: workspace.selectedTrip?.kind == .kuzey2026 ? TravelProfileVehicleSeed.kuzey : nil
                 ) { target, stay in
                     saveTarget(target, stay: stay)
                 }
@@ -210,17 +214,60 @@ struct DayDetailView: View {
 
     private var defaultStay: StayDetails {
         guard let effective = eff else { return StayDetails() }
-        let checkOut = TripPlanner.routeCalendar.date(
-            byAdding: .day, value: effective.dayCount, to: effective.date
+        let calendar = destinationCalendar
+        let waypointMinutes = day.waypoints?.compactMap(\.estimatedMinutes).reduce(0, +) ?? 0
+        let eta = realLeg.map {
+            StayETACalculator.calculate(.init(
+                departure: effective.departTime,
+                drivingSeconds: $0.time,
+                waypointMinutes: waypointMinutes,
+                borderBufferMinutes: day.borderBufferMinutes ?? 0,
+                calendar: calendar
+            ))
+        }
+        let checkIn = calendar.startOfDay(for: eta?.start ?? effective.departTime)
+        let checkOut = calendar.date(byAdding: .day, value: effective.dayCount, to: checkIn)
+        return StayDetails(
+            checkIn: checkIn,
+            checkOut: checkOut,
+            estimatedArrival: eta?.text,
+            estimatedArrivalMode: .automatic,
+            estimatedArrivalWindow: eta
         )
-        return StayDetails(checkIn: effective.date, checkOut: checkOut)
     }
 
     private func derivedStay(from value: StayDetails) -> StayDetails {
         var result = value
         if result.checkIn == nil { result.checkIn = defaultStay.checkIn }
         if result.checkOut == nil { result.checkOut = defaultStay.checkOut }
+        if result.estimatedArrivalMode == .automatic {
+            result.estimatedArrival = defaultStay.estimatedArrival
+            result.estimatedArrivalWindow = defaultStay.estimatedArrivalWindow
+        }
         return result
+    }
+
+    private var destinationCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale(identifier: "tr_TR")
+        calendar.timeZone = destinationTimeZone
+        return calendar
+    }
+
+    private var destinationTimeZone: TimeZone {
+        let country = destinationStop?.country
+        let identifier: String
+        switch country {
+        case "Bulgaristan": identifier = "Europe/Sofia"
+        case "Sırbistan": identifier = "Europe/Belgrade"
+        case "Romanya": identifier = "Europe/Bucharest"
+        case "Macaristan": identifier = "Europe/Budapest"
+        case "Polonya": identifier = "Europe/Warsaw"
+        case "Litvanya": identifier = "Europe/Vilnius"
+        case "Letonya": identifier = "Europe/Riga"
+        default: identifier = "Europe/Istanbul"
+        }
+        return TimeZone(identifier: identifier) ?? TripPlanner.routeTimeZone
     }
 
     private func saveTarget(_ target: ArrivalTarget, stay: StayDetails) {

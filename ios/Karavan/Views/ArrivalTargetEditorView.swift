@@ -4,27 +4,48 @@ import UIKit
 struct ArrivalTargetEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
-    @StateObject private var profileStore: StayContactProfileStore
     @State private var target: ArrivalTarget
     @State private var stay: StayDetails
     @State private var copied = false
 
     let onSave: (ArrivalTarget, StayDetails) -> Void
+    private let profile: StayContactProfile
+    private let transportMode: RouteTransportMode
+    private let camp: StayCamp?
+    private let automaticETA: StayETAWindow?
+    private let routeId: String
+    private let vehicleSeed: String?
 
     init(
         target: ArrivalTarget,
         stay: StayDetails,
         routeId: String,
+        profile: AccountTravelProfile? = nil,
+        transportMode: RouteTransportMode = .automobile,
+        camp: StayCamp? = nil,
+        automaticETA: StayETAWindow? = nil,
+        vehicleSeed: String? = nil,
         onSave: @escaping (ArrivalTarget, StayDetails) -> Void
     ) {
         _target = State(initialValue: target)
         _stay = State(initialValue: stay)
-        _profileStore = StateObject(wrappedValue: StayContactProfileStore(routeId: routeId))
+        self.profile = profile.map(StayContactProfile.init) ?? StayContactProfile()
+        self.transportMode = transportMode
+        self.camp = camp
+        self.automaticETA = automaticETA
+        self.routeId = routeId
+        self.vehicleSeed = vehicleSeed
         self.onSave = onSave
     }
 
     private var message: StayMessage {
-        StayMessageComposer.compose(target: target, stay: stay, profile: profileStore.profile)
+        StayMessageComposer.compose(
+            target: target,
+            stay: stay,
+            profile: profile,
+            transportMode: transportMode,
+            camp: camp
+        )
     }
 
     var body: some View {
@@ -47,17 +68,19 @@ struct ArrivalTargetEditorView: View {
                     }
                     DatePicker("Giriş", selection: dateBinding(\.checkIn, fallback: Date()), displayedComponents: .date)
                     DatePicker("Çıkış", selection: dateBinding(\.checkOut, fallback: Date().addingTimeInterval(86_400)), displayedComponents: .date)
-                    TextField("Tahmini varış", text: stayOptionalBinding(\.estimatedArrival))
+                    arrivalTimeEditor
                     TextField("Rezervasyon kodu", text: stayOptionalBinding(\.reservationReference))
                 }
 
                 Section("Seyahat bilgileri") {
-                    TextField("İletişim adı", text: $profileStore.profile.contactName)
-                    Stepper("Yetişkin: \(profileStore.profile.adults)", value: $profileStore.profile.adults, in: 1 ... 12)
-                    Stepper("Çocuk: \(profileStore.profile.children)", value: $profileStore.profile.children, in: 0 ... 12)
-                    TextField("Araç ve karavan", text: $profileStore.profile.vehicleDescription)
-                    Toggle("Elektrik gerekli", isOn: $profileStore.profile.needsElectricity)
-                    Toggle("Evcil hayvan var", isOn: $profileStore.profile.hasPet)
+                    NavigationLink {
+                        TravelProfileView(routeId: routeId, vehicleSeed: vehicleSeed)
+                    } label: {
+                        Label("Seyahat profilini düzenle", systemImage: "person.text.rectangle")
+                    }
+                    Text("Mesaj, hesapta kaydedilmiş yolcu ve ihtiyaç bilgilerini kullanır.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("Hazır mesaj") {
@@ -111,6 +134,28 @@ struct ArrivalTargetEditorView: View {
 
     private func dateBinding(_ keyPath: WritableKeyPath<StayDetails, Date?>, fallback: Date) -> Binding<Date> {
         Binding(get: { stay[keyPath: keyPath] ?? fallback }, set: { stay[keyPath: keyPath] = $0 })
+    }
+
+    @ViewBuilder
+    private var arrivalTimeEditor: some View {
+        if stay.estimatedArrivalMode == .automatic {
+            LabeledContent("Tahmini varış", value: stay.estimatedArrival ?? automaticETA?.text ?? "Hesaplanamadı")
+                .accessibilityLabel("Otomatik tahmini varış")
+            Button("Tahmini varışı elle düzenle") {
+                stay.estimatedArrivalMode = .manual
+            }
+            .accessibilityHint("Otomatik hesaplanan varış aralığını metin olarak değiştirir")
+        } else {
+            TextField("Tahmini varış", text: stayOptionalBinding(\.estimatedArrival))
+                .accessibilityLabel("Manuel tahmini varış")
+            Button("Otomatik kullan") {
+                stay.estimatedArrivalMode = .automatic
+                stay.estimatedArrivalWindow = automaticETA
+                stay.estimatedArrival = automaticETA?.text
+            }
+            .disabled(automaticETA == nil)
+            .accessibilityHint("Yol, mola ve sınır payına göre hesaplanan aralığı geri yükler")
+        }
     }
 }
 

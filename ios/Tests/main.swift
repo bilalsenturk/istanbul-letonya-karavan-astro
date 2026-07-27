@@ -93,6 +93,9 @@ check("dolu düzenleme isEmpty değil", !DayEdit(note: "test").isEmpty)
 let legacyDayEdit = try! JSONDecoder().decode(DayEdit.self, from: Data(#"{"note":"eski kayıt"}"#.utf8))
 check("eski gün düzenlemesi kesin hedef olmadan açılır",
       legacyDayEdit.arrivalTarget == nil && legacyDayEdit.stayDetails == nil)
+let legacyDay = try! JSONDecoder().decode(DayPlan.self, from: Data(#"{"slug":"old","date":"3 Ağustos","origin":"İstanbul","destination":"Sofya","distanceKm":"1 km","duration":"1 dk","fuel":"€1","risks":[],"opportunities":[],"contingencies":[],"camp":{"name":"Kamp","place":"Sofya","note":"","link":""},"stops":[{"type":"Mola","name":"Eski mola"}]}"#.utf8))
+check("eski gün JSON'u ETA alanları olmadan açılır",
+      legacyDay.borderBufferMinutes == nil && legacyDay.waypoints?.first?.estimatedMinutes == nil)
 
 print("\n=== 6) Sınır durumları ===")
 edits = TripEdits()
@@ -127,6 +130,7 @@ let earlyTrip = TripData(
             duration: "1 dk",
             fuel: "€1",
             risks: [],
+            borderBufferMinutes: nil,
             opportunities: [],
             contingencies: [],
             camp: Camp(name: "Kamp", place: "Sofya", note: "", link: "", image: nil, alternatives: nil),

@@ -53,6 +53,8 @@ struct AccountDomainCheck {
         expect(trip.stops[0].resolvedSource == .place, "eski duraklar yer olarak çözülür")
         expect(trip.stops[1].arrivalTarget?.name == "Camping Campuccino", "kesin hedef API'den çözülür")
         expect(trip.stops[1].stayDetails?.reservationStatus == .awaitingReply, "konaklama durumu korunur")
+        expect(trip.stops[1].resolvedStayDetails?.estimatedArrivalMode == .automatic,
+               "eski konaklama kaydı otomatik ETA varsayımıyla çözülür")
 
         let oldUserPayload = """
         {
