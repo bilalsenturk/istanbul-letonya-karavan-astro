@@ -10,6 +10,7 @@ struct KaravanApp: App {
     @StateObject private var navProgress = NavProgressStore()
     @StateObject private var altimeter = AltimeterService()
     @StateObject private var plan = TripPlanStore()
+    @StateObject private var appNavigation = AppNavigation.shared
     @StateObject private var gallery = GalleryStore()
     @StateObject private var roadFeed = RoadFeedService()
     @StateObject private var journal = JournalStore()
@@ -35,6 +36,7 @@ struct KaravanApp: App {
                 .environmentObject(navProgress)
                 .environmentObject(altimeter)
                 .environmentObject(plan)
+                .environmentObject(appNavigation)
                 .environmentObject(gallery)
                 .environmentObject(roadFeed)
                 .environmentObject(journal)

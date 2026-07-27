@@ -5,6 +5,7 @@ import SwiftUI
 
 enum AppTab: Hashable {
     case dashboard
+    case map
     case plan
     case journal
     case tools
@@ -21,7 +22,7 @@ final class AppNavigation: ObservableObject {
         let arguments = ProcessInfo.processInfo.arguments
         if arguments.contains("-ui-preview-routes") { selectedTab = .plan }
         if arguments.contains("-ui-preview-plan") { selectedTab = .plan }
-        if arguments.contains("-ui-preview-map") { selectedTab = .plan }
+        if arguments.contains("-ui-preview-map") { selectedTab = .map }
         if arguments.contains("-ui-preview-dashboard") { selectedTab = .dashboard }
         if arguments.contains("-ui-preview-journal") { selectedTab = .journal }
         if arguments.contains("-ui-preview-tools") { selectedTab = .tools }
