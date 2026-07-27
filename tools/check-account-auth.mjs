@@ -146,6 +146,40 @@ const equalRepository = createAccountRepository({
   subjectId: (subject) => `user-${subject}`,
 });
 assert.equal((await equalRepository.accountById('user-equal')).travelProfile.contactName, 'Patch N');
+for (const badEnvelope of [
+  { profile: { ...travelProfile, contactName: 'Bad kind', updatedAt: equalTime }, kind: 'bad', revisionId: 'x', writtenAt: equalTime },
+  { profile: { ...travelProfile, contactName: 'Bad id', updatedAt: equalTime }, kind: 'userUpdate', revisionId: {}, writtenAt: equalTime },
+  { profile: { ...travelProfile, contactName: 'Bad written', updatedAt: equalTime }, kind: 'userUpdate', revisionId: 'x', writtenAt: 'bad' },
+]) equalTimeData.set(`accounts/profiles/user-equal/revisions/bad-${Math.random()}.json`, badEnvelope);
+assert.equal((await equalRepository.accountById('user-equal')).travelProfile.contactName, 'Patch N');
+
+const equalRaceData = new Map();
+const equalRaceAccount = { ...equalSnapshot, id: 'user-equal-race' };
+equalRaceData.set('accounts/users/user-equal-race.json', equalRaceAccount);
+let pauseEqualSeed = true; let equalSeedStarted; let releaseEqualSeed;
+const equalSeedGate = new Promise((resolve) => { equalSeedStarted = resolve; });
+const releaseEqualGate = new Promise((resolve) => { releaseEqualSeed = resolve; });
+const equalStore = {
+  read: async (path) => equalRaceData.has(path) ? structuredClone(equalRaceData.get(path)) : null,
+  write: async (path, value) => {
+    if (pauseEqualSeed && path.startsWith('accounts/profiles/user-equal-race/revisions/')) { pauseEqualSeed = false; equalSeedStarted(); await releaseEqualGate; }
+    equalRaceData.set(path, structuredClone(value));
+  },
+  list: async (prefix) => [...equalRaceData.keys()].filter((path) => path.startsWith(prefix)),
+  subjectId: (subject) => `user-${subject}`,
+  now: () => equalTime,
+};
+const equalMigrationRepository = createAccountRepository(equalStore);
+const equalPatchRepository = createAccountRepository(equalStore);
+const delayedEqualMigration = equalMigrationRepository.accountById('user-equal-race');
+await equalSeedGate;
+const equalPatch = await equalPatchRepository.updateTravelProfile('user-equal-race', { ...travelProfile, contactName: 'Equal Patch N' });
+releaseEqualSeed();
+const equalMigration = await delayedEqualMigration;
+const equalReload = await equalMigrationRepository.accountById('user-equal-race');
+assert.equal(equalPatch.travelProfile.contactName, 'Equal Patch N');
+assert.equal(equalMigration.travelProfile.contactName, 'Equal Patch N');
+assert.equal(equalReload.travelProfile.contactName, 'Equal Patch N');
 
 const firstSeedData = new Map();
 let firstSeedProfileWriteStarted;

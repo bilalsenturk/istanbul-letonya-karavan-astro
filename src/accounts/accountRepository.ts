@@ -100,9 +100,14 @@ export const createAccountRepository = (dependencies: AccountStore & {
         return { profile: profile as TravelProfileRecord, priority, revisionId };
       };
       const candidates = [candidate(fixed, 0, 'fixed'), candidate(snapshotProfile, 0, 'snapshot'), ...revisions.map(({ path, value }) => {
-        const envelope = value && typeof value === 'object' && 'profile' in value ? value as ProfileRevision : null;
-        const priority = envelope?.kind === 'userUpdate' ? 2 : envelope ? 1 : 0;
-        return candidate(envelope?.profile ?? value, priority, envelope?.revisionId ?? path);
+        const envelope = value && typeof value === 'object' && 'profile' in value ? value as Partial<ProfileRevision> : null;
+        if (envelope) {
+          if ((envelope.kind !== 'userUpdate' && envelope.kind !== 'appleSeed' && envelope.kind !== 'legacyMigration')
+            || typeof envelope.revisionId !== 'string' || !envelope.revisionId
+            || !validTimestamp(envelope.writtenAt)) return null;
+          return candidate(envelope.profile, envelope.kind === 'userUpdate' ? 2 : 1, envelope.revisionId);
+        }
+        return candidate(value, 0, path);
       })].filter(Boolean) as { profile: TravelProfileRecord; priority: number; revisionId: string }[];
       const selected = candidates.sort((left, right) => Date.parse(right.profile.updatedAt) - Date.parse(left.profile.updatedAt)
         || right.priority - left.priority || right.revisionId.localeCompare(left.revisionId))[0];
