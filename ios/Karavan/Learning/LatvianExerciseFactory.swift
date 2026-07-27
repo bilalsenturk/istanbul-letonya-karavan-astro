@@ -21,40 +21,98 @@ struct LatvianSeededGenerator: RandomNumberGenerator {
 struct LatvianExerciseFactory {
     let pack: LatvianPack
 
-    private var allWords: [LatvianWord] { pack.scenes.flatMap(\.words) }
+    /// Ders kurulumu `supportedKinds`'ı her kelime için çağırıyor; bu listeler her
+    /// erişimde yeniden kurulursa (eskiden `allWords` hesaplanan bir özellikti ve çağrı
+    /// başına birkaç kez okunuyordu) 259 kelimede onlarca milisaniye ana iş parçacığına
+    /// biniyordu. Hepsi `init`'te bir kez, O(n) kuruluyor; tip değer tipi kalıyor.
+    private let allWords: [LatvianWord]
+    /// Çeldirici havuzları: paketteki yüzey metinleri, sırası korunarak tekilleştirilmiş.
+    /// Paket aynı kelimeyi birden çok sahnede tekrarladığından (örn. "paldies" 8 kez)
+    /// tekilleştirme şart, yoksa seçeneklerde iki özdeş kart belirebilir.
+    /// `Set` yalnızca üyelik testinde kullanılıyor — `Array(Set(...))` gibi kümeden diziye
+    /// dönüşüm yok, çünkü Swift'te `Set` sırası kararlı değildir (aynı süreç içinde bile)
+    /// ve bu, "aynı tohum aynı soru" garantisini kırardı.
+    private let distinctSurfaces: [String]
+    private let distinctIconSurfaces: [String]
+    private let sentencesByWordId: [String: [LatvianSentence]]
 
     init(pack: LatvianPack) {
         self.pack = pack
+
+        let words = pack.scenes.flatMap(\.words)
+        allWords = words
+
+        // İki havuz ayrı ayrı tekilleştiriliyor: aynı yüzey metni önce emojisiz, sonra
+        // emojili bir kayıtta geçebiliyor; tek geçişte tekilleştirmek emojili olanı
+        // emoji havuzundan düşürürdü.
+        var seenSurface: Set<String> = []
+        var surfaces: [String] = []
+        for word in words where seenSurface.insert(word.lv).inserted {
+            surfaces.append(word.lv)
+        }
+        var seenIconSurface: Set<String> = []
+        var iconSurfaces: [String] = []
+        for word in words where word.icon != nil {
+            if seenIconSurface.insert(word.lv).inserted { iconSurfaces.append(word.lv) }
+        }
+        distinctSurfaces = surfaces
+        distinctIconSurfaces = iconSurfaces
+
+        var index: [String: [LatvianSentence]] = [:]
+        for scene in pack.scenes {
+            for sentence in scene.sentences {
+                // Bir cümle aynı kelime kimliğini iki kez listelese bile listeye bir kez
+                // giriyor; eski `filter { $0.wordIds.contains(wordId) }` de böyleydi.
+                // Sahne ve cümle sırası korunuyor — soru seçimi bu sıraya tohumlanıyor.
+                var seen: Set<String> = []
+                for wordId in sentence.wordIds where seen.insert(wordId).inserted {
+                    index[wordId, default: []].append(sentence)
+                }
+            }
+        }
+        sentencesByWordId = index
     }
 
     func supportedKinds(forWordId wordId: String, availableAudio: Set<String>) -> [LatvianExerciseKind] {
         guard let word = pack.word(id: wordId) else { return [] }
-        let hasAudio = availableAudio.contains(word.audioId)
         let sentences = sentencesUsing(wordId: wordId)
+        return LatvianExerciseKind.allCases.filter {
+            supports(kind: $0, word: word, sentences: sentences, availableAudio: availableAudio)
+        }
+    }
 
-        return LatvianExerciseKind.allCases.filter { kind in
-            switch kind {
-            case .listenChoose:
-                return hasAudio && !distractors(correct: word.lv, pool: allWords.map(\.lv)).isEmpty
-            case .dictation, .speak:
-                return hasAudio
-            case .iconChoose:
-                guard word.icon != nil else { return false }
-                let iconPool = allWords.filter { $0.icon != nil }.map(\.lv)
-                return !distractors(correct: word.lv, pool: iconPool).isEmpty
-            case .caseDrill:
-                guard let caseForm = word.caseForm,
-                      !distinctDistractorSuffixes(caseForm).isEmpty else { return false }
-                return sentences.contains { $0.supports.contains(.caseDrill) }
-            case .match:
-                return matchCandidates(excluding: word).count >= 3
-            case .fillBlank:
-                return sentences.contains { sentence in
-                    sentence.supports.contains(kind) && blank(sentence.lv, hiding: word.lv) != nil
-                } && !distractors(correct: word.lv, pool: allWords.map(\.lv)).isEmpty
-            case .lvToTr, .trToLv, .order:
-                return sentences.contains { $0.supports.contains(kind) }
-            }
+    /// Tek bir soru tipinin bu kelime için üretilebilir olup olmadığı.
+    /// Hem `supportedKinds` hem `makeExercise` yalnızca bunu çağırıyor, dolayısıyla
+    /// "destekleniyor dedi ama üretemedi" ayrışması olamıyor. `makeExercise` eskiden
+    /// tek bir tipi doğrulamak için on tipin tamamını hesaplatıyordu.
+    private func supports(
+        kind: LatvianExerciseKind,
+        word: LatvianWord,
+        sentences: [LatvianSentence],
+        availableAudio: Set<String>
+    ) -> Bool {
+        switch kind {
+        case .listenChoose:
+            return availableAudio.contains(word.audioId)
+                && hasDistractor(correct: word.lv, pool: distinctSurfaces)
+        case .dictation, .speak:
+            return availableAudio.contains(word.audioId)
+        case .iconChoose:
+            guard word.icon != nil else { return false }
+            return hasDistractor(correct: word.lv, pool: distinctIconSurfaces)
+        case .caseDrill:
+            guard let caseForm = word.caseForm,
+                  caseDrillStem(caseForm) != nil,
+                  hasDistractorSuffix(caseForm) else { return false }
+            return sentences.contains { $0.supports.contains(.caseDrill) }
+        case .match:
+            return hasMatchCandidates(excluding: word, atLeast: 3)
+        case .fillBlank:
+            return sentences.contains { sentence in
+                sentence.supports.contains(kind) && blank(sentence.lv, hiding: word.lv) != nil
+            } && hasDistractor(correct: word.lv, pool: distinctSurfaces)
+        case .lvToTr, .trToLv, .order:
+            return sentences.contains { $0.supports.contains(kind) }
         }
     }
 
@@ -64,15 +122,20 @@ struct LatvianExerciseFactory {
         seed: UInt64,
         availableAudio: Set<String>
     ) -> LatvianExercise? {
-        guard supportedKinds(forWordId: wordId, availableAudio: availableAudio).contains(kind),
-              let word = pack.word(id: wordId) else { return nil }
+        guard let word = pack.word(id: wordId),
+              supports(
+                  kind: kind,
+                  word: word,
+                  sentences: sentencesUsing(wordId: wordId),
+                  availableAudio: availableAudio
+              ) else { return nil }
 
         var generator = LatvianSeededGenerator(seed: seed)
         let id = "\(wordId)-\(kind.rawValue)-\(seed)"
 
         switch kind {
         case .listenChoose:
-            guard let options = choiceOptions(correct: word.lv, pool: allWords.map(\.lv), using: &generator) else { return nil }
+            guard let options = choiceOptions(correct: word.lv, distinctPool: distinctSurfaces, using: &generator) else { return nil }
             return LatvianExercise(
                 id: id, kind: kind, targetWordId: wordId,
                 prompt: "Duyduğun kelimeyi seç.",
@@ -82,8 +145,7 @@ struct LatvianExerciseFactory {
             )
 
         case .iconChoose:
-            let pool = allWords.filter { $0.icon != nil }
-            guard let options = choiceOptions(correct: word.lv, pool: pool.map(\.lv), using: &generator) else { return nil }
+            guard let options = choiceOptions(correct: word.lv, distinctPool: distinctIconSurfaces, using: &generator) else { return nil }
             return LatvianExercise(
                 id: id, kind: kind, targetWordId: wordId,
                 prompt: "\(word.icon ?? "") için doğru kelimeyi seç.",
@@ -135,7 +197,7 @@ struct LatvianExerciseFactory {
             guard !candidates.isEmpty else { return nil }
             let sentence = candidates[Int.random(in: 0..<candidates.count, using: &generator)]
             guard let blanked = blank(sentence.lv, hiding: word.lv) else { return nil }
-            guard let options = choiceOptions(correct: word.lv, pool: allWords.map(\.lv), using: &generator) else { return nil }
+            guard let options = choiceOptions(correct: word.lv, distinctPool: distinctSurfaces, using: &generator) else { return nil }
             return LatvianExercise(
                 id: id, kind: kind, targetWordId: wordId,
                 prompt: "Boşluğa gelen kelimeyi seç.",
@@ -145,14 +207,13 @@ struct LatvianExerciseFactory {
             )
 
         case .caseDrill:
-            guard let caseForm = word.caseForm else { return nil }
+            guard let caseForm = word.caseForm, let stem = caseDrillStem(caseForm) else { return nil }
             var distractorSuffixes = distinctDistractorSuffixes(caseForm)
             guard !distractorSuffixes.isEmpty else { return nil }
             distractorSuffixes.shuffle(using: &generator)
             var suffixes = [caseForm.suffix] + distractorSuffixes.prefix(2)
             suffixes.shuffle(using: &generator)
             guard let correctIndex = suffixes.firstIndex(of: caseForm.suffix) else { return nil }
-            let stem = String(caseForm.form.dropLast(caseForm.suffix.count))
             return LatvianExercise(
                 id: id, kind: kind, targetWordId: wordId,
                 prompt: "Doğru eki seç.",
@@ -198,7 +259,7 @@ struct LatvianExerciseFactory {
     // MARK: - Yardımcılar
 
     private func sentencesUsing(wordId: String) -> [LatvianSentence] {
-        pack.scenes.flatMap(\.sentences).filter { $0.wordIds.contains(wordId) }
+        sentencesByWordId[wordId] ?? []
     }
 
     private func pickSentence(
@@ -212,31 +273,55 @@ struct LatvianExerciseFactory {
         return candidates[Int.random(in: 0..<candidates.count, using: &generator)]
     }
 
-    /// `correct` hariç, pooldaki birbirinden farklı değerler; `pool`'daki sıra korunur.
-    /// Paket içinde aynı kelimenin birden çok sahnede tekrarlanması (örn. "paldies" 8 kez)
-    /// yüzey metninde çakışan çeldiriciler üretmesin diye tekilleştiriliyor.
-    /// `Set` yalnızca üyelik testi için kullanılıyor — `Array(Set(...))` gibi kümeden diziye
-    /// dönüşüm kullanılmıyor, çünkü Swift'te `Set` sırası aynı çalıştırma içinde bile kararlı
-    /// değildir (ilk hash kullanımıyla sonrakiler farklı sıra verebilir); bu, "aynı tohum aynı
-    /// soru" garantisini kırar.
-    private func distractors(correct: String, pool: [String]) -> [String] {
-        var seen: Set<String> = [correct]
-        var result: [String] = []
-        for item in pool where seen.insert(item).inserted {
-            result.append(item)
+    /// Havuzda `correct`'ten farklı en az bir değer var mı? İlk farklı öğede duruyor.
+    /// Yalnızca "en az bir çeldirici var mı?" sorusu için paketin tamamını tekilleştirip
+    /// diziye yazmak `supportedKinds`'ın maliyetinin büyük kısmıydı.
+    private func hasDistractor(correct: String, pool: [String]) -> Bool {
+        pool.contains { $0 != correct }
+    }
+
+    /// `!distinctDistractorSuffixes(_:).isEmpty` ile aynı yanıt, liste kurmadan.
+    private func hasDistractorSuffix(_ caseForm: LatvianCaseForm) -> Bool {
+        caseForm.distractorSuffixes.contains { $0 != caseForm.suffix }
+    }
+
+    /// `matchCandidates(excluding:).count >= minimum` ile aynı yanıt, eşik dolunca duruyor.
+    private func hasMatchCandidates(excluding word: LatvianWord, atLeast minimum: Int) -> Bool {
+        guard minimum > 0 else { return true }
+        var usedLv: Set<String> = [word.lv]
+        var usedTr: Set<String> = [word.tr]
+        var count = 0
+        for candidate in allWords where candidate.id != word.id {
+            guard !usedLv.contains(candidate.lv), !usedTr.contains(candidate.tr) else { continue }
+            usedLv.insert(candidate.lv)
+            usedTr.insert(candidate.tr)
+            count += 1
+            if count >= minimum { return true }
         }
-        return result
+        return false
+    }
+
+    /// Çekimli biçimden eki düşürerek gövdeyi verir.
+    /// Ek, biçimin tamamı kadar (ya da daha) uzunsa geriye gövde kalmaz ve taşıyıcı
+    /// çıplak bir `"___"` olurdu — öğrenciye hangi kelimenin çekildiğini söylemeyen,
+    /// cevaplanamaz bir soru. Böyle bir çekim bilgisi hem `supports(kind:...)` hem
+    /// `makeExercise` tarafından reddediliyor; ikisi de bu tek ölçüte bakıyor.
+    private func caseDrillStem(_ caseForm: LatvianCaseForm) -> String? {
+        guard caseForm.suffix.count < caseForm.form.count else { return nil }
+        return String(caseForm.form.dropLast(caseForm.suffix.count))
     }
 
     /// Doğru cevap artı en fazla iki çeldiriciden oluşan seçenek listesi üretir.
     /// Havuzda hiç farklı çeldirici yoksa `nil` döner — soru her zaman aynı tek
     /// seçeneği "doğru" göstermek yerine hiç üretilmemeli.
+    /// `distinctPool` `init`'te bir kez tekilleştirilmiş olmalı (bkz. `distinctSurfaces`);
+    /// burada yalnızca doğru cevap düşülüyor.
     private func choiceOptions(
         correct: String,
-        pool: [String],
+        distinctPool: [String],
         using generator: inout LatvianSeededGenerator
     ) -> (values: [String], correctIndex: Int)? {
-        var pickedDistractors = distractors(correct: correct, pool: pool)
+        var pickedDistractors = distinctPool.filter { $0 != correct }
         guard !pickedDistractors.isEmpty else { return nil }
         pickedDistractors.shuffle(using: &generator)
         var values = [correct] + pickedDistractors.prefix(2)
@@ -273,13 +358,31 @@ struct LatvianExerciseFactory {
         return result
     }
 
+    /// Cevabın kelimelerini karıştırıp kelime bankasını verir.
+    ///
+    /// Verilen söz: dönen dizi her zaman cevabın bir permütasyonudur. Karıştırma cevabın
+    /// kendisine denk gelirse soru anlamsızlaşacağı için en fazla sekiz deneme yapılır ve
+    /// cevaptan farklı olan ilk dizilim döner.
+    ///
+    /// Verilmeyen söz — "her zaman cevaptan farklıdır" **garanti edilemez**, çünkü bazı
+    /// girdilerde farklı bir dizilim yoktur ya da yedeğe düşülür:
+    /// - Tüm kelimeleri özdeş bir cevapta (örn. `["nē", "nē"]`) cevaptan farklı bir
+    ///   permütasyon matematiksel olarak yoktur; sekiz deneme de cevabı verir ve
+    ///   `reversed()` yedeği de cevaba eşittir. Dönen dizi cevabın kendisidir.
+    /// - Sekiz denemenin tamamı cevaba denk gelirse `reversed()` yedeği devreye girer;
+    ///   kelime dizisi palindromsa (örn. `["te", "nē", "te"]`) bu yedek de cevaba eşittir.
+    ///   Bu yola pratikte düşülmez (n ≥ 2 için olasılık ≤ 2⁻⁸) ama bir garanti değildir.
+    ///
+    /// Bu iki durumu "karıştırılmış gibi" gösteren sahte bir dizilim üretmek çözüm değil:
+    /// banka cevabın permütasyonu olmak zorunda, ve olmayan bir permütasyon uydurulamaz.
+    /// Paketteki cümlelerin hiçbiri bu iki biçimde değil; tarama testi bunu her koşuda
+    /// doğruluyor.
     private func shuffledBank(
         _ answer: [String],
         using generator: inout LatvianSeededGenerator
     ) -> [String] {
         guard answer.count > 1 else { return answer }
         var bank = answer
-        // Karıştırma cevabın kendisine denk gelirse soru anlamsızlaşır; farklı olana kadar dene.
         for _ in 0..<8 {
             bank.shuffle(using: &generator)
             if bank != answer { return bank }
@@ -287,13 +390,25 @@ struct LatvianExerciseFactory {
         return bank.reversed()
     }
 
+    /// Hedef kelimenin cümledeki **her** geçişini boşluğa çevirir; hiç geçmiyorsa `nil`.
+    ///
+    /// Yalnızca ilk geçişi gizlemek, kelimenin iki kez geçtiği bir cümlede cevabı ekranda
+    /// bırakırdı: "Sveiki, sveiki, kā jums iet?" içinde `sveiki` gizlenince taşıyıcı
+    /// "___ sveiki, kā jums iet?" oluyordu — öğrenci cevabı okuyordu. Aynı kelimenin iki
+    /// boşluğu birden doldurması geçerli bir soru; cevabı okutmak değil.
     private func blank(_ sentence: String, hiding word: String) -> String? {
-        let tokens = sentence.split(separator: " ").map(String.init)
-        guard let index = tokens.firstIndex(where: {
-            LatvianGrader.normalize($0) == LatvianGrader.normalize(word)
-        }) else { return nil }
-        var blanked = tokens
-        blanked[index] = "___"
+        let target = LatvianGrader.normalize(word)
+        var blanked: [String] = []
+        var didBlank = false
+        for token in sentence.split(separator: " ") {
+            if LatvianGrader.normalize(String(token)) == target {
+                blanked.append("___")
+                didBlank = true
+            } else {
+                blanked.append(String(token))
+            }
+        }
+        guard didBlank else { return nil }
         return blanked.joined(separator: " ")
     }
 }
