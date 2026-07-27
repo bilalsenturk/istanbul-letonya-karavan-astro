@@ -170,9 +170,21 @@ final class StayContactProfileStore: ObservableObject {
             vehicleDescription: vehicleSeed,
             profile: account.travelProfile
         )
-        let migration = consumeLegacyIfNeeded(ownerID: account.id)
-            ?? consumeSignedOutIfNeeded(ownerID: account.id)
-        guard let local = accountProfile ?? migration else {
+        let legacyMigration = consumeLegacyIfNeeded(ownerID: account.id)
+        let signedOutMigration = legacyMigration == nil
+            ? consumeSignedOutIfNeeded(ownerID: account.id)
+            : nil
+        if accountProfile == nil, let signedOutMigration {
+            let claimed = TravelProfileSeed.make(
+                accountName: account.displayName,
+                accountEmail: account.email,
+                vehicleDescription: vehicleSeed,
+                profile: signedOutMigration
+            )
+            persistAccount(claimed, accountID: account.id)
+            return TravelProfileBinding(profile: claimed, needsSync: claimed != remote)
+        }
+        guard let local = accountProfile ?? legacyMigration else {
             persistAccount(remote, accountID: account.id)
             return TravelProfileBinding(profile: remote, needsSync: false)
         }

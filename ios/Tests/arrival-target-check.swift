@@ -504,8 +504,8 @@ struct ArrivalTargetCheck {
               reloadedEmailStore.signedOutProfile(vehicleSeed: nil).contactEmail == "guest@example.com")
         let firstSignedIn = AccountUser(
             id: "email-owner", email: "owner@example.com", displayName: "Hesap",
-            globalRole: .user, createdAt: "2026-07-01T00:00:00Z", updatedAt: "2026-07-01T00:00:00Z",
-            travelProfile: AccountTravelProfile(updatedAt: "2026-07-01T00:00:00Z")
+            globalRole: .user, createdAt: "2026-08-01T00:00:00Z", updatedAt: "2026-08-01T00:00:00Z",
+            travelProfile: AccountTravelProfile(updatedAt: "2026-08-01T00:00:00Z")
         )
         let migratedEmail = reloadedEmailStore.bind(account: firstSignedIn, vehicleSeed: nil)
         check("imzalı dışı e-posta ilk girişte hesaba taşınır",
