@@ -190,7 +190,7 @@ enum ScopedArrivalTargetOverrideMigration {
                 else { continue }
                 candidate.set(ScopedArrivalTargetOverride(
                     scope: scope,
-                    target: target.publicSummary,
+                    target: target,
                     stay: edit.stayDetails ?? StayDetails()
                 ))
             }

@@ -268,14 +268,10 @@ final class TripPlanStore: ObservableObject {
         scope: ArrivalTargetOverrideScope
     ) {
         guard scope.daySlug == slug else { return }
-        var safeStay = stay
-        safeStay.reservationReference = nil
-        safeStay.note = nil
-        safeStay.lastContactedAt = nil
         arrivalTargetOverrides.set(ScopedArrivalTargetOverride(
             scope: scope,
-            target: target.publicSummary,
-            stay: safeStay
+            target: target,
+            stay: stay
         ))
         _ = persistArrivalTargetOverrides(arrivalTargetOverrides)
         objectWillChange.send()

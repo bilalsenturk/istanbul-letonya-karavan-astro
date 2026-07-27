@@ -96,7 +96,9 @@ check("eski gün düzenlemesi kesin hedef olmadan açılır",
 
 let localSelection = ArrivalTarget(
     id: "local-selection", name: "Yerel kamp", kind: .campground,
-    latitude: 42.7, longitude: 23.3, formattedAddress: "Sofya"
+    latitude: 42.7, longitude: 23.3, formattedAddress: "Sofya",
+    phone: "+359 88 123 4567", whatsAppPhone: "+359 88 765 4321",
+    email: "private@example.com", websiteURL: URL(string: "https://private.example.com")
 )
 let accountSelection = ArrivalTarget(
     id: "account-selection", name: "Eski hesap kampı", kind: .campground,
@@ -109,10 +111,18 @@ let baseSelection = ArrivalTarget(
 let selectionScope = ArrivalTargetOverrideScope(
     tripID: "trip-a", daySlug: "istanbul-sofya", userID: "user-a"
 )
+let privateContactedAt = Date(timeIntervalSince1970: 1_785_146_400)
+let privateStay = StayDetails(
+    reservationStatus: .confirmed,
+    reservationReference: "PRIVATE-REF-42",
+    note: "Gate code 2468",
+    estimatedArrival: "18:00",
+    lastContactedAt: privateContactedAt
+)
 let persistedSelection = ScopedArrivalTargetOverride(
     scope: selectionScope,
     target: localSelection,
-    stay: StayDetails(estimatedArrival: "18:00")
+    stay: privateStay
 )
 check("yeniden oluşturulan görünümde eşleşen kalıcı yerel seçim hesap verisini geçer",
       ArrivalTargetSelectionResolver.target(
@@ -138,8 +148,8 @@ check("başka rota gün veya kullanıcıya ait yerel seçim sızmaz",
           base: baseSelection
         )?.id == "base-selection")
 let scopedEdit = DayEdit(
-    arrivalTarget: localSelection.publicSummary,
-    stayDetails: StayDetails(estimatedArrival: "18:00"),
+    arrivalTarget: localSelection,
+    stayDetails: privateStay,
     arrivalTargetScope: selectionScope
 )
 let scopedEditRoundTrip = try! JSONDecoder().decode(DayEdit.self, from: JSONEncoder().encode(scopedEdit))
@@ -152,7 +162,8 @@ let scopedOverridesRoundTrip = try! JSONDecoder().decode(
     from: JSONEncoder().encode(scopedOverrides)
 )
 check("özel seçim ayrı depoda uygulama yeniden açıldığında korunur",
-      scopedOverridesRoundTrip.value(for: selectionScope)?.target.id == "local-selection")
+      scopedOverridesRoundTrip.value(for: selectionScope)?.target == localSelection
+        && scopedOverridesRoundTrip.value(for: selectionScope)?.stay == privateStay)
 check("özel seçim yalnız tam rota gün kullanıcı anahtarıyla okunur",
       scopedOverridesRoundTrip.value(
         for: ArrivalTargetOverrideScope(
@@ -252,6 +263,21 @@ check("mevcut tam kapsamlı seçim eski kaydın üstüne yazılmaz",
 check("özel depo yazıldıktan sonra iki ortak kaynak temizlenir",
       successfulMigrationEdits == legacyMigrationEdits.sharedSyncState
         && successfulMigrationBase == legacyMigrationBase.sharedSyncState)
+var importedMigrationOverrides = ScopedArrivalTargetOverrides()
+var importedMigrationEdits = legacyMigrationEdits
+var importedMigrationBase = TripEdits()
+let importedMigration = ScopedArrivalTargetOverrideMigration.perform(
+    overrides: &importedMigrationOverrides,
+    edits: &importedMigrationEdits,
+    syncBase: &importedMigrationBase,
+    persistOverrides: { _ in true },
+    persistEdits: { _ in },
+    persistBase: { _ in }
+)
+check("eski kapsamlı kaydın tüm özel hedef ve konaklama alanları göç eder",
+      importedMigration
+        && importedMigrationOverrides.value(for: selectionScope)?.target == localSelection
+        && importedMigrationOverrides.value(for: selectionScope)?.stay == privateStay)
 let legacyDay = try! JSONDecoder().decode(DayPlan.self, from: Data(#"{"slug":"old","date":"3 Ağustos","origin":"İstanbul","destination":"Sofya","distanceKm":"1 km","duration":"1 dk","fuel":"€1","risks":[],"opportunities":[],"contingencies":[],"camp":{"name":"Kamp","place":"Sofya","note":"","link":""},"stops":[{"type":"Mola","name":"Eski mola"}]}"#.utf8))
 check("eski gün JSON'u ETA alanları olmadan açılır",
       legacyDay.borderBufferMinutes == nil && legacyDay.waypoints?.first?.estimatedMinutes == nil)
