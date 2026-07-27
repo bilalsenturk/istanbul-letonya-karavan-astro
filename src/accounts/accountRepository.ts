@@ -1,7 +1,7 @@
-import { createHash, createHmac } from 'node:crypto';
+import { createHash, createHmac, randomUUID } from 'node:crypto';
 import type { AppleIdentity } from './appleAuth.ts';
 import { normalizeEmail, resolveGlobalRole, type GlobalRole } from './domain.ts';
-import { readPrivateJSON, writePrivateJSON } from './privateBlob.ts';
+import { listPrivatePaths, readPrivateJSON, writePrivateJSON } from './privateBlob.ts';
 
 export type AccountRecord = {
   id: string;
@@ -37,6 +37,7 @@ type SessionRecord = {
 export type AccountStore = {
   read<T>(pathname: string): Promise<T | null>;
   write(pathname: string, value: unknown): Promise<void>;
+  list?(prefix: string): Promise<string[]>;
 };
 
 export type AccountRepository = {
@@ -60,20 +61,39 @@ export const createAccountRepository = (dependencies: AccountStore & {
   now?: () => string;
 }): AccountRepository => {
   const now = dependencies.now ?? (() => new Date().toISOString());
+  let lastTimestamp = 0;
+  const serverTimestamp = (): string => {
+    const parsed = Date.parse(now());
+    lastTimestamp = Math.max(lastTimestamp + 1, Number.isFinite(parsed) ? parsed : Date.now());
+    return new Date(lastTimestamp).toISOString();
+  };
   const identifier = dependencies.subjectId ?? subjectId;
   const userPath = (id: string) => `accounts/users/${id}.json`;
   const profilePath = (id: string) => `accounts/profiles/${id}.json`;
+  const revisionPrefix = (id: string) => `accounts/profiles/${id}/revisions/`;
+  const validTimestamp = (value: string): string | null => {
+    const time = Date.parse(value);
+    return Number.isFinite(time) ? new Date(time).toISOString() : null;
+  };
+  const appendProfile = async (id: string, profile: TravelProfileRecord): Promise<void> => {
+    const timestamp = validTimestamp(profile.updatedAt);
+    if (!timestamp) throw new Error('invalid_travel_profile');
+    await dependencies.write(`${revisionPrefix(id)}${timestamp}-${randomUUID()}.json`, { ...profile, updatedAt: timestamp });
+  };
 
   const accountById = async (id: string): Promise<AccountRecord | null> => {
     const account = await dependencies.read<AccountRecord>(userPath(id));
     if (!account) return null;
-    const snapshotProfile = account.travelProfile
-      ?? defaultTravelProfile(account.displayName ?? '', account.email, account.updatedAt);
-    let profile = await dependencies.read<TravelProfileRecord>(profilePath(id));
-    if (!profile || profileIsNewer(snapshotProfile, profile)) {
-      await dependencies.write(profilePath(id), snapshotProfile);
-      profile = snapshotProfile;
-    }
+    const snapshotProfile = account.travelProfile && validTimestamp(account.travelProfile.updatedAt)
+      ? { ...account.travelProfile, updatedAt: validTimestamp(account.travelProfile.updatedAt)! }
+      : defaultTravelProfile(account.displayName ?? '', account.email, account.updatedAt);
+    const fixed = await dependencies.read<TravelProfileRecord>(profilePath(id));
+    const paths = await dependencies.list?.(revisionPrefix(id)) ?? [];
+    const revisions = await Promise.all(paths.map((path) => dependencies.read<TravelProfileRecord>(path)));
+    const candidates = [fixed, ...revisions, snapshotProfile].filter((profile): profile is TravelProfileRecord =>
+      Boolean(profile && validTimestamp(profile.updatedAt)));
+    const profile = candidates.sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))[0] ?? snapshotProfile;
+    if (paths.length === 0) await appendProfile(id, snapshotProfile);
     return {
       ...account,
       travelProfile: profile,
@@ -91,7 +111,7 @@ export const createAccountRepository = (dependencies: AccountStore & {
     upsertAppleAccount: async (identity, displayName) => {
       const id = identifier(identity.appleSubject);
       const existing = await accountById(id);
-      const timestamp = now();
+      const timestamp = serverTimestamp();
       const email = identity.email ? normalizeEmail(identity.email) : existing?.email ?? null;
       const travelProfile = existing?.travelProfile ?? defaultTravelProfile(
         displayName?.trim() || existing?.displayName || '', email, timestamp,
@@ -107,7 +127,7 @@ export const createAccountRepository = (dependencies: AccountStore & {
       };
       // Establish private profile authority before publishing a first account. A PATCH can
       // only discover the account after this write has completed, so it cannot be seeded over.
-      if (!existing) await dependencies.write(profilePath(id), travelProfile);
+      if (!existing) await appendProfile(id, travelProfile);
       await dependencies.write(userPath(id), record);
       if (email) await dependencies.write(`accounts/email-index/${emailHash(email)}.json`, { userId: id });
       return (await accountById(id))!;
@@ -115,11 +135,11 @@ export const createAccountRepository = (dependencies: AccountStore & {
     updateTravelProfile: async (userId, profile) => {
       const account = await accountById(userId);
       if (!account) throw new Error('account_not_found');
-      const timestamp = now();
+      const timestamp = serverTimestamp();
       const travelProfile = { ...normalizeTravelProfile(profile, account.travelProfile), updatedAt: timestamp };
       // The profile blob is authoritative: an interleaved Apple upsert can only overwrite
       // the account mirror, never a completed profile update.
-      await dependencies.write(profilePath(userId), travelProfile);
+      await appendProfile(userId, travelProfile);
       const updated: AccountRecord = { ...account, updatedAt: timestamp, travelProfile };
       await dependencies.write(userPath(userId), updated);
       return (await accountById(userId))!;
@@ -172,7 +192,7 @@ export const normalizeTravelProfile = (
   };
 };
 
-const productionRepository = createAccountRepository({ read: readPrivateJSON, write: writePrivateJSON });
+const productionRepository = createAccountRepository({ read: readPrivateJSON, write: writePrivateJSON, list: listPrivatePaths });
 
 export const upsertAppleAccount = productionRepository.upsertAppleAccount;
 export const accountById = productionRepository.accountById;
@@ -199,6 +219,3 @@ const emailHash = (email: string): string => createHash('sha256').update(normali
 
 const defaultTravelProfile = (contactName: string, contactEmail: string | null, updatedAt: string): TravelProfileRecord =>
   normalizeTravelProfile({ contactName, contactEmail, updatedAt });
-
-const profileIsNewer = (candidate: TravelProfileRecord, current: TravelProfileRecord): boolean =>
-  Date.parse(candidate.updatedAt) > Date.parse(current.updatedAt);

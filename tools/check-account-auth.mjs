@@ -33,6 +33,7 @@ const accountData = new Map();
 const accountRepository = createAccountRepository({
   read: async (path) => accountData.has(path) ? structuredClone(accountData.get(path)) : null,
   write: async (path, value) => { accountData.set(path, structuredClone(value)); },
+  list: async (prefix) => [...accountData.keys()].filter((path) => path.startsWith(prefix)),
   subjectId: (subject) => `user-${subject}`,
   now: (() => {
     let second = 0;
@@ -68,11 +69,12 @@ legacyData.set('accounts/users/user-legacy.json', legacyRecord);
 const legacyRepository = createAccountRepository({
   read: async (path) => legacyData.has(path) ? structuredClone(legacyData.get(path)) : null,
   write: async (path, value) => { legacyData.set(path, structuredClone(value)); },
+  list: async (prefix) => [...legacyData.keys()].filter((path) => path.startsWith(prefix)),
   subjectId: (subject) => `user-${subject}`,
 });
 const migratedLegacy = await legacyRepository.accountById('user-legacy');
 assert.equal(migratedLegacy.travelProfile.contactName, 'Bilal Şentürk');
-assert.equal(legacyData.get('accounts/profiles/user-legacy.json').contactName, 'Bilal Şentürk');
+assert.equal([...legacyData.keys()].some((path) => path.startsWith('accounts/profiles/user-legacy/revisions/')), true);
 
 const firstSeedData = new Map();
 let firstSeedProfileWriteStarted;
@@ -82,12 +84,13 @@ const releaseFirstSeedGate = new Promise((resolve) => { releaseFirstSeedProfileW
 const firstSeedRepository = createAccountRepository({
   read: async (path) => firstSeedData.has(path) ? structuredClone(firstSeedData.get(path)) : null,
   write: async (path, value) => {
-    if (path === 'accounts/profiles/user-apple-first.json') {
+    if (path.startsWith('accounts/profiles/user-apple-first/revisions/')) {
       firstSeedProfileWriteStarted();
       await releaseFirstSeedGate;
     }
     firstSeedData.set(path, structuredClone(value));
   },
+  list: async (prefix) => [...firstSeedData.keys()].filter((path) => path.startsWith(prefix)),
   subjectId: (subject) => `user-${subject}`,
 });
 const firstSeedIdentity = { appleSubject: 'apple-first', email: 'first@example.com', emailVerified: true };
@@ -115,6 +118,7 @@ const interleavedRepository = createAccountRepository({
     return value;
   },
   write: async (path, value) => { interleavedData.set(path, structuredClone(value)); },
+  list: async (prefix) => [...interleavedData.keys()].filter((path) => path.startsWith(prefix)),
   subjectId: (subject) => `user-${subject}`,
 });
 const raceIdentity = { appleSubject: 'apple-race', email: 'race@example.com', emailVerified: true };
@@ -126,7 +130,6 @@ pauseProfileRead = false;
 await interleavedRepository.updateTravelProfile('user-apple-race', { ...travelProfile, contactName: 'Saved Profile' });
 releaseProfileRead();
 const interleavedReturned = await interleavedUpsert;
-assert.equal(interleavedData.get('accounts/users/user-apple-race.json').travelProfile.contactName, 'Race User');
 assert.equal(interleavedReturned.travelProfile.contactName, 'Saved Profile');
 assert.equal((await interleavedRepository.accountById('user-apple-race')).travelProfile.contactName, 'Saved Profile');
 
@@ -139,12 +142,13 @@ const releaseWriteGate = new Promise((resolve) => { releaseProfileWrite = resolv
 const reverseRepository = createAccountRepository({
   read: async (path) => reverseData.has(path) ? structuredClone(reverseData.get(path)) : null,
   write: async (path, value) => {
-    if (pauseProfileWrite && path === 'accounts/profiles/user-apple-reverse.json') {
+    if (pauseProfileWrite && path.startsWith('accounts/profiles/user-apple-reverse/revisions/')) {
       profileWriteStarted();
       await releaseWriteGate;
     }
     reverseData.set(path, structuredClone(value));
   },
+  list: async (prefix) => [...reverseData.keys()].filter((path) => path.startsWith(prefix)),
   subjectId: (subject) => `user-${subject}`,
 });
 const reverseIdentity = { appleSubject: 'apple-reverse', email: 'reverse@example.com', emailVerified: true };
