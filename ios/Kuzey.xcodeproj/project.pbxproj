@@ -327,6 +327,7 @@
 				DEDCB70244A1866C05724B7B /* RouteStore.swift */,
 				5F74EC0068F98CB8265C4B89 /* StayContactProfileStore.swift */,
 				00954AF5EE56487B60F675E1 /* Theme.swift */,
+				00036B17DE4FEA80F2A12ACA /* TravelContent.swift */,
 				B4035201F31588EB77A1717A /* TripPlanner.swift */,
 				48245403E32764040394E43C /* TripPlanStore.swift */,
 				5CFA86E52D515272F7F13F10 /* TripStore.swift */,

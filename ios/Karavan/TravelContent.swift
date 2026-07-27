@@ -27,9 +27,9 @@ enum CampDistancePolicy: Equatable, Codable, Hashable {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         switch try values.decode(String.self, forKey: .type) {
         case "city":
-            self = .city(maximumKm: try values.decode(Double.self, forKey: .maximumKm))
+            self = .city(maximumKm: min(try values.decode(Double.self, forKey: .maximumKm), 25))
         case "transit":
-            self = .transit(maximumDetourKm: try values.decode(Double.self, forKey: .maximumDetourKm))
+            self = .transit(maximumDetourKm: min(try values.decode(Double.self, forKey: .maximumDetourKm), 10))
         default:
             throw DecodingError.dataCorruptedError(forKey: .type, in: values, debugDescription: "Unsupported camp distance policy")
         }
@@ -40,19 +40,19 @@ enum CampDistancePolicy: Equatable, Codable, Hashable {
         switch self {
         case .city(let maximumKm):
             try values.encode("city", forKey: .type)
-            try values.encode(maximumKm, forKey: .maximumKm)
+            try values.encode(min(maximumKm, 25), forKey: .maximumKm)
         case .transit(let maximumDetourKm):
             try values.encode("transit", forKey: .type)
-            try values.encode(maximumDetourKm, forKey: .maximumDetourKm)
+            try values.encode(min(maximumDetourKm, 10), forKey: .maximumDetourKm)
         }
     }
 
     func accepts(candidate: GeoPoint, destination: GeoPoint, routeDistanceKm: Double?) -> Bool {
         switch self {
         case .city(let maximumKm):
-            candidate.distanceKm(to: destination) <= maximumKm
+            candidate.distanceKm(to: destination) <= min(maximumKm, 25)
         case .transit(let maximumDetourKm):
-            routeDistanceKm.map { $0 <= maximumDetourKm } ?? false
+            routeDistanceKm.map { $0 <= min(maximumDetourKm, 10) } ?? false
         }
     }
 }
@@ -142,6 +142,25 @@ struct CuratedCamp: Codable, Identifiable, Hashable {
         self.source = source
         self.verifiedAt = verifiedAt
     }
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(id, forKey: .id)
+        try values.encode(name, forKey: .name)
+        try values.encode(location, forKey: .location)
+        try values.encode(address, forKey: .address)
+        try values.encodeIfPresent(phone, forKey: .phone)
+        try values.encodeIfPresent(email, forKey: .email)
+        try values.encode(websiteURL, forKey: .websiteURL)
+        try values.encode(supportsCaravan, forKey: .supportsCaravan)
+        try values.encodeIfPresent(hasElectricity, forKey: .hasElectricity)
+        try values.encodeIfPresent(maximumLengthMeters, forKey: .maximumLengthMeters)
+        try values.encode(recommendation, forKey: .recommendation)
+        try values.encodeIfPresent(warning, forKey: .warning)
+        try values.encode(media, forKey: .media)
+        try values.encode(source, forKey: .source)
+        try values.encodeISO8601Date(verifiedAt, forKey: .verifiedAt)
+    }
 }
 
 struct NearbyAttraction: Codable, Identifiable, Hashable {
@@ -197,6 +216,20 @@ struct NearbyAttraction: Codable, Identifiable, Hashable {
         self.source = source
         self.verifiedAt = verifiedAt
     }
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(id, forKey: .id)
+        try values.encode(name, forKey: .name)
+        try values.encode(location, forKey: .location)
+        try values.encode(address, forKey: .address)
+        try values.encode(category, forKey: .category)
+        try values.encode(visitDurationMinutes, forKey: .visitDurationMinutes)
+        try values.encode(recommendation, forKey: .recommendation)
+        try values.encode(media, forKey: .media)
+        try values.encode(source, forKey: .source)
+        try values.encodeISO8601Date(verifiedAt, forKey: .verifiedAt)
+    }
 }
 
 struct TravelDestinationContent: Codable, Hashable {
@@ -219,17 +252,32 @@ struct TravelContentBundle: Codable, Hashable {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         version = try values.decode(Int.self, forKey: .version)
         generatedAt = try values.decodeISO8601Date(forKey: .generatedAt)
-        destinations = try values.decode([String: TravelDestinationContent].self, forKey: .destinations)
+        destinations = Self.normalizedDestinations(try values.decode([String: TravelDestinationContent].self, forKey: .destinations))
     }
 
     init(version: Int, generatedAt: Date, destinations: [String: TravelDestinationContent]) {
         self.version = version
         self.generatedAt = generatedAt
-        self.destinations = destinations
+        self.destinations = Self.normalizedDestinations(destinations)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(version, forKey: .version)
+        try values.encodeISO8601Date(generatedAt, forKey: .generatedAt)
+        try values.encode(destinations, forKey: .destinations)
     }
 
     func content(forDestination destination: String) -> TravelDestinationContent? {
         destinations[DestinationKey.resolve(destination)]
+    }
+
+    private static func normalizedDestinations(
+        _ destinations: [String: TravelDestinationContent]
+    ) -> [String: TravelDestinationContent] {
+        destinations.reduce(into: [:]) { normalized, destination in
+            normalized[DestinationKey.resolve(destination.key)] = destination.value
+        }
     }
 }
 
@@ -262,5 +310,11 @@ private extension KeyedDecodingContainer {
             throw DecodingError.dataCorruptedError(forKey: key, in: self, debugDescription: "Expected an ISO 8601 date")
         }
         return date
+    }
+}
+
+private extension KeyedEncodingContainer {
+    mutating func encodeISO8601Date(_ date: Date, forKey key: Key) throws {
+        try encode(ISO8601DateFormatter().string(from: date), forKey: key)
     }
 }
