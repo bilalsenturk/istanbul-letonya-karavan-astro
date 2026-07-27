@@ -162,6 +162,7 @@ final class TripPlanStore: ObservableObject {
         let safeDays = days.mapValues { edit in
             var safe = edit
             safe.arrivalTarget = edit.arrivalTarget?.publicSummary
+            safe.arrivalTargetScope = nil
             if var details = safe.stayDetails {
                 details.reservationReference = nil
                 details.note = nil
@@ -212,6 +213,21 @@ final class TripPlanStore: ObservableObject {
         days(trip).first { $0.base.slug == slug }
     }
 
+    func arrivalTargetOverride(
+        slug: String,
+        scope: ArrivalTargetOverrideScope
+    ) -> ScopedArrivalTargetOverride? {
+        guard let edit = edits.days[slug],
+              edit.arrivalTargetScope == scope,
+              let target = edit.arrivalTarget
+        else { return nil }
+        return ScopedArrivalTargetOverride(
+            scope: scope,
+            target: target,
+            stay: edit.stayDetails ?? StayDetails()
+        )
+    }
+
     // MARK: - Düzenleme
 
     func setDeparture(_ date: Date) {
@@ -231,7 +247,12 @@ final class TripPlanStore: ObservableObject {
         commit()
     }
 
-    func setArrivalTarget(_ target: ArrivalTarget, stay: StayDetails, slug: String) {
+    func setArrivalTarget(
+        _ target: ArrivalTarget,
+        stay: StayDetails,
+        slug: String,
+        scope: ArrivalTargetOverrideScope
+    ) {
         update(slug: slug) { edit in
             edit.arrivalTarget = target.publicSummary
             var safeStay = stay
@@ -239,6 +260,16 @@ final class TripPlanStore: ObservableObject {
             safeStay.note = nil
             safeStay.lastContactedAt = nil
             edit.stayDetails = safeStay
+            edit.arrivalTargetScope = scope
+        }
+    }
+
+    func clearArrivalTargetOverride(slug: String, scope: ArrivalTargetOverrideScope) {
+        guard edits.days[slug]?.arrivalTargetScope == scope else { return }
+        update(slug: slug) { edit in
+            edit.arrivalTarget = nil
+            edit.stayDetails = nil
+            edit.arrivalTargetScope = nil
         }
     }
 

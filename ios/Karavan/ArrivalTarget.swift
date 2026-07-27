@@ -506,16 +506,6 @@ struct ArrivalTargetSyncContext: Equatable {
     }
 }
 
-enum ArrivalTargetResolution {
-    static func resolve(
-        localOverride: ArrivalTarget?,
-        account: ArrivalTarget?,
-        plan: ArrivalTarget?
-    ) -> ArrivalTarget? {
-        localOverride ?? account ?? plan
-    }
-}
-
 enum RouteStartPolicy {
     static func canStart(
         isRestDay: Bool,

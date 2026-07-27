@@ -65,17 +65,6 @@ struct ArrivalTargetCheck {
         check("en son seçim aynı hesap ve rotada uygulanır",
               secondSync.isCurrent(revision: 2, tripID: "trip-a", userID: "user-a"))
 
-        let accountTarget = ArrivalTarget(
-            id: "account", name: "Hesap", kind: .campground,
-            latitude: 42, longitude: 23, formattedAddress: "Hesap"
-        )
-        let localTarget = ArrivalTarget(
-            id: "local", name: "Yerel", kind: .campground,
-            latitude: 43, longitude: 24, formattedAddress: "Yerel"
-        )
-        check("senkron hatasında yerel seçim eski hesap verisinin önünde kalır",
-              ArrivalTargetResolution.resolve(localOverride: localTarget, account: accountTarget, plan: target)?.id == "local")
-
         print("\n=== Konaklama mesajı ===")
         let stay = StayDetails(
             checkIn: checkIn,

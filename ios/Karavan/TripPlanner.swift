@@ -62,6 +62,50 @@ enum PlanScheduleValidator {
     }
 }
 
+struct ArrivalTargetOverrideScope: Codable, Equatable, Hashable {
+    let tripID: String
+    let daySlug: String
+    let userID: String?
+}
+
+struct ScopedArrivalTargetOverride: Equatable {
+    let scope: ArrivalTargetOverrideScope
+    let target: ArrivalTarget
+    let stay: StayDetails
+}
+
+enum ArrivalTargetSelectionResolver {
+    static func target(
+        scope: ArrivalTargetOverrideScope,
+        ephemeral: ScopedArrivalTargetOverride?,
+        persisted: ScopedArrivalTargetOverride?,
+        account: ArrivalTarget?,
+        base: ArrivalTarget?
+    ) -> ArrivalTarget? {
+        matching(scope: scope, ephemeral: ephemeral, persisted: persisted)?.target ?? account ?? base
+    }
+
+    static func stay(
+        scope: ArrivalTargetOverrideScope,
+        ephemeral: ScopedArrivalTargetOverride?,
+        persisted: ScopedArrivalTargetOverride?,
+        account: StayDetails?,
+        base: StayDetails
+    ) -> StayDetails {
+        matching(scope: scope, ephemeral: ephemeral, persisted: persisted)?.stay ?? account ?? base
+    }
+
+    private static func matching(
+        scope: ArrivalTargetOverrideScope,
+        ephemeral: ScopedArrivalTargetOverride?,
+        persisted: ScopedArrivalTargetOverride?
+    ) -> ScopedArrivalTargetOverride? {
+        if ephemeral?.scope == scope { return ephemeral }
+        if persisted?.scope == scope { return persisted }
+        return nil
+    }
+}
+
 // Kullanıcının bir güne yaptığı düzenlemeler. Hepsi opsiyonel: nil = "web verisini kullan".
 struct DayEdit: Codable, Equatable {
     var origin: String?
@@ -74,6 +118,7 @@ struct DayEdit: Codable, Equatable {
     var campPlace: String?
     var arrivalTarget: ArrivalTarget?
     var stayDetails: StayDetails?
+    var arrivalTargetScope: ArrivalTargetOverrideScope?
     var isRestDay: Bool?        // nil → origin == destination'dan türetilir
     var extraDays: Int?         // bu durakta fazladan kalınan gün (0 = normal)
     var startHour: Int?         // o günün çıkış saati (nil → kalkış saati / 08:00)

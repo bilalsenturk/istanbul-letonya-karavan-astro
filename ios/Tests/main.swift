@@ -93,6 +93,58 @@ check("dolu düzenleme isEmpty değil", !DayEdit(note: "test").isEmpty)
 let legacyDayEdit = try! JSONDecoder().decode(DayEdit.self, from: Data(#"{"note":"eski kayıt"}"#.utf8))
 check("eski gün düzenlemesi kesin hedef olmadan açılır",
       legacyDayEdit.arrivalTarget == nil && legacyDayEdit.stayDetails == nil)
+
+let localSelection = ArrivalTarget(
+    id: "local-selection", name: "Yerel kamp", kind: .campground,
+    latitude: 42.7, longitude: 23.3, formattedAddress: "Sofya"
+)
+let accountSelection = ArrivalTarget(
+    id: "account-selection", name: "Eski hesap kampı", kind: .campground,
+    latitude: 42.71, longitude: 23.31, formattedAddress: "Sofya"
+)
+let baseSelection = ArrivalTarget(
+    id: "base-selection", name: "Taban kamp", kind: .campground,
+    latitude: 42.72, longitude: 23.32, formattedAddress: "Sofya"
+)
+let selectionScope = ArrivalTargetOverrideScope(
+    tripID: "trip-a", daySlug: "istanbul-sofya", userID: "user-a"
+)
+let persistedSelection = ScopedArrivalTargetOverride(
+    scope: selectionScope,
+    target: localSelection,
+    stay: StayDetails(estimatedArrival: "18:00")
+)
+check("yeniden oluşturulan görünümde eşleşen kalıcı yerel seçim hesap verisini geçer",
+      ArrivalTargetSelectionResolver.target(
+        scope: selectionScope,
+        ephemeral: nil,
+        persisted: persistedSelection,
+        account: accountSelection,
+        base: baseSelection
+      )?.id == "local-selection")
+check("başka rota gün veya kullanıcıya ait yerel seçim sızmaz",
+      ArrivalTargetSelectionResolver.target(
+        scope: ArrivalTargetOverrideScope(tripID: "trip-b", daySlug: "istanbul-sofya", userID: "user-a"),
+        ephemeral: persistedSelection,
+        persisted: persistedSelection,
+        account: accountSelection,
+        base: baseSelection
+      )?.id == "account-selection"
+        && ArrivalTargetSelectionResolver.target(
+          scope: ArrivalTargetOverrideScope(tripID: "trip-a", daySlug: "other-day", userID: "user-a"),
+          ephemeral: nil,
+          persisted: persistedSelection,
+          account: nil,
+          base: baseSelection
+        )?.id == "base-selection")
+let scopedEdit = DayEdit(
+    arrivalTarget: localSelection.publicSummary,
+    stayDetails: StayDetails(estimatedArrival: "18:00"),
+    arrivalTargetScope: selectionScope
+)
+let scopedEditRoundTrip = try! JSONDecoder().decode(DayEdit.self, from: JSONEncoder().encode(scopedEdit))
+check("kalıcı gün düzenlemesi rota gün kullanıcı kapsamını JSON turunda korur",
+      scopedEditRoundTrip.arrivalTargetScope == selectionScope)
 let legacyDay = try! JSONDecoder().decode(DayPlan.self, from: Data(#"{"slug":"old","date":"3 Ağustos","origin":"İstanbul","destination":"Sofya","distanceKm":"1 km","duration":"1 dk","fuel":"€1","risks":[],"opportunities":[],"contingencies":[],"camp":{"name":"Kamp","place":"Sofya","note":"","link":""},"stops":[{"type":"Mola","name":"Eski mola"}]}"#.utf8))
 check("eski gün JSON'u ETA alanları olmadan açılır",
       legacyDay.borderBufferMinutes == nil && legacyDay.waypoints?.first?.estimatedMinutes == nil)

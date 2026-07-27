@@ -24,8 +24,7 @@ struct DayDetailView: View {
     @State private var targetError: String?
     @State private var contactCamp: CuratedCamp?
     @State private var pendingCampSelection: CuratedCamp?
-    @State private var localTargetOverride: ArrivalTarget?
-    @State private var localStayOverride: StayDetails?
+    @State private var localOverride: ScopedArrivalTargetOverride?
     @State private var targetSaveRevision = 0
     @State private var targetSaveTask: Task<Void, Never>?
 
@@ -44,15 +43,35 @@ struct DayDetailView: View {
     }
 
     private var exactTarget: ArrivalTarget? {
-        ArrivalTargetResolution.resolve(
-            localOverride: localTargetOverride,
+        ArrivalTargetSelectionResolver.target(
+            scope: overrideScope,
+            ephemeral: localOverride,
+            persisted: persistedOverride,
             account: accountDestinationStop?.resolvedArrivalTarget,
-            plan: eff?.arrivalTarget
+            base: day.arrivalTarget
         )
     }
 
     private var exactStay: StayDetails {
-        localStayOverride ?? accountDestinationStop?.resolvedStayDetails ?? eff?.stayDetails ?? defaultStay
+        ArrivalTargetSelectionResolver.stay(
+            scope: overrideScope,
+            ephemeral: localOverride,
+            persisted: persistedOverride,
+            account: accountDestinationStop?.resolvedStayDetails,
+            base: defaultStay
+        )
+    }
+
+    private var overrideScope: ArrivalTargetOverrideScope {
+        ArrivalTargetOverrideScope(
+            tripID: workspace.selectedTrip?.id ?? "kuzey-local",
+            daySlug: day.slug,
+            userID: account.user?.id
+        )
+    }
+
+    private var persistedOverride: ScopedArrivalTargetOverride? {
+        plan.arrivalTargetOverride(slug: day.slug, scope: overrideScope)
     }
 
     private var canEditArrivalTarget: Bool {
@@ -232,6 +251,13 @@ struct DayDetailView: View {
         .onChange(of: eff == nil) { _, gone in
             if gone { showEdit = false }
         }
+        .onChange(of: overrideScope) { oldScope, newScope in
+            guard oldScope != newScope else { return }
+            targetSaveRevision += 1
+            targetSaveTask?.cancel()
+            localOverride = nil
+            targetError = nil
+        }
         .onDisappear { targetSaveTask?.cancel() }
         .preferredColorScheme(.dark)
     }
@@ -406,9 +432,9 @@ struct DayDetailView: View {
             routeSession.clear()
             LiveActivityManager.shared.endCurrent()
         }
-        localTargetOverride = target
-        localStayOverride = stay
-        plan.setArrivalTarget(target, stay: stay, slug: day.slug)
+        let scope = overrideScope
+        localOverride = ScopedArrivalTargetOverride(scope: scope, target: target, stay: stay)
+        plan.setArrivalTarget(target, stay: stay, slug: day.slug, scope: scope)
         guard var stop = accountDestinationStop, let trip = workspace.selectedTrip,
               trip.access.canEditStops else { return }
         stop.arrivalTarget = AccountArrivalTarget(target)
@@ -432,8 +458,8 @@ struct DayDetailView: View {
                       )
                 else { return }
                 workspace.replace(changed)
-                localTargetOverride = nil
-                localStayOverride = nil
+                plan.clearArrivalTargetOverride(slug: day.slug, scope: scope)
+                localOverride = nil
                 targetError = nil
             } catch {
                 guard !Task.isCancelled,
