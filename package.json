@@ -10,6 +10,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "check:latvian-pack": "node --experimental-strip-types tools/check-latvian-pack.mjs",
     "check": "astro check",
     "lint": "eslint .",
     "format": "prettier --write ."
