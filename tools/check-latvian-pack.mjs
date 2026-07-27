@@ -1,3 +1,4 @@
+import { filterByFrequency, parseFrequencyList } from '../src/learning-lv/frequency.ts';
 import { PACK_VERSION, validatePack } from '../src/learning-lv/pack-schema.ts';
 import { SCENE_PLAN } from '../src/learning-lv/scenes.ts';
 
@@ -114,6 +115,38 @@ expect(
 expect(
   SCENE_PLAN.every(scene => scene.brief.trim().endsWith('.')),
   'her sahne açıklaması tam cümle',
+);
+
+console.log('\n=== Frekans süzgeci ===');
+
+const ranks = parseFrequencyList('ir 900\nun 800\nkafija 700\nkafija 650\nretais 600\n');
+
+expect(ranks.get('ir') === 0, 'ilk kelime sıfırıncı sırada');
+expect(ranks.get('kafija') === 2, 'yinelenen kelime ilk sırasını koruyor');
+expect(ranks.size === 4, 'yinelenen satır yeni sıra açmıyor');
+
+const filtered = filterByFrequency(
+  [
+    { lv: 'kafija' },
+    { lv: 'retais' },
+    { lv: 'ar kafiju' },
+    { lv: 'Turcija' },
+    { lv: 'bilinmeyenkelime' },
+  ],
+  ranks,
+  { maxRank: 2, allowList: ['Turcija'] },
+);
+
+expect(filtered.kept.some(entry => entry.lv === 'kafija' && entry.freqRank === 2), 'sık kelime kabul ediliyor');
+expect(filtered.kept.some(entry => entry.lv === 'Turcija' && entry.freqRank === 0), 'izin listesi frekansı atlıyor');
+expect(filtered.rejected.some(entry => entry.lv === 'retais'), 'nadir kelime eleniyor');
+expect(
+  filtered.rejected.some(entry => entry.lv === 'bilinmeyenkelime' && entry.reason.includes('listesinde yok')),
+  'listede olmayan kelime gerekçesiyle eleniyor',
+);
+expect(
+  filtered.rejected.some(entry => entry.lv === 'ar kafiju' && entry.reason.includes('listesinde yok')),
+  'bileşeni listede olmayan kalıp eleniyor',
 );
 
 if (failures > 0) {
