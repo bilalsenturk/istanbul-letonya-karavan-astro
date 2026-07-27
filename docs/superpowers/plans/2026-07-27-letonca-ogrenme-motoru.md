@@ -114,7 +114,7 @@ expect(pack.scenes[0].sentences[0].supports.contains(.lvToTr), "soru tipleri ç�
 expect(pack.word(id: "w2")?.lv == "paldies", "kelime id ile bulunuyor")
 expect(pack.word(id: "yok") == nil, "olmayan kelime nil dönüyor")
 expect(pack.scene(id: "lv-s01")?.title == "Tanışma", "sahne id ile bulunuyor")
-expect(pack.audioURL(for: "a1").absoluteString == "https://blob.example.com/letonca/ses/a1.wav",
+expect(pack.audioURL(for: "a1").absoluteString == "https://blob.example.com/letonca/ses/a1.mp3",
        "ses adresi kuruluyor")
 
 if failures > 0 {
@@ -255,7 +255,7 @@ struct LatvianPack: Codable, Sendable {
     }
 
     func audioURL(for audioId: String) -> URL {
-        URL(string: "\(audioBaseUrl)/\(audioId).wav")!
+        URL(string: "\(audioBaseUrl)/\(audioId).mp3")!
     }
 
     /// Ses kimliği → seslendirilen metin. Ses indirme aşaması bunu kullanır.
@@ -1892,7 +1892,7 @@ final class LatvianAudioStore: ObservableObject {
     }
 
     func localURL(for audioId: String) -> URL? {
-        let url = directory.appendingPathComponent("\(audioId).wav")
+        let url = directory.appendingPathComponent("\(audioId).mp3")
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }
 
@@ -1916,7 +1916,7 @@ final class LatvianAudioStore: ObservableObject {
                 guard (response as? HTTPURLResponse)?.statusCode == 200, data.count > 1024 else {
                     throw URLError(.cannotParseResponse)
                 }
-                try data.write(to: directory.appendingPathComponent("\(audioId).wav"), options: .atomic)
+                try data.write(to: directory.appendingPathComponent("\(audioId).mp3"), options: .atomic)
                 downloadedAudioIds.insert(audioId)
             } catch {
                 lastError = "Bazı sesler inemedi, daha sonra tekrar denenecek."
@@ -1947,7 +1947,7 @@ final class LatvianAudioStore: ObservableObject {
     private func refreshDownloaded() {
         let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
         downloadedAudioIds = Set(
-            names.filter { $0.hasSuffix(".wav") }.map { String($0.dropLast(4)) }
+            names.filter { $0.hasSuffix(".mp3") }.map { String($0.dropLast(4)) }
         )
         downloadProgress = downloadedAudioIds.isEmpty ? 0 : 1
     }
