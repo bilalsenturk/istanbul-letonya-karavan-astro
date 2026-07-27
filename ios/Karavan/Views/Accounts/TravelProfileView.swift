@@ -13,6 +13,9 @@ struct TravelProfileView: View {
     @State private var boundAccountID: String?
     @State private var draftRevision = 0
     @State private var saveTask: Task<Void, Never>?
+    @State private var activeSaveOperationID: UUID?
+    @State private var ignoredFormChanges = 0
+    @State private var ignoredLengthChanges = 0
 
     private let vehicleSeed: String?
 
@@ -70,20 +73,27 @@ struct TravelProfileView: View {
         }
         .task(id: account.user?.id) { loadProfile() }
         .onChange(of: account.user?.id) { _, _ in
-            saveTask?.cancel()
-            saveTask = nil
-            isSaving = false
-            saved = false
-            syncError = nil
-            validationError = nil
+            cancelSave(resetStatus: true)
             boundAccountID = nil
             isLoading = true
         }
         .onChange(of: form) { _, _ in
+            guard ignoredFormChanges == 0 else {
+                ignoredFormChanges -= 1
+                return
+            }
             draftRevision += 1
             saved = false
         }
-        .onDisappear { saveTask?.cancel() }
+        .onChange(of: totalLengthText) { _, _ in
+            guard ignoredLengthChanges == 0 else {
+                ignoredLengthChanges -= 1
+                return
+            }
+            draftRevision += 1
+            saved = false
+        }
+        .onDisappear { cancelSave(resetStatus: true) }
     }
 
     private var contactEmail: Binding<String> {
@@ -100,13 +110,12 @@ struct TravelProfileView: View {
         if let user = account.user {
             let binding = profileStore.bind(account: user, vehicleSeed: vehicleSeed)
             boundAccountID = user.id
-            form = binding.profile
+            applyProgrammaticProfile(binding.profile)
             syncError = binding.needsSync ? "Yerelde daha yeni bir profil var. Sunucuya göndermek için kaydedin." : nil
         } else {
             boundAccountID = nil
-            form = profileStore.signedOutProfile(vehicleSeed: vehicleSeed)
+            applyProgrammaticProfile(profileStore.signedOutProfile(vehicleSeed: vehicleSeed))
         }
-        totalLengthText = form.totalLengthMeters.map(Self.lengthText) ?? ""
         isLoading = false
     }
 
@@ -117,6 +126,7 @@ struct TravelProfileView: View {
         case .failure(.outOfRange): validationError = "Toplam uzunluk 1 ile 30 metre arasında olmalı."
         case let .success(length):
             validationError = nil
+            ignoredFormChanges += 1
             form.totalLengthMeters = length
             form.updatedAt = ISO8601DateFormatter().string(from: Date())
             saved = false
@@ -130,11 +140,21 @@ struct TravelProfileView: View {
             let requestAccountID = user.id
             let submittedRevision = draftRevision
             let submitted = form
+            let operationID = UUID()
             profileStore.persistAccount(submitted, accountID: requestAccountID)
             isSaving = true
+            activeSaveOperationID = operationID
             saveTask = Task {
+                defer {
+                    Task { @MainActor in
+                        finishSave(operationID: operationID)
+                    }
+                }
                 do {
-                    let updated = try await account.saveTravelProfile(submitted)
+                    let updated = try await account.saveTravelProfile(
+                        submitted,
+                        expectedUserID: requestAccountID
+                    )
                     guard !Task.isCancelled,
                           TravelProfileSaveGuard.accepts(
                             currentAccountID: account.user?.id,
@@ -144,16 +164,15 @@ struct TravelProfileView: View {
                           )
                     else { return }
                     profileStore.persistAccount(updated.travelProfile, accountID: requestAccountID)
-                    form = updated.travelProfile
-                    totalLengthText = form.totalLengthMeters.map(Self.lengthText) ?? ""
+                    applyProgrammaticProfile(updated.travelProfile)
                     saved = true
-                    isSaving = false
                 } catch is CancellationError {
                     // Account changes and dismissal intentionally cancel an in-flight request.
+                } catch TravelProfileSaveError.staleSession {
+                    // Session changed while waiting; the newer account owns the UI now.
                 } catch {
                     guard !Task.isCancelled, account.user?.id == requestAccountID else { return }
                     syncError = "Profil yerelde kaydedildi. Sunucuya gönderilemedi; tekrar deneyin."
-                    isSaving = false
                 }
             }
         }
@@ -161,6 +180,39 @@ struct TravelProfileView: View {
 
     private static func lengthText(_ value: Double) -> String {
         NumberFormatter.localizedString(from: NSNumber(value: value), number: .decimal)
+    }
+
+    private func applyProgrammaticProfile(_ profile: AccountTravelProfile) {
+        if form != profile {
+            ignoredFormChanges += 1
+            form = profile
+        }
+        let lengthText = profile.totalLengthMeters.map(Self.lengthText) ?? ""
+        if totalLengthText != lengthText {
+            ignoredLengthChanges += 1
+            totalLengthText = lengthText
+        }
+    }
+
+    private func finishSave(operationID: UUID) {
+        guard TravelProfileSaveOperationGuard.isCurrent(
+            activeOperationID: activeSaveOperationID,
+            operationID: operationID
+        ) else { return }
+        isSaving = false
+        saveTask = nil
+        activeSaveOperationID = nil
+    }
+
+    private func cancelSave(resetStatus: Bool) {
+        saveTask?.cancel()
+        saveTask = nil
+        activeSaveOperationID = nil
+        isSaving = false
+        guard resetStatus else { return }
+        saved = false
+        syncError = nil
+        validationError = nil
     }
 }
 

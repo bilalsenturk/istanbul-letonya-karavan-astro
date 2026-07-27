@@ -50,6 +50,31 @@ enum TravelProfileSaveGuard {
     }
 }
 
+/// Saf oturum karşılaştırması: geç gelen bir istek yalnızca aynı kullanıcı ve
+/// aynı erişim belirteci hâlâ etkinse oturum durumunu güncelleyebilir.
+enum TravelProfileSessionGuard {
+    static func accepts(
+        currentAccountID: String?,
+        currentAccessToken: String?,
+        expectedAccountID: String,
+        expectedAccessToken: String
+    ) -> Bool {
+        currentAccountID == expectedAccountID && currentAccessToken == expectedAccessToken
+    }
+}
+
+/// İptal edilen veya oturum değişmiş bir profil isteğinin UI'da hata olarak
+/// görünmemesi için açık sonuç türü.
+enum TravelProfileSaveError: Error, Equatable {
+    case staleSession
+}
+
+enum TravelProfileSaveOperationGuard {
+    static func isCurrent(activeOperationID: UUID?, operationID: UUID) -> Bool {
+        activeOperationID == operationID
+    }
+}
+
 enum TravelProfileLength {
     enum Error: Swift.Error, Equatable { case invalid, outOfRange }
 

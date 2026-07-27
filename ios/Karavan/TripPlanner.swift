@@ -1,5 +1,67 @@
 import Foundation
 
+struct DaySubplan: Codable, Equatable, Identifiable {
+    let id: String
+    var title: String
+    var placeName: String
+    var latitude: Double
+    var longitude: Double
+    /// Gün başlangıcından itibaren dakika (17:30 = 1050).
+    var startMinute: Int
+    var durationMinutes: Int
+    var note: String?
+}
+
+struct PlanScheduleEntry: Equatable {
+    let id: String
+    let requestedStartMinute: Int
+    let previousEndMinute: Int
+    let travelMinutes: Int
+    let durationMinutes: Int
+
+    var earliestStartMinute: Int { previousEndMinute + max(0, travelMinutes) }
+    var finishMinute: Int { requestedStartMinute + max(0, durationMinutes) }
+}
+
+struct PlanScheduleConflict: Equatable {
+    let entryID: String
+    let earliestStartMinute: Int
+}
+
+struct PlanScheduleNeighbors: Equatable {
+    let previousID: String?
+    let nextID: String?
+}
+
+enum PlanScheduleValidator {
+    static func conflict(for entry: PlanScheduleEntry) -> PlanScheduleConflict? {
+        guard entry.requestedStartMinute < entry.earliestStartMinute else { return nil }
+        return PlanScheduleConflict(entryID: entry.id, earliestStartMinute: entry.earliestStartMinute)
+    }
+
+    static func fitsBeforeNextDeparture(
+        finishMinute: Int,
+        travelMinutesToNext: Int,
+        nextDepartureMinute: Int
+    ) -> Bool {
+        finishMinute + max(0, travelMinutesToNext) <= nextDepartureMinute
+    }
+
+    static func neighbors(
+        for requestedStartMinute: Int,
+        excludingID: String?,
+        in subplans: [DaySubplan]
+    ) -> PlanScheduleNeighbors {
+        let ordered = subplans
+            .filter { $0.id != excludingID }
+            .sorted { $0.startMinute < $1.startMinute }
+        return PlanScheduleNeighbors(
+            previousID: ordered.last { $0.startMinute <= requestedStartMinute }?.id,
+            nextID: ordered.first { $0.startMinute > requestedStartMinute }?.id
+        )
+    }
+}
+
 // Kullanıcının bir güne yaptığı düzenlemeler. Hepsi opsiyonel: nil = "web verisini kullan".
 struct DayEdit: Codable, Equatable {
     var origin: String?
@@ -15,6 +77,8 @@ struct DayEdit: Codable, Equatable {
     var isRestDay: Bool?        // nil → origin == destination'dan türetilir
     var extraDays: Int?         // bu durakta fazladan kalınan gün (0 = normal)
     var startHour: Int?         // o günün çıkış saati (nil → kalkış saati / 08:00)
+    /// Eksik anahtar eski kayıtlarda `nil` çözülür; böylece geriye uyumludur.
+    var subplans: [DaySubplan]?
 
     var isEmpty: Bool { self == DayEdit() }
 }
@@ -50,6 +114,7 @@ struct EffectiveDay: Identifiable {
     var arrivalTarget: ArrivalTarget? { edit?.arrivalTarget }
     var stayDetails: StayDetails { edit?.stayDetails ?? StayDetails() }
     var note: String? { edit?.note?.isEmpty == false ? edit?.note : nil }
+    var subplans: [DaySubplan] { edit?.subplans ?? [] }
     var isRestDay: Bool { edit?.isRestDay ?? (origin == destination) }
     var isEdited: Bool { edit?.isEmpty == false }
 

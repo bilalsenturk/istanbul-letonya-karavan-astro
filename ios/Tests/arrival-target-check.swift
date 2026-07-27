@@ -227,6 +227,32 @@ struct ArrivalTargetCheck {
                 currentAccountID: "account-a", requestAccountID: "account-a",
                 submittedRevision: 4, currentRevision: 5
               ))
+        check("A'nın geç yanıtı B oturumunu değiştiremez",
+              !TravelProfileSessionGuard.accepts(
+                currentAccountID: "account-b", currentAccessToken: "token-b",
+                expectedAccountID: "account-a", expectedAccessToken: "token-a"
+              ))
+        check("aynı oturum sunucu profilini uygulayabilir",
+              TravelProfileSessionGuard.accepts(
+                currentAccountID: "account-a", currentAccessToken: "token-a",
+                expectedAccountID: "account-a", expectedAccessToken: "token-a"
+              ))
+        let activeSave = UUID()
+        check("eski kayıt tamamlanması yeni kaydı kapatamaz",
+              !TravelProfileSaveOperationGuard.isCurrent(
+                activeOperationID: UUID(), operationID: activeSave
+              ))
+        check("eşleşen kayıt tamamlanması yüklemeyi kapatır",
+              TravelProfileSaveOperationGuard.isCurrent(
+                activeOperationID: activeSave, operationID: activeSave
+              ))
+        let revisionBeforeLengthEdit = 6
+        let revisionAfterLengthEdit = revisionBeforeLengthEdit + 1
+        check("uzunluk düzenlemesi taslak sürümünü değiştirir",
+              revisionAfterLengthEdit == 7 && !TravelProfileSaveGuard.accepts(
+                currentAccountID: "account-a", requestAccountID: "account-a",
+                submittedRevision: revisionBeforeLengthEdit, currentRevision: revisionAfterLengthEdit
+              ))
         check("boş uzunluk boş değer olur", TravelProfileLength.parse("") == .success(nil))
         check("virgüllü uzunluk okunur", TravelProfileLength.parse("10,5", locale: Locale(identifier: "tr_TR")) == .success(10.5))
         check("sınır dışı uzunluk reddedilir", TravelProfileLength.parse("31") == .failure(.outOfRange))
