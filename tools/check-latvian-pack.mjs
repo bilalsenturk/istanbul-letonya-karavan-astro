@@ -433,6 +433,30 @@ try {
   expect(false, `doğru uzunluktaki ses kabul ediliyor (${error.message})`);
 }
 
+// Üst sınır: 2200 + metin_uzunluğu * 110 ms. "siers" (5 karakter) için sınır 2750 ms.
+const boundaryText = 'siers';
+const boundaryMaxMs = 2200 + boundaryText.length * 110;
+
+const justInsideMs = boundaryMaxMs - 50;
+const justInsideSampleCount = Math.round((justInsideMs / 1000) * SPEECH_SAMPLE_RATE);
+const justInsideClip = extractAudioFromStream(fakeStream(toneSamples(justInsideSampleCount)));
+try {
+  assertUsableAudio(justInsideClip, boundaryText);
+  expect(true, 'sınırın hemen altındaki ses kabul ediliyor');
+} catch (error) {
+  expect(false, `sınırın hemen altındaki ses kabul ediliyor (${error.message})`);
+}
+
+const justOutsideMs = boundaryMaxMs + 50;
+const justOutsideSampleCount = Math.round((justOutsideMs / 1000) * SPEECH_SAMPLE_RATE);
+const justOutsideClip = extractAudioFromStream(fakeStream(toneSamples(justOutsideSampleCount)));
+try {
+  assertUsableAudio(justOutsideClip, boundaryText);
+  expect(false, 'sınırın hemen üstündeki ses reddediliyor');
+} catch (error) {
+  expect(error.message.includes('çok uzun'), 'sınırın hemen üstündeki ses reddediliyor');
+}
+
 const wav = wrapPcm16AsWav(loudPcm);
 expect(wav.subarray(0, 4).toString('ascii') === 'RIFF', 'WAV başlığı yazılıyor');
 expect(wav.readUInt32LE(40) === loudPcm.byteLength, 'WAV veri uzunluğu doğru');

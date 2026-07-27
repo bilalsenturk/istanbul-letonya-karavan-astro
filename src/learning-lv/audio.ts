@@ -73,19 +73,32 @@ export function extractAudioFromStream(body: string): Uint8Array {
   return output;
 }
 
+/**
+ * assertUsableAudio'nun içerik-kalitesi reddi olduğunu işaretler (model gevezelik etti,
+ * sessiz kaldı, ya da metin yerine konuştu). Bu hatalar modelin belirsizliğinden kaynaklanır,
+ * bu yüzden yeniden denemek anlamlıdır — ffmpeg eksikliği gibi belirlenimci ortam hataları
+ * bu türden değildir ve yeniden denenmemelidir.
+ */
+export class AudioContentError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AudioContentError';
+  }
+}
+
 /** Modelin konuşmak yerine metin döndürdüğü durumu yakalar. */
 export function assertUsableAudio(pcm: Uint8Array, text: string): void {
   const durationMs = (pcm.byteLength / 2 / SPEECH_SAMPLE_RATE) * 1000;
   const minimumMs = Math.max(250, text.length * 40);
   if (durationMs < minimumMs) {
-    throw new Error(
+    throw new AudioContentError(
       `"${text}" için ses çok kısa: ${Math.round(durationMs)} ms, en az ${minimumMs} ms bekleniyordu`,
     );
   }
 
-  const maximumMs = 2000 + text.length * 160;
+  const maximumMs = 2200 + text.length * 110;
   if (durationMs > maximumMs) {
-    throw new Error(
+    throw new AudioContentError(
       `"${text}" için ses çok uzun: ${Math.round(durationMs)} ms, en fazla ${maximumMs} ms bekleniyordu (model muhtemelen metni okumak yerine konuştu)`,
     );
   }
@@ -97,7 +110,7 @@ export function assertUsableAudio(pcm: Uint8Array, text: string): void {
     if (magnitude > peak) peak = magnitude;
   }
   if (peak < 500) {
-    throw new Error(`"${text}" için ses sessiz (tepe değeri ${peak})`);
+    throw new AudioContentError(`"${text}" için ses sessiz (tepe değeri ${peak})`);
   }
 }
 

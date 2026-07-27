@@ -15,6 +15,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 import {
+  AudioContentError,
   assertUsableAudio,
   audioIdFor,
   buildSpeechRequest,
@@ -152,6 +153,12 @@ const DEFAULT_AUDIO_BASE_URL = 'https://istanbul-letonya-karavan-astro.vercel.ap
 if (stages.audio) {
   await fs.mkdir(audioDir, { recursive: true });
   const targets = collectAudioTargets(draft);
+
+  if (!dryRun && targets.length > 0 && !(await isFfmpegAvailable())) {
+    console.error('ffmpeg bulunamadı. MP3 kodlamak için ffmpeg kurulu olmalı.');
+    process.exit(1);
+  }
+
   console.log(`\n▸ ${targets.length} ses hedefi`);
 
   let produced = 0;
@@ -273,6 +280,10 @@ async function synthesizeWithRetry(text) {
   try {
     return await synthesize(text);
   } catch (firstError) {
+    if (!(firstError instanceof AudioContentError)) {
+      // Belirlenimci ortam/ağ hatası — ikinci denemede de aynı sonuç çıkar, paralı çağrıyı tekrarlama.
+      throw firstError;
+    }
     console.error(`    ↻ ilk deneme başarısız, tekrar deneniyor: ${firstError.message}`);
     try {
       return await synthesize(text);
@@ -281,6 +292,15 @@ async function synthesizeWithRetry(text) {
         `iki deneme de başarısız — 1. deneme: ${firstError.message}; 2. deneme: ${secondError.message}`,
       );
     }
+  }
+}
+
+async function isFfmpegAvailable() {
+  try {
+    execFileSync('ffmpeg', ['-version'], { stdio: 'ignore' });
+    return true;
+  } catch (error) {
+    return error.code !== 'ENOENT';
   }
 }
 
@@ -310,7 +330,11 @@ async function encodeMp3(wav) {
       }
       throw new Error(`ffmpeg mp3 kodlaması başarısız: ${String(error.stderr || error.message).slice(0, 300)}`);
     }
-    return await fs.readFile(tmpMp3);
+    const mp3 = await fs.readFile(tmpMp3);
+    if (mp3.length < 500) {
+      throw new Error(`ffmpeg mp3 çıktısı anormal derecede küçük: ${mp3.length} bayt (bozuk kodlama şüphesi)`);
+    }
+    return mp3;
   } finally {
     for (const tmp of [tmpWav, tmpMp3]) {
       try {
