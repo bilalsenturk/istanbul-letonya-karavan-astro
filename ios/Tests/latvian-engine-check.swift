@@ -11,6 +11,9 @@ func expect(_ condition: @autoclosure () -> Bool, _ message: String) {
     }
 }
 
+/// Örnek paket. `w5` hedef kelimesi kendi cümlesinde iki kez geçiyor (boşluk doldurmanın
+/// cevabı sızdırıp sızdırmadığını sınamak için), `w6`'nın çekim eki biçiminin tamamı kadar
+/// uzun (gövdesiz hal tatbikatını sınamak için).
 let samplePackJSON = """
 {
   "version": 1,
@@ -26,28 +29,221 @@ let samplePackJSON = """
         {"id":"w2","lv":"paldies","tr":"teşekkürler","audioId":"a2","lemma":"paldies","freqRank":300},
         {"id":"w3","lv":"lūdzu","tr":"lütfen","audioId":"a3","lemma":"lūdzu","freqRank":350},
         {"id":"w4","lv":"kafija","tr":"kahve","icon":"☕","audioId":"a4","lemma":"kafija","freqRank":900,
-         "caseForm":{"base":"kafija","form":"ar kafiju","case":"instrumental","suffix":"u","distractorSuffixes":["a","as"]}}
+         "caseForm":{"base":"kafija","form":"ar kafiju","case":"instrumental","suffix":"u","distractorSuffixes":["a","as"]}},
+        {"id":"w5","lv":"sveiki","tr":"merhaba","audioId":"a7","lemma":"sveiki","freqRank":200},
+        {"id":"w6","lv":"tikai","tr":"sadece","audioId":"a9","lemma":"tikai","freqRank":500,
+         "caseForm":{"base":"tikai","form":"ai","case":"dativ","suffix":"ai","distractorSuffixes":["am","iem"]}}
       ],
       "sentences": [
         {"id":"s1","lv":"Labdien, mani sauc Leyla.","tr":"İyi günler, benim adım Leyla.","audioId":"a5",
          "wordIds":["w1"],"supports":["lv_to_tr","tr_to_lv","order","dictation","fill_blank"]},
         {"id":"s2","lv":"Es gribu kafiju.","tr":"Kahve istiyorum.","audioId":"a6",
-         "wordIds":["w4"],"supports":["tr_to_lv","order","case_drill"]}
+         "wordIds":["w4"],"supports":["tr_to_lv","order","case_drill"]},
+        {"id":"s3","lv":"Sveiki, sveiki, kā jums iet?","tr":"Merhaba, merhaba, nasılsınız?","audioId":"a8",
+         "wordIds":["w5"],"supports":["fill_blank","lv_to_tr"]},
+        {"id":"s4","lv":"Tikai vienu kafiju.","tr":"Sadece bir kahve.","audioId":"a10",
+         "wordIds":["w6"],"supports":["case_drill","order"]}
       ]
     }
   ]
 }
 """
 
+// MARK: - Gerçek paket
+
+/// Uygulamanın gerçekten sevk ettiği paket. `Bundle.main` çıplak `swiftc` ikilisinde
+/// çalışmadığından yol, kaynak dosyanın konumundan türetiliyor; ortam değişkeni varsa
+/// (başka bir dizinden koşturmak için) o kazanıyor.
+let realPackPath: String = {
+    if let override = ProcessInfo.processInfo.environment["LATVIAN_PACK_PATH"], !override.isEmpty {
+        return override
+    }
+    return URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()  // ios/Tests
+        .deletingLastPathComponent()  // ios
+        .appendingPathComponent("Karavan/Resources/latvian-pack.json")
+        .path
+}()
+
+func loadRealPack() throws -> LatvianPack {
+    try LatvianPack.decode(from: Data(contentsOf: URL(fileURLWithPath: realPackPath)))
+}
+
+func allAudioIds(in pack: LatvianPack) -> Set<String> {
+    var ids: Set<String> = []
+    for scene in pack.scenes {
+        for word in scene.words { ids.insert(word.audioId) }
+        for sentence in scene.sentences { ids.insert(sentence.audioId) }
+    }
+    return ids
+}
+
+// MARK: - Süreçler arası parmak izi
+
+/// FNV-1a 64 bit. Swift'in kendi `hashValue`'su süreç başına tohumlandığı için süreçler
+/// arası karşılaştırmada kullanılamaz; bu özet aynı girdi için her süreçte aynı çıkar.
+func stableDigest(_ text: String) -> UInt64 {
+    var hash: UInt64 = 0xcbf2_9ce4_8422_2325
+    for byte in text.utf8 {
+        hash ^= UInt64(byte)
+        hash = hash &* 0x0000_0100_0000_01b3
+    }
+    return hash
+}
+
+/// Sorunun tüm içeriğini sırasıyla düz metne çevirir: seçenek sırası, kelime bankası
+/// sırası ve eşleştirme çiftlerinin sırası da özete giriyor — sadece `id` karşılaştırmak
+/// asıl yaşanan hatayı (süreçler arası değişen `Set` sırası) kaçırırdı.
+func canonicalDescription(_ exercise: LatvianExercise) -> String {
+    var parts: [String] = [
+        exercise.id,
+        exercise.kind.rawValue,
+        exercise.targetWordId,
+        exercise.prompt,
+        exercise.audioId ?? "-",
+        exercise.carrier ?? "-",
+        exercise.explanation ?? "-",
+    ]
+    switch exercise.content {
+    case .choice(let options, let correctIndex):
+        parts.append("choice:\(correctIndex):" + options.joined(separator: "\u{1F}"))
+    case .wordBank(let bank, let answer):
+        parts.append("bank:" + bank.joined(separator: "\u{1F}")
+                     + ":answer:" + answer.joined(separator: "\u{1F}"))
+    case .matching(let pairs):
+        parts.append("match:" + pairs.map { "\($0.lv)=\($0.tr)" }.joined(separator: "\u{1F}"))
+    case .typing(let accepted):
+        parts.append("typing:" + accepted.joined(separator: "\u{1F}"))
+    case .speaking(let target):
+        parts.append("speak:" + target)
+    }
+    return parts.joined(separator: "\u{1E}")
+}
+
+/// Gerçek paket üzerinde sabit bir soru kümesi üretir. Aynı ikili, farklı süreçlerde
+/// aynı satırları vermek zorunda.
+func fingerprintLines() throws -> [String] {
+    let pack = try loadRealPack()
+    let audio = allAudioIds(in: pack)
+    let factory = LatvianExerciseFactory(pack: pack)
+    var lines: [String] = []
+    for (wordIndex, word) in pack.scenes.flatMap(\.words).enumerated() {
+        let kinds = factory.supportedKinds(forWordId: word.id, availableAudio: audio)
+        lines.append("\(word.id)|kinds|" + kinds.map(\.rawValue).joined(separator: ","))
+        for (kindIndex, kind) in kinds.enumerated() {
+            let seed = UInt64(wordIndex &* 31 &+ kindIndex &+ 1)
+            guard let exercise = factory.makeExercise(
+                wordId: word.id, kind: kind, seed: seed, availableAudio: audio
+            ) else {
+                lines.append("\(word.id)|\(kind.rawValue)|NIL")
+                continue
+            }
+            lines.append(canonicalDescription(exercise))
+        }
+    }
+    return lines
+}
+
+func runFingerprint() throws {
+    let lines = try fingerprintLines()
+    let hex = String(stableDigest(lines.joined(separator: "\u{1D}")), radix: 16)
+    let padded = String(repeating: "0", count: max(0, 16 - hex.count)) + hex
+    print("FINGERPRINT lines=\(lines.count) digest=\(padded)")
+}
+
+// MARK: - Bozuk soru taraması
+
+/// Öğrenciye gösterilmemesi gereken kusurlar. Boş dizi "sorun yok" demek.
+func defects(in exercise: LatvianExercise, word: LatvianWord) -> [String] {
+    var problems: [String] = []
+
+    if exercise.requiresAudio && exercise.audioId == nil {
+        problems.append("ses gerektiriyor ama audioId yok")
+    }
+
+    switch exercise.content {
+    case .choice(let options, let correctIndex):
+        if Set(options).count != options.count {
+            problems.append("seçenekler birbirinin aynı")
+        }
+        guard options.indices.contains(correctIndex) else {
+            problems.append("doğru seçenek dizini aralık dışı (\(correctIndex)/\(options.count))")
+            break
+        }
+        let correct = options[correctIndex]
+        if options.filter({ $0 == correct }).count > 1 {
+            problems.append("doğru seçenek çeldiriciler arasında tekrar ediyor")
+        }
+        if let carrier = exercise.carrier {
+            switch exercise.kind {
+            case .fillBlank:
+                if !carrier.contains("___") { problems.append("taşıyıcıda boşluk yok") }
+                let hidden = LatvianGrader.normalize(correct)
+                let leaks = carrier.split(separator: " ").contains {
+                    LatvianGrader.normalize(String($0)) == hidden
+                }
+                if leaks { problems.append("taşıyıcı gizlenen kelimeyi hâlâ gösteriyor") }
+            case .caseDrill:
+                if !carrier.contains("___") { problems.append("taşıyıcıda boşluk yok") }
+                if carrier.hasPrefix("___") { problems.append("taşıyıcının gövdesi boş") }
+                if let form = word.caseForm.map({ LatvianGrader.normalize($0.form) }),
+                   !form.isEmpty,
+                   LatvianGrader.normalize(carrier).contains(form) {
+                    problems.append("taşıyıcı çekimli biçimin tamamını gösteriyor")
+                }
+            default:
+                break
+            }
+        }
+
+    case .wordBank(let bank, let answer):
+        if bank.sorted() != answer.sorted() {
+            problems.append("kelime bankası cevabın permütasyonu değil")
+        }
+
+    case .matching(let pairs):
+        if pairs.count < 4 { problems.append("dörtten az eşleştirme çifti") }
+        if Set(pairs.map(\.lv)).count != pairs.count { problems.append("sol taraf tekrar ediyor") }
+        if Set(pairs.map(\.tr)).count != pairs.count { problems.append("sağ taraf tekrar ediyor") }
+
+    case .typing, .speaking:
+        break
+    }
+
+    return problems
+}
+
+/// Ölçümü en iyi turdan alır (zamanlayıcı gürültüsünü eler), turların hepsini rapor eder.
+func measure(rounds: Int = 3, _ body: () -> Void) -> (best: Double, all: [Double]) {
+    var samples: [Double] = []
+    for _ in 0..<rounds {
+        let start = Date()
+        body()
+        samples.append(Date().timeIntervalSince(start) * 1000)
+    }
+    return (samples.min() ?? 0, samples)
+}
+
+func format(_ milliseconds: [Double]) -> String {
+    milliseconds.map { String(format: "%.2f", $0) }.joined(separator: " / ")
+}
+
 @main
 struct LatvianEngineCheck {
     static func main() throws {
+        // Süreçler arası belirlenimcilik kipi: sabit bir soru kümesinin özetini basıp çıkar.
+        // Kabuk betiği bunu üç ayrı süreçte koşturup çıktıları karşılaştırıyor.
+        if CommandLine.arguments.contains("--fingerprint") {
+            try runFingerprint()
+            return
+        }
+
         print("\n=== Letonca paket modeli ===")
 
         let pack = try LatvianPack.decode(from: Data(samplePackJSON.utf8))
 
         expect(pack.scenes.count == 1, "sahne çözümleniyor")
-        expect(pack.scenes[0].words.count == 4, "kelimeler çözümleniyor")
+        expect(pack.scenes[0].words.count == 6, "kelimeler çözümleniyor")
         expect(pack.scenes[0].words[0].icon == "👋", "emoji çözümleniyor")
         expect(pack.scenes[0].words[1].icon == nil, "emojisi olmayan kelime nil dönüyor")
         expect(pack.scenes[0].words[3].caseForm?.suffix == "u", "çekim bilgisi çözümleniyor")
@@ -55,8 +251,16 @@ struct LatvianEngineCheck {
         expect(pack.word(id: "w2")?.lv == "paldies", "kelime id ile bulunuyor")
         expect(pack.word(id: "yok") == nil, "olmayan kelime nil dönüyor")
         expect(pack.scene(id: "lv-s01")?.title == "Tanışma", "sahne id ile bulunuyor")
+        expect(pack.scene(id: "yok") == nil, "olmayan sahne nil dönüyor")
+        expect(pack.sentence(id: "s2")?.lv == "Es gribu kafiju.", "cümle id ile bulunuyor")
+        expect(pack.sentence(id: "yok") == nil, "olmayan cümle nil dönüyor")
         expect(pack.audioURL(for: "a1").absoluteString == "https://blob.example.com/letonca/ses/a1.mp3",
                "ses adresi kuruluyor")
+
+        // Dizinler kodlanmıyor; bir tur kodlayıp geri çözmek onları yeniden kurmalı.
+        let roundTripped = try LatvianPack.decode(from: JSONEncoder().encode(pack))
+        expect(roundTripped.word(id: "w2")?.lv == "paldies", "kodlanıp çözülen pakette dizin yeniden kuruluyor")
+        expect(roundTripped.sentence(id: "s3")?.audioId == "a8", "kodlanıp çözülen pakette cümle dizini çalışıyor")
 
         print("\n=== Soru modeli ===")
 
@@ -261,7 +465,7 @@ struct LatvianEngineCheck {
 
         print("\n=== Soru üretici ===")
 
-        let allAudio: Set<String> = ["a1", "a2", "a3", "a4", "a5", "a6"]
+        let allAudio: Set<String> = ["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9", "a10"]
         let factory = LatvianExerciseFactory(pack: pack)
 
         let listen = factory.makeExercise(wordId: "w1", kind: .listenChoose, seed: 1, availableAudio: allAudio)
@@ -286,7 +490,9 @@ struct LatvianEngineCheck {
         let order = factory.makeExercise(wordId: "w1", kind: .order, seed: 3, availableAudio: allAudio)
         if case .wordBank(let bank, let answer)? = order?.content {
             expect(answer == ["Labdien,", "mani", "sauc", "Leyla."], "sıralama doğru cevabı cümlenin kendisi")
-            expect(Set(bank) == Set(answer), "kelime bankası cevabın tüm parçalarını içeriyor")
+            expect(bank.sorted() == answer.sorted(), "kelime bankası cevabın permütasyonu")
+            // Bankanın var oluş sebebi bu: cevapla aynı sırada gelirse soru anlamsız.
+            expect(bank != answer, "kelime bankası cevabın sırasında gelmiyor")
         } else {
             expect(false, "sıralama kelime bankası üretiyor")
         }
@@ -295,11 +501,34 @@ struct LatvianEngineCheck {
         expect(caseDrill != nil, "çekim bilgisi olan kelimede hal tatbikatı üretiliyor")
         if case .choice(let options, let correct)? = caseDrill?.content {
             expect(options.count == 3, "hal tatbikatı üç ek seçeneği sunuyor")
-            expect(options[correct] == "u", "doğru ek işaretli")
+            expect(options.indices.contains(correct) && options[correct] == "u", "doğru ek işaretli")
+        } else {
+            expect(false, "hal tatbikatı seçmeli içerik üretiyor")
         }
         expect(caseDrill?.carrier?.contains("kafij") == true, "hal tatbikatı taşıyıcı cümle gösteriyor")
         expect(factory.makeExercise(wordId: "w1", kind: .caseDrill, seed: 4, availableAudio: allAudio) == nil,
                "çekim bilgisi olmayan kelimede hal tatbikatı üretilmiyor")
+
+        // Eki biçiminin tamamı kadar uzun olan çekim bilgisi gövdesiz bir "___" verirdi.
+        expect(!factory.supportedKinds(forWordId: "w6", availableAudio: allAudio).contains(.caseDrill),
+               "gövdesi kalmayan çekim bilgisi hal tatbikatını desteklemiyor")
+        expect(factory.makeExercise(wordId: "w6", kind: .caseDrill, seed: 8, availableAudio: allAudio) == nil,
+               "gövdesi kalmayan çekim bilgisinde hal tatbikatı üretilmiyor")
+        expect(factory.supportedKinds(forWordId: "w6", availableAudio: allAudio).contains(.order),
+               "gövdesiz çekim bilgisi yalnızca hal tatbikatını eliyor, diğer tipleri değil")
+
+        // Hedef kelime cümlede iki kez geçtiğinde ikinci geçiş cevabı ekranda bırakmamalı.
+        let repeated = factory.makeExercise(wordId: "w5", kind: .fillBlank, seed: 7, availableAudio: allAudio)
+        expect(repeated != nil, "tekrar eden hedef kelimeli cümlede boşluk doldurma üretiliyor")
+        if let carrier = repeated?.carrier {
+            let hidden = LatvianGrader.normalize("sveiki")
+            expect(!carrier.split(separator: " ").contains { LatvianGrader.normalize(String($0)) == hidden },
+                   "hedef kelime iki kez geçse de taşıyıcıda hiç görünmüyor")
+            expect(carrier.split(separator: " ").filter { $0 == "___" }.count == 2,
+                   "hedef kelimenin her iki geçişi de boşluğa çevriliyor")
+        } else {
+            expect(false, "boşluk doldurma taşıyıcı üretiyor")
+        }
 
         let dictation = factory.makeExercise(wordId: "w1", kind: .dictation, seed: 5, availableAudio: allAudio)
         if case .typing(let accepted)? = dictation?.content {
@@ -326,10 +555,105 @@ struct LatvianEngineCheck {
                "sessiz kelime dikteyi desteklemiyor")
         expect(!kinds.isEmpty, "her kelimenin en az bir soru tipi var")
 
+        print("\n=== Gerçek paket taraması ===")
+
+        let realPack = try loadRealPack()
+        let realWords = realPack.scenes.flatMap(\.words)
+        let realAudio = allAudioIds(in: realPack)
+        let realFactory = LatvianExerciseFactory(pack: realPack)
+
+        expect(realWords.count >= 250, "gerçek paket \(realWords.count) kelime taşıyor")
+
+        var generated = 0
+        var perKind: [String: Int] = [:]
+        var undeliverable: [String] = []
+        var unexpectedlyDeliverable: [String] = []
+        var broken: [String] = []
+
+        for (wordIndex, word) in realWords.enumerated() {
+            let supported = realFactory.supportedKinds(forWordId: word.id, availableAudio: realAudio)
+            let supportedSet = Set(supported)
+            for (kindIndex, kind) in supported.enumerated() {
+                let seed = UInt64(wordIndex &* 13 &+ kindIndex &* 7 &+ 1)
+                guard let exercise = realFactory.makeExercise(
+                    wordId: word.id, kind: kind, seed: seed, availableAudio: realAudio
+                ) else {
+                    undeliverable.append("\(word.id)/\(kind.rawValue)")
+                    continue
+                }
+                generated += 1
+                perKind[kind.rawValue, default: 0] += 1
+                for problem in defects(in: exercise, word: word) {
+                    broken.append("\(word.id)/\(kind.rawValue): \(problem)")
+                }
+            }
+            // Ters yön: bildirilmeyen bir tip asla üretilmemeli.
+            for kind in LatvianExerciseKind.allCases where !supportedSet.contains(kind) {
+                if realFactory.makeExercise(
+                    wordId: word.id, kind: kind, seed: 1, availableAudio: realAudio
+                ) != nil {
+                    unexpectedlyDeliverable.append("\(word.id)/\(kind.rawValue)")
+                }
+            }
+        }
+
+        print("  toplam \(generated) soru üretildi (\(realWords.count) kelime)")
+        for kind in LatvianExerciseKind.allCases {
+            print("    \(kind.rawValue): \(perKind[kind.rawValue] ?? 0)")
+        }
+
+        expect(undeliverable.isEmpty,
+               "supportedKinds'in bildirdiği her tip üretilebiliyor"
+               + (undeliverable.isEmpty ? "" : " — eksik: \(undeliverable.prefix(5).joined(separator: ", "))"))
+        expect(unexpectedlyDeliverable.isEmpty,
+               "supportedKinds'in bildirmediği hiçbir tip üretilmiyor"
+               + (unexpectedlyDeliverable.isEmpty ? "" : " — fazla: \(unexpectedlyDeliverable.prefix(5).joined(separator: ", "))"))
+        expect(broken.isEmpty,
+               "üretilen soruların hiçbiri bozuk değil"
+               + (broken.isEmpty ? "" : " — \(broken.count) kusur, ilki: \(broken[0])"))
+        expect(generated >= 1800, "tarama kapsamı korunuyor (\(generated) soru)")
+
+        print("\n=== Performans bütçeleri ===")
+
+        var kindTotal = 0
+        let kindTiming = measure {
+            for word in realWords {
+                kindTotal += realFactory.supportedKinds(forWordId: word.id, availableAudio: realAudio).count
+            }
+        }
+        print("  supportedKinds × \(realWords.count) kelime: \(format(kindTiming.all)) ms"
+              + String(format: " (en iyi %.2f ms, bütçe 10 ms, %d tip)", kindTiming.best, kindTotal / kindTiming.all.count))
+        expect(kindTiming.best < 10,
+               String(format: "supportedKinds bütçesi: %.2f ms < 10 ms", kindTiming.best))
+
+        var plan: [(String, LatvianExerciseKind)] = []
+        planLoop: for word in realWords {
+            for kind in realFactory.supportedKinds(forWordId: word.id, availableAudio: realAudio) {
+                plan.append((word.id, kind))
+                if plan.count >= 120 { break planLoop }
+            }
+        }
+        expect(plan.count >= 100, "üretim bütçesi 100+ soru üzerinde ölçülüyor (\(plan.count))")
+
+        var built = 0
+        let buildTiming = measure {
+            for (index, item) in plan.enumerated() {
+                if realFactory.makeExercise(
+                    wordId: item.0, kind: item.1, seed: UInt64(index + 1), availableAudio: realAudio
+                ) != nil {
+                    built += 1
+                }
+            }
+        }
+        print("  \(plan.count) soru üretimi: \(format(buildTiming.all)) ms"
+              + String(format: " (en iyi %.2f ms, bütçe 10 ms, %d üretildi)", buildTiming.best, built / buildTiming.all.count))
+        expect(buildTiming.best < 10,
+               String(format: "üretim bütçesi: %.2f ms < 10 ms", buildTiming.best))
+
         if failures > 0 {
             fputs("\n\(failures) kontrol başarısız.\n", stderr)
             exit(1)
         }
-        print("\nTüm Letonca motor kontrolleri geçti.\n")
+        print("\nLetonca birim kontrolleri ve paket taraması geçti.\n")
     }
 }
