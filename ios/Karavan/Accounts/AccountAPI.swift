@@ -42,6 +42,18 @@ final class AccountAPI {
         try await send(path: "me", accessToken: accessToken)
     }
 
+    func updateTravelProfile(_ profile: AccountTravelProfile, accessToken: String) async throws -> AccountUser {
+        struct Body: Encodable { let travelProfile: AccountTravelProfile }
+        struct Response: Decodable { let user: AccountUser }
+        let response: Response = try await send(
+            path: "me",
+            method: "PATCH",
+            accessToken: accessToken,
+            body: Body(travelProfile: profile)
+        )
+        return response.user
+    }
+
     func logout(accessToken: String) async {
         let _: EmptyResponse? = try? await send(path: "auth/logout", method: "POST", accessToken: accessToken)
     }

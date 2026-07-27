@@ -54,6 +54,29 @@ struct AccountDomainCheck {
         expect(trip.stops[1].arrivalTarget?.name == "Camping Campuccino", "kesin hedef API'den çözülür")
         expect(trip.stops[1].stayDetails?.reservationStatus == .awaitingReply, "konaklama durumu korunur")
 
+        let oldUserPayload = """
+        {
+          "id":"u1", "email":"bilal@example.com", "displayName":"Bilal",
+          "globalRole":"user", "createdAt":"2026-07-26T08:00:00Z",
+          "updatedAt":"2026-07-26T08:10:00Z"
+        }
+        """.data(using: .utf8)!
+        let oldUser = try JSONDecoder().decode(AccountUser.self, from: oldUserPayload)
+        expect(oldUser.travelProfile.contactName == "Bilal", "eski kullanıcılar varsayılan seyahat profiliyle çözülür")
+        expect(oldUser.travelProfile.adults == 2, "eski kullanıcı profili varsayılan yetişkin sayısını korur")
+
+        let profilePayload = """
+        {
+          "id":"u1", "email":"bilal@example.com", "displayName":"Bilal",
+          "globalRole":"user", "createdAt":"2026-07-26T08:00:00Z",
+          "updatedAt":"2026-07-26T08:10:00Z",
+          "travelProfile":{"contactName":"Bilal Şentürk","contactEmail":"bilal@example.com","adults":2,"children":0,"vehicleDescription":"VW Passat + Adria","totalLengthMeters":10.8,"needsElectricity":true,"hasPet":false,"additionalNeeds":"","preferredLanguage":"english","updatedAt":"2026-07-26T08:10:00Z"}
+        }
+        """.data(using: .utf8)!
+        let userWithProfile = try JSONDecoder().decode(AccountUser.self, from: profilePayload)
+        expect(userWithProfile.travelProfile.totalLengthMeters == 10.8, "seyahat profili API'den çözülür")
+        expect(userWithProfile.travelProfile.preferredLanguage == .english, "profil mesaj dilini korur")
+
         print("\n=== Rota taslağı ===")
         var draft = RouteDraft(name: "Baltık Rotası")
         expect(draft.transportMode == .automobile, "yeni rota otomobille başlar")

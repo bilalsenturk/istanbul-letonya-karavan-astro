@@ -108,6 +108,13 @@ final class AccountSessionStore: ObservableObject {
         return response
     }
 
+    func saveTravelProfile(_ profile: AccountTravelProfile) async throws -> AccountUser {
+        guard let accessToken else { throw AccountSignInError.sessionRequired }
+        let updatedUser = try await api.updateTravelProfile(profile, accessToken: accessToken)
+        user = updatedUser
+        return updatedUser
+    }
+
     func createTrip(_ draft: RouteDraft) async throws -> AccountTrip {
         guard let accessToken else { throw AccountSignInError.sessionRequired }
         let trip = try await api.createTrip(draft, accessToken: accessToken)
