@@ -189,6 +189,43 @@ try {
   expect(error.message.includes('JSON değil'), 'JSON olmayan yanıt hata veriyor');
 }
 
+const dedupedDraft = parseSceneResponse(`{
+  "words": [
+    {"lv":"upe","tr":"nehir","lemma":"upe",
+     "caseForm":{"base":"upe","form":"upē","case":"lokatīvs","suffix":"ē","distractorSuffixes":["a","a","ē"]}},
+    {"lv":"kalns","tr":"dağ","lemma":"kalns",
+     "caseForm":{"base":"kalns","form":"kalnā","case":"lokatīvs","suffix":"ā","distractorSuffixes":["a","am","u"]}}
+  ],
+  "sentences": [
+    {"lv":"Es eju uz upi.","tr":"Nehre gidiyorum.","usesWords":["upe","kalns"],"supports":["order"]}
+  ]
+}`);
+
+expect(
+  dedupedDraft.words[0].caseForm === undefined,
+  'yinelenen çeldiriciler tekilleştirilince ikiden az kalırsa çekim bilgisi düşüyor',
+);
+expect(
+  dedupedDraft.words[1].caseForm?.distractorSuffixes.length === 3,
+  'birbirinden farklı üç çeldirici korunuyor',
+);
+
+const trailingProseDraft = parseSceneResponse(`\`\`\`json
+{
+  "words": [{"lv":"maize","tr":"ekmek","lemma":"maize"}],
+  "sentences": [{"lv":"Es gribu maizi.","tr":"Ekmek istiyorum.","usesWords":["maize"],"supports":["order"]}]
+}
+\`\`\`
+Let me know if you need any adjustments.`);
+
+expect(trailingProseDraft.words.length === 1, 'kapanış çitinden sonraki metin ayıklanıp yanıt ayrıştırılıyor');
+
+const plainJsonDraft = parseSceneResponse(
+  '{"words":[{"lv":"maize","tr":"ekmek","lemma":"maize"}],"sentences":[{"lv":"Es gribu maizi.","tr":"Ekmek istiyorum.","usesWords":["maize"],"supports":["order"]}]}',
+);
+
+expect(plainJsonDraft.words.length === 1, 'çitsiz düz JSON yanıtı hâlâ ayrıştırılıyor');
+
 if (failures > 0) {
   console.error(`\n${failures} kontrol başarısız.`);
   process.exit(1);
