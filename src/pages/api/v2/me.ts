@@ -1,31 +1,19 @@
 import type { APIRoute } from 'astro';
-import { authenticateRequest, errorResponse, json, requestJSON } from '../../../accounts/api.ts';
-import { updateTravelProfile, type TravelProfileRecord } from '../../../accounts/accountRepository.ts';
+import { authenticateRequest } from '../../../accounts/api.ts';
+import { updateTravelProfile } from '../../../accounts/accountRepository.ts';
 import { ensureKuzeyTrip } from '../../../accounts/bootstrap.ts';
 import { tripEventStorage } from '../../../accounts/blobTripStorage.ts';
 import { listTripsForUser } from '../../../accounts/tripRepository.ts';
+import { createMeHandlers } from '../../../accounts/meHandler.ts';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ request }) => {
-  try {
-    const auth = await authenticateRequest(request);
-    await ensureKuzeyTrip(tripEventStorage);
-    const trips = await listTripsForUser(tripEventStorage, auth.actor);
-    return json({ user: auth.account, trips });
-  } catch (error) {
-    return errorResponse(error);
-  }
-};
+const handlers = createMeHandlers({
+  authenticate: authenticateRequest,
+  updateTravelProfile,
+  ensureKuzeyTrip: () => ensureKuzeyTrip(tripEventStorage),
+  listTripsForUser: (actor) => listTripsForUser(tripEventStorage, actor),
+});
 
-export const PATCH: APIRoute = async ({ request }) => {
-  try {
-    const auth = await authenticateRequest(request);
-    const body = await requestJSON<{ travelProfile?: TravelProfileRecord }>(request);
-    if (!body.travelProfile) throw new Error('invalid_travel_profile');
-    const user = await updateTravelProfile(auth.account.id, body.travelProfile);
-    return json({ user });
-  } catch (error) {
-    return errorResponse(error);
-  }
-};
+export const GET: APIRoute = ({ request }) => handlers.GET(request);
+export const PATCH: APIRoute = ({ request }) => handlers.PATCH(request);

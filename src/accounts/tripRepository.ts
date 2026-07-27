@@ -1,0 +1,215 @@
+import { randomUUID } from 'node:crypto';
+import {
+  can,
+  featuresFor,
+  foldTripEvents,
+  normalizeEmail,
+  type GlobalRole,
+  type TripAction,
+  type TripEvent,
+  type TripEventType,
+  type TripRecord,
+  type TripRole,
+  type TransportMode,
+  type RouteStopRecord,
+} from './domain.ts';
+
+export interface TripEventStorage {
+  listTripIds(): Promise<string[]>;
+  list(tripId: string): Promise<TripEvent[]>;
+  append(event: TripEvent): Promise<void>;
+}
+
+export type TripActor = {
+  userId: string;
+  globalRole: GlobalRole;
+};
+
+export type TripAccessView = {
+  tripRole: TripRole | null;
+  canEditTrip: boolean;
+  canEditStops: boolean;
+  canEditJournal: boolean;
+  canManageMembers: boolean;
+  canStartRoute: boolean;
+  canDeleteTrip: boolean;
+};
+
+export type TripView = TripRecord & {
+  features: ReturnType<typeof featuresFor>;
+  access: TripAccessView;
+};
+
+export class TripRepositoryError extends Error {
+  readonly code: string;
+  readonly current?: TripRecord;
+
+  constructor(
+    code: string,
+    message = code,
+    current?: TripRecord,
+  ) {
+    super(message);
+    this.code = code;
+    this.current = current;
+  }
+}
+
+export const createTrip = async (
+  storage: TripEventStorage,
+  actor: TripActor,
+  input: { name: string; kind?: string; transportMode?: TransportMode; stops: RouteStopRecord[] },
+): Promise<TripRecord> => {
+  if (input.kind && input.kind !== 'standard') throw new TripRepositoryError('reserved_trip_kind');
+  if (input.transportMode && !['automobile', 'walking', 'flight'].includes(input.transportMode)) {
+    throw new TripRepositoryError('invalid_transport_mode');
+  }
+  const name = input.name.trim();
+  if (!name) throw new TripRepositoryError('trip_name_required');
+  if (input.stops.length > 50) throw new TripRepositoryError('too_many_stops');
+  const tripId = randomUUID();
+  const occurredAt = new Date().toISOString();
+  await storage.append(event(tripId, actor.userId, 1, 'tripCreated', {
+    name,
+    kind: 'standard',
+    transportMode: input.transportMode ?? 'automobile',
+    ownerUserId: actor.userId,
+  }, occurredAt));
+
+  let revision = 1;
+  for (const [index, stop] of input.stops.entries()) {
+    revision += 1;
+    await storage.append(event(tripId, actor.userId, revision, 'stopAdded', {
+      stop: { ...stop, order: index },
+    }));
+  }
+  return loadTrip(storage, tripId);
+};
+
+export const getTripForUser = async (
+  storage: TripEventStorage,
+  actor: TripActor,
+  tripId: string,
+): Promise<TripView> => {
+  const trip = await loadTrip(storage, tripId);
+  const tripRole = trip.members.find((member) => member.userId === actor.userId)?.role ?? null;
+  const access = { globalRole: actor.globalRole, tripRole };
+  if (!can(access, 'read')) throw new TripRepositoryError('forbidden');
+  return {
+    ...trip,
+    features: featuresFor(trip.kind),
+    access: {
+      tripRole,
+      canEditTrip: can(access, 'editTrip'),
+      canEditStops: can(access, 'editStops'),
+      canEditJournal: can(access, 'editJournal'),
+      canManageMembers: can(access, 'manageMembers'),
+      canStartRoute: can(access, 'startRoute'),
+      canDeleteTrip: can(access, 'deleteTrip'),
+    },
+  };
+};
+
+export const listTripsForUser = async (
+  storage: TripEventStorage,
+  actor: TripActor,
+): Promise<TripView[]> => {
+  const tripIds = await storage.listTripIds();
+  const results = await Promise.all(tripIds.map(async (tripId) => {
+    try {
+      return await getTripForUser(storage, actor, tripId);
+    } catch (error) {
+      if (error instanceof TripRepositoryError && error.code === 'forbidden') return null;
+      throw error;
+    }
+  }));
+  return results.filter((trip): trip is TripView => trip !== null);
+};
+
+export const mutateTrip = async (
+  storage: TripEventStorage,
+  actor: TripActor,
+  input: {
+    tripId: string;
+    baseRevision: number;
+    type: Exclude<TripEventType, 'tripCreated' | 'memberInvited'>;
+    payload: Record<string, unknown>;
+  },
+): Promise<TripRecord> => {
+  const current = await loadTrip(storage, input.tripId);
+  requireAction(current, actor, actionFor(input.type));
+  requireCurrentRevision(current, input.baseRevision);
+  await storage.append(event(
+    current.id,
+    actor.userId,
+    current.revision + 1,
+    input.type,
+    input.payload,
+  ));
+  return loadTrip(storage, current.id);
+};
+
+export const inviteMember = async (
+  storage: TripEventStorage,
+  actor: TripActor,
+  input: {
+    tripId: string;
+    baseRevision: number;
+    email: string;
+    role: Exclude<TripRole, 'owner'>;
+  },
+): Promise<TripRecord> => {
+  const current = await loadTrip(storage, input.tripId);
+  requireAction(current, actor, 'manageMembers');
+  requireCurrentRevision(current, input.baseRevision);
+  const email = normalizeEmail(input.email);
+  if (!/^\S+@\S+\.\S+$/.test(email)) throw new TripRepositoryError('invalid_email');
+  if (input.role !== 'member' && input.role !== 'viewer') throw new TripRepositoryError('invalid_invite_role');
+  await storage.append(event(current.id, actor.userId, current.revision + 1, 'memberInvited', {
+    email,
+    role: input.role,
+  }));
+  return loadTrip(storage, current.id);
+};
+
+const loadTrip = async (storage: TripEventStorage, tripId: string): Promise<TripRecord> => {
+  const events = await storage.list(tripId);
+  if (events.length === 0) throw new TripRepositoryError('trip_not_found');
+  return foldTripEvents(events);
+};
+
+const requireAction = (trip: TripRecord, actor: TripActor, action: TripAction): void => {
+  const tripRole = trip.members.find((member) => member.userId === actor.userId)?.role ?? null;
+  if (!can({ globalRole: actor.globalRole, tripRole }, action)) throw new TripRepositoryError('forbidden');
+};
+
+const requireCurrentRevision = (trip: TripRecord, baseRevision: number): void => {
+  if (trip.revision !== baseRevision) {
+    throw new TripRepositoryError('revision_conflict', 'revision_conflict', trip);
+  }
+};
+
+const actionFor = (type: Exclude<TripEventType, 'tripCreated' | 'memberInvited'>): TripAction => {
+  if (type === 'tripUpdated') return 'editTrip';
+  if (type === 'stopAdded' || type === 'stopUpdated' || type === 'stopRemoved' || type === 'stopsReordered' || type === 'stopsReplaced') {
+    return 'editStops';
+  }
+  return 'manageMembers';
+};
+
+const event = (
+  tripId: string,
+  actorUserId: string,
+  revision: number,
+  type: TripEventType,
+  payload: Record<string, unknown>,
+  occurredAt = new Date().toISOString(),
+): TripEvent => ({
+  id: randomUUID(),
+  tripId,
+  revision,
+  occurredAt,
+  actorUserId,
+  type,
+  payload,
+});

@@ -34,6 +34,18 @@ type SessionRecord = {
   revokedAt: string | null;
 };
 
+export type AccountStore = {
+  read<T>(pathname: string): Promise<T | null>;
+  write(pathname: string, value: unknown): Promise<void>;
+};
+
+export type AccountRepository = {
+  upsertAppleAccount(identity: AppleIdentity, displayName: string | null): Promise<AccountRecord>;
+  accountById(id: string): Promise<AccountRecord | null>;
+  accountByEmail(email: string): Promise<AccountRecord | null>;
+  updateTravelProfile(userId: string, profile: Partial<TravelProfileRecord>): Promise<AccountRecord>;
+};
+
 const subjectId = (subject: string): string => {
   const secret = import.meta.env.AUTH_SESSION_SECRET;
   if (!secret) {
@@ -43,36 +55,68 @@ const subjectId = (subject: string): string => {
   return createHmac('sha256', secret).update(subject).digest('hex');
 };
 
-export const upsertAppleAccount = async (
-  identity: AppleIdentity,
-  displayName: string | null,
-): Promise<AccountRecord> => {
-  const id = subjectId(identity.appleSubject);
-  const existing = await accountById(id);
-  const now = new Date().toISOString();
-  const email = identity.email ? normalizeEmail(identity.email) : existing?.email ?? null;
-  const record: AccountRecord = {
-    id,
-    email,
-    displayName: displayName?.trim() || existing?.displayName || null,
-    globalRole: existing?.globalRole === 'globalAdmin' ? 'globalAdmin' : resolveGlobalRole(email),
-    createdAt: existing?.createdAt ?? now,
-    updatedAt: now,
-    travelProfile: existing?.travelProfile ?? defaultTravelProfile(
-      displayName?.trim() || existing?.displayName || '', email, now,
-    ),
+export const createAccountRepository = (dependencies: AccountStore & {
+  subjectId?: (subject: string) => string;
+  now?: () => string;
+}): AccountRepository => {
+  const now = dependencies.now ?? (() => new Date().toISOString());
+  const identifier = dependencies.subjectId ?? subjectId;
+  const userPath = (id: string) => `accounts/users/${id}.json`;
+  const profilePath = (id: string) => `accounts/profiles/${id}.json`;
+
+  const accountById = async (id: string): Promise<AccountRecord | null> => {
+    const account = await dependencies.read<AccountRecord>(userPath(id));
+    if (!account) return null;
+    const profile = await dependencies.read<TravelProfileRecord>(profilePath(id));
+    return {
+      ...account,
+      travelProfile: profile ?? account.travelProfile ?? defaultTravelProfile(account.displayName ?? '', account.email, account.updatedAt),
+    };
   };
-  await writePrivateJSON(`accounts/users/${id}.json`, record);
-  if (email) await writePrivateJSON(`accounts/email-index/${emailHash(email)}.json`, { userId: id });
-  return record;
-};
 
-export const accountById = (id: string): Promise<AccountRecord | null> =>
-  readPrivateJSON<AccountRecord>(`accounts/users/${id}.json`);
+  const accountByEmail = async (email: string): Promise<AccountRecord | null> => {
+    const link = await dependencies.read<{ userId: string }>(`accounts/email-index/${emailHash(email)}.json`);
+    return link ? accountById(link.userId) : null;
+  };
 
-export const accountByEmail = async (email: string): Promise<AccountRecord | null> => {
-  const link = await readPrivateJSON<{ userId: string }>(`accounts/email-index/${emailHash(email)}.json`);
-  return link ? accountById(link.userId) : null;
+  return {
+    accountById,
+    accountByEmail,
+    upsertAppleAccount: async (identity, displayName) => {
+      const id = identifier(identity.appleSubject);
+      const existing = await accountById(id);
+      const timestamp = now();
+      const email = identity.email ? normalizeEmail(identity.email) : existing?.email ?? null;
+      const travelProfile = existing?.travelProfile ?? defaultTravelProfile(
+        displayName?.trim() || existing?.displayName || '', email, timestamp,
+      );
+      const record: AccountRecord = {
+        id,
+        email,
+        displayName: displayName?.trim() || existing?.displayName || null,
+        globalRole: existing?.globalRole === 'globalAdmin' ? 'globalAdmin' : resolveGlobalRole(email),
+        createdAt: existing?.createdAt ?? timestamp,
+        updatedAt: timestamp,
+        travelProfile,
+      };
+      await dependencies.write(userPath(id), record);
+      if (!existing) await dependencies.write(profilePath(id), travelProfile);
+      if (email) await dependencies.write(`accounts/email-index/${emailHash(email)}.json`, { userId: id });
+      return record;
+    },
+    updateTravelProfile: async (userId, profile) => {
+      const account = await accountById(userId);
+      if (!account) throw new Error('account_not_found');
+      const timestamp = now();
+      const travelProfile = { ...normalizeTravelProfile(profile, account.travelProfile), updatedAt: timestamp };
+      // The profile blob is authoritative: an interleaved Apple upsert can only overwrite
+      // the account mirror, never a completed profile update.
+      await dependencies.write(profilePath(userId), travelProfile);
+      const updated: AccountRecord = { ...account, updatedAt: timestamp, travelProfile };
+      await dependencies.write(userPath(userId), updated);
+      return updated;
+    },
+  };
 };
 
 export const normalizeTravelProfile = (
@@ -103,7 +147,7 @@ export const normalizeTravelProfile = (
   if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) return invalid();
   const totalLength = input.totalLengthMeters === undefined ? fallback?.totalLengthMeters ?? null : input.totalLengthMeters;
   if (totalLength !== null && (!Number.isFinite(totalLength) || totalLength < 1 || totalLength > 30)) return invalid();
-  const preferredLanguage = input.preferredLanguage ?? fallback?.preferredLanguage ?? 'english';
+  const preferredLanguage = input.preferredLanguage === undefined ? fallback?.preferredLanguage ?? 'english' : input.preferredLanguage;
   if (preferredLanguage !== 'english' && preferredLanguage !== 'turkish') return invalid();
   return {
     contactName: string(input.contactName, 120, fallback?.contactName),
@@ -120,21 +164,12 @@ export const normalizeTravelProfile = (
   };
 };
 
-export const updateTravelProfile = async (
-  userId: string,
-  profile: Partial<TravelProfileRecord>,
-): Promise<AccountRecord> => {
-  const account = await accountById(userId);
-  if (!account) throw new Error('account_not_found');
-  const now = new Date().toISOString();
-  const updated: AccountRecord = {
-    ...account,
-    updatedAt: now,
-    travelProfile: { ...normalizeTravelProfile(profile, account.travelProfile), updatedAt: now },
-  };
-  await writePrivateJSON(`accounts/users/${userId}.json`, updated);
-  return updated;
-};
+const productionRepository = createAccountRepository({ read: readPrivateJSON, write: writePrivateJSON });
+
+export const upsertAppleAccount = productionRepository.upsertAppleAccount;
+export const accountById = productionRepository.accountById;
+export const accountByEmail = productionRepository.accountByEmail;
+export const updateTravelProfile = productionRepository.updateTravelProfile;
 
 export const saveSession = async (id: string, userId: string, expiresAt: Date): Promise<void> => {
   const record: SessionRecord = { id, userId, expiresAt: expiresAt.toISOString(), revokedAt: null };

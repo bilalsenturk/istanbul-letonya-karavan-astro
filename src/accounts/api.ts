@@ -1,6 +1,7 @@
 import type { AccountRecord } from './accountRepository.ts';
 import { accountById, sessionIsActive } from './accountRepository.ts';
 import { requireSession } from './session.ts';
+import { UnauthorizedError } from './session.ts';
 import { TripRepositoryError, type TripActor } from './tripRepository.ts';
 
 export type AuthenticatedRequest = {
@@ -11,9 +12,9 @@ export type AuthenticatedRequest = {
 
 export const authenticateRequest = async (request: Request): Promise<AuthenticatedRequest> => {
   const claims = await requireSession(request);
-  if (!(await sessionIsActive(claims.sessionId, claims.userId))) throw new Error('session_revoked');
+  if (!(await sessionIsActive(claims.sessionId, claims.userId))) throw new UnauthorizedError();
   const account = await accountById(claims.userId);
-  if (!account) throw new Error('account_not_found');
+  if (!account) throw new UnauthorizedError();
   return {
     account,
     actor: { userId: account.id, globalRole: account.globalRole },
@@ -30,6 +31,7 @@ export const json = (value: unknown, status = 200): Response => new Response(JSO
 });
 
 export const errorResponse = (error: unknown): Response => {
+  if (error instanceof UnauthorizedError) return json({ error: 'unauthorized', message: messageFor('unauthorized') }, 401);
   if (error instanceof TripRepositoryError) {
     const status = error.code === 'forbidden' ? 403
       : error.code === 'trip_not_found' ? 404
@@ -37,26 +39,29 @@ export const errorResponse = (error: unknown): Response => {
     return json({ error: error.code, message: messageFor(error.code), current: error.current }, status);
   }
   const code = error instanceof Error ? error.message : 'unknown_error';
-  const status = code.includes('authentication') || code.includes('token') || code.includes('session') ? 401
+  const status = code === 'invalid_json' || code === 'invalid_request_body' ? 400
     : code === 'invalid_travel_profile' ? 422 : 500;
-  return json({ error: code, message: messageFor(code) }, status);
+  return json({ error: status === 500 ? 'internal_error' : code, message: messageFor(status === 500 ? 'internal_error' : code) }, status);
 };
 
 export const requestJSON = async <T>(request: Request): Promise<T> => {
   try {
     return await request.json() as T;
   } catch {
-    throw new TripRepositoryError('invalid_json');
+    throw new Error('invalid_json');
   }
 };
 
 const messages: Record<string, string> = {
-  authentication_required: 'Oturum açmanız gerekiyor.',
+  unauthorized: 'Oturum açmanız gerekiyor.',
   session_revoked: 'Oturum sona erdi. Yeniden giriş yapın.',
   forbidden: 'Bu işlem için yetkiniz yok.',
   revision_conflict: 'Rota başka bir cihazda değişti. Güncel sürüm yüklendi.',
   invalid_email: 'Geçerli bir e-posta girin.',
   invalid_travel_profile: 'Seyahat profili alanlarını kontrol edin.',
+  invalid_json: 'Geçerli bir istek gövdesi gönderin.',
+  invalid_request_body: 'Geçerli bir istek gövdesi gönderin.',
+  internal_error: 'İşlem tamamlanamadı.',
   reserved_trip_kind: 'Bu rota türü yalnızca Kuzey yolculuğuna ayrılmıştır.',
 };
 
