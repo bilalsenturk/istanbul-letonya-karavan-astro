@@ -24,6 +24,8 @@ assert.equal(travelProfile.updatedAt, '2026-07-26T08:00:00.000Z');
 for (const timestamp of ['2027-02-30T00:00:00Z', '2027-13-01T00:00:00Z', '2027-02-29T00:00:00Z', '2027-01-01T24:00:00Z']) {
   assert.throws(() => normalizeTravelProfile({ ...travelProfile, updatedAt: timestamp }), /invalid_travel_profile/);
 }
+assert.equal(normalizeTravelProfile({ ...travelProfile, updatedAt: '2028-02-29T12:34:56Z' }).updatedAt, '2028-02-29T12:34:56.000Z');
+assert.equal(normalizeTravelProfile({ ...travelProfile, updatedAt: '2028-02-29T12:34:56.789Z' }).updatedAt, '2028-02-29T12:34:56.789Z');
 assert.throws(() => normalizeTravelProfile({ ...travelProfile, adults: 99 }), /invalid_travel_profile/);
 assert.throws(() => normalizeTravelProfile({ ...travelProfile, children: -1 }), /invalid_travel_profile/);
 assert.throws(() => normalizeTravelProfile({ ...travelProfile, totalLengthMeters: 30.1 }), /invalid_travel_profile/);
@@ -149,6 +151,20 @@ const equalRepository = createAccountRepository({
   subjectId: (subject) => `user-${subject}`,
 });
 assert.equal((await equalRepository.accountById('user-equal')).travelProfile.contactName, 'Patch N');
+const orderingData = new Map();
+const orderingAccount = { ...equalSnapshot, id: 'user-ordering' };
+orderingData.set('accounts/users/user-ordering.json', orderingAccount);
+const orderingPrefix = 'accounts/profiles/user-ordering/revisions/';
+orderingData.set(`${orderingPrefix}a.json`, { profile: { ...travelProfile, contactName: 'Path A', updatedAt: equalTime }, kind: 'appleSeed', revisionId: 'same', writtenAt: equalTime });
+orderingData.set(`${orderingPrefix}z.json`, { profile: { ...travelProfile, contactName: 'Path Z', updatedAt: equalTime }, kind: 'appleSeed', revisionId: 'same', writtenAt: equalTime });
+const orderedRead = (reverse) => createAccountRepository({
+  read: async (path) => orderingData.has(path) ? structuredClone(orderingData.get(path)) : null,
+  write: async (path, value) => { orderingData.set(path, structuredClone(value)); },
+  list: async (prefix) => [...orderingData.keys()].filter((path) => path.startsWith(prefix)).sort(reverse ? (a, b) => b > a ? 1 : -1 : (a, b) => a > b ? 1 : -1),
+  subjectId: (subject) => `user-${subject}`,
+});
+assert.equal((await orderedRead(false).accountById('user-ordering')).travelProfile.contactName, 'Path Z');
+assert.equal((await orderedRead(true).accountById('user-ordering')).travelProfile.contactName, 'Path Z');
 for (const badEnvelope of [
   { profile: { ...travelProfile, contactName: 'Bad kind', updatedAt: equalTime }, kind: 'bad', revisionId: 'x', writtenAt: equalTime },
   { profile: { ...travelProfile, contactName: 'Bad id', updatedAt: equalTime }, kind: 'userUpdate', revisionId: {}, writtenAt: equalTime },
