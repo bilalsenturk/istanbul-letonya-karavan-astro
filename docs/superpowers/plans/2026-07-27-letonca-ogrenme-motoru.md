@@ -1736,7 +1736,7 @@ git commit -m "feat: add Latvian progress store, lesson composition, and mastery
 
 **Files:**
 - Create: `ios/Karavan/Learning/LatvianFSRSAdapter.swift`
-- Modify: `ios/Karavan.xcodeproj/project.pbxproj` (Xcode üzerinden)
+- Modify: `ios/project.yml`
 
 **Interfaces:**
 - Consumes: `LatvianScheduler`, `LatvianMemoryCard`, `LatvianRating` (Görev 4)
@@ -1744,9 +1744,34 @@ git commit -m "feat: add Latvian progress store, lesson composition, and mastery
 
 Bu dosya `ios/Tests/run-latvian-check.sh` içine **eklenmez** — SPM bağımlılığı `swiftc` ile derlenemez. Testler `LatvianDefaultScheduler` ile çalışmaya devam eder.
 
-- [ ] **Step 1: SPM bağımlılığını ekle**
+- [ ] **Step 1: SPM bağımlılığını `project.yml`'ye ekle**
 
-Xcode'da `Karavan` projesini aç → `File > Add Package Dependencies` → adres: `https://github.com/open-spaced-repetition/swift-fsrs` → `Dependency Rule: Up to Next Major` → `Add Package` → hedef `Karavan`.
+Xcode projesi `xcodegen` ile üretiliyor — Xcode arayüzünden paket eklenmez, `ios/project.yml` düzenlenip `xcodegen` çalıştırılır.
+
+`ios/project.yml` içinde `targets:` satırının **üstüne** yeni bir üst düzey bölüm ekle:
+
+```yaml
+packages:
+  FSRS:
+    url: https://github.com/open-spaced-repetition/swift-fsrs
+    majorVersion: 1.0.0
+```
+
+Ve `Kuzey` hedefinin `dependencies:` listesine satır ekle:
+
+```yaml
+      - package: FSRS
+```
+
+Ardından projeyi yeniden üret:
+
+```bash
+cd ios && xcodegen && grep -c "swift-fsrs" Kuzey.xcodeproj/project.pbxproj
+```
+
+Beklenen: `xcodegen` hatasız biter ve grep sayısı 0'dan büyük. Sıfırsa paket bağlanmamıştır — `project.yml` girintilerini kontrol et.
+
+Paketin gerçek sürüm etiketi `1.0.0`'dan farklıysa `xcodegen` sonrası çözümleme hata verir; `git ls-remote --tags https://github.com/open-spaced-repetition/swift-fsrs | tail -5` ile en son etiketi bul ve `majorVersion` değerini ona göre yaz.
 
 - [ ] **Step 2: Bağlayıcıyı yaz**
 
@@ -1802,7 +1827,7 @@ Not: `swift-fsrs`'in genel API adları sürümle değişebilir. Derleme hatası 
 - [ ] **Step 3: Uygulamayı derle**
 
 ```bash
-xcodebuild -project ios/Karavan.xcodeproj -scheme Karavan -destination 'generic/platform=iOS Simulator' build 2>&1 | tail -20
+xcodebuild -project ios/Kuzey.xcodeproj -scheme Kuzey -destination 'generic/platform=iOS Simulator' build 2>&1 | tail -20
 ```
 
 Beklenen: `BUILD SUCCEEDED`.
@@ -1818,7 +1843,7 @@ Beklenen: tüm kontroller geçer. FSRS bağlayıcısı test derlemesine girmedi�
 - [ ] **Step 5: Commit**
 
 ```bash
-git add ios/Karavan/Learning/LatvianFSRSAdapter.swift ios/Karavan.xcodeproj
+git add ios/Karavan/Learning/LatvianFSRSAdapter.swift ios/project.yml ios/Kuzey.xcodeproj
 git commit -m "feat: wire swift-fsrs scheduler behind Latvian scheduler protocol"
 ```
 

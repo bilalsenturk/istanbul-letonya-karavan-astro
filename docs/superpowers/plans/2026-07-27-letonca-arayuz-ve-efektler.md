@@ -313,17 +313,171 @@ git commit -m "feat: add Latvian lesson session flow with hearts and combo"
 - Consumes: yok
 - Produces: `enum LatvianMotion` (`snap`, `pop`, `slide`, `shakeOffsets`); `@MainActor final class LatvianFeedback` (`correct()`, `wrong()`, `combo()`, `heartLost()`, `lessonComplete()`, `streakUp()`, `tap()`, `xpTick()`, `var soundsEnabled: Bool`); `enum LatvianMascotMood { idle, thinking, correct, wrong, celebrate }`; `struct LatvianMascot: View`.
 
-- [ ] **Step 1: Ses dosyalarını indir**
+- [ ] **Step 1: Ses efektlerini üret**
 
-```bash
-mkdir -p ios/Karavan/Resources/Sounds
+Sesler indirilmiyor, üretiliyor. Arayüz efektleri kısa sentezlenmiş tonlardır; kendimiz üretmek lisans sorununu tamamen kaldırır, dosyaları birkaç KB'de tutar ve tonları uygulamanın hissine göre ayarlamamızı sağlar.
+
+`tools/generate-ui-sounds.mjs` dosyasını oluştur:
+
+```javascript
+#!/usr/bin/env node
+// Letonca kursunun 8 arayüz sesini üretir. Girdi yok, ağ yok.
+//
+//   node tools/generate-ui-sounds.mjs
+//
+// Çıktı: ios/Karavan/Resources/Sounds/lv-*.wav (mono, 44.1 kHz, 16-bit)
+
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+const SAMPLE_RATE = 44_100;
+const OUT_DIR = path.join(process.cwd(), 'ios/Karavan/Resources/Sounds');
+
+/** Bir nota: frekans (Hz), başlangıç (s), süre (s), yükseklik, dalga biçimi. */
+const SOUNDS = {
+  // Yükselen iki nota — onay.
+  'lv-correct': [
+    { freq: 784, start: 0, duration: 0.09, gain: 0.5, wave: 'triangle' },
+    { freq: 1175, start: 0.07, duration: 0.16, gain: 0.5, wave: 'triangle' },
+  ],
+  // Alçalan boğuk ikili — hata. Sert değil, cezalandırıcı değil.
+  'lv-wrong': [
+    { freq: 220, start: 0, duration: 0.14, gain: 0.45, wave: 'square' },
+    { freq: 165, start: 0.1, duration: 0.2, gain: 0.4, wave: 'square' },
+  ],
+  // Dört notalı yükselen arpej — ders bitişi.
+  'lv-complete': [
+    { freq: 523, start: 0, duration: 0.12, gain: 0.42, wave: 'triangle' },
+    { freq: 659, start: 0.09, duration: 0.12, gain: 0.42, wave: 'triangle' },
+    { freq: 784, start: 0.18, duration: 0.12, gain: 0.42, wave: 'triangle' },
+    { freq: 1047, start: 0.27, duration: 0.34, gain: 0.5, wave: 'triangle' },
+  ],
+  // Çok kısa tık — XP sayacı.
+  'lv-xp': [{ freq: 1568, start: 0, duration: 0.045, gain: 0.3, wave: 'sine' }],
+  // Kalp kaybı: hızlı düşen kayma.
+  'lv-heart': [
+    { freq: 440, start: 0, duration: 0.06, gain: 0.4, wave: 'sine' },
+    { freq: 294, start: 0.05, duration: 0.13, gain: 0.36, wave: 'sine' },
+  ],
+  // Seri uzadı: parlak, yükselen üçlü.
+  'lv-streak': [
+    { freq: 659, start: 0, duration: 0.08, gain: 0.4, wave: 'triangle' },
+    { freq: 880, start: 0.07, duration: 0.08, gain: 0.4, wave: 'triangle' },
+    { freq: 1319, start: 0.14, duration: 0.26, gain: 0.46, wave: 'triangle' },
+  ],
+  // Dokunuş: neredeyse duyulmayan tık.
+  'lv-tap': [{ freq: 1046, start: 0, duration: 0.028, gain: 0.18, wave: 'sine' }],
+  // Kombo: iki hızlı yüksek nota.
+  'lv-combo': [
+    { freq: 1047, start: 0, duration: 0.06, gain: 0.4, wave: 'triangle' },
+    { freq: 1568, start: 0.055, duration: 0.14, gain: 0.44, wave: 'triangle' },
+  ],
+};
+
+await fs.mkdir(OUT_DIR, { recursive: true });
+
+for (const [name, notes] of Object.entries(SOUNDS)) {
+  const samples = render(notes);
+  const file = path.join(OUT_DIR, `${name}.wav`);
+  await fs.writeFile(file, encodeWav(samples));
+  const ms = Math.round((samples.length / SAMPLE_RATE) * 1000);
+  console.log(`✓ ${name}.wav — ${ms} ms, ${Math.round(encodeWav(samples).length / 1024)} KB`);
+}
+
+console.log(`\n${Object.keys(SOUNDS).length} ses üretildi: ${path.relative(process.cwd(), OUT_DIR)}`);
+
+function render(notes) {
+  const totalSeconds = Math.max(...notes.map(note => note.start + note.duration)) + 0.02;
+  const samples = new Float32Array(Math.ceil(totalSeconds * SAMPLE_RATE));
+
+  for (const note of notes) {
+    const startSample = Math.floor(note.start * SAMPLE_RATE);
+    const length = Math.floor(note.duration * SAMPLE_RATE);
+    for (let index = 0; index < length; index += 1) {
+      const position = index / length;
+      const time = index / SAMPLE_RATE;
+      samples[startSample + index] += oscillator(note.wave, note.freq, time)
+        * note.gain
+        * envelope(position);
+    }
+  }
+
+  // Kırpılmayı önlemek için tepe değerine göre normalize et.
+  let peak = 0;
+  for (const value of samples) peak = Math.max(peak, Math.abs(value));
+  if (peak > 0.92) {
+    const scale = 0.92 / peak;
+    for (let index = 0; index < samples.length; index += 1) samples[index] *= scale;
+  }
+  return samples;
+}
+
+function oscillator(wave, freq, time) {
+  const phase = 2 * Math.PI * freq * time;
+  switch (wave) {
+    case 'square':
+      return Math.sin(phase) >= 0 ? 0.6 : -0.6;
+    case 'triangle':
+      return (2 / Math.PI) * Math.asin(Math.sin(phase));
+    default:
+      return Math.sin(phase);
+  }
+}
+
+/** Hızlı atak, üstel sönüm — arayüz sesleri için doğru zarf. */
+function envelope(position) {
+  const attack = 0.02;
+  if (position < attack) return position / attack;
+  return Math.exp(-4.2 * ((position - attack) / (1 - attack)));
+}
+
+function encodeWav(samples) {
+  const buffer = Buffer.alloc(44 + samples.length * 2);
+  buffer.write('RIFF', 0, 'ascii');
+  buffer.writeUInt32LE(36 + samples.length * 2, 4);
+  buffer.write('WAVE', 8, 'ascii');
+  buffer.write('fmt ', 12, 'ascii');
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20);
+  buffer.writeUInt16LE(1, 22);
+  buffer.writeUInt32LE(SAMPLE_RATE, 24);
+  buffer.writeUInt32LE(SAMPLE_RATE * 2, 28);
+  buffer.writeUInt16LE(2, 32);
+  buffer.writeUInt16LE(16, 34);
+  buffer.write('data', 36, 'ascii');
+  buffer.writeUInt32LE(samples.length * 2, 40);
+
+  for (let index = 0; index < samples.length; index += 1) {
+    const clamped = Math.max(-1, Math.min(1, samples[index]));
+    buffer.writeInt16LE(Math.round(clamped * 32_767), 44 + index * 2);
+  }
+  return buffer;
+}
 ```
 
-[kenney.nl/assets/interface-sounds](https://kenney.nl/assets/interface-sounds) ve [kenney.nl/assets/digital-audio](https://kenney.nl/assets/digital-audio) paketlerini (CC0) indir ve şu sekiz dosyayı `ios/Karavan/Resources/Sounds/` altına bu adlarla kopyala:
+`package.json` `scripts` bölümüne ekle:
 
-`lv-correct.wav`, `lv-wrong.wav`, `lv-complete.wav`, `lv-xp.wav`, `lv-heart.wav`, `lv-streak.wav`, `lv-tap.wav`, `lv-combo.wav`
+```json
+    "generate:sounds": "node tools/generate-ui-sounds.mjs",
+```
 
-Hepsini Xcode'da `Karavan` hedefine `Copy Bundle Resources` olarak ekle.
+Çalıştır:
+
+```bash
+npm run generate:sounds && ls -la ios/Karavan/Resources/Sounds/
+```
+
+Beklenen: sekiz `✓` satırı ve sekiz `.wav` dosyası. Her biri 4-60 KB arası.
+
+Sesleri dinleyerek doğrula:
+
+```bash
+for f in ios/Karavan/Resources/Sounds/*.wav; do echo "$f"; afplay "$f"; done
+```
+
+`lv-correct` yukarı doğru neşeli, `lv-wrong` aşağı doğru boğuk ama sert değil, `lv-tap` neredeyse duyulmaz olmalı. Değilse `SOUNDS` tablosundaki frekans ve `gain` değerlerini ayarlayıp tekrar üret.
+
+Ses dosyaları `Karavan/` altında olduğu için `ios/project.yml`'deki `sources: - path: Karavan` kuralıyla otomatik paketlenir; ayrıca bir kaynak tanımı gerekmez.
 
 - [ ] **Step 2: Hareket sabitlerini yaz**
 
@@ -642,7 +796,7 @@ Beğenmezsen bu adımda şekilleri değiştir — sonraki görevler maskotun gö
 - [ ] **Step 6: Commit**
 
 ```bash
-git add ios/Karavan/Views/Latvian/LatvianMotion.swift ios/Karavan/Views/Latvian/LatvianMascot.swift ios/Karavan/Learning/LatvianFeedback.swift ios/Karavan/Resources/Sounds ios/Karavan.xcodeproj
+git add ios/Karavan/Views/Latvian/LatvianMotion.swift ios/Karavan/Views/Latvian/LatvianMascot.swift ios/Karavan/Learning/LatvianFeedback.swift ios/Karavan/Resources/Sounds tools/generate-ui-sounds.mjs package.json
 git commit -m "feat: add Latvian motion constants, feedback layer, and SwiftUI mascot"
 ```
 
@@ -1222,17 +1376,20 @@ final class LatvianSpeechRecognizer: ObservableObject {
 }
 ```
 
-- [ ] **Step 5: `Info.plist` izinlerini ekle**
+- [ ] **Step 5: Mikrofon ve konuşma tanıma izinlerini doğrula**
 
-Xcode'da `Karavan` hedefi → `Info` sekmesi → iki anahtar ekle:
+`NSSpeechRecognitionUsageDescription` ve `NSMicrophoneUsageDescription` `ios/project.yml` içinde zaten tanımlı (sesli harcama özelliği için). Doğrula:
 
-- `NSSpeechRecognitionUsageDescription` = `Letonca telaffuzunu değerlendirmek için konuşmanı dinliyoruz.`
-- `NSMicrophoneUsageDescription` = `Letonca telaffuz alıştırması için mikrofonu kullanıyoruz.`
+```bash
+grep -n "NSSpeechRecognitionUsageDescription\|NSMicrophoneUsageDescription" ios/project.yml
+```
+
+Beklenen: iki satır da bulunur. Bulunmuyorsa `Support/Info.plist` altındaki `properties:` bloğuna ekle ve `cd ios && xcodegen` çalıştır. Metinler mevcut haliyle telaffuz alıştırmasını da kapsıyor; değiştirme.
 
 - [ ] **Step 6: Derle**
 
 ```bash
-xcodebuild -project ios/Karavan.xcodeproj -scheme Karavan -destination 'generic/platform=iOS Simulator' build 2>&1 | tail -20
+xcodebuild -project ios/Kuzey.xcodeproj -scheme Kuzey -destination 'generic/platform=iOS Simulator' build 2>&1 | tail -20
 ```
 
 `LatvianLearningView.swift` hâlâ eski tipleri kullandığı için hata verecek; yalnızca `Views/Latvian/Exercises/` altındaki dosyalarda hata olmadığını doğrula. O dosya Görev 5'te yeniden yazılıyor.
@@ -1240,7 +1397,7 @@ xcodebuild -project ios/Karavan.xcodeproj -scheme Karavan -destination 'generic/
 - [ ] **Step 7: Commit**
 
 ```bash
-git add ios/Karavan/Views/Latvian/Exercises ios/Karavan.xcodeproj
+git add ios/Karavan/Views/Latvian/Exercises
 git commit -m "feat: add five Latvian exercise views"
 ```
 
@@ -1252,20 +1409,41 @@ git commit -m "feat: add five Latvian exercise views"
 - Create: `ios/Karavan/Views/Latvian/LatvianLessonView.swift`
 - Create: `ios/Karavan/Views/Latvian/LatvianAnswerPanel.swift`
 - Create: `ios/Karavan/Views/Latvian/LatvianLessonCompleteView.swift`
-- Modify: `ios/Karavan.xcodeproj` (SPM bağımlılıkları)
+- Modify: `ios/Kuzey.xcodeproj` (SPM bağımlılıkları)
 
 **Interfaces:**
 - Consumes: `LatvianLessonSession`, `LatvianExercise`, Görev 2-3'teki her şey
 - Produces: `struct LatvianLessonView: View` — `init(exercises:pack:audio:feedback:onFinish:)`, `onFinish: (LatvianLessonOutcome) -> Void`; `struct LatvianLessonOutcome { xp, accuracy, isFailed, ratings: [(wordId: String, modality: LatvianModality, rating: LatvianRating)] }`.
 
-- [ ] **Step 1: SPM bağımlılıklarını ekle**
+- [ ] **Step 1: SPM bağımlılıklarını `project.yml`'ye ekle**
 
-Xcode → `File > Add Package Dependencies`:
+Proje `xcodegen` ile üretiliyor; paketler Xcode arayüzünden değil `ios/project.yml`'den eklenir.
 
-- `https://github.com/simibac/ConfettiSwiftUI` → `Up to Next Major`
-- `https://github.com/airbnb/lottie-ios` → `Up to Next Major`
+`packages:` bölümüne (önceki planda `FSRS` için oluşturuldu) iki giriş ekle:
 
-İkisini de `Karavan` hedefine ekle.
+```yaml
+  ConfettiSwiftUI:
+    url: https://github.com/simibac/ConfettiSwiftUI
+    majorVersion: 2.0.0
+  Lottie:
+    url: https://github.com/airbnb/lottie-ios
+    majorVersion: 4.0.0
+```
+
+Ve `Kuzey` hedefinin `dependencies:` listesine ekle:
+
+```yaml
+      - package: ConfettiSwiftUI
+      - package: Lottie
+```
+
+Yeniden üret ve doğrula:
+
+```bash
+cd ios && xcodegen && grep -c "ConfettiSwiftUI" Kuzey.xcodeproj/project.pbxproj
+```
+
+Beklenen: grep sayısı 0'dan büyük. Sürüm çözümlemesi hata verirse `git ls-remote --tags <url> | tail -5` ile son etiketi bulup `majorVersion` değerini düzelt.
 
 - [ ] **Step 2: Cevap panelini yaz**
 
@@ -1642,7 +1820,7 @@ struct LatvianLessonCompleteView: View {
 - [ ] **Step 5: Commit**
 
 ```bash
-git add ios/Karavan/Views/Latvian ios/Karavan.xcodeproj
+git add ios/Karavan/Views/Latvian ios/project.yml ios/Kuzey.xcodeproj
 git commit -m "feat: add Latvian lesson shell, answer panel, and completion celebration"
 ```
 
@@ -2056,7 +2234,7 @@ struct LatvianLearningView: View {
 - [ ] **Step 5: Derle ve simülatörde çalıştır**
 
 ```bash
-xcodebuild -project ios/Karavan.xcodeproj -scheme Karavan -destination 'platform=iOS Simulator,name=iPhone 16' build 2>&1 | tail -20
+xcodebuild -project ios/Kuzey.xcodeproj -scheme Kuzey -destination 'platform=iOS Simulator,name=iPhone 16' build 2>&1 | tail -20
 ```
 
 Beklenen: `BUILD SUCCEEDED`.
@@ -2068,7 +2246,7 @@ Ses çalmıyorsa `data/lv-audio/` klasöründeki dosyaların Blob'a yüklendiği
 - [ ] **Step 6: Commit**
 
 ```bash
-git add ios/Karavan/Views ios/Karavan.xcodeproj
+git add ios/Karavan/Views
 git commit -m "feat: add Latvian course home with route map and lesson flow"
 ```
 
@@ -2407,7 +2585,7 @@ Beklenen: `=== Bildirim kuralları ===` altında on dokuz `✓`, çıkış kodu 
 - [ ] **Step 8: Derle ve tam akışı doğrula**
 
 ```bash
-xcodebuild -project ios/Karavan.xcodeproj -scheme Karavan -destination 'platform=iOS Simulator,name=iPhone 16' build 2>&1 | tail -20
+xcodebuild -project ios/Kuzey.xcodeproj -scheme Kuzey -destination 'platform=iOS Simulator,name=iPhone 16' build 2>&1 | tail -20
 ```
 
 Beklenen: `BUILD SUCCEEDED`. Simülatörde bir ders tamamla, bildirim izni istendiğini ve `Settings > Notifications` altında planlanmış bildirimlerin göründüğünü doğrula.
@@ -2512,7 +2690,7 @@ Beklenen: hepsi yeşil.
 - [ ] **Step 4: Uygulamayı derle ve tam turu at**
 
 ```bash
-xcodebuild -project ios/Karavan.xcodeproj -scheme Karavan -destination 'platform=iOS Simulator,name=iPhone 16' build 2>&1 | tail -20
+xcodebuild -project ios/Kuzey.xcodeproj -scheme Kuzey -destination 'platform=iOS Simulator,name=iPhone 16' build 2>&1 | tail -20
 ```
 
 Simülatörde şu turu tamamla ve her adımı gözle doğrula:
