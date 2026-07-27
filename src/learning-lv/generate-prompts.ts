@@ -149,3 +149,116 @@ function stripCodeFence(raw: string): string {
   const content = closingIndex === -1 ? withoutOpening : withoutOpening.slice(0, closingIndex);
   return content.trim();
 }
+
+export interface ReviewVerdict {
+  lv: string;
+  ok: boolean;
+  reason?: string;
+}
+
+const REVIEW_SYSTEM_PROMPT = [
+  'Sen Letonca anadili düzeyinde bir dil denetçisisin.',
+  'Sana verilen Letonca madde listesini tek tek denetleyeceksin.',
+  'Bir maddeyi yalnızca şu durumlarda reddet: Letoncası hatalı, Türkçe karşılığı yanlış,',
+  'hâl çekimi hatalı, ya da madde sahnenin kapsamıyla ilgisiz.',
+  'Doğru maddeleri reddetme. Yanıtını yalnızca JSON olarak ver.',
+].join(' ');
+
+export function buildReviewRequest(
+  draft: SceneDraft,
+  scene: ScenePlan,
+  model: string,
+): OpenRouterChatRequest {
+  const items = [
+    ...draft.words.map(word => ({
+      lv: word.lv,
+      tr: word.tr,
+      cekim: word.caseForm ? `${word.caseForm.form} (${word.caseForm.case})` : null,
+    })),
+    ...draft.sentences.map(sentence => ({ lv: sentence.lv, tr: sentence.tr, cekim: null })),
+  ];
+
+  const userPrompt = [
+    `Sahne: ${scene.title}`,
+    `Kapsam: ${scene.brief}`,
+    '',
+    'Denetlenecek maddeler:',
+    JSON.stringify(items, null, 2),
+    '',
+    'Şu JSON yapısını üret:',
+    '{"verdicts":[{"lv":"","ok":true,"reason":""}]}',
+    '',
+    'Her madde için tam bir karar ver. lv alanı sana verilenle birebir aynı olsun.',
+    'ok false ise reason alanına tek cümlelik Türkçe gerekçe yaz.',
+  ].join('\n');
+
+  return {
+    model,
+    messages: [
+      { role: 'system', content: REVIEW_SYSTEM_PROMPT },
+      { role: 'user', content: userPrompt },
+    ],
+    response_format: { type: 'json_object' },
+    temperature: 0,
+  };
+}
+
+export function parseReviewResponse(raw: string): ReviewVerdict[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stripCodeFence(raw));
+  } catch {
+    throw new Error('Denetim yanıtı JSON değil');
+  }
+  const verdicts = (parsed as { verdicts?: unknown }).verdicts;
+  if (!Array.isArray(verdicts)) throw new Error('Denetim yanıtında verdicts dizisi yok');
+  return verdicts
+    .filter(entry => typeof (entry as ReviewVerdict)?.lv === 'string')
+    .map(entry => {
+      const verdict = entry as ReviewVerdict;
+      return {
+        lv: verdict.lv.trim(),
+        ok: verdict.ok !== false,
+        reason: verdict.reason?.trim() || undefined,
+      };
+    });
+}
+
+export function applyReview(
+  draft: SceneDraft,
+  verdicts: readonly ReviewVerdict[],
+): { accepted: SceneDraft; dropped: Array<{ lv: string; reason: string }> } {
+  const rejectedBy = new Map<string, string>();
+  for (const verdict of verdicts) {
+    if (!verdict.ok) rejectedBy.set(verdict.lv.toLowerCase(), verdict.reason ?? 'denetim reddetti');
+  }
+
+  const dropped: Array<{ lv: string; reason: string }> = [];
+  const keepWord = (lv: string): boolean => {
+    const reason = rejectedBy.get(lv.toLowerCase());
+    if (reason) {
+      dropped.push({ lv, reason });
+      return false;
+    }
+    return true;
+  };
+
+  const words = draft.words.filter(word => keepWord(word.lv));
+  const survivingWords = new Set(words.map(word => word.lv.toLowerCase()));
+
+  // Elenen bir kelimeye bağlı cümle de düşer: o kelime artık pakette yok.
+  const sentences = draft.sentences.filter(sentence => {
+    if (!keepWord(sentence.lv)) return false;
+    const orphaned = sentence.usesWords.filter(lv => !survivingWords.has(lv.toLowerCase()));
+    if (orphaned.length === sentence.usesWords.length) {
+      dropped.push({ lv: sentence.lv, reason: `bağlı olduğu kelimeler elendi: ${orphaned.join(', ')}` });
+      return false;
+    }
+    return true;
+  }).map(sentence => ({
+    ...sentence,
+    usesWords: sentence.usesWords.filter(lv => survivingWords.has(lv.toLowerCase())),
+  }));
+
+  return { accepted: { words, sentences }, dropped };
+}

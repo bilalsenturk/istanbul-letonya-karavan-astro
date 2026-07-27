@@ -1,5 +1,11 @@
 import { filterByFrequency, parseFrequencyList } from '../src/learning-lv/frequency.ts';
-import { buildSceneRequest, parseSceneResponse } from '../src/learning-lv/generate-prompts.ts';
+import {
+  applyReview,
+  buildReviewRequest,
+  buildSceneRequest,
+  parseReviewResponse,
+  parseSceneResponse,
+} from '../src/learning-lv/generate-prompts.ts';
 import { PACK_VERSION, validatePack } from '../src/learning-lv/pack-schema.ts';
 import { SCENE_PLAN } from '../src/learning-lv/scenes.ts';
 
@@ -225,6 +231,38 @@ const plainJsonDraft = parseSceneResponse(
 );
 
 expect(plainJsonDraft.words.length === 1, 'çitsiz düz JSON yanıtı hâlâ ayrıştırılıyor');
+
+console.log('\n=== Denetim geçişi ===');
+
+const reviewDraft = {
+  words: [
+    { lv: 'kafija', tr: 'kahve', lemma: 'kafija' },
+    { lv: 'yanlışkelime', tr: 'saçma', lemma: 'yanlışkelime' },
+  ],
+  sentences: [
+    { lv: 'Es gribu kafiju.', tr: 'Kahve istiyorum.', usesWords: ['kafija'], supports: ['tr_to_lv'] },
+    { lv: 'Bu cümle yanlışkelime içerir.', tr: 'x', usesWords: ['yanlışkelime'], supports: ['order'] },
+  ],
+};
+
+const reviewRequest = buildReviewRequest(reviewDraft, SCENE_PLAN[2], 'google/gemini-3.1-flash');
+expect(reviewRequest.temperature === 0, 'denetim sıcaklığı sıfır');
+expect(reviewRequest.messages[1].content.includes('kafija'), 'maddeler denetim istemine giriyor');
+
+const verdicts = parseReviewResponse(
+  '{"verdicts":[{"lv":"kafija","ok":true},{"lv":"yanlışkelime","ok":false,"reason":"Letoncada böyle bir kelime yok"}]}',
+);
+expect(verdicts.length === 2, 'iki karar çözümleniyor');
+expect(verdicts[1].ok === false, 'ret kararı okunuyor');
+
+const reviewed = applyReview(reviewDraft, verdicts);
+expect(reviewed.accepted.words.length === 1, 'reddedilen kelime düşüyor');
+expect(reviewed.accepted.sentences.length === 1, 'öksüz kalan cümle düşüyor');
+expect(
+  reviewed.dropped.some(entry => entry.reason.includes('böyle bir kelime yok')),
+  'ret gerekçesi korunuyor',
+);
+expect(reviewed.accepted.sentences[0].lv === 'Es gribu kafiju.', 'geçerli cümle kalıyor');
 
 if (failures > 0) {
   console.error(`\n${failures} kontrol başarısız.`);
