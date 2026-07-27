@@ -86,6 +86,7 @@
 		8E67C1D2643A6A1CCA151B8A /* VoiceExpenseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29ABE562CEC889DE4C44F20A /* VoiceExpenseView.swift */; };
 		905C9DA1A6B44AABF80B09A2 /* RouteAnnouncementPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6C3FE82A4D2A72C6C58B545 /* RouteAnnouncementPolicy.swift */; };
 		91A7A4AF00849EC63ACF1005 /* RouteDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 951D0A85ADCE46B95E28C1FF /* RouteDraft.swift */; };
+		96066EEDCC6FEF578788971B /* LatvianAnswerPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE47ED178D4A0D39015DF22A /* LatvianAnswerPanel.swift */; };
 		97E4A7C1666A8B3E0DB1F8F3 /* AccountPreviewFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82F38AF9528057CFB313385F /* AccountPreviewFixtures.swift */; };
 		98203BBB392444D23B4B8A7D /* lv-a0-phoneme-long-a.wav in Resources */ = {isa = PBXBuildFile; fileRef = 60381A80163D3A30637AF850 /* lv-a0-phoneme-long-a.wav */; };
 		9952626709FCF1CC394E843F /* travel-content.json in Resources */ = {isa = PBXBuildFile; fileRef = 819AB5D14C463B536FAE8B15 /* travel-content.json */; };
@@ -94,6 +95,7 @@
 		9D2EE3E601345925BDEA151D /* PublishOutbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D37D4838C53B2F0A2D94B66 /* PublishOutbox.swift */; };
 		9D65F8215A7804576B305FB9 /* StopExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25CA028A20B4BE8F4D0ED411 /* StopExploreView.swift */; };
 		9D8DDBECC20E225D43C47798 /* JournalQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03DCAD8D74B488556BEED891 /* JournalQueue.swift */; };
+		9FD8D278A74E6E0537599478 /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 66226E6124A6D442A7150C3B /* ConfettiSwiftUI */; };
 		9FE1623DC11C12E120FA10A9 /* lv-a0-dictation-paldies.wav in Resources */ = {isa = PBXBuildFile; fileRef = F15DDC22F4EC6AF24FFF8A56 /* lv-a0-dictation-paldies.wav */; };
 		A51EF13DB9098CE6C8877536 /* latvian-pack.json in Resources */ = {isa = PBXBuildFile; fileRef = 0B26009BD58145101C6A2DFB /* latvian-pack.json */; };
 		A59FFDEF88DDBE3125C26C1A /* TripNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D701532F19396FBF2875EA /* TripNotifier.swift */; };
@@ -119,10 +121,12 @@
 		C11853ABEDB233B5100F09D2 /* ExpensesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 370CBB45D2A76FE6AC6681D0 /* ExpensesView.swift */; };
 		C1B584C0CEEF5E5EDC3E249B /* TripPlanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48245403E32764040394E43C /* TripPlanStore.swift */; };
 		C1CD5BD742E28B2406B8C33B /* CampImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45DECAA1995A716526093E8C /* CampImage.swift */; };
+		C1FF7D23A3E09531940DB2C9 /* LatvianLessonCompleteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 368DCFAB89CEBE57075FEC27 /* LatvianLessonCompleteView.swift */; };
 		C2A736BDB038838C86575507 /* learning-lv-tr-starter.json in Resources */ = {isa = PBXBuildFile; fileRef = 0D4FDDA724C90A444C3A074E /* learning-lv-tr-starter.json */; };
 		C35AE28C1535B5AE4E04BE01 /* ArrivalTargetPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 133D28C12AF8362B15AAF88E /* ArrivalTargetPickerView.swift */; };
 		C52EE70521D269108B601A01 /* lv-complete.wav in Resources */ = {isa = PBXBuildFile; fileRef = 9EB765A0FAD14A446314722A /* lv-complete.wav */; };
 		C5D29D91ED0FEEC34F0D3DF2 /* KeychainTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10E247B43DD7D356C7BA213B /* KeychainTokenStore.swift */; };
+		C6CD2F4A18114340F52948F1 /* LatvianLessonHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9717FB993660C1EB672EF422 /* LatvianLessonHeader.swift */; };
 		C8070F059F4DB2910F165D09 /* FSRS in Frameworks */ = {isa = PBXBuildFile; productRef = E718E6EF93573F052E458E71 /* FSRS */; };
 		CA910C0B4E3D7EBCB3B0CE55 /* TripsHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8C3BF1BEDB7AD0BB8B471AA /* TripsHomeView.swift */; };
 		CCB6AEAC47B82E9BEC59EFC4 /* SharedSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AB974EC178B45C5E8C2D43D /* SharedSnapshot.swift */; };
@@ -147,9 +151,11 @@
 		EE7E4F5FFF6937FF414394D1 /* TripStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CFA86E52D515272F7F13F10 /* TripStore.swift */; };
 		EF3F584FDB22426380668F50 /* MapScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86097054B82CA8512E4AA874 /* MapScreen.swift */; };
 		F141E4DDF91017C2B4BE29E0 /* TripActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD2D245D3ADDC9A38B3E287 /* TripActivityAttributes.swift */; };
+		F2471381F52817424EBD9C21 /* LatvianLessonModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 349DF12CDB97D6B6981E2C94 /* LatvianLessonModel.swift */; };
 		F2B564D69F4210E1706BD4D0 /* JourneyMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7E574F9940C5A4DDA5BE464 /* JourneyMenuView.swift */; };
 		F2CD340AB8260F2899D0A188 /* TravelContentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1D4DFC09D7DE7C3D482F5B /* TravelContentStore.swift */; };
 		F3FF95676307867E576FCA49 /* NotificationRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB162821D5118BBCDA717991 /* NotificationRules.swift */; };
+		F6492D9BF37EC827F982ED43 /* LatvianLessonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26AC6D5D9A3E3BB448AFBF4B /* LatvianLessonView.swift */; };
 		F9AC44806989F94432E793EB /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28813A01A61F007F63AFB19A /* UpdateChecker.swift */; };
 		FA3A58E4C230882AAD9F18EB /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DC95431B932CB4DFD5412C9 /* Notifications.swift */; };
 		FAD7DD8D7AC36626072723B3 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00954AF5EE56487B60F675E1 /* Theme.swift */; };
@@ -203,13 +209,16 @@
 		1D93C8EE21182A5BA45A615A /* KAYNAK.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = KAYNAK.md; sourceTree = "<group>"; };
 		21B82E5004A631A77716317D /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		25CA028A20B4BE8F4D0ED411 /* StopExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopExploreView.swift; sourceTree = "<group>"; };
+		26AC6D5D9A3E3BB448AFBF4B /* LatvianLessonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianLessonView.swift; sourceTree = "<group>"; };
 		28429416E3925FE7D2879869 /* KuzeyWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = KuzeyWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		28813A01A61F007F63AFB19A /* UpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChecker.swift; sourceTree = "<group>"; };
 		29ABE562CEC889DE4C44F20A /* VoiceExpenseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceExpenseView.swift; sourceTree = "<group>"; };
 		2D8C58A0890E58CEDB4C1744 /* ToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
 		2EAFE219BA8402205F2B4D91 /* JournalEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalEntry.swift; sourceTree = "<group>"; };
 		31D0A33B6EDB7280B5616C20 /* AppleMapsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleMapsService.swift; sourceTree = "<group>"; };
+		349DF12CDB97D6B6981E2C94 /* LatvianLessonModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianLessonModel.swift; sourceTree = "<group>"; };
 		35155F1CE413BCBF9F18829E /* Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Navigation.swift; sourceTree = "<group>"; };
+		368DCFAB89CEBE57075FEC27 /* LatvianLessonCompleteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianLessonCompleteView.swift; sourceTree = "<group>"; };
 		370CBB45D2A76FE6AC6681D0 /* ExpensesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpensesView.swift; sourceTree = "<group>"; };
 		38785537B9A807DF9707224B /* LatvianProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianProgress.swift; sourceTree = "<group>"; };
 		391DEFDE6920265A7D8C60AD /* PlaceSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceSearchService.swift; sourceTree = "<group>"; };
@@ -282,6 +291,7 @@
 		92433716A15BEBCD592B63E2 /* KuzeyWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KuzeyWidgets.swift; sourceTree = "<group>"; };
 		951D0A85ADCE46B95E28C1FF /* RouteDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteDraft.swift; sourceTree = "<group>"; };
 		96EB120F6B3CEED16E316CB7 /* ArrivalTargetCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrivalTargetCard.swift; sourceTree = "<group>"; };
+		9717FB993660C1EB672EF422 /* LatvianLessonHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianLessonHeader.swift; sourceTree = "<group>"; };
 		977364A8D7BA4B4AA6BF8534 /* LatvianExerciseFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianExerciseFactory.swift; sourceTree = "<group>"; };
 		9AEF46AA6EEEAA6BB1DFD19E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9B1D4DFC09D7DE7C3D482F5B /* TravelContentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelContentStore.swift; sourceTree = "<group>"; };
@@ -296,6 +306,7 @@
 		BA4F669DC75CC46692AB425F /* VignettesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VignettesView.swift; sourceTree = "<group>"; };
 		BBD2D245D3ADDC9A38B3E287 /* TripActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripActivityAttributes.swift; sourceTree = "<group>"; };
 		BC2167794D2466CE9840E18E /* RoadFeedCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadFeedCard.swift; sourceTree = "<group>"; };
+		BE47ED178D4A0D39015DF22A /* LatvianAnswerPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianAnswerPanel.swift; sourceTree = "<group>"; };
 		BF11ED9C0D36687D9A03CBB8 /* ScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerView.swift; sourceTree = "<group>"; };
 		C0EF8A869866AAC46A67BBE9 /* lv-tap.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "lv-tap.wav"; sourceTree = "<group>"; };
 		C1C36DB0AD507350D1AA526B /* LatvianTypingExerciseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianTypingExerciseView.swift; sourceTree = "<group>"; };
@@ -339,6 +350,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C8070F059F4DB2910F165D09 /* FSRS in Frameworks */,
+				9FD8D278A74E6E0537599478 /* ConfettiSwiftUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -471,6 +483,11 @@
 		5E3E86487290CD2AA523C27D /* Latvian */ = {
 			isa = PBXGroup;
 			children = (
+				BE47ED178D4A0D39015DF22A /* LatvianAnswerPanel.swift */,
+				368DCFAB89CEBE57075FEC27 /* LatvianLessonCompleteView.swift */,
+				9717FB993660C1EB672EF422 /* LatvianLessonHeader.swift */,
+				349DF12CDB97D6B6981E2C94 /* LatvianLessonModel.swift */,
+				26AC6D5D9A3E3BB448AFBF4B /* LatvianLessonView.swift */,
 				F661AD72C9B1270B55288932 /* LatvianMascot.swift */,
 				D91E6EAF5244A2A02B41294D /* LatvianMotion.swift */,
 				66F7CA2A25D357ECC68C8F5D /* Exercises */,
@@ -672,6 +689,7 @@
 			name = Kuzey;
 			packageProductDependencies = (
 				E718E6EF93573F052E458E71 /* FSRS */,
+				66226E6124A6D442A7150C3B /* ConfettiSwiftUI */,
 			);
 			productName = Kuzey;
 			productReference = 39518EF9591A8B60BC9FB024 /* Kuzey.app */;
@@ -723,6 +741,7 @@
 			mainGroup = E1263EA303CDCFC6E0EE7C09;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				E2F8746D0DDB2BBD204B1ED4 /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */,
 				F8A7926D18CD28667AABACD3 /* XCRemoteSwiftPackageReference "swift-fsrs" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -823,6 +842,7 @@
 				F2B564D69F4210E1706BD4D0 /* JourneyMenuView.swift in Sources */,
 				89784D251FA5CFB972CFACF6 /* KaravanApp.swift in Sources */,
 				C5D29D91ED0FEEC34F0D3DF2 /* KeychainTokenStore.swift in Sources */,
+				96066EEDCC6FEF578788971B /* LatvianAnswerPanel.swift in Sources */,
 				020061CE145F2F5B5C36C6A0 /* LatvianAudioStore.swift in Sources */,
 				560355A8956768C98FF2E995 /* LatvianChoiceExerciseView.swift in Sources */,
 				FCCF2202D242C69100E74C61 /* LatvianExercise.swift in Sources */,
@@ -836,7 +856,11 @@
 				450CDDD3D9A8D5E6D42D6C2A /* LatvianLearningStore.swift in Sources */,
 				22A19743A1935E2794049F5E /* LatvianLearningView.swift in Sources */,
 				FED01ED0C3A6D4D76AA7CE30 /* LatvianLessonBuilder.swift in Sources */,
+				C1FF7D23A3E09531940DB2C9 /* LatvianLessonCompleteView.swift in Sources */,
+				C6CD2F4A18114340F52948F1 /* LatvianLessonHeader.swift in Sources */,
+				F2471381F52817424EBD9C21 /* LatvianLessonModel.swift in Sources */,
 				58EA7A67519E9BF7D5C642AA /* LatvianLessonSession.swift in Sources */,
+				F6492D9BF37EC827F982ED43 /* LatvianLessonView.swift in Sources */,
 				3AA25DFC726E7D73848BF255 /* LatvianMascot.swift in Sources */,
 				7581EA5A8CD57EF6BADEA153 /* LatvianMatchExerciseView.swift in Sources */,
 				3531EECCF00A0139CC10380B /* LatvianMemory.swift in Sources */,
@@ -1158,6 +1182,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		E2F8746D0DDB2BBD204B1ED4 /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/simibac/ConfettiSwiftUI";
+			requirement = {
+				kind = exactVersion;
+				version = 2.0.3;
+			};
+		};
 		F8A7926D18CD28667AABACD3 /* XCRemoteSwiftPackageReference "swift-fsrs" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/open-spaced-repetition/swift-fsrs";
@@ -1169,6 +1201,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		66226E6124A6D442A7150C3B /* ConfettiSwiftUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E2F8746D0DDB2BBD204B1ED4 /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */;
+			productName = ConfettiSwiftUI;
+		};
 		E718E6EF93573F052E458E71 /* FSRS */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = F8A7926D18CD28667AABACD3 /* XCRemoteSwiftPackageReference "swift-fsrs" */;
