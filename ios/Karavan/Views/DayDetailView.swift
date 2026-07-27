@@ -24,6 +24,10 @@ struct DayDetailView: View {
     @State private var targetError: String?
     @State private var contactCamp: CuratedCamp?
     @State private var pendingCampSelection: CuratedCamp?
+    @State private var localTargetOverride: ArrivalTarget?
+    @State private var localStayOverride: StayDetails?
+    @State private var targetSaveRevision = 0
+    @State private var targetSaveTask: Task<Void, Never>?
 
     /// Türetilmiş gün (kullanıcı düzenlemeleri + hesaplanmış tarih).
     private var eff: EffectiveDay? {
@@ -40,11 +44,19 @@ struct DayDetailView: View {
     }
 
     private var exactTarget: ArrivalTarget? {
-        accountDestinationStop?.resolvedArrivalTarget ?? eff?.arrivalTarget
+        ArrivalTargetResolution.resolve(
+            localOverride: localTargetOverride,
+            account: accountDestinationStop?.resolvedArrivalTarget,
+            plan: eff?.arrivalTarget
+        )
     }
 
     private var exactStay: StayDetails {
-        accountDestinationStop?.resolvedStayDetails ?? eff?.stayDetails ?? defaultStay
+        localStayOverride ?? accountDestinationStop?.resolvedStayDetails ?? eff?.stayDetails ?? defaultStay
+    }
+
+    private var canEditArrivalTarget: Bool {
+        workspace.selectedTrip?.access.canEditStops ?? (account.user == nil)
     }
 
     /// Apple Haritalar'ın bu etap için hesapladığı gerçek mesafe/süre.
@@ -105,6 +117,7 @@ struct DayDetailView: View {
                             camps: content.camps,
                             cityCenter: content.cityCenter ?? destinationGeoPoint,
                             selectedTargetID: exactTarget?.id,
+                            canEditStops: canEditArrivalTarget,
                             onOpenMaps: { openMap(name: $0.name, location: $0.location, directions: false) },
                             onContact: { contactCamp = $0 },
                             onSelect: { pendingCampSelection = $0 }
@@ -168,7 +181,8 @@ struct DayDetailView: View {
                     transportMode: workspace.selectedTrip?.transportMode ?? .automobile,
                     camp: (exactTarget?.maximumLengthMeters ?? day.camp.maximumLengthMeters).map(StayCamp.init),
                     automaticETA: defaultStay.estimatedArrivalWindow,
-                    vehicleSeed: workspace.selectedTrip?.kind == .kuzey2026 ? TravelProfileVehicleSeed.kuzey : nil
+                    vehicleSeed: workspace.selectedTrip?.kind == .kuzey2026 ? TravelProfileVehicleSeed.kuzey : nil,
+                    purpose: canEditArrivalTarget ? .editSelection : .contactOnly
                 ) { target, stay in
                     saveTarget(target, stay: stay)
                 }
@@ -187,10 +201,9 @@ struct DayDetailView: View {
                 transportMode: workspace.selectedTrip?.transportMode ?? .automobile,
                 camp: camp.maximumLengthMeters.map(StayCamp.init),
                 automaticETA: defaultStay.estimatedArrivalWindow,
-                vehicleSeed: workspace.selectedTrip?.kind == .kuzey2026 ? TravelProfileVehicleSeed.kuzey : nil
-            ) { target, stay in
-                saveTarget(target, stay: stay)
-            }
+                vehicleSeed: workspace.selectedTrip?.kind == .kuzey2026 ? TravelProfileVehicleSeed.kuzey : nil,
+                purpose: .contactOnly
+            )
         }
         .alert(
             "Bu kampı varış yeri seç?",
@@ -201,6 +214,10 @@ struct DayDetailView: View {
             presenting: pendingCampSelection
         ) { camp in
             Button("\(camp.name) kampını seç") {
+                guard CuratedCampSelectionEligibility.canSelect(
+                    supportsCaravan: camp.supportsCaravan,
+                    canEditStops: canEditArrivalTarget
+                ) else { return }
                 saveTarget(arrivalTarget(for: camp), stay: derivedStay(from: exactStay))
                 pendingCampSelection = nil
             }
@@ -215,6 +232,7 @@ struct DayDetailView: View {
         .onChange(of: eff == nil) { _, gone in
             if gone { showEdit = false }
         }
+        .onDisappear { targetSaveTask?.cancel() }
         .preferredColorScheme(.dark)
     }
 
@@ -301,6 +319,7 @@ struct DayDetailView: View {
                 target: exactTarget,
                 isRestDay: isRest,
                 canStart: canStart,
+                canEditTarget: canEditArrivalTarget,
                 actionText: role.isDriver ? routeActionText(state) : "Yalnız sürücü başlatabilir",
                 onChoose: { showTargetPicker = true },
                 onEdit: { showTargetEditor = true },
@@ -377,23 +396,53 @@ struct DayDetailView: View {
     }
 
     private func saveTarget(_ target: ArrivalTarget, stay: StayDetails) {
+        guard canEditArrivalTarget else {
+            targetError = "Bu rotada yalnızca görüntüleme yetkiniz var; varış yeri değiştirilemedi."
+            return
+        }
         if routeSession.activeStopId == destinationStop?.id,
            routeSession.activeTargetId != nil,
            routeSession.activeTargetId != target.id {
             routeSession.clear()
             LiveActivityManager.shared.endCurrent()
         }
+        localTargetOverride = target
+        localStayOverride = stay
         plan.setArrivalTarget(target, stay: stay, slug: day.slug)
         guard var stop = accountDestinationStop, let trip = workspace.selectedTrip,
               trip.access.canEditStops else { return }
         stop.arrivalTarget = AccountArrivalTarget(target)
         stop.stayDetails = AccountStayDetails(stay)
-        Task {
+        guard let userID = account.user?.id else { return }
+        targetSaveRevision += 1
+        let context = ArrivalTargetSyncContext(
+            revision: targetSaveRevision,
+            tripID: trip.id,
+            userID: userID
+        )
+        targetSaveTask?.cancel()
+        targetSaveTask = Task {
             do {
                 let changed = try await account.updateStop(trip: trip, stop: stop)
+                guard !Task.isCancelled,
+                      context.isCurrent(
+                        revision: targetSaveRevision,
+                        tripID: workspace.selectedTrip?.id,
+                        userID: account.user?.id
+                      )
+                else { return }
                 workspace.replace(changed)
+                localTargetOverride = nil
+                localStayOverride = nil
                 targetError = nil
             } catch {
+                guard !Task.isCancelled,
+                      context.isCurrent(
+                        revision: targetSaveRevision,
+                        tripID: workspace.selectedTrip?.id,
+                        userID: account.user?.id
+                      )
+                else { return }
                 targetError = "Varış yeri cihazda kaydedildi ancak üyelerle eşitlenemedi: \(error.localizedDescription)"
             }
         }
@@ -413,7 +462,7 @@ struct DayDetailView: View {
         ArrivalTarget(
             id: "curated-camp:\(camp.id)",
             name: camp.name,
-            kind: camp.supportsCaravan ? .campground : .caravanPark,
+            kind: camp.supportsCaravan ? .campground : .other,
             latitude: camp.location.latitude,
             longitude: camp.location.longitude,
             formattedAddress: camp.address,

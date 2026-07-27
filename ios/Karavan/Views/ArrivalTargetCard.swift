@@ -4,6 +4,7 @@ struct ArrivalTargetCard: View {
     let target: ArrivalTarget?
     let isRestDay: Bool
     let canStart: Bool
+    let canEditTarget: Bool
     let actionText: String
     let onChoose: () -> Void
     let onEdit: () -> Void
@@ -32,7 +33,7 @@ struct ArrivalTargetCard: View {
                     }
                 }
                 Spacer()
-                if target != nil {
+                if target != nil && canEditTarget {
                     Button(action: onEdit) { Image(systemName: "ellipsis.circle") }
                         .font(.system(size: 20)).foregroundStyle(Theme.muted)
                         .accessibilityLabel("Varış ayrıntılarını düzenle")
@@ -41,12 +42,18 @@ struct ArrivalTargetCard: View {
 
             if !isRestDay {
                 if target == nil {
-                    Button(action: onChoose) {
-                        Label("Varış yerini seç", systemImage: "map.fill")
-                            .font(.system(size: 15, weight: .bold))
-                            .frame(maxWidth: .infinity).frame(height: 46)
+                    if canEditTarget {
+                        Button(action: onChoose) {
+                            Label("Varış yerini seç", systemImage: "map.fill")
+                                .font(.system(size: 15, weight: .bold))
+                                .frame(maxWidth: .infinity).frame(height: 46)
+                        }
+                        .buttonStyle(.borderedProminent).tint(Theme.c2)
+                    } else {
+                        Label("Bu rotada yalnızca görüntüleme yetkiniz var", systemImage: "eye")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Theme.muted)
                     }
-                    .buttonStyle(.borderedProminent).tint(Theme.c2)
                 } else {
                     Button(action: onStart) {
                         Label(actionText, systemImage: canStart ? "arrow.triangle.turn.up.right.circle.fill" : "lock.fill")

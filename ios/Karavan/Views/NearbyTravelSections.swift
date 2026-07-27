@@ -4,9 +4,11 @@ struct NearbyCampSection: View {
     let camps: [CuratedCamp]
     let cityCenter: GeoPoint?
     let selectedTargetID: String?
+    let canEditStops: Bool
     let onOpenMaps: (CuratedCamp) -> Void
     let onContact: (CuratedCamp) -> Void
     let onSelect: (CuratedCamp) -> Void
+    var now: Date = Date()
 
     @State private var disclosedCamp: CuratedCamp?
 
@@ -19,6 +21,14 @@ struct NearbyCampSection: View {
                         camp: camp,
                         distanceText: distanceText(for: camp),
                         isSelected: selectedTargetID == "curated-camp:\(camp.id)",
+                        canSelect: CuratedCampSelectionEligibility.canSelect(
+                            supportsCaravan: camp.supportsCaravan,
+                            canEditStops: canEditStops
+                        ),
+                        requiresReverification: ContentFreshness.requiresReverification(
+                            verifiedAt: camp.verifiedAt,
+                            on: now
+                        ),
                         onOpenMaps: { onOpenMaps(camp) },
                         onContact: { onContact(camp) },
                         onSelect: { onSelect(camp) },
@@ -31,7 +41,8 @@ struct NearbyCampSection: View {
                     title: camp.name,
                     source: camp.source,
                     media: camp.media,
-                    verifiedAt: camp.verifiedAt
+                    verifiedAt: camp.verifiedAt,
+                    now: now
                 )
             }
         }
@@ -47,6 +58,7 @@ struct NearbyAttractionSection: View {
     let attractions: [NearbyAttraction]
     let referenceLocation: GeoPoint?
     let onOpenMaps: (NearbyAttraction) -> Void
+    var now: Date = Date()
 
     @State private var disclosedAttraction: NearbyAttraction?
 
@@ -58,6 +70,10 @@ struct NearbyAttractionSection: View {
                     AttractionCard(
                         attraction: attraction,
                         distanceText: distanceText(for: attraction),
+                        requiresReverification: ContentFreshness.requiresReverification(
+                            verifiedAt: attraction.verifiedAt,
+                            on: now
+                        ),
                         onOpenMaps: { onOpenMaps(attraction) },
                         onShowSource: { disclosedAttraction = attraction }
                     )
@@ -68,7 +84,8 @@ struct NearbyAttractionSection: View {
                     title: attraction.name,
                     source: attraction.source,
                     media: attraction.media,
-                    verifiedAt: attraction.verifiedAt
+                    verifiedAt: attraction.verifiedAt,
+                    now: now
                 )
             }
         }
@@ -84,6 +101,8 @@ private struct CampOptionCard: View {
     let camp: CuratedCamp
     let distanceText: String?
     let isSelected: Bool
+    let canSelect: Bool
+    let requiresReverification: Bool
     let onOpenMaps: () -> Void
     let onContact: () -> Void
     let onSelect: () -> Void
@@ -142,6 +161,17 @@ private struct CampOptionCard: View {
                         .font(.footnote)
                         .foregroundStyle(Theme.warn)
                 }
+                if !camp.supportsCaravan {
+                    Label(CuratedCampSelectionEligibility.unsupportedWarning,
+                          systemImage: "xmark.octagon.fill")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Theme.warn)
+                }
+                if requiresReverification {
+                    Label("Gitmeden önce teyit et", systemImage: "clock.badge.exclamationmark")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Theme.warn)
+                }
                 if let disclosure = camp.media.disclosure, !disclosure.isEmpty {
                     Text(disclosure)
                         .font(.caption)
@@ -184,7 +214,7 @@ private struct CampOptionCard: View {
             .accessibilityLabel("\(camp.name) için hazır iletişim ekranını aç")
         Button(action: onSelect) { Label("Bu kampı seç", systemImage: "checkmark.circle") }
             .buttonStyle(.bordered)
-            .disabled(isSelected)
+            .disabled(isSelected || !canSelect)
             .accessibilityLabel("\(camp.name) kampını varış yeri seç")
     }
 }
@@ -192,6 +222,7 @@ private struct CampOptionCard: View {
 private struct AttractionCard: View {
     let attraction: NearbyAttraction
     let distanceText: String?
+    let requiresReverification: Bool
     let onOpenMaps: () -> Void
     let onShowSource: () -> Void
 
@@ -213,6 +244,11 @@ private struct AttractionCard: View {
             Text(attraction.recommendation)
                 .font(.subheadline)
                 .foregroundStyle(Theme.dim)
+            if requiresReverification {
+                Label("Gitmeden önce teyit et", systemImage: "clock.badge.exclamationmark")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.warn)
+            }
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 10) { facts }
                 VStack(alignment: .leading, spacing: 6) { facts }
@@ -263,6 +299,7 @@ private struct TravelSourceDetail: View {
     let source: TravelSource
     let media: TravelMedia
     let verifiedAt: Date
+    var now: Date = Date()
 
     var body: some View {
         NavigationStack {
@@ -270,6 +307,10 @@ private struct TravelSourceDetail: View {
                 Section("Doğrulama kaynağı") {
                     LabeledContent("Kaynak", value: source.name)
                     LabeledContent("Doğrulama tarihi", value: verifiedAt.formatted(date: .long, time: .omitted))
+                    if ContentFreshness.requiresReverification(verifiedAt: verifiedAt, on: now) {
+                        Label("Gitmeden önce teyit et", systemImage: "clock.badge.exclamationmark")
+                            .foregroundStyle(Theme.warn)
+                    }
                     Button("Resmî kaynağı aç") { openURL(source.url) }
                 }
                 Section("Fotoğraf") {

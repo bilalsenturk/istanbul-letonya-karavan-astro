@@ -41,7 +41,10 @@ struct TravelContentCheck {
 
         let iso = ISO8601DateFormatter()
         let verified = iso.date(from: "2026-04-01T00:00:00Z")!
+        let day90 = iso.date(from: "2026-06-30T23:59:59Z")!
         let day91 = iso.date(from: "2026-07-01T00:00:01Z")!
+        check("90 gün sınırında kayıt teyit istemez",
+              !ContentFreshness.requiresReverification(verifiedAt: verified, on: day90))
         check("90 günü aşan kayıt teyit ister",
               ContentFreshness.requiresReverification(verifiedAt: verified, on: day91))
         check("hedef Türkçe karakterlerden bağımsız çözülür",

@@ -48,6 +48,33 @@ struct ArrivalTargetCheck {
         )
         check("geçersiz koordinat rota başlatmaz",
               !ArrivalTargetRequirement.canStart(isRestDay: false, target: invalid))
+        check("desteklenmeyen kamp seçilemez",
+              !CuratedCampSelectionEligibility.canSelect(supportsCaravan: false, canEditStops: true))
+        check("viewer kamp seçemez",
+              !CuratedCampSelectionEligibility.canSelect(supportsCaravan: true, canEditStops: false))
+        check("karavan desteği uyarısı ürün metniyle aynıdır",
+              CuratedCampSelectionEligibility.unsupportedWarning == "Bu kamp çekme karavan kabul etmiyor; varış yeri olarak seçilemez.")
+
+        let firstSync = ArrivalTargetSyncContext(revision: 1, tripID: "trip-a", userID: "user-a")
+        let secondSync = ArrivalTargetSyncContext(revision: 2, tripID: "trip-a", userID: "user-a")
+        check("eski seçim yanıtı yeni seçimi ezemez",
+              !firstSync.isCurrent(revision: secondSync.revision, tripID: "trip-a", userID: "user-a"))
+        check("aynı revizyon başka rota veya hesaba uygulanamaz",
+              !secondSync.isCurrent(revision: 2, tripID: "trip-b", userID: "user-a")
+                && !secondSync.isCurrent(revision: 2, tripID: "trip-a", userID: "user-b"))
+        check("en son seçim aynı hesap ve rotada uygulanır",
+              secondSync.isCurrent(revision: 2, tripID: "trip-a", userID: "user-a"))
+
+        let accountTarget = ArrivalTarget(
+            id: "account", name: "Hesap", kind: .campground,
+            latitude: 42, longitude: 23, formattedAddress: "Hesap"
+        )
+        let localTarget = ArrivalTarget(
+            id: "local", name: "Yerel", kind: .campground,
+            latitude: 43, longitude: 24, formattedAddress: "Yerel"
+        )
+        check("senkron hatasında yerel seçim eski hesap verisinin önünde kalır",
+              ArrivalTargetResolution.resolve(localOverride: localTarget, account: accountTarget, plan: target)?.id == "local")
 
         print("\n=== Konaklama mesajı ===")
         let stay = StayDetails(

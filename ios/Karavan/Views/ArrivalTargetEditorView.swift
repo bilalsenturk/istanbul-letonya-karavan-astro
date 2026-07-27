@@ -2,6 +2,11 @@ import SwiftUI
 import UIKit
 
 struct ArrivalTargetEditorView: View {
+    enum Purpose {
+        case editSelection
+        case contactOnly
+    }
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @State private var target: ArrivalTarget
@@ -15,6 +20,7 @@ struct ArrivalTargetEditorView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     let onSave: (ArrivalTarget, StayDetails) -> Void
+    private let purpose: Purpose
     private let profile: StayContactProfile
     private let transportMode: RouteTransportMode
     private let camp: StayCamp?
@@ -32,7 +38,8 @@ struct ArrivalTargetEditorView: View {
         camp: StayCamp? = nil,
         automaticETA: StayETAWindow? = nil,
         vehicleSeed: String? = nil,
-        onSave: @escaping (ArrivalTarget, StayDetails) -> Void
+        purpose: Purpose = .editSelection,
+        onSave: @escaping (ArrivalTarget, StayDetails) -> Void = { _, _ in }
     ) {
         _target = State(initialValue: target)
         _stay = State(initialValue: stay)
@@ -42,6 +49,7 @@ struct ArrivalTargetEditorView: View {
         self.automaticETA = automaticETA
         self.routeId = routeId
         self.vehicleSeed = vehicleSeed
+        self.purpose = purpose
         self.onSave = onSave
     }
 
@@ -68,6 +76,7 @@ struct ArrivalTargetEditorView: View {
                     TextField("E-posta", text: optionalBinding(\.email))
                         .keyboardType(.emailAddress).textInputAutocapitalization(.never)
                 }
+                .disabled(purpose == .contactOnly)
 
                 Section("Konaklama") {
                     Picker("Durum", selection: $stay.reservationStatus) {
@@ -78,16 +87,19 @@ struct ArrivalTargetEditorView: View {
                     arrivalTimeEditor
                     TextField("Rezervasyon kodu", text: stayOptionalBinding(\.reservationReference))
                 }
+                .disabled(purpose == .contactOnly)
 
-                Section("Seyahat bilgileri") {
-                    NavigationLink {
-                        TravelProfileView(routeId: routeId, vehicleSeed: vehicleSeed)
-                    } label: {
-                        Label("Seyahat profilini düzenle", systemImage: "person.text.rectangle")
+                if purpose == .editSelection {
+                    Section("Seyahat bilgileri") {
+                        NavigationLink {
+                            TravelProfileView(routeId: routeId, vehicleSeed: vehicleSeed)
+                        } label: {
+                            Label("Seyahat profilini düzenle", systemImage: "person.text.rectangle")
+                        }
+                        Text("Mesaj, hesapta kaydedilmiş yolcu ve ihtiyaç bilgilerini kullanır.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
-                    Text("Mesaj, hesapta kaydedilmiş yolcu ve ihtiyaç bilgilerini kullanır.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
                 }
 
                 Section("Hazır mesaj") {
@@ -119,7 +131,7 @@ struct ArrivalTargetEditorView: View {
                     }
                 }
             }
-            .navigationTitle("Konaklama")
+            .navigationTitle(purpose == .contactOnly ? "İletişim" : "Konaklama")
             .navigationBarTitleDisplayMode(.inline)
             .overlay(alignment: .bottom) {
                 if copyConfirmationVisible {
@@ -133,13 +145,17 @@ struct ArrivalTargetEditorView: View {
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Vazgeç") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Kaydet") {
-                        target.updatedAt = Date()
-                        onSave(target, stay)
-                        dismiss()
-                    }.fontWeight(.bold)
+                if purpose == .contactOnly {
+                    ToolbarItem(placement: .confirmationAction) { Button("Bitti") { dismiss() } }
+                } else {
+                    ToolbarItem(placement: .cancellationAction) { Button("Vazgeç") { dismiss() } }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Kaydet") {
+                            target.updatedAt = Date()
+                            onSave(target, stay)
+                            dismiss()
+                        }.fontWeight(.bold)
+                    }
                 }
             }
         }
@@ -231,7 +247,7 @@ struct ArrivalTargetEditorView: View {
 
     private func handleComposerResult(_ result: StayContactComposerResult) {
         activeComposer = nil
-        if StayContactFollowUp.shouldOfferAwaitingReply(after: result) {
+        if purpose == .editSelection, StayContactFollowUp.shouldOfferAwaitingReply(after: result) {
             awaitingReplyPrompt = true
         }
     }
@@ -240,7 +256,8 @@ struct ArrivalTargetEditorView: View {
         switch effect {
         case .none: break
         case .showUnavailable: unavailableNotice = true
-        case .offerAwaitingReply: awaitingReplyPrompt = true
+        case .offerAwaitingReply:
+            if purpose == .editSelection { awaitingReplyPrompt = true }
         }
     }
 

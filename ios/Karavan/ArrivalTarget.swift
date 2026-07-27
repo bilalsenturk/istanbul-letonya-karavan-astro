@@ -488,6 +488,34 @@ enum ArrivalTargetRequirement {
     }
 }
 
+enum CuratedCampSelectionEligibility {
+    static let unsupportedWarning = "Bu kamp çekme karavan kabul etmiyor; varış yeri olarak seçilemez."
+
+    static func canSelect(supportsCaravan: Bool, canEditStops: Bool) -> Bool {
+        supportsCaravan && canEditStops
+    }
+}
+
+struct ArrivalTargetSyncContext: Equatable {
+    let revision: Int
+    let tripID: String
+    let userID: String
+
+    func isCurrent(revision: Int, tripID: String?, userID: String?) -> Bool {
+        self.revision == revision && self.tripID == tripID && self.userID == userID
+    }
+}
+
+enum ArrivalTargetResolution {
+    static func resolve(
+        localOverride: ArrivalTarget?,
+        account: ArrivalTarget?,
+        plan: ArrivalTarget?
+    ) -> ArrivalTarget? {
+        localOverride ?? account ?? plan
+    }
+}
+
 enum RouteStartPolicy {
     static func canStart(
         isRestDay: Bool,
