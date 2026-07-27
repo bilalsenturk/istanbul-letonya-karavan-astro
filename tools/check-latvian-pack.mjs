@@ -1,3 +1,11 @@
+import {
+  assertUsableAudio,
+  audioIdFor,
+  buildSpeechRequest,
+  extractAudioFromStream,
+  SPEECH_SAMPLE_RATE,
+  wrapPcm16AsWav,
+} from '../src/learning-lv/audio.ts';
 import { filterByFrequency, parseFrequencyList } from '../src/learning-lv/frequency.ts';
 import {
   applyReview,
@@ -320,6 +328,69 @@ const diacriticsDraft = {
 const diacriticsVerdicts = parseReviewResponse('{"verdicts":[{"lv":"lūdzu","ok":false,"reason":"yanlış"}]}');
 const diacriticsApplied = applyReview(diacriticsDraft, diacriticsVerdicts);
 expect(diacriticsApplied.accepted.words.length === 1, 'diyakritikler katlanmaz, farklı kelimeler karışmaz');
+
+console.log('\n=== Ses üretimi ===');
+
+expect(audioIdFor('paldies').length === 12, 'ses id 12 karakter');
+expect(audioIdFor('paldies') === audioIdFor('paldies'), 'aynı metin aynı id');
+expect(audioIdFor('paldies') !== audioIdFor('lūdzu'), 'farklı metin farklı id');
+
+const speechRequest = buildSpeechRequest({
+  apiKey: 'test-key',
+  text: 'Labdien',
+  model: 'openai/gpt-audio-mini',
+  voice: 'nova',
+});
+const speechBody = JSON.parse(speechRequest.init.body);
+expect(speechBody.modalities.includes('audio'), 'ses modalitesi isteniyor');
+expect(speechBody.audio.format === 'pcm16', 'pcm16 biçimi isteniyor');
+expect(speechBody.messages[1].content === 'Labdien', 'metin doğrudan geçiyor');
+
+function fakeStream(samples) {
+  const buffer = Buffer.alloc(samples.length * 2);
+  samples.forEach((value, index) => buffer.writeInt16LE(value, index * 2));
+  const half = Math.floor(buffer.length / 2);
+  const first = buffer.subarray(0, half).toString('base64');
+  const second = buffer.subarray(half).toString('base64');
+  return [
+    `data: ${JSON.stringify({ choices: [{ delta: { audio: { data: first } } }] })}`,
+    'data: bozuk-json',
+    `data: ${JSON.stringify({ choices: [{ delta: { audio: { data: second } } }] })}`,
+    'data: [DONE]',
+    '',
+  ].join('\n');
+}
+
+const loudSamples = Array.from({ length: SPEECH_SAMPLE_RATE }, (unused, index) =>
+  Math.round(8000 * Math.sin(index / 12)),
+);
+const loudPcm = extractAudioFromStream(fakeStream(loudSamples));
+expect(loudPcm.byteLength === loudSamples.length * 2, 'akıştan tüm ses parçaları birleşiyor');
+
+try {
+  assertUsableAudio(loudPcm, 'Labdien');
+  expect(true, 'gerçek ses kabul ediliyor');
+} catch (error) {
+  expect(false, `gerçek ses kabul ediliyor (${error.message})`);
+}
+
+try {
+  assertUsableAudio(extractAudioFromStream(fakeStream(new Array(400).fill(6000))), 'Labdien');
+  expect(false, 'çok kısa ses reddediliyor');
+} catch (error) {
+  expect(error.message.includes('çok kısa'), 'çok kısa ses reddediliyor');
+}
+
+try {
+  assertUsableAudio(extractAudioFromStream(fakeStream(new Array(SPEECH_SAMPLE_RATE).fill(3))), 'Labdien');
+  expect(false, 'sessiz ses reddediliyor');
+} catch (error) {
+  expect(error.message.includes('sessiz'), 'sessiz ses reddediliyor');
+}
+
+const wav = wrapPcm16AsWav(loudPcm);
+expect(wav.subarray(0, 4).toString('ascii') === 'RIFF', 'WAV başlığı yazılıyor');
+expect(wav.readUInt32LE(40) === loudPcm.byteLength, 'WAV veri uzunluğu doğru');
 
 if (failures > 0) {
   console.error(`\n${failures} kontrol başarısız.`);
