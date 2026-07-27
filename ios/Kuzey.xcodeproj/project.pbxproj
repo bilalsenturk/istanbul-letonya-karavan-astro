@@ -58,7 +58,6 @@
 		6642C214B22A4BEFC8510FC3 /* TripWorkspaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE5D628F94AB556FE9D36ECD /* TripWorkspaceStore.swift */; };
 		68B14299CB90DBF724E88AA2 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC44A961C70396158E35B2A1 /* Models.swift */; };
 		693934A74992D1B4067B8F14 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7756E3E11615E135A656BFAB /* SignInView.swift */; };
-		69DC5A10A13AE08E1F9CEDC3 /* lv-a0-listen-sveiki.wav in Resources */ = {isa = PBXBuildFile; fileRef = E37D025A8C64E0D219CF91D5 /* lv-a0-listen-sveiki.wav */; };
 		6A8F57A39EEEB2A7FA64075F /* Expense.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB332D14823389349D9F9A9 /* Expense.swift */; };
 		6DB49F6FDA63B6E497513F8E /* StayContactProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F74EC0068F98CB8265C4B89 /* StayContactProfileStore.swift */; };
 		6EA5D3285D7A6FC7A3A7E3D3 /* AccountModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45EA2D2DAE7C357998901565 /* AccountModels.swift */; };
@@ -90,15 +89,12 @@
 		91A7A4AF00849EC63ACF1005 /* RouteDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 951D0A85ADCE46B95E28C1FF /* RouteDraft.swift */; };
 		96066EEDCC6FEF578788971B /* LatvianAnswerPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE47ED178D4A0D39015DF22A /* LatvianAnswerPanel.swift */; };
 		97E4A7C1666A8B3E0DB1F8F3 /* AccountPreviewFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82F38AF9528057CFB313385F /* AccountPreviewFixtures.swift */; };
-		98203BBB392444D23B4B8A7D /* lv-a0-phoneme-long-a.wav in Resources */ = {isa = PBXBuildFile; fileRef = 60381A80163D3A30637AF850 /* lv-a0-phoneme-long-a.wav */; };
 		9952626709FCF1CC394E843F /* travel-content.json in Resources */ = {isa = PBXBuildFile; fileRef = 819AB5D14C463B536FAE8B15 /* travel-content.json */; };
 		99F5012B3D2DA7222B949BC2 /* JournalPhotoPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E826910845682027B3A136D /* JournalPhotoPicker.swift */; };
-		9D272A9C456DA5941DE1E972 /* lv-a0-speak-labdien.wav in Resources */ = {isa = PBXBuildFile; fileRef = 3D9F3A0BB3C15CC80EAAB4C3 /* lv-a0-speak-labdien.wav */; };
 		9D2EE3E601345925BDEA151D /* PublishOutbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D37D4838C53B2F0A2D94B66 /* PublishOutbox.swift */; };
 		9D65F8215A7804576B305FB9 /* StopExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25CA028A20B4BE8F4D0ED411 /* StopExploreView.swift */; };
 		9D8DDBECC20E225D43C47798 /* JournalQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03DCAD8D74B488556BEED891 /* JournalQueue.swift */; };
 		9FD8D278A74E6E0537599478 /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 66226E6124A6D442A7150C3B /* ConfettiSwiftUI */; };
-		9FE1623DC11C12E120FA10A9 /* lv-a0-dictation-paldies.wav in Resources */ = {isa = PBXBuildFile; fileRef = F15DDC22F4EC6AF24FFF8A56 /* lv-a0-dictation-paldies.wav */; };
 		A51EF13DB9098CE6C8877536 /* latvian-pack.json in Resources */ = {isa = PBXBuildFile; fileRef = 0B26009BD58145101C6A2DFB /* latvian-pack.json */; };
 		A59FFDEF88DDBE3125C26C1A /* TripNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D701532F19396FBF2875EA /* TripNotifier.swift */; };
 		A6A5BE609BB235E23115F265 /* LatvianMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = D91E6EAF5244A2A02B41294D /* LatvianMotion.swift */; };
@@ -225,7 +221,6 @@
 		391DEFDE6920265A7D8C60AD /* PlaceSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceSearchService.swift; sourceTree = "<group>"; };
 		39518EF9591A8B60BC9FB024 /* Kuzey.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Kuzey.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3D10B03E5964F14677E5F5C0 /* AccountMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountMenuView.swift; sourceTree = "<group>"; };
-		3D9F3A0BB3C15CC80EAAB4C3 /* lv-a0-speak-labdien.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "lv-a0-speak-labdien.wav"; sourceTree = "<group>"; };
 		3DF4A17AEA5D744333A66588 /* ArrivalTargetEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrivalTargetEditorView.swift; sourceTree = "<group>"; };
 		406E314FFE68077386DBDAD3 /* LatvianAudioStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianAudioStore.swift; sourceTree = "<group>"; };
 		4198F36A45B4A90AFAEB6D59 /* DocumentVaultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentVaultView.swift; sourceTree = "<group>"; };
@@ -257,7 +252,6 @@
 		5D4F8488E7E8ACA586661498 /* MembersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MembersView.swift; sourceTree = "<group>"; };
 		5DC95431B932CB4DFD5412C9 /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		5F74EC0068F98CB8265C4B89 /* StayContactProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StayContactProfileStore.swift; sourceTree = "<group>"; };
-		60381A80163D3A30637AF850 /* lv-a0-phoneme-long-a.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "lv-a0-phoneme-long-a.wav"; sourceTree = "<group>"; };
 		60D39C5F92694220AE03C259 /* AppIntentsSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntentsSupport.swift; sourceTree = "<group>"; };
 		6155790527A9073B31158F2E /* LatvianWordBankExerciseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianWordBankExerciseView.swift; sourceTree = "<group>"; };
 		67367AF55B30AAC1CE748427 /* LatvianGrader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianGrader.swift; sourceTree = "<group>"; };
@@ -331,12 +325,10 @@
 		DC44A961C70396158E35B2A1 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		DEB2A1F70C4BD191A5BA233B /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
 		DEDCB70244A1866C05724B7B /* RouteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStore.swift; sourceTree = "<group>"; };
-		E37D025A8C64E0D219CF91D5 /* lv-a0-listen-sveiki.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "lv-a0-listen-sveiki.wav"; sourceTree = "<group>"; };
 		E5A0D47F97A6BC761EC4A1D7 /* PhotoJournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoJournalView.swift; sourceTree = "<group>"; };
 		E8673B61A33C58C650B05B56 /* StopEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopEditorView.swift; sourceTree = "<group>"; };
 		EC538794F9ED1EDBD743061F /* TripSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripSettingsView.swift; sourceTree = "<group>"; };
 		ED5BDD8DBD5C0590C5E1BC5F /* MusicPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicPlayer.swift; sourceTree = "<group>"; };
-		F15DDC22F4EC6AF24FFF8A56 /* lv-a0-dictation-paldies.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "lv-a0-dictation-paldies.wav"; sourceTree = "<group>"; };
 		F1E6F72F3F048515578B7874 /* LatvianHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianHomeView.swift; sourceTree = "<group>"; };
 		F573345B05D38B533D7AC738 /* RouteStepPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStepPolicy.swift; sourceTree = "<group>"; };
 		F661AD72C9B1270B55288932 /* LatvianMascot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianMascot.swift; sourceTree = "<group>"; };
@@ -571,10 +563,6 @@
 			children = (
 				50F734E88085ED4D6DE9044E /* announcements.json */,
 				0B26009BD58145101C6A2DFB /* latvian-pack.json */,
-				F15DDC22F4EC6AF24FFF8A56 /* lv-a0-dictation-paldies.wav */,
-				E37D025A8C64E0D219CF91D5 /* lv-a0-listen-sveiki.wav */,
-				60381A80163D3A30637AF850 /* lv-a0-phoneme-long-a.wav */,
-				3D9F3A0BB3C15CC80EAAB4C3 /* lv-a0-speak-labdien.wav */,
 				819AB5D14C463B536FAE8B15 /* travel-content.json */,
 				854400F42C0A6BF3D1C19B27 /* trip.json */,
 				2772527F27CFF162F11FCE0A /* Sounds */,
@@ -770,10 +758,6 @@
 				BE01CFD90B85B741C19EC52D /* KAYNAK.md in Resources */,
 				073A647E142E2160B0668B7B /* announcements.json in Resources */,
 				A51EF13DB9098CE6C8877536 /* latvian-pack.json in Resources */,
-				9FE1623DC11C12E120FA10A9 /* lv-a0-dictation-paldies.wav in Resources */,
-				69DC5A10A13AE08E1F9CEDC3 /* lv-a0-listen-sveiki.wav in Resources */,
-				98203BBB392444D23B4B8A7D /* lv-a0-phoneme-long-a.wav in Resources */,
-				9D272A9C456DA5941DE1E972 /* lv-a0-speak-labdien.wav in Resources */,
 				5B7E6C44FC3037D5D2AD30B7 /* lv-combo.wav in Resources */,
 				C52EE70521D269108B601A01 /* lv-complete.wav in Resources */,
 				743B6068D3D3B9159E06A674 /* lv-correct.wav in Resources */,
