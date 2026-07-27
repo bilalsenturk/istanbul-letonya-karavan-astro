@@ -132,7 +132,7 @@ let earlyTrip = TripData(
             risks: [],
             opportunities: [],
             contingencies: [],
-            camp: Camp(name: "Kamp", place: "Sofya", note: "", link: "", image: nil, alternatives: nil),
+            camp: Camp(name: "Kamp", place: "Sofya", note: "", link: "", image: nil, alternatives: nil, maximumLengthMeters: nil),
             borderBufferMinutes: nil,
             waypoints: nil,
             route: nil,
