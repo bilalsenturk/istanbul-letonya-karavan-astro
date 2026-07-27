@@ -147,6 +147,17 @@ await assert.rejects(requireSession(new Request('https://test.invalid', { header
 const unauthorized = errorResponse(new UnauthorizedError());
 assert.equal(unauthorized.status, 401);
 assert.deepEqual(await unauthorized.json(), { error: 'unauthorized', message: 'Oturum açmanız gerekiyor.' });
+const unauthorizedHandlers = createMeHandlers({
+  authenticate: async () => { throw new UnauthorizedError(); },
+  updateTravelProfile: accountRepository.updateTravelProfile,
+  ensureKuzeyTrip: async () => {},
+  listTripsForUser: async () => [],
+});
+const unauthorizedPatch = await unauthorizedHandlers.PATCH(new Request('https://test.invalid/api/v2/me', {
+  method: 'PATCH', body: JSON.stringify({ travelProfile }),
+}));
+assert.equal(unauthorizedPatch.status, 401);
+assert.deepEqual(await unauthorizedPatch.json(), { error: 'unauthorized', message: 'Oturum açmanız gerekiyor.' });
 
 const { publicKey, privateKey } = await generateKeyPair('ES256');
 const publicJwk = await exportJWK(publicKey);

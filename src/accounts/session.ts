@@ -98,11 +98,11 @@ export const verifyRefreshToken = async (
   return { userId: payload.sub, sessionId: payload.sid };
 };
 
-export const requireSession = async (request: Request, secret = sessionSecretFromEnv(), now = new Date()): Promise<AccessClaims> => {
+export const requireSession = async (request: Request, secret?: Uint8Array, now = new Date()): Promise<AccessClaims> => {
   const authorization = request.headers.get('authorization');
   if (!authorization?.startsWith('Bearer ')) throw new UnauthorizedError();
   try {
-    return await verifyAccessToken(authorization.slice(7), secret, now);
+    return await verifyAccessToken(authorization.slice(7), secret ?? sessionSecretFromEnv(), now);
   } catch {
     throw new UnauthorizedError();
   }
