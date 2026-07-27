@@ -106,6 +106,7 @@
 		DF5A237E41CA4173E3B5904C /* ArrivalTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A527A4E704CE076BEDB5E68 /* ArrivalTarget.swift */; };
 		DFDDFC0C50FBD902FED9A14E /* ArrivalTargetCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96EB120F6B3CEED16E316CB7 /* ArrivalTargetCard.swift */; };
 		E0F513EC31511B915B78587B /* AccountSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79E023B62FCBECADC69DABCB /* AccountSessionStore.swift */; };
+		E1081AE615EDA9FEE361CDEA /* TravelContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00036B17DE4FEA80F2A12ACA /* TravelContent.swift */; };
 		E4C01FD27953FBA51E4F5EE2 /* AnnouncementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F739F17C393A922A8DB2D1B /* AnnouncementService.swift */; };
 		E7CC729324E01B0041BFBEE5 /* LiveLocationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C443FE724E722869D208BAC /* LiveLocationCard.swift */; };
 		EDF70A6B777B56819BDB016C /* RoadFeedService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E08E05BDE1D73F0761AE46D /* RoadFeedService.swift */; };
@@ -143,6 +144,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		00036B17DE4FEA80F2A12ACA /* TravelContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelContent.swift; sourceTree = "<group>"; };
 		00954AF5EE56487B60F675E1 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		03DCAD8D74B488556BEED891 /* JournalQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalQueue.swift; sourceTree = "<group>"; };
 		0521A93D4BC40C937DF85C12 /* AnnouncementAudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnouncementAudio.swift; sourceTree = "<group>"; };
@@ -699,6 +701,7 @@
 				9D65F8215A7804576B305FB9 /* StopExploreView.swift in Sources */,
 				FAD7DD8D7AC36626072723B3 /* Theme.swift in Sources */,
 				7E537C5724BCAD205276581C /* ToolsView.swift in Sources */,
+				E1081AE615EDA9FEE361CDEA /* TravelContent.swift in Sources */,
 				F141E4DDF91017C2B4BE29E0 /* TripActivityAttributes.swift in Sources */,
 				A59FFDEF88DDBE3125C26C1A /* TripNotifier.swift in Sources */,
 				C1B584C0CEEF5E5EDC3E249B /* TripPlanStore.swift in Sources */,
