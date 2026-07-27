@@ -27,9 +27,9 @@ enum CampDistancePolicy: Equatable, Codable, Hashable {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         switch try values.decode(String.self, forKey: .type) {
         case "city":
-            self = .city(maximumKm: min(try values.decode(Double.self, forKey: .maximumKm), 25))
+            self = .city(maximumKm: try values.decode(Double.self, forKey: .maximumKm))
         case "transit":
-            self = .transit(maximumDetourKm: min(try values.decode(Double.self, forKey: .maximumDetourKm), 10))
+            self = .transit(maximumDetourKm: try values.decode(Double.self, forKey: .maximumDetourKm))
         default:
             throw DecodingError.dataCorruptedError(forKey: .type, in: values, debugDescription: "Unsupported camp distance policy")
         }
@@ -40,10 +40,10 @@ enum CampDistancePolicy: Equatable, Codable, Hashable {
         switch self {
         case .city(let maximumKm):
             try values.encode("city", forKey: .type)
-            try values.encode(min(maximumKm, 25), forKey: .maximumKm)
+            try values.encode(maximumKm, forKey: .maximumKm)
         case .transit(let maximumDetourKm):
             try values.encode("transit", forKey: .type)
-            try values.encode(min(maximumDetourKm, 10), forKey: .maximumDetourKm)
+            try values.encode(maximumDetourKm, forKey: .maximumDetourKm)
         }
     }
 
