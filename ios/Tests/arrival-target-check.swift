@@ -186,11 +186,38 @@ struct ArrivalTargetCheck {
               restored.estimatedArrivalMode == .automatic && restored.estimatedArrivalWindow == automaticWindow
                 && restored.estimatedArrival == automaticWindow.text)
         let encodedManualStay = try! JSONEncoder().encode(AccountStayDetails(manualStay))
+        let encodedManualObject = try! JSONSerialization.jsonObject(with: encodedManualStay) as! [String: Any]
+        let encodedManualWindow = encodedManualObject["estimatedArrivalWindow"] as! [String: Any]
+        check("hesap ETA penceresi sunucuya ISO UTC metni kodlar",
+              encodedManualWindow["start"] is String
+                && encodedManualWindow["end"] is String
+                && (encodedManualWindow["start"] as? String)?.hasSuffix("Z") == true)
         let decodedManualStay = try! JSONDecoder().decode(AccountStayDetails.self, from: encodedManualStay).resolved
         check("manuel ETA hesap JSON turunda korunur",
               decodedManualStay.estimatedArrivalMode == .manual
                 && decodedManualStay.estimatedArrivalWindow == manualWindow
                 && decodedManualStay.estimatedArrival == manualStay.estimatedArrival)
+
+        let serverISOStay = try! JSONDecoder().decode(
+            AccountStayDetails.self,
+            from: Data(#"{"reservationStatus":"awaitingReply","estimatedArrivalMode":"manual","estimatedArrivalWindow":{"start":"2026-08-03T05:00:00Z","end":"2026-08-03T06:00:00Z","timeZoneIdentifier":"Europe/Istanbul"}}"#.utf8)
+        ).resolved
+        check("sunucu ISO ETA penceresi Swift hesabına çözülür",
+              serverISOStay.estimatedArrivalWindow?.start == ISO8601DateFormatter().date(from: "2026-08-03T05:00:00Z")
+                && serverISOStay.estimatedArrivalWindow?.timeZoneIdentifier == "Europe/Istanbul")
+
+        let legacyStart = departure.timeIntervalSinceReferenceDate
+        let legacyEnd = departure.addingTimeInterval(3_600).timeIntervalSinceReferenceDate
+        let legacyNumericJSON = """
+        {"reservationStatus":"notContacted","estimatedArrivalWindow":{"start":\(legacyStart),"end":\(legacyEnd),"timeZoneIdentifier":"Europe/Istanbul"}}
+        """
+        let legacyNumericStay = try! JSONDecoder().decode(
+            AccountStayDetails.self,
+            from: Data(legacyNumericJSON.utf8)
+        ).resolved
+        check("önceki Foundation sayısal ETA penceresi geriye uyumlu çözülür",
+              legacyNumericStay.estimatedArrivalWindow?.start == departure
+                && legacyNumericStay.estimatedArrivalWindow?.end == departure.addingTimeInterval(3_600))
 
         let flight = StayMessageComposer.compose(
             target: target, stay: stay, profile: profile, transportMode: .flight, camp: nil

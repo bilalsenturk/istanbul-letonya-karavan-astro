@@ -424,10 +424,16 @@ const stayETAWindow = (value: unknown): StayETAWindowRecord => {
   const start = isoDate(raw.start, 'invalid_stay_details');
   const end = isoDate(raw.end, 'invalid_stay_details');
   if (Date.parse(end) <= Date.parse(start)) throw new Error('invalid_stay_details');
+  const timeZoneIdentifier = limitedRequiredString(raw.timeZoneIdentifier, 100, 'invalid_stay_details');
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: timeZoneIdentifier }).format(0);
+  } catch {
+    throw new Error('invalid_stay_details');
+  }
   return {
     start,
     end,
-    timeZoneIdentifier: limitedRequiredString(raw.timeZoneIdentifier, 100, 'invalid_stay_details'),
+    timeZoneIdentifier,
   };
 };
 
@@ -447,7 +453,14 @@ const optionalString = (value: unknown, max: number): string | undefined => {
 };
 
 const isoDate = (value: unknown, error: string): string => {
-  if (typeof value !== 'string' || Number.isNaN(Date.parse(value))) throw new Error(error);
+  if (typeof value !== 'string'
+    || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) {
+    throw new Error(error);
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.valueOf())) throw new Error(error);
+  const canonical = value.includes('.') ? value : value.replace(/Z$/, '.000Z');
+  if (parsed.toISOString() !== canonical) throw new Error(error);
   return value;
 };
 

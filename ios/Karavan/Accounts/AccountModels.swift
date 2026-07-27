@@ -134,6 +134,11 @@ struct AccountStayDetails: Codable, Equatable {
     var estimatedArrivalWindow: StayETAWindow?
     var lastContactedAt: String?
 
+    private enum CodingKeys: String, CodingKey {
+        case checkIn, checkOut, reservationStatus, reservationReference, note, estimatedArrival
+        case estimatedArrivalMode, estimatedArrivalWindow, lastContactedAt
+    }
+
     init(_ stay: StayDetails) {
         let formatter = ISO8601DateFormatter()
         checkIn = stay.checkIn.map(formatter.string(from:))
@@ -147,6 +152,32 @@ struct AccountStayDetails: Codable, Equatable {
         lastContactedAt = stay.lastContactedAt.map(formatter.string(from:))
     }
 
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        checkIn = try values.decodeIfPresent(String.self, forKey: .checkIn)
+        checkOut = try values.decodeIfPresent(String.self, forKey: .checkOut)
+        reservationStatus = try values.decode(StayReservationStatus.self, forKey: .reservationStatus)
+        reservationReference = try values.decodeIfPresent(String.self, forKey: .reservationReference)
+        note = try values.decodeIfPresent(String.self, forKey: .note)
+        estimatedArrival = try values.decodeIfPresent(String.self, forKey: .estimatedArrival)
+        estimatedArrivalMode = try values.decodeIfPresent(StayEstimatedArrivalMode.self, forKey: .estimatedArrivalMode)
+        estimatedArrivalWindow = try values.decodeIfPresent(AccountStayETAWindow.self, forKey: .estimatedArrivalWindow)?.resolved
+        lastContactedAt = try values.decodeIfPresent(String.self, forKey: .lastContactedAt)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encodeIfPresent(checkIn, forKey: .checkIn)
+        try values.encodeIfPresent(checkOut, forKey: .checkOut)
+        try values.encode(reservationStatus, forKey: .reservationStatus)
+        try values.encodeIfPresent(reservationReference, forKey: .reservationReference)
+        try values.encodeIfPresent(note, forKey: .note)
+        try values.encodeIfPresent(estimatedArrival, forKey: .estimatedArrival)
+        try values.encodeIfPresent(estimatedArrivalMode, forKey: .estimatedArrivalMode)
+        try values.encodeIfPresent(estimatedArrivalWindow.map(AccountStayETAWindow.init), forKey: .estimatedArrivalWindow)
+        try values.encodeIfPresent(lastContactedAt, forKey: .lastContactedAt)
+    }
+
     var resolved: StayDetails {
         StayDetails(
             checkIn: checkIn.flatMap(ISO8601DateFormatter().date(from:)),
@@ -158,6 +189,63 @@ struct AccountStayDetails: Codable, Equatable {
             estimatedArrivalMode: estimatedArrivalMode,
             estimatedArrivalWindow: estimatedArrivalWindow,
             lastContactedAt: lastContactedAt.flatMap(ISO8601DateFormatter().date(from:))
+        )
+    }
+}
+
+private struct AccountStayETAWindow: Codable {
+    let start: Date
+    let end: Date
+    let timeZoneIdentifier: String
+
+    private enum CodingKeys: String, CodingKey {
+        case start, end, timeZoneIdentifier
+    }
+
+    init(_ window: StayETAWindow) {
+        start = window.start
+        end = window.end
+        timeZoneIdentifier = window.timeZoneIdentifier
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        start = try Self.decodeDate(from: values, forKey: .start)
+        end = try Self.decodeDate(from: values, forKey: .end)
+        timeZoneIdentifier = try values.decode(String.self, forKey: .timeZoneIdentifier)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        let formatter = ISO8601DateFormatter()
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        try values.encode(formatter.string(from: start), forKey: .start)
+        try values.encode(formatter.string(from: end), forKey: .end)
+        try values.encode(timeZoneIdentifier, forKey: .timeZoneIdentifier)
+    }
+
+    var resolved: StayETAWindow {
+        StayETAWindow(start: start, end: end, timeZoneIdentifier: timeZoneIdentifier)
+    }
+
+    private static func decodeDate(
+        from values: KeyedDecodingContainer<CodingKeys>,
+        forKey key: CodingKeys
+    ) throws -> Date {
+        if let text = try? values.decode(String.self, forKey: key) {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let value = formatter.date(from: text) { return value }
+            formatter.formatOptions = [.withInternetDateTime]
+            if let value = formatter.date(from: text) { return value }
+        }
+        if let legacy = try? values.decode(Double.self, forKey: key) {
+            return Date(timeIntervalSinceReferenceDate: legacy)
+        }
+        throw DecodingError.dataCorruptedError(
+            forKey: key,
+            in: values,
+            debugDescription: "Expected an ISO-8601 UTC string or legacy Foundation date number"
         )
     }
 }

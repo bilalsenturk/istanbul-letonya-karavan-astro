@@ -160,6 +160,39 @@ assert.throws(
   }),
   /invalid_stay_details/,
 );
+for (const invalidStart of [
+  '1',
+  '2026-02-30T18:00:00.000Z',
+  '2026-08-03T18:00:00+03:00',
+  'August 3, 2026 18:00 UTC',
+]) {
+  assert.throws(
+    () => foldSingleStop({
+      ...trip.stops[1],
+      stayDetails: {
+        ...trip.stops[1].stayDetails,
+        estimatedArrivalWindow: {
+          ...trip.stops[1].stayDetails.estimatedArrivalWindow,
+          start: invalidStart,
+        },
+      },
+    }),
+    /invalid_stay_details/,
+  );
+}
+assert.throws(
+  () => foldSingleStop({
+    ...trip.stops[1],
+    stayDetails: {
+      ...trip.stops[1].stayDetails,
+      estimatedArrivalWindow: {
+        ...trip.stops[1].stayDetails.estimatedArrivalWindow,
+        timeZoneIdentifier: 'Mars/Olympus_Mons',
+      },
+    },
+  }),
+  /invalid_stay_details/,
+);
 assert.throws(
   () => foldSingleStop({
     ...trip.stops[1],
