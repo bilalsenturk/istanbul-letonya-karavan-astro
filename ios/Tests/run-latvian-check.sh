@@ -5,5 +5,6 @@ SRC="$DIR/../Karavan/Learning"
 OUT="$(mktemp -d)"
 swiftc -O -parse-as-library -o "$OUT/latviancheck" \
   "$DIR/latvian-engine-check.swift" \
-  "$SRC/LatvianPack.swift"
+  "$SRC/LatvianPack.swift" \
+  "$SRC/LatvianExercise.swift"
 "$OUT/latviancheck"

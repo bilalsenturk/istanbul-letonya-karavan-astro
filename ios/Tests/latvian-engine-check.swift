@@ -58,6 +58,31 @@ struct LatvianEngineCheck {
         expect(pack.audioURL(for: "a1").absoluteString == "https://blob.example.com/letonca/ses/a1.mp3",
                "ses adresi kuruluyor")
 
+        print("\n=== Soru modeli ===")
+
+        expect(LatvianExerciseKind.listenChoose.modality == .recognition, "dinle-seç tanıma sorusu")
+        expect(LatvianExerciseKind.iconChoose.modality == .recognition, "görselden-seç tanıma sorusu")
+        expect(LatvianExerciseKind.match.modality == .recognition, "eşleştirme tanıma sorusu")
+        expect(LatvianExerciseKind.lvToTr.modality == .recognition, "LV→TR tanıma sorusu")
+        expect(LatvianExerciseKind.trToLv.modality == .production, "TR→LV üretim sorusu")
+        expect(LatvianExerciseKind.dictation.modality == .production, "dikte üretim sorusu")
+        expect(LatvianExerciseKind.order.modality == .production, "sıralama üretim sorusu")
+        expect(LatvianExerciseKind.speak.modality == .production, "telaffuz üretim sorusu")
+        expect(LatvianExerciseKind.fillBlank.modality == .recognition, "boşluk doldurma tanıma sorusu")
+        expect(LatvianExerciseKind.caseDrill.modality == .production, "hal tatbikatı üretim sorusu")
+
+        let choiceExercise = LatvianExercise(
+            id: "e1",
+            kind: .listenChoose,
+            targetWordId: "w1",
+            prompt: "Duyduğun kelimeyi seç.",
+            audioId: "a1",
+            content: .choice(options: ["labdien", "paldies", "lūdzu"], correctIndex: 0)
+        )
+
+        expect(choiceExercise.modality == .recognition, "soru modalitesi tipinden geliyor")
+        expect(choiceExercise.optionCount == 3, "seçenek sayısı okunuyor")
+
         if failures > 0 {
             fputs("\n\(failures) kontrol başarısız.\n", stderr)
             exit(1)
