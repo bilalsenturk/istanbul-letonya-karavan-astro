@@ -114,6 +114,63 @@ struct LatvianEngineCheck {
         expect(!exercise(.fillBlank).requiresAudio, "boşluk doldurma ses gerektirmiyor")
         expect(!exercise(.caseDrill).requiresAudio, "hal tatbikatı ses gerektirmiyor")
 
+        print("\n=== Notlama ===")
+
+        expect(LatvianGrader.normalize("Lūdzu!") == "ludzu", "diakritik ve noktalama düşüyor")
+        expect(LatvianGrader.normalize("  Es   gribu  ") == "es gribu", "fazla boşluk tekleşiyor")
+        expect(LatvianGrader.normalize("Paldies") == LatvianGrader.normalize("paldies."), "büyük harf ve nokta önemsiz")
+        expect(LatvianGrader.normalize("IŞIK") == LatvianGrader.normalize("ışık"), "Türkçe büyük harf farkı eriyor")
+        expect(LatvianGrader.normalize("kafiju") != LatvianGrader.normalize("kafija"), "farklı ek farklı cevap")
+
+        func exercise(_ kind: LatvianExerciseKind, _ content: LatvianExerciseContent) -> LatvianExercise {
+            LatvianExercise(id: "x", kind: kind, targetWordId: "w1", prompt: "p", content: content)
+        }
+
+        let choiceQuestion = exercise(.listenChoose, .choice(options: ["labdien", "paldies"], correctIndex: 1))
+        expect(LatvianGrader.grade(exercise: choiceQuestion, answer: .choice(index: 1)).isCorrect, "doğru seçenek geçiyor")
+        expect(!LatvianGrader.grade(exercise: choiceQuestion, answer: .choice(index: 0)).isCorrect, "yanlış seçenek kalıyor")
+        expect(LatvianGrader.grade(exercise: choiceQuestion, answer: .choice(index: 9)).isCorrect == false,
+               "aralık dışı seçenek yanlış sayılıyor")
+        expect(LatvianGrader.grade(exercise: choiceQuestion, answer: .text("paldies")).isCorrect == false,
+               "yanlış cevap türü yanlış sayılıyor")
+        expect(LatvianGrader.grade(exercise: choiceQuestion, answer: .choice(index: 0)).correctAnswer == "paldies",
+               "doğru cevap metni dönüyor")
+
+        let bankQuestion = exercise(.trToLv, .wordBank(bank: ["sauc", "Mani", "Leyla"], answer: ["Mani", "sauc", "Leyla"]))
+        expect(LatvianGrader.grade(exercise: bankQuestion, answer: .words(["Mani", "sauc", "Leyla"])).isCorrect,
+               "doğru sıra geçiyor")
+        expect(!LatvianGrader.grade(exercise: bankQuestion, answer: .words(["sauc", "Mani", "Leyla"])).isCorrect,
+               "yanlış sıra kalıyor")
+        expect(LatvianGrader.grade(exercise: bankQuestion, answer: .words(["mani", "sauc", "leyla"])).isCorrect,
+               "büyük harf farkı affediliyor")
+
+        let typingQuestion = exercise(.dictation, .typing(accepted: ["Paldies"]))
+        expect(LatvianGrader.grade(exercise: typingQuestion, answer: .text("paldies")).isCorrect, "yazım küçük harfle geçiyor")
+        expect(LatvianGrader.grade(exercise: typingQuestion, answer: .text(" Paldies! ")).isCorrect, "boşluk ve noktalama affediliyor")
+        expect(!LatvianGrader.grade(exercise: typingQuestion, answer: .text("paldie")).isCorrect, "eksik yazım kalıyor")
+
+        let matchQuestion = exercise(.match, .matching(pairs: [
+            LatvianMatchPair(lv: "paldies", tr: "teşekkürler"),
+            LatvianMatchPair(lv: "lūdzu", tr: "lütfen"),
+        ]))
+        expect(LatvianGrader.grade(exercise: matchQuestion, answer: .pairs([
+            LatvianMatchPair(lv: "lūdzu", tr: "lütfen"),
+            LatvianMatchPair(lv: "paldies", tr: "teşekkürler"),
+        ])).isCorrect, "eşleştirme sırası önemsiz")
+        expect(!LatvianGrader.grade(exercise: matchQuestion, answer: .pairs([
+            LatvianMatchPair(lv: "paldies", tr: "lütfen"),
+            LatvianMatchPair(lv: "lūdzu", tr: "teşekkürler"),
+        ])).isCorrect, "çapraz eşleştirme yanlış")
+        expect(!LatvianGrader.grade(exercise: matchQuestion, answer: .pairs([
+            LatvianMatchPair(lv: "paldies", tr: "teşekkürler"),
+        ])).isCorrect, "eksik eşleştirme yanlış")
+
+        let speakQuestion = exercise(.speak, .speaking(target: "Lūdzu"))
+        expect(LatvianGrader.grade(exercise: speakQuestion, answer: .spoken(transcript: "ludzu")).isCorrect,
+               "telaffuz dökümü diakritiksiz geçiyor")
+        expect(!LatvianGrader.grade(exercise: speakQuestion, answer: .spoken(transcript: "paldies")).isCorrect,
+               "yanlış telaffuz kalıyor")
+
         if failures > 0 {
             fputs("\n\(failures) kontrol başarısız.\n", stderr)
             exit(1)
