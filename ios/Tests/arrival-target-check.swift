@@ -275,12 +275,20 @@ struct ArrivalTargetCheck {
               ContactLinkBuilder.normalizedWhatsAppPhone("00359 881 234 567") == "359881234567")
         check("WhatsApp en uzun 15 haneli numarayı kabul eder",
               ContactLinkBuilder.normalizedWhatsAppPhone("+123456789012345") == "123456789012345")
+        check("WhatsApp biçimli artı, 00 ve yalın numarayı kabul eder",
+              ContactLinkBuilder.normalizedWhatsAppPhone(" +359 (88) 123-45 67 ") == "359881234567"
+                && ContactLinkBuilder.normalizedWhatsAppPhone("00 359 (88) 123-45 67") == "359881234567"
+                && ContactLinkBuilder.normalizedWhatsAppPhone("359 881 234 567") == "359881234567")
         check("WhatsApp Unicode rakamlarını ve geçersiz önekleri reddeder",
               ContactLinkBuilder.normalizedWhatsAppPhone("+٣٥٩٨٨١٢٣٤٥٦٧") == nil
                 && ContactLinkBuilder.normalizedWhatsAppPhone("+000359881234567") == nil
                 && ContactLinkBuilder.normalizedWhatsAppPhone("+1234567") == nil
                 && ContactLinkBuilder.normalizedWhatsAppPhone("+1234567890123456") == nil
-                && ContactLinkBuilder.normalizedWhatsAppPhone("+359call881234567") == nil)
+                && ContactLinkBuilder.normalizedWhatsAppPhone("+359call881234567") == nil
+                && ContactLinkBuilder.normalizedWhatsAppPhone("++359881234567") == nil
+                && ContactLinkBuilder.normalizedWhatsAppPhone("00+359881234567") == nil
+                && ContactLinkBuilder.normalizedWhatsAppPhone("(00)359881234567") == nil
+                && ContactLinkBuilder.normalizedWhatsAppPhone("+359+881234567") == nil)
 
         let handoffID = UUID()
         var handoff = WhatsAppHandoffState()

@@ -652,17 +652,17 @@ enum ContactLinkBuilder {
     static func normalizedWhatsAppPhone(_ phone: String?) -> String? {
         guard let phone else { return nil }
         let trimmed = phone.trimmingCharacters(in: .whitespacesAndNewlines)
-        let accepted = CharacterSet(charactersIn: "+()-. /0123456789")
-        guard trimmed.unicodeScalars.allSatisfy(accepted.contains) else { return nil }
-        let digits = trimmed.filter { $0.isASCII && $0.isNumber }
-        let normalized: String
+        var remainder = trimmed
         if trimmed.hasPrefix("+") {
-            normalized = digits
-        } else if digits.hasPrefix("00") {
-            normalized = String(digits.dropFirst(2))
-        } else {
-            return nil
+            remainder.removeFirst()
+        } else if trimmed.hasPrefix("00") {
+            remainder.removeFirst(2)
         }
+        let separators = CharacterSet(charactersIn: " -()")
+        guard remainder.unicodeScalars.allSatisfy({ scalar in
+            (scalar.value >= 48 && scalar.value <= 57) || separators.contains(scalar)
+        }) else { return nil }
+        let normalized = remainder.filter { $0.isASCII && $0.isNumber }
         guard normalized.range(of: #"^[1-9][0-9]{7,14}$"#, options: .regularExpression) != nil else { return nil }
         return normalized
     }

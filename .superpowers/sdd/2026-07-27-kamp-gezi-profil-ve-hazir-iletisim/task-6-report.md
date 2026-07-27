@@ -33,3 +33,9 @@
 - Saf `WhatsAppHandoffState`, başarılı açılış ile gerçek inactive→active dönüşün ikisini de bekler; ters callback sırası, geç başarısızlık, tekrar eden aktif olayları ve eski action ID'leri tek seferlik/doğru davranışla kapsar.
 - E.164 normalleştirme yalnız ASCII biçim ayraçlarını kabul eder; `+`/`00` ön ekini kaldırdıktan sonra `[1-9][0-9]{7,14}` uygular. Unicode rakamlar, harfler, sıfır önekleri ve uzunluk sınır dışı değerler reddedilir.
 - Doğrulama: arrival harness, `xcodegen generate` ve mevcut paylaşılan çalışma alanındaki simulator build geçti. Temiz arşiv sonucu, paylaşılan alandaki bağımsız `SubplanCompactRow` kaynağı nedeniyle bu görev tarafından iddia edilmez.
+
+## Fix Round 2 — Runtime Scheme and Prefix Grammar
+
+- PBX tarafından kullanılan `ios/Support/Info.plist` içine `LSApplicationQueriesSchemes`/`whatsapp` dizisi eklendi; `ios/project.yml` eşdeğer beyanı korunur.
+- `ios/Tests/run-whatsapp-plist-check.sh`, çalışma dizini veya index yerine `HEAD` içeriğini okuyarak iki kaynağın da WhatsApp sorgu şemasını taşıdığını doğrular.
+- Telefon ayrıştırıcısı çevre boşluğunu kırpar; yalnız ilk karakterlerde tek `+`, baştaki `00` veya yalın sayı biçimini kabul eder. Kalan bölüm ASCII sayı/boşluk/tire/parantezle sınırlıdır; iç/çift `+`, `00+`, `(00)`, Unicode sayı ve harfler reddedilir.
