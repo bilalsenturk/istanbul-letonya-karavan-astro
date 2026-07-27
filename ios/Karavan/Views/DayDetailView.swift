@@ -220,9 +220,7 @@ struct DayDetailView: View {
     private var defaultStay: StayDetails {
         guard let effective = eff else { return StayDetails() }
         let calendar = destinationCalendar
-        let waypointMinutes = day.waypoints?.compactMap(\.estimatedMinutes).reduce(0) {
-            min(10_080, $0 + min(max(0, $1), 10_080))
-        } ?? 0
+        let waypointMinutes = StayETAInput.boundedWaypointMinutes(day.waypoints?.compactMap(\.estimatedMinutes) ?? [])
         let eta = realLeg.map {
             StayETACalculator.calculate(.init(
                 departure: effective.departTime,
@@ -247,11 +245,7 @@ struct DayDetailView: View {
         var result = value
         if result.checkIn == nil { result.checkIn = defaultStay.checkIn }
         if result.checkOut == nil { result.checkOut = defaultStay.checkOut }
-        if result.estimatedArrivalMode == .automatic {
-            result.estimatedArrival = defaultStay.estimatedArrival
-            result.estimatedArrivalWindow = defaultStay.estimatedArrivalWindow
-        }
-        return result
+        return StayArrivalModeResolver.applyingAutomaticDefault(defaultStay.estimatedArrivalWindow, to: result)
     }
 
     private var destinationCalendar: Calendar {

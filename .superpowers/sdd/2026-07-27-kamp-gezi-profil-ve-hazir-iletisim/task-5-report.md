@@ -39,3 +39,7 @@ The committed planner fixture now orders `borderBufferMinutes` after `camp` and 
 ## Fix round 2
 
 RED coverage added for DST fall-back ambiguity, bounded extreme waypoint input, and manual-to-automatic resolution. GREEN uses the production `StayETAInput` bounded total and `StayArrivalModeResolver`; arrival, account, and planner harnesses pass in the synchronized worktree.
+
+## Fix round 3
+
+The editor now invokes `StayArrivalModeResolver.useAutomatic`, while day defaults use both `StayETAInput.boundedWaypointMinutes` and `StayArrivalModeResolver.applyingAutomaticDefault`; a manual ETA therefore remains untouched until the explicit automatic action. The arrival harness exercises the same helpers with `[Int.max, Int.max]`, performs a real `AccountStayDetails` JSON encode/decode/resolution round trip for a manual window, and verifies Riga's second repeated 03:45 (UTC+2) plus a fallback window that prints two distinct EEST/EET (or GMT-offset) labels. Arrival, account, and planner harnesses pass.

@@ -150,9 +150,7 @@ struct ArrivalTargetEditorView: View {
             TextField("Tahmini varış", text: stayOptionalBinding(\.estimatedArrival))
                 .accessibilityLabel("Manuel tahmini varış")
             Button("Otomatik kullan") {
-                stay.estimatedArrivalMode = .automatic
-                stay.estimatedArrivalWindow = automaticETA
-                stay.estimatedArrival = automaticETA?.text
+                stay = StayArrivalModeResolver.useAutomatic(automaticETA, replacing: stay)
             }
             .disabled(automaticETA == nil)
             .accessibilityHint("Yol, mola ve sınır payına göre hesaplanan aralığı geri yükler")

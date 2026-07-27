@@ -109,6 +109,22 @@ struct ArrivalTargetCheck {
         ))
         check("ETA hedef saat diliminde yaz saati atlamasını taşır", dstETA.text == "04:00–05:00")
 
+        let secondRepeatedRigaCenter = ISO8601DateFormatter().date(from: "2026-10-25T01:45:00Z")!
+        let secondRepeatedRigaETA = StayETACalculator.calculate(.init(
+            departure: secondRepeatedRigaCenter, drivingSeconds: 0, calendar: rigaCalendar
+        ))
+        let rigaWallClock = DateFormatter()
+        rigaWallClock.locale = Locale(identifier: "en_GB")
+        rigaWallClock.timeZone = rigaCalendar.timeZone
+        rigaWallClock.dateFormat = "HH:mm zzz"
+        check("Riga ikinci tekrar saatini UTC ile ayırt eder",
+              rigaWallClock.string(from: secondRepeatedRigaCenter).contains("03:45")
+                && rigaCalendar.timeZone.secondsFromGMT(for: secondRepeatedRigaCenter) == 2 * 3_600
+                && secondRepeatedRigaETA.start <= secondRepeatedRigaCenter
+                && secondRepeatedRigaCenter <= secondRepeatedRigaETA.end
+                && (rigaWallClock.string(from: secondRepeatedRigaCenter).contains("GMT+2")
+                    || rigaWallClock.string(from: secondRepeatedRigaCenter).contains("EET")))
+
         let fallBackDeparture = ISO8601DateFormatter().date(from: "2026-10-25T00:15:00Z")!
         let fallBack = StayETACalculator.calculate(.init(
             departure: fallBackDeparture, drivingSeconds: 45 * 60, calendar: rigaCalendar
@@ -117,8 +133,14 @@ struct ArrivalTargetCheck {
         check("DST geri saatte pencere mutlak olarak düzgündür",
               fallBack.start < fallBack.end && fallBack.end.timeIntervalSince(fallBack.start) == 3_600
                 && fallBack.start <= fallCenter && fallCenter <= fallBack.end)
-        check("DST geri saatte saat dilimi metni belirsiz değildir",
-              fallBack.text.contains("GMT") || fallBack.text.contains("EEST") || fallBack.text.contains("EET"))
+        let fallBackStartZone = rigaWallClock.string(from: fallBack.start).split(separator: " ").last.map(String.init) ?? ""
+        let fallBackEndZone = rigaWallClock.string(from: fallBack.end).split(separator: " ").last.map(String.init) ?? ""
+        check("DST geri saatte pencere iki ayrı Riga saat dilimini yazar",
+              rigaCalendar.timeZone.secondsFromGMT(for: fallBack.start) == 3 * 3_600
+                && rigaCalendar.timeZone.secondsFromGMT(for: fallBack.end) == 2 * 3_600
+                && fallBackStartZone != fallBackEndZone
+                && fallBack.text.contains(fallBackStartZone)
+                && fallBack.text.contains(fallBackEndZone))
 
         let hugeETA = StayETACalculator.calculate(.init(
             departure: departure, drivingSeconds: 0, waypointMinutes: .max, borderBufferMinutes: .max, calendar: calendar
@@ -136,8 +158,12 @@ struct ArrivalTargetCheck {
         check("otomatik seçimi manuel pencereyi değiştirir",
               restored.estimatedArrivalMode == .automatic && restored.estimatedArrivalWindow == automaticWindow
                 && restored.estimatedArrival == automaticWindow.text)
-        let roundTrip = AccountStayDetails(restored).resolved
-        check("otomatik ETA hesap senkronunda korunur", roundTrip.estimatedArrivalMode == .automatic && roundTrip.estimatedArrivalWindow == automaticWindow)
+        let encodedManualStay = try! JSONEncoder().encode(AccountStayDetails(manualStay))
+        let decodedManualStay = try! JSONDecoder().decode(AccountStayDetails.self, from: encodedManualStay).resolved
+        check("manuel ETA hesap JSON turunda korunur",
+              decodedManualStay.estimatedArrivalMode == .manual
+                && decodedManualStay.estimatedArrivalWindow == manualWindow
+                && decodedManualStay.estimatedArrival == manualStay.estimatedArrival)
 
         let flight = StayMessageComposer.compose(
             target: target, stay: stay, profile: profile, transportMode: .flight, camp: nil
