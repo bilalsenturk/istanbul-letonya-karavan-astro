@@ -338,6 +338,9 @@ struct TravelContentStoreCheck {
         check("kamp temsili görsel açıklaması uygulama modeline taşınır",
               committedStore.content(for: "Sofya")?.camps.first?.media.depictsCampground == false
                 && committedStore.content(for: "Sofya")?.camps.first?.media.disclosure?.isEmpty == false)
+        check("seçilebilir tüm kamplar çekme karavan kabul eder",
+              committedStore.bundle?.destinations.values
+                .flatMap(\.camps).allSatisfy(\.supportsCaravan) == true)
 
         let admissionNow = ISO8601DateFormatter().date(from: "2026-07-27T12:00:00Z")!
         let admits: (Data) -> Bool = { TravelContentStore.decodeValid($0, now: admissionNow) != nil }
@@ -383,6 +386,14 @@ struct TravelContentStoreCheck {
             campID: "mega-park-vrana"
         ) { $0["id"] = "unapproved-camp" }
         check("onaylı kamp kimliği kümesi birebir korunur", !admits(replacedCampID))
+
+        let unsupportedTowingCamp = mutatedCamp(
+            committedEmbedded,
+            destinationKey: "sofia",
+            campID: "mega-park-vrana"
+        ) { $0["supportsCaravan"] = false }
+        check("çekme karavan kabul etmeyen kamp admission politikasını geçemez",
+              !admits(unsupportedTowingCamp))
 
         let replacedAttractionID = mutatedDestination(committedEmbedded) { destination in
             var attractions = destination["attractions"] as! [[String: Any]]
@@ -533,42 +544,42 @@ struct TravelContentStoreCheck {
         ) { $0["openingPeriod"] = "Yıl boyu" }
         check("Riga City Camping sezon bilgisi korunur", !admits(brokenRigaSeason))
 
-        let brokenFarma = mutatedCamp(
+        let brokenCampuccinoSupport = mutatedCamp(
             committedEmbedded,
             destinationKey: "novi-sad",
-            campID: "auto-camp-farma-47"
-        ) { $0["supportsCaravan"] = true }
-        check("Farma 47 çekme karavan kısıtı korunur", !admits(brokenFarma))
+            campID: "camping-campuccino"
+        ) { $0["supportsCaravan"] = false }
+        check("Campuccino çekme karavan kabulü korunur", !admits(brokenCampuccinoSupport))
 
-        let inventedFarmaService = mutatedCamp(
+        let removedCampuccinoWater = mutatedCamp(
             committedEmbedded,
             destinationKey: "novi-sad",
-            campID: "auto-camp-farma-47"
-        ) { $0["hasWater"] = true }
-        check("Farma 47 için doğrulanmamış hizmet icat edilmez", !admits(inventedFarmaService))
+            campID: "camping-campuccino"
+        ) { $0["hasWater"] = false }
+        check("Campuccino su bağlantısı bilgisi korunur", !admits(removedCampuccinoWater))
 
-        let inventedFarmaWastewater = mutatedCamp(
+        let removedCampuccinoWastewater = mutatedCamp(
             committedEmbedded,
             destinationKey: "novi-sad",
-            campID: "auto-camp-farma-47"
-        ) { $0["hasWastewaterDisposal"] = true }
-        check("Farma 47 için doğrulanmamış atık hizmeti icat edilmez", !admits(inventedFarmaWastewater))
+            campID: "camping-campuccino"
+        ) { $0["hasWastewaterDisposal"] = false }
+        check("Campuccino atık boşaltma bilgisi korunur", !admits(removedCampuccinoWastewater))
 
-        let movedFarma = mutatedCamp(
+        let movedCampuccino = mutatedCamp(
             committedEmbedded,
             destinationKey: "novi-sad",
-            campID: "auto-camp-farma-47"
+            campID: "camping-campuccino"
         ) { camp in
-            camp["location"] = ["latitude": 45.3887, "longitude": 19.8197356]
+            camp["location"] = ["latitude": 45.2412, "longitude": 20.0255374]
         }
-        check("Farma 47 resmî koordinatı korunur", !admits(movedFarma))
+        check("Campuccino araştırılan koordinatı korunur", !admits(movedCampuccino))
 
-        let vagueFarmaWarning = mutatedCamp(
+        let vagueCampuccinoWarning = mutatedCamp(
             committedEmbedded,
             destinationKey: "novi-sad",
-            campID: "auto-camp-farma-47"
+            campID: "camping-campuccino"
         ) { $0["warning"] = "Önceden teyit et." }
-        check("Farma 47 motorhome ve hizmet uyarısı korunur", !admits(vagueFarmaWarning))
+        check("Campuccino uzunluk ve geç giriş uyarısı korunur", !admits(vagueCampuccinoWarning))
 
         FixtureURLProtocol.reset()
         FixtureURLProtocol.enqueue(fixture(versioned(committedEmbedded, 60)))

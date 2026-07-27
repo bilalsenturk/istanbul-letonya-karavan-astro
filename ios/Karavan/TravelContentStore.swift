@@ -10,10 +10,10 @@ private let travelContentExpectedDestinationKeys: Set<String> = [
 ]
 private let travelContentExpectedCampIDs: [String: Set<String>] = [
     "sofia": ["mega-park-vrana", "camper-parking-sofia"],
-    "novi-sad": ["auto-camp-farma-47", "eko-kamp-fruska-gora"],
+    "novi-sad": ["camping-campuccino", "eko-kamp-fruska-gora"],
     "budapest": ["haller-camping", "ave-natura-camping"],
     "krakow": ["camping-smok", "camping-clepardia"],
-    "warsaw": ["camping-motel-wok", "camper-park-venessa", "camping-warszawa-184"],
+    "warsaw": ["camping-motel-wok", "camping-warszawa-184"],
     "riga": ["camping-yachts", "riga-city-camping", "camping-zanzibara"],
 ]
 private let travelContentExpectedAttractionIDs: [String: Set<String>] = [
@@ -281,7 +281,8 @@ final class TravelContentStore: ObservableObject {
             else { return false }
 
             for camp in camps {
-                guard rawProvenanceAdmits(camp), rawMediaAdmits(camp["media"], isCamp: true)
+                guard camp["supportsCaravan"] as? Bool == true,
+                      rawProvenanceAdmits(camp), rawMediaAdmits(camp["media"], isCamp: true)
                 else { return false }
             }
             for attraction in attractions {
@@ -379,15 +380,19 @@ final class TravelContentStore: ObservableObject {
                   contains(clepardia["warning"], "iletişim")
             else { return false }
         case "novi-sad":
-            guard let farma = camp("auto-camp-farma-47"),
-                  farma["supportsCaravan"] as? Bool == false,
-                  let location = farma["location"] as? [String: Any],
-                  location["latitude"] as? Double == 45.3886068,
-                  location["longitude"] as? Double == 19.8197356,
-                  farma["hasWater"] is NSNull,
-                  farma["hasWastewaterDisposal"] is NSNull,
-                  contains(farma["warning"], "yalnız motorhome"),
-                  contains(farma["warning"], "olumlu varsayma")
+            guard let campuccino = camp("camping-campuccino"),
+                  campuccino["supportsCaravan"] as? Bool == true,
+                  campuccino["hasElectricity"] as? Bool == true,
+                  campuccino["hasWater"] as? Bool == true,
+                  campuccino["hasWastewaterDisposal"] as? Bool == true,
+                  let location = campuccino["location"] as? [String: Any],
+                  location["latitude"] as? Double == 45.2410861,
+                  location["longitude"] as? Double == 20.0255374,
+                  contains(campuccino["openingPeriod"], "1 Nisan-1 Kasım"),
+                  contains(campuccino["openingPeriod"], "14:00-20:00"),
+                  contains(campuccino["warning"], "azami"),
+                  contains(campuccino["warning"], "rezervasyonda bildir"),
+                  contains(campuccino["warning"], "20:00")
             else { return false }
         default:
             break
@@ -436,6 +441,7 @@ final class TravelContentStore: ObservableObject {
                       center.distanceKm(to: camp.location) <= maximumKm,
                       nonempty(camp.id), nonempty(camp.name), nonempty(camp.address),
                       nonempty(camp.recommendation),
+                      camp.supportsCaravan,
                       https(camp.websiteURL),
                       nonempty(camp.source.name), https(camp.source.url),
                       valid(camp.media),

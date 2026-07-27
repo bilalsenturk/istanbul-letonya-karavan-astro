@@ -10,10 +10,10 @@ assert.deepEqual(Object.keys(data.destinations).sort(), expected.sort());
 
 const expectedCamps = {
   sofia: ["Mega Park Vrana", "Camper Parking Sofia"],
-  "novi-sad": ["Auto Camp Farma 47", "Eko Kamp Fruška Gora"],
+  "novi-sad": ["Camping Campuccino", "Eko Kamp Fruška Gora"],
   budapest: ["Haller Camping", "Ave Natura Camping"],
   krakow: ["Camping Smok", "Camping Clepardia"],
-  warsaw: ["Camping Motel WOK", "Camper Park Venessa", "Camping Warszawa nr 184"],
+  warsaw: ["Camping Motel WOK", "Camping Warszawa nr 184"],
   riga: ["Camping & Yachts", "Riga City Camping", "Camping Zanzibara"],
 };
 
@@ -97,12 +97,15 @@ function assertCriticalRestrictions(bundle) {
   assert.match(rigaCity.openingPeriod, /15 Mayıs-15 Eylül/, "Riga City Camping: published season changed");
   assert.match(rigaCity.warning, /15 Eylül.*kapalı/i, "Riga City Camping: seasonal warning changed");
 
-  const farma47 = findCamp(bundle, "novi-sad", "auto-camp-farma-47");
-  assert.equal(farma47.location.latitude, 45.3886068, "Auto Camp Farma 47: official embedded-map latitude changed");
-  assert.equal(farma47.location.longitude, 19.8197356, "Auto Camp Farma 47: official embedded-map longitude changed");
-  assert.equal(farma47.supportsCaravan, false, "Auto Camp Farma 47: unsupported caravan claim reintroduced");
-  assert.equal(farma47.hasWater, null, "Auto Camp Farma 47: unsupported current water claim reintroduced");
-  assert.equal(farma47.hasWastewaterDisposal, null, "Auto Camp Farma 47: unsupported current wastewater claim reintroduced");
+  const campuccino = findCamp(bundle, "novi-sad", "camping-campuccino");
+  assert.equal(campuccino.location.latitude, 45.2410861, "Camping Campuccino: researched latitude changed");
+  assert.equal(campuccino.location.longitude, 20.0255374, "Camping Campuccino: researched longitude changed");
+  assert.equal(campuccino.supportsCaravan, true, "Camping Campuccino: towing-caravan support changed");
+  assert.equal(campuccino.hasElectricity, true, "Camping Campuccino: electricity service changed");
+  assert.equal(campuccino.hasWater, true, "Camping Campuccino: water service changed");
+  assert.equal(campuccino.hasWastewaterDisposal, true, "Camping Campuccino: wastewater service changed");
+  assert.match(campuccino.openingPeriod, /1 Nisan-1 Kasım.*14:00-20:00/, "Camping Campuccino: season or check-in guidance changed");
+  assert.match(campuccino.warning, /azami.*uzunlu.*rezervasyonda bildir.*20:00/iu, "Camping Campuccino: towing-length/check-in warning changed");
 }
 
 for (const [key, destination] of Object.entries(data.destinations)) {
@@ -134,6 +137,7 @@ for (const [key, destination] of Object.entries(data.destinations)) {
     assert.ok(distanceKm <= destination.policy.maximumKm, `${key}/${camp.name}: ${distanceKm.toFixed(2)} km exceeds 25 km`);
     assert.match(camp.websiteURL, /^https:\/\//, `${camp.name}: official HTTPS website required`);
     assert.ok(camp.address && camp.recommendation && camp.reservationMethod, `${camp.name}: researched stay detail required`);
+    assert.equal(camp.supportsCaravan, true, `${camp.name}: every selectable camp must admit towing caravans`);
   }
 }
 
@@ -147,7 +151,11 @@ const negativeChecks = [
   ["Ave Natura limit deletion", (copy) => { delete copy.destinations.budapest.camps.find((item) => item.id === "ave-natura-camping").maximumLengthMeters; }, assertCriticalRestrictions],
   ["Clepardia hours corruption", (copy) => { copy.destinations.krakow.camps.find((item) => item.id === "camping-clepardia").openingPeriod = "09:00-20:00"; }, assertCriticalRestrictions],
   ["Riga season deletion", (copy) => { delete copy.destinations.riga.camps.find((item) => item.id === "riga-city-camping").openingPeriod; }, assertCriticalRestrictions],
-  ["Farma 47 caravan claim", (copy) => { copy.destinations["novi-sad"].camps.find((item) => item.id === "auto-camp-farma-47").supportsCaravan = true; }, assertCriticalRestrictions],
+  ["towing-caravan admission", (copy) => { copy.destinations["novi-sad"].camps.find((item) => item.id === "camping-campuccino").supportsCaravan = false; }, (copy) => {
+    for (const destination of Object.values(copy.destinations)) {
+      for (const camp of destination.camps) assert.equal(camp.supportsCaravan, true);
+    }
+  }],
 ];
 
 for (const [label, mutate, validate] of negativeChecks) {
