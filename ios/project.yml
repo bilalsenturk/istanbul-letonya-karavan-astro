@@ -3,6 +3,17 @@ options:
   bundleIdPrefix: com.bilalsenturk
   deploymentTarget:
     iOS: "17.0"
+packages:
+  # Letonca motorunun aralıklı tekrar planlayıcısı (LatvianFSRSAdapter.swift).
+  #
+  # Sürüm 4.1.0'a sabitli, 5.0.0'a değil: 5.0.0'da tiplerin `public` işaretleri
+  # eksik kalmış (FSRS sınıfının `init`'i, `repeat`/`next` metotları, `IPreview`
+  # alt simgesi ve `RecordLogItem.card` hepsi `internal`), dolayısıyla paket
+  # dışarıdan kullanılamıyor. 4.1.0 tam `public` yüzeye sahip ve aynı FSRS v4.5
+  # algoritmasını uyguluyor.
+  FSRS:
+    url: https://github.com/open-spaced-repetition/swift-fsrs
+    exactVersion: 4.1.0
 targets:
   Kuzey:
     type: application
@@ -12,6 +23,7 @@ targets:
       - path: Shared
     dependencies:
       - target: KuzeyWidgets
+      - package: FSRS
     entitlements:
       path: Karavan/Kuzey.entitlements
       properties:
