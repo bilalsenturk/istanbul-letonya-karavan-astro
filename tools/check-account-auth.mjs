@@ -127,6 +127,25 @@ const malformedResolved = await malformedTimestampRepository.accountById('user-m
 assert.notEqual(malformedResolved.travelProfile.contactName, 'Bad Fixed');
 assert.notEqual(malformedResolved.travelProfile.contactName, 'Bad Revision');
 assert.match(malformedResolved.travelProfile.updatedAt, /^\d{4}-\d{2}-\d{2}T/);
+for (const malformed of [9999, {}, [], null]) {
+  malformedTimestampData.set(`accounts/profiles/user-malformed/revisions/type-${String(malformed)}.json`, { ...travelProfile, updatedAt: malformed });
+}
+assert.equal((await malformedTimestampRepository.accountById('user-malformed')).travelProfile.contactName, malformedResolved.travelProfile.contactName);
+
+const equalTimeData = new Map();
+const equalTime = '2026-07-26T08:00:00.000Z';
+const equalSnapshot = { ...seeded, id: 'user-equal', travelProfile: { ...travelProfile, contactName: 'Seed S', updatedAt: equalTime } };
+equalTimeData.set('accounts/users/user-equal.json', equalSnapshot);
+equalTimeData.set('accounts/profiles/user-equal.json', { ...travelProfile, contactName: 'Fixed S', updatedAt: equalTime });
+equalTimeData.set('accounts/profiles/user-equal/revisions/old.json', { ...travelProfile, contactName: 'Bare S', updatedAt: equalTime });
+equalTimeData.set('accounts/profiles/user-equal/revisions/new.json', { profile: { ...travelProfile, contactName: 'Patch N', updatedAt: equalTime }, kind: 'userUpdate', revisionId: 'n', writtenAt: equalTime });
+const equalRepository = createAccountRepository({
+  read: async (path) => equalTimeData.has(path) ? structuredClone(equalTimeData.get(path)) : null,
+  write: async (path, value) => { equalTimeData.set(path, structuredClone(value)); },
+  list: async (prefix) => [...equalTimeData.keys()].filter((path) => path.startsWith(prefix)),
+  subjectId: (subject) => `user-${subject}`,
+});
+assert.equal((await equalRepository.accountById('user-equal')).travelProfile.contactName, 'Patch N');
 
 const firstSeedData = new Map();
 let firstSeedProfileWriteStarted;

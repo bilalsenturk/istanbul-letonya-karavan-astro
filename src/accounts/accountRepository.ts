@@ -47,6 +47,8 @@ export type AccountRepository = {
   updateTravelProfile(userId: string, profile: Partial<TravelProfileRecord>): Promise<AccountRecord>;
 };
 
+type ProfileRevision = { profile: TravelProfileRecord; kind: 'userUpdate' | 'appleSeed' | 'legacyMigration'; revisionId: string; writtenAt: string };
+
 const subjectId = (subject: string): string => {
   const secret = import.meta.env.AUTH_SESSION_SECRET;
   if (!secret) {
@@ -71,14 +73,16 @@ export const createAccountRepository = (dependencies: AccountStore & {
   const userPath = (id: string) => `accounts/users/${id}.json`;
   const profilePath = (id: string) => `accounts/profiles/${id}.json`;
   const revisionPrefix = (id: string) => `accounts/profiles/${id}/revisions/`;
-  const validTimestamp = (value: string): string | null => {
+  const validTimestamp = (value: unknown): string | null => {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) return null;
     const time = Date.parse(value);
     return Number.isFinite(time) ? new Date(time).toISOString() : null;
   };
-  const appendProfile = async (id: string, profile: TravelProfileRecord): Promise<void> => {
+  const appendProfile = async (id: string, profile: TravelProfileRecord, kind: ProfileRevision['kind']): Promise<void> => {
     const timestamp = validTimestamp(profile.updatedAt);
     if (!timestamp) throw new Error('invalid_travel_profile');
-    await dependencies.write(`${revisionPrefix(id)}${timestamp}-${randomUUID()}.json`, { ...profile, updatedAt: timestamp });
+    const revisionId = randomUUID();
+    await dependencies.write(`${revisionPrefix(id)}${timestamp}-${revisionId}.json`, { profile: { ...profile, updatedAt: timestamp }, kind, revisionId, writtenAt: timestamp } satisfies ProfileRevision);
   };
 
   const accountById = async (id: string): Promise<AccountRecord | null> => {
@@ -90,14 +94,23 @@ export const createAccountRepository = (dependencies: AccountStore & {
     const selectProfile = async () => {
       const fixed = await dependencies.read<TravelProfileRecord>(profilePath(id));
       const paths = await dependencies.list?.(revisionPrefix(id)) ?? [];
-      const revisions = await Promise.all(paths.map((path) => dependencies.read<TravelProfileRecord>(path)));
-      const candidates = [fixed, ...revisions, snapshotProfile].filter((profile): profile is TravelProfileRecord =>
-        Boolean(profile && validTimestamp(profile.updatedAt)));
-      return { profile: candidates.sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))[0] ?? snapshotProfile, paths };
+      const revisions = await Promise.all(paths.map(async (path) => ({ path, value: await dependencies.read<unknown>(path) })));
+      const candidate = (profile: unknown, priority: number, revisionId: string) => {
+        if (!profile || typeof profile !== 'object' || !validTimestamp((profile as TravelProfileRecord).updatedAt)) return null;
+        return { profile: profile as TravelProfileRecord, priority, revisionId };
+      };
+      const candidates = [candidate(fixed, 0, 'fixed'), candidate(snapshotProfile, 0, 'snapshot'), ...revisions.map(({ path, value }) => {
+        const envelope = value && typeof value === 'object' && 'profile' in value ? value as ProfileRevision : null;
+        const priority = envelope?.kind === 'userUpdate' ? 2 : envelope ? 1 : 0;
+        return candidate(envelope?.profile ?? value, priority, envelope?.revisionId ?? path);
+      })].filter(Boolean) as { profile: TravelProfileRecord; priority: number; revisionId: string }[];
+      const selected = candidates.sort((left, right) => Date.parse(right.profile.updatedAt) - Date.parse(left.profile.updatedAt)
+        || right.priority - left.priority || right.revisionId.localeCompare(left.revisionId))[0];
+      return { profile: selected?.profile ?? snapshotProfile, paths };
     };
     let { profile, paths } = await selectProfile();
     if (paths.length === 0) {
-      await appendProfile(id, snapshotProfile);
+      await appendProfile(id, snapshotProfile, 'legacyMigration');
       ({ profile, paths } = await selectProfile());
     }
     return {
@@ -133,7 +146,7 @@ export const createAccountRepository = (dependencies: AccountStore & {
       };
       // Establish private profile authority before publishing a first account. A PATCH can
       // only discover the account after this write has completed, so it cannot be seeded over.
-      if (!existing) await appendProfile(id, travelProfile);
+      if (!existing) await appendProfile(id, travelProfile, 'appleSeed');
       await dependencies.write(userPath(id), record);
       if (email) await dependencies.write(`accounts/email-index/${emailHash(email)}.json`, { userId: id });
       return (await accountById(id))!;
@@ -145,7 +158,7 @@ export const createAccountRepository = (dependencies: AccountStore & {
       const travelProfile = { ...normalizeTravelProfile(profile, account.travelProfile), updatedAt: timestamp };
       // The profile blob is authoritative: an interleaved Apple upsert can only overwrite
       // the account mirror, never a completed profile update.
-      await appendProfile(userId, travelProfile);
+      await appendProfile(userId, travelProfile, 'userUpdate');
       const updated: AccountRecord = { ...account, updatedAt: timestamp, travelProfile };
       await dependencies.write(userPath(userId), updated);
       return (await accountById(userId))!;
