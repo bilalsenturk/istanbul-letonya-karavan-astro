@@ -22,6 +22,7 @@ private final class FixtureURLProtocol: URLProtocol, @unchecked Sendable {
         let ignoresCancellation: Bool
         let statusCode: Int?
         let contentType: String?
+        let contentLength: Int?
     }
 
     private static let lock = NSLock()
@@ -62,7 +63,7 @@ private final class FixtureURLProtocol: URLProtocol, @unchecked Sendable {
         Self.requests.append(request)
         let response = Self.responses.isEmpty
             ? Response(data: nil, error: FixtureError.offline, delay: 0, ignoresCancellation: false,
-                       statusCode: 200, contentType: "application/json")
+                       statusCode: 200, contentType: "application/json", contentLength: nil)
             : Self.responses.removeFirst()
         Self.lock.unlock()
 
@@ -74,9 +75,13 @@ private final class FixtureURLProtocol: URLProtocol, @unchecked Sendable {
             }
             let responseObject: URLResponse
             if let statusCode = response.statusCode {
+                var headers = response.contentType.map { ["Content-Type": $0] } ?? [:]
+                if let contentLength = response.contentLength {
+                    headers["Content-Length"] = String(contentLength)
+                }
                 responseObject = HTTPURLResponse(
                     url: self.request.url!, statusCode: statusCode, httpVersion: "HTTP/1.1",
-                    headerFields: response.contentType.map { ["Content-Type": $0] }
+                    headerFields: headers
                 )!
             } else {
                 responseObject = URLResponse(
@@ -101,8 +106,14 @@ private func mutated(_ data: Data, _ change: (inout [String: Any]) -> Void) -> D
     return try! JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
 }
 
-private func versioned(_ data: Data, _ version: Int) -> Data {
-    mutated(data) { $0["version"] = version }
+private func versioned(_ data: Data, _ marker: Int) -> Data {
+    mutatedDestination(data) { destination in
+        destination["cityName"] = "Sofya #\(marker)"
+    }
+}
+
+private func hasMarker(_ bundle: TravelContentBundle?, _ marker: Int) -> Bool {
+    bundle?.content(forDestination: "sofia")?.cityName == "Sofya #\(marker)"
 }
 
 private func mutatedDestination(
@@ -119,6 +130,66 @@ private func mutatedDestination(
     }
 }
 
+private func mutatedCamp(
+    _ data: Data,
+    destinationKey: String,
+    campID: String,
+    _ change: (inout [String: Any]) -> Void
+) -> Data {
+    mutatedDestination(data, key: destinationKey) { destination in
+        var camps = destination["camps"] as! [[String: Any]]
+        let index = camps.firstIndex { $0["id"] as? String == campID }!
+        change(&camps[index])
+        destination["camps"] = camps
+    }
+}
+
+private actor OperationGate {
+    private var isPaused = false
+    private var pauseWaiters: [CheckedContinuation<Void, Never>] = []
+    private var releaseWaiters: [CheckedContinuation<Void, Never>] = []
+
+    func pause() async {
+        isPaused = true
+        pauseWaiters.forEach { $0.resume() }
+        pauseWaiters = []
+        await withCheckedContinuation { releaseWaiters.append($0) }
+    }
+
+    func waitUntilPaused() async {
+        if isPaused { return }
+        await withCheckedContinuation { pauseWaiters.append($0) }
+    }
+
+    func release() {
+        isPaused = false
+        releaseWaiters.forEach { $0.resume() }
+        releaseWaiters = []
+    }
+}
+
+private actor EmbeddedSequence {
+    private let gate: OperationGate
+    private let first: Data
+    private let second: Data
+    private var callCount = 0
+
+    init(gate: OperationGate, first: Data, second: Data) {
+        self.gate = gate
+        self.first = first
+        self.second = second
+    }
+
+    func next() async -> Data? {
+        callCount += 1
+        if callCount == 1 {
+            await gate.pause()
+            return first
+        }
+        return second
+    }
+}
+
 private func makeSession() -> URLSession {
     let configuration = URLSessionConfiguration.ephemeral
     configuration.protocolClasses = [FixtureURLProtocol.self]
@@ -127,9 +198,10 @@ private func makeSession() -> URLSession {
 
 private func fixture(_ data: Data? = nil, error: Error? = nil, delay: TimeInterval = 0,
                      ignoresCancellation: Bool = false, statusCode: Int? = 200,
-                     contentType: String? = "application/json") -> FixtureURLProtocol.Response {
+                     contentType: String? = "application/json",
+                     contentLength: Int? = nil) -> FixtureURLProtocol.Response {
     .init(data: data, error: error, delay: delay, ignoresCancellation: ignoresCancellation,
-          statusCode: statusCode, contentType: contentType)
+          statusCode: statusCode, contentType: contentType, contentLength: contentLength)
 }
 
 @main
@@ -155,7 +227,7 @@ struct TravelContentStoreCheck {
             embeddedData: { embedded }
         )
         await store.load()
-        check("geçerli uzak paket gömülü paketin yerini alır", store.bundle?.version == 2)
+        check("geçerli uzak paket gömülü paketin yerini alır", hasMarker(store.bundle, 2))
         check("son geçerli uzak veri atomik disk önbelleğine yazılır",
               (try? Data(contentsOf: cacheURL)) == remote)
         check("istek JSON kabul başlığını taşır",
@@ -167,27 +239,34 @@ struct TravelContentStoreCheck {
 
         FixtureURLProtocol.enqueue(fixture(versioned(committedEmbedded, 20), statusCode: 500))
         await store.load()
-        check("2xx dışındaki HTTP yanıtları yayınlanmaz", store.bundle?.version == 2)
+        check("2xx dışındaki HTTP yanıtları yayınlanmaz", hasMarker(store.bundle, 2))
 
         FixtureURLProtocol.enqueue(fixture(versioned(committedEmbedded, 21), contentType: "text/html"))
         await store.load()
-        check("JSON olmayan MIME türü yayınlanmaz", store.bundle?.version == 2)
+        check("JSON olmayan MIME türü yayınlanmaz", hasMarker(store.bundle, 2))
 
         FixtureURLProtocol.enqueue(fixture(versioned(committedEmbedded, 22), contentType: "application/vnd.kuzey+json; charset=utf-8"))
         await store.load()
-        check("+json MIME türü ve charset kabul edilir", store.bundle?.version == 22)
+        check("+json MIME türü ve charset kabul edilir", hasMarker(store.bundle, 22))
 
         FixtureURLProtocol.enqueue(fixture(Data(repeating: 0x20, count: 2 * 1_024 * 1_024 + 1)))
         await store.load()
-        check("2 MiB üzerindeki gövde yayınlanmaz", store.bundle?.version == 22)
+        check("2 MiB üzerindeki gövde yayınlanmaz", hasMarker(store.bundle, 22))
+
+        FixtureURLProtocol.enqueue(fixture(
+            versioned(committedEmbedded, 23),
+            contentLength: 2 * 1_024 * 1_024 + 1
+        ))
+        await store.load()
+        check("2 MiB üzerindeki Content-Length önceden reddedilir", hasMarker(store.bundle, 22))
 
         FixtureURLProtocol.enqueue(fixture(error: FixtureError.offline))
         await store.load()
-        check("ağ hatası mevcut geçerli paketi korur", store.bundle?.version == 22)
+        check("ağ hatası mevcut geçerli paketi korur", hasMarker(store.bundle, 22))
 
         FixtureURLProtocol.enqueue(fixture(Data("{not-json".utf8)))
         await store.load()
-        check("bozuk uzak JSON mevcut geçerli paketi temizlemez", store.bundle?.version == 22)
+        check("bozuk uzak JSON mevcut geçerli paketi temizlemez", hasMarker(store.bundle, 22))
 
         let cached = versioned(committedEmbedded, 3)
         try! cached.write(to: cacheURL, options: .atomic)
@@ -200,7 +279,7 @@ struct TravelContentStoreCheck {
         )
         await cachedStore.load()
         check("soğuk başlangıçta ağ hatasından sonra geçerli disk önbelleği kullanılır",
-              cachedStore.bundle?.version == 3)
+              hasMarker(cachedStore.bundle, 3))
 
         try! Data("[]".utf8).write(to: cacheURL, options: .atomic)
         FixtureURLProtocol.enqueue(fixture(error: FixtureError.offline))
@@ -211,7 +290,7 @@ struct TravelContentStoreCheck {
             embeddedData: { embedded }
         )
         await embeddedStore.load()
-        check("geçersiz disk önbelleği atlanıp gömülü paket kullanılır", embeddedStore.bundle?.version == 1)
+        check("geçersiz disk önbelleği atlanıp gömülü paket kullanılır", hasMarker(embeddedStore.bundle, 1))
 
         FixtureURLProtocol.enqueue(fixture(error: FixtureError.offline))
         let invalidColdStore = TravelContentStore(
@@ -236,13 +315,13 @@ struct TravelContentStoreCheck {
         let newLoad = Task { await orderingStore.load() }
         await newLoad.value
         await oldLoad.value
-        check("geç gelen eski istek yeni paketi ezmez", orderingStore.bundle?.version == 5)
+        check("geç gelen eski istek yeni paketi ezmez", hasMarker(orderingStore.bundle, 5))
 
         FixtureURLProtocol.enqueue(fixture(versioned(committedEmbedded, 6), delay: 0.08, ignoresCancellation: true))
         let cancelled = Task { await orderingStore.load() }
         cancelled.cancel()
         await cancelled.value
-        check("iptal edilen yükleme geçerli paketi değiştirmez", orderingStore.bundle?.version == 5)
+        check("iptal edilen yükleme geçerli paketi değiştirmez", hasMarker(orderingStore.bundle, 5))
 
         FixtureURLProtocol.enqueue(fixture(error: FixtureError.offline))
         let committedStore = TravelContentStore(
@@ -274,8 +353,17 @@ struct TravelContentStoreCheck {
         }
         check("tam altı destinasyon anahtarı zorunludur", !admits(missingDestination))
 
+        let aliasedDestination = mutated(committedEmbedded) { root in
+            var destinations = root["destinations"] as! [String: Any]
+            destinations["sofya"] = destinations.removeValue(forKey: "sofia")
+            root["destinations"] = destinations
+        }
+        check("normalize edilebilir alias ham kanonik anahtar yerine kabul edilmez", !admits(aliasedDestination))
+
         check("pozitif içerik sürümü zorunludur",
               !admits(mutated(committedEmbedded) { $0["version"] = 0 }))
+        check("yalnız kanonik sürüm 1 kabul edilir",
+              !admits(mutated(committedEmbedded) { $0["version"] = 2 }))
         check("gelecek üretim tarihi reddedilir",
               !admits(mutated(committedEmbedded) { $0["generatedAt"] = "2027-07-27T00:00:00Z" }))
 
@@ -288,6 +376,20 @@ struct TravelContentStoreCheck {
             destination["attractions"] = Array((destination["attractions"] as! [[String: Any]]).prefix(2))
         }
         check("her destinasyonda en az üç gezi zorunludur", !admits(tooFewAttractions))
+
+        let replacedCampID = mutatedCamp(
+            committedEmbedded,
+            destinationKey: "sofia",
+            campID: "mega-park-vrana"
+        ) { $0["id"] = "unapproved-camp" }
+        check("onaylı kamp kimliği kümesi birebir korunur", !admits(replacedCampID))
+
+        let replacedAttractionID = mutatedDestination(committedEmbedded) { destination in
+            var attractions = destination["attractions"] as! [[String: Any]]
+            attractions[0]["id"] = "unapproved-attraction"
+            destination["attractions"] = attractions
+        }
+        check("onaylı gezi kimliği kümesi birebir korunur", !admits(replacedAttractionID))
 
         let invalidCoordinate = mutatedDestination(committedEmbedded) { destination in
             var camps = destination["camps"] as! [[String: Any]]
@@ -363,6 +465,37 @@ struct TravelContentStoreCheck {
         }
         check("temsili kamp görselinde rol ve açıklama zorunludur", !admits(undisclosedRepresentative))
 
+        let contradictoryRepresentative = mutatedCamp(
+            committedEmbedded,
+            destinationKey: "sofia",
+            campID: "mega-park-vrana"
+        ) { camp in
+            var media = camp["media"] as! [String: Any]
+            media["depictsCampground"] = true
+            camp["media"] = media
+        }
+        check("kamp görseli temsilî açıklamayla campground iddiasını birlikte taşıyamaz",
+              !admits(contradictoryRepresentative))
+
+        for unsafePath in [
+            "/assets/../secret.webp",
+            "/assets/%2e%2e/secret.webp",
+            "/assets/gallery\\secret.webp",
+            "/assets/gallery/photo.webp?raw=1",
+            "/assets/gallery/photo.webp#fragment",
+        ] {
+            let unsafeMedia = mutatedCamp(
+                committedEmbedded,
+                destinationKey: "sofia",
+                campID: "mega-park-vrana"
+            ) { camp in
+                var media = camp["media"] as! [String: Any]
+                media["url"] = unsafePath
+                camp["media"] = media
+            }
+            check("güvensiz yerel medya yolu reddedilir: \(unsafePath)", !admits(unsafeMedia))
+        }
+
         let brokenWOKRestriction = mutatedDestination(committedEmbedded, key: "warsaw") { destination in
             var camps = destination["camps"] as! [[String: Any]]
             let index = camps.firstIndex { $0["id"] as? String == "camping-motel-wok" }!
@@ -378,6 +511,135 @@ struct TravelContentStoreCheck {
             destination["camps"] = camps
         }
         check("Riga 7,5 metre kısıtı korunur", !admits(brokenRigaRestriction))
+
+        let brokenAveNatura = mutatedCamp(
+            committedEmbedded,
+            destinationKey: "budapest",
+            campID: "ave-natura-camping"
+        ) { $0["maximumLengthMeters"] = 7 }
+        check("Ave Natura altı metre kısıtı korunur", !admits(brokenAveNatura))
+
+        let brokenClepardia = mutatedCamp(
+            committedEmbedded,
+            destinationKey: "krakow",
+            campID: "camping-clepardia"
+        ) { $0["openingPeriod"] = "Resepsiyon 09:00-20:00" }
+        check("Clepardia güncel resepsiyon rehberi korunur", !admits(brokenClepardia))
+
+        let brokenRigaSeason = mutatedCamp(
+            committedEmbedded,
+            destinationKey: "riga",
+            campID: "riga-city-camping"
+        ) { $0["openingPeriod"] = "Yıl boyu" }
+        check("Riga City Camping sezon bilgisi korunur", !admits(brokenRigaSeason))
+
+        let brokenFarma = mutatedCamp(
+            committedEmbedded,
+            destinationKey: "novi-sad",
+            campID: "auto-camp-farma-47"
+        ) { $0["supportsCaravan"] = true }
+        check("Farma 47 çekme karavan kısıtı korunur", !admits(brokenFarma))
+
+        let inventedFarmaService = mutatedCamp(
+            committedEmbedded,
+            destinationKey: "novi-sad",
+            campID: "auto-camp-farma-47"
+        ) { $0["hasWater"] = true }
+        check("Farma 47 için doğrulanmamış hizmet icat edilmez", !admits(inventedFarmaService))
+
+        let inventedFarmaWastewater = mutatedCamp(
+            committedEmbedded,
+            destinationKey: "novi-sad",
+            campID: "auto-camp-farma-47"
+        ) { $0["hasWastewaterDisposal"] = true }
+        check("Farma 47 için doğrulanmamış atık hizmeti icat edilmez", !admits(inventedFarmaWastewater))
+
+        let movedFarma = mutatedCamp(
+            committedEmbedded,
+            destinationKey: "novi-sad",
+            campID: "auto-camp-farma-47"
+        ) { camp in
+            camp["location"] = ["latitude": 45.3887, "longitude": 19.8197356]
+        }
+        check("Farma 47 resmî koordinatı korunur", !admits(movedFarma))
+
+        let vagueFarmaWarning = mutatedCamp(
+            committedEmbedded,
+            destinationKey: "novi-sad",
+            campID: "auto-camp-farma-47"
+        ) { $0["warning"] = "Önceden teyit et." }
+        check("Farma 47 motorhome ve hizmet uyarısı korunur", !admits(vagueFarmaWarning))
+
+        FixtureURLProtocol.reset()
+        FixtureURLProtocol.enqueue(fixture(versioned(committedEmbedded, 60)))
+        FixtureURLProtocol.enqueue(fixture(versioned(committedEmbedded, 61)))
+        let decodeGate = OperationGate()
+        let decodeIO = TravelContentIO { stage, generation in
+            if stage == .decode, generation == 1 { await decodeGate.pause() }
+        }
+        let decodeRaceCache = root.appendingPathComponent("decode-race.json")
+        let decodeRaceStore = TravelContentStore(
+            remoteURL: URL(string: "https://example.test/assets/travel-content.json")!,
+            session: session,
+            cacheURL: decodeRaceCache,
+            embeddedData: { embedded },
+            io: decodeIO
+        )
+        let pausedDecode = Task { await decodeRaceStore.load() }
+        await decodeGate.waitUntilPaused()
+        let newerDecode = Task { await decodeRaceStore.load() }
+        await newerDecode.value
+        await decodeGate.release()
+        await pausedDecode.value
+        check("eski decode yeni nesil yayınlandıktan sonra belleği ezemez",
+              hasMarker(decodeRaceStore.bundle, 61))
+        check("eski decode yeni nesil cache'ini ezemez",
+              (try? Data(contentsOf: decodeRaceCache)) == versioned(committedEmbedded, 61))
+
+        FixtureURLProtocol.reset()
+        let staleFallback = versioned(committedEmbedded, 62)
+        let freshRemote = versioned(committedEmbedded, 63)
+        try! staleFallback.write(to: root.appendingPathComponent("fallback-race.json"), options: .atomic)
+        FixtureURLProtocol.enqueue(fixture(error: FixtureError.offline))
+        FixtureURLProtocol.enqueue(fixture(freshRemote))
+        let fallbackGate = OperationGate()
+        let fallbackIO = TravelContentIO { stage, generation in
+            if stage == .cacheRead, generation == 1 { await fallbackGate.pause() }
+        }
+        let fallbackRaceStore = TravelContentStore(
+            remoteURL: URL(string: "https://example.test/assets/travel-content.json")!,
+            session: session,
+            cacheURL: root.appendingPathComponent("fallback-race.json"),
+            embeddedData: { embedded },
+            io: fallbackIO
+        )
+        let pausedFallback = Task { await fallbackRaceStore.load() }
+        await fallbackGate.waitUntilPaused()
+        let newerRemote = Task { await fallbackRaceStore.load() }
+        await newerRemote.value
+        await fallbackGate.release()
+        await pausedFallback.value
+        check("eski cache fallback yeni uzak nesli ezemez", hasMarker(fallbackRaceStore.bundle, 63))
+
+        let embeddedGate = OperationGate()
+        let embeddedSequence = EmbeddedSequence(
+            gate: embeddedGate,
+            first: versioned(committedEmbedded, 64),
+            second: versioned(committedEmbedded, 65)
+        )
+        let embeddedRaceStore = TravelContentStore(
+            remoteURL: URL(string: "file:///tmp/not-remote.json")!,
+            session: session,
+            cacheURL: root.appendingPathComponent("missing-embedded-race.json"),
+            embeddedData: { await embeddedSequence.next() }
+        )
+        let pausedEmbedded = Task { await embeddedRaceStore.load() }
+        await embeddedGate.waitUntilPaused()
+        let newerEmbedded = Task { await embeddedRaceStore.load() }
+        await newerEmbedded.value
+        await embeddedGate.release()
+        await pausedEmbedded.value
+        check("eski async gömülü yükleyici yeni nesli ezemez", hasMarker(embeddedRaceStore.bundle, 65))
 
         FixtureURLProtocol.reset()
         FixtureURLProtocol.enqueue(fixture(versioned(committedEmbedded, 31), delay: 0.08))
@@ -401,10 +663,10 @@ struct TravelContentStoreCheck {
             embeddedData: { embedded }
         )
         await retryStore.loadIfNeeded()
-        check("ilk çevrimdışı yükleme gömülü içeriğe düşer", retryStore.bundle?.version == 1)
+        check("ilk çevrimdışı yükleme gömülü içeriğe düşer", hasMarker(retryStore.bundle, 1))
         FixtureURLProtocol.enqueue(fixture(versioned(committedEmbedded, 32)))
         await retryStore.loadIfNeeded()
-        check("fallback sonrası sonraki deneme ağı yeniden dener", retryStore.bundle?.version == 32)
+        check("fallback sonrası sonraki deneme ağı yeniden dener", hasMarker(retryStore.bundle, 32))
         check("fallback sonrası retry ikinci HTTP isteğini üretir", FixtureURLProtocol.requestCount == 2)
 
         FixtureURLProtocol.reset()
@@ -420,10 +682,10 @@ struct TravelContentStoreCheck {
         await foregroundStore.refreshIfStale(now: foregroundTime)
         await foregroundStore.refreshIfStale(now: foregroundTime.addingTimeInterval(60))
         check("foreground yenilemeleri beş dakika içinde throttle edilir",
-              FixtureURLProtocol.requestCount == 1 && foregroundStore.bundle?.version == 40)
+              FixtureURLProtocol.requestCount == 1 && hasMarker(foregroundStore.bundle, 40))
         await foregroundStore.refreshIfStale(now: foregroundTime.addingTimeInterval(301))
         check("throttle süresi geçince foreground yenilemesi tekrar çalışır",
-              FixtureURLProtocol.requestCount == 2 && foregroundStore.bundle?.version == 41)
+              FixtureURLProtocol.requestCount == 2 && hasMarker(foregroundStore.bundle, 41))
 
         let countBeforeUnsupportedScheme = FixtureURLProtocol.requestCount
         let unsupportedSchemeStore = TravelContentStore(
@@ -435,7 +697,7 @@ struct TravelContentStoreCheck {
         await unsupportedSchemeStore.load()
         check("HTTP dışındaki uzak URL şeması istek yapılmadan reddedilir",
               FixtureURLProtocol.requestCount == countBeforeUnsupportedScheme
-                && unsupportedSchemeStore.bundle?.version == 1)
+                && hasMarker(unsupportedSchemeStore.bundle, 1))
 
         FixtureURLProtocol.enqueue(fixture(versioned(committedEmbedded, 33), statusCode: nil,
                                            contentType: "application/json"))
@@ -446,7 +708,7 @@ struct TravelContentStoreCheck {
             embeddedData: { embedded }
         )
         await nonHTTPStore.load()
-        check("HTTPURLResponse olmayan yanıt yayınlanmaz", nonHTTPStore.bundle?.version == 1)
+        check("HTTPURLResponse olmayan yanıt yayınlanmaz", hasMarker(nonHTTPStore.bundle, 1))
 
         FixtureURLProtocol.enqueue(fixture(versioned(committedEmbedded, 34)))
         let unwritableCacheStore = TravelContentStore(
@@ -457,7 +719,7 @@ struct TravelContentStoreCheck {
         )
         await unwritableCacheStore.load()
         check("disk yazma hatası doğrulanmış bellek içeriğini bozmaz",
-              unwritableCacheStore.bundle?.version == 34 && unwritableCacheStore.state == .ready)
+              hasMarker(unwritableCacheStore.bundle, 34) && unwritableCacheStore.state == .ready)
 
         FixtureURLProtocol.reset()
         session.invalidateAndCancel()

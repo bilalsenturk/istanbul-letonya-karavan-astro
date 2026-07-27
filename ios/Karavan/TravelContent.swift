@@ -1,6 +1,6 @@
 import Foundation
 
-struct GeoPoint: Codable, Hashable {
+struct GeoPoint: Codable, Hashable, Sendable {
     let latitude: Double
     let longitude: Double
 
@@ -15,7 +15,7 @@ struct GeoPoint: Codable, Hashable {
     }
 }
 
-enum CampDistancePolicy: Equatable, Codable, Hashable {
+enum CampDistancePolicy: Equatable, Codable, Hashable, Sendable {
     case city(maximumKm: Double)
     case transit(maximumDetourKm: Double)
 
@@ -57,7 +57,7 @@ enum CampDistancePolicy: Equatable, Codable, Hashable {
     }
 }
 
-struct TravelMedia: Codable, Hashable {
+struct TravelMedia: Codable, Hashable, Sendable {
     let url: URL
     let credit: String
     let license: String
@@ -88,16 +88,16 @@ struct TravelMedia: Codable, Hashable {
     }
 }
 
-struct TravelMediaSource: Codable, Hashable {
+struct TravelMediaSource: Codable, Hashable, Sendable {
     let url: URL
 }
 
-struct TravelSource: Codable, Hashable {
+struct TravelSource: Codable, Hashable, Sendable {
     let name: String
     let url: URL
 }
 
-struct CuratedCamp: Codable, Identifiable, Hashable {
+struct CuratedCamp: Codable, Identifiable, Hashable, Sendable {
     let id: String
     let name: String
     let location: GeoPoint
@@ -192,7 +192,7 @@ struct CuratedCamp: Codable, Identifiable, Hashable {
     }
 }
 
-struct NearbyAttraction: Codable, Identifiable, Hashable {
+struct NearbyAttraction: Codable, Identifiable, Hashable, Sendable {
     let id: String
     let name: String
     let location: GeoPoint
@@ -261,7 +261,7 @@ struct NearbyAttraction: Codable, Identifiable, Hashable {
     }
 }
 
-struct TravelDestinationContent: Codable, Hashable {
+struct TravelDestinationContent: Codable, Hashable, Sendable {
     let cityName: String
     let cityCenter: GeoPoint?
     let policy: CampDistancePolicy
@@ -283,7 +283,7 @@ struct TravelDestinationContent: Codable, Hashable {
     }
 }
 
-struct TravelContentBundle: Codable, Hashable {
+struct TravelContentBundle: Codable, Hashable, Sendable {
     let version: Int
     let generatedAt: Date
     let destinations: [String: TravelDestinationContent]
