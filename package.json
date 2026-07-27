@@ -11,7 +11,6 @@
     "preview": "astro preview",
     "astro": "astro",
     "generate:latvian": "node --experimental-strip-types tools/generate-latvian-pack.mjs",
-    "check:learning-os": "node --experimental-strip-types tools/check-learning-os.mjs",
     "check:latvian-pack": "node --experimental-strip-types tools/check-latvian-pack.mjs",
     "check:accounts": "node --experimental-strip-types tools/check-account-domain.mjs",
     "check:account-auth": "node --experimental-strip-types tools/check-account-auth.mjs",
