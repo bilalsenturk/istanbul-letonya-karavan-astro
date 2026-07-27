@@ -1,0 +1,67 @@
+import Foundation
+
+var failures = 0
+
+func expect(_ condition: @autoclosure () -> Bool, _ message: String) {
+    if condition() {
+        print("  ✓ \(message)")
+    } else {
+        fputs("  ✗ \(message)\n", stderr)
+        failures += 1
+    }
+}
+
+let samplePackJSON = """
+{
+  "version": 1,
+  "generatedAt": "2026-07-27T00:00:00.000Z",
+  "audioBaseUrl": "https://blob.example.com/letonca/ses",
+  "scenes": [
+    {
+      "id": "lv-s01",
+      "index": 1,
+      "title": "Tanışma",
+      "words": [
+        {"id":"w1","lv":"labdien","tr":"iyi günler","icon":"👋","audioId":"a1","lemma":"labdien","freqRank":400},
+        {"id":"w2","lv":"paldies","tr":"teşekkürler","audioId":"a2","lemma":"paldies","freqRank":300},
+        {"id":"w3","lv":"lūdzu","tr":"lütfen","audioId":"a3","lemma":"lūdzu","freqRank":350},
+        {"id":"w4","lv":"kafija","tr":"kahve","icon":"☕","audioId":"a4","lemma":"kafija","freqRank":900,
+         "caseForm":{"base":"kafija","form":"ar kafiju","case":"instrumental","suffix":"u","distractorSuffixes":["a","as"]}}
+      ],
+      "sentences": [
+        {"id":"s1","lv":"Labdien, mani sauc Leyla.","tr":"İyi günler, benim adım Leyla.","audioId":"a5",
+         "wordIds":["w1"],"supports":["lv_to_tr","tr_to_lv","order","dictation","fill_blank"]},
+        {"id":"s2","lv":"Es gribu kafiju.","tr":"Kahve istiyorum.","audioId":"a6",
+         "wordIds":["w4"],"supports":["tr_to_lv","order","case_drill"]}
+      ]
+    }
+  ]
+}
+"""
+
+@main
+struct LatvianEngineCheck {
+    static func main() throws {
+        print("\n=== Letonca paket modeli ===")
+
+        let pack = try LatvianPack.decode(from: Data(samplePackJSON.utf8))
+
+        expect(pack.scenes.count == 1, "sahne çözümleniyor")
+        expect(pack.scenes[0].words.count == 4, "kelimeler çözümleniyor")
+        expect(pack.scenes[0].words[0].icon == "👋", "emoji çözümleniyor")
+        expect(pack.scenes[0].words[1].icon == nil, "emojisi olmayan kelime nil dönüyor")
+        expect(pack.scenes[0].words[3].caseForm?.suffix == "u", "çekim bilgisi çözümleniyor")
+        expect(pack.scenes[0].sentences[0].supports.contains(.lvToTr), "soru tipleri çözümleniyor")
+        expect(pack.word(id: "w2")?.lv == "paldies", "kelime id ile bulunuyor")
+        expect(pack.word(id: "yok") == nil, "olmayan kelime nil dönüyor")
+        expect(pack.scene(id: "lv-s01")?.title == "Tanışma", "sahne id ile bulunuyor")
+        expect(pack.audioURL(for: "a1").absoluteString == "https://blob.example.com/letonca/ses/a1.mp3",
+               "ses adresi kuruluyor")
+
+        if failures > 0 {
+            fputs("\n\(failures) kontrol başarısız.\n", stderr)
+            exit(1)
+        }
+        print("\nTüm Letonca motor kontrolleri geçti.\n")
+    }
+}
