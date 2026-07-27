@@ -75,6 +75,32 @@ enum TravelProfileSaveOperationGuard {
     }
 }
 
+/// Kaydetme isteğinin başladığı andaki bütün taslak değerleri. Ham uzunluk
+/// metni ayrıca tutulur; `10,5` ile `10.5` aynı sayıya dönüşse bile kullanıcının
+/// editörü isteğin ardından değiştirdiğini ayırt eder.
+struct TravelProfileDraftFingerprint: Equatable {
+    let profile: AccountTravelProfile
+    let totalLengthText: String
+}
+
+enum TravelProfileReconciliationGuard {
+    static func accepts(
+        currentAccountID: String?,
+        requestAccountID: String,
+        activeOperationID: UUID?,
+        operationID: UUID,
+        currentDraft: TravelProfileDraftFingerprint,
+        submittedDraft: TravelProfileDraftFingerprint
+    ) -> Bool {
+        currentAccountID == requestAccountID
+            && TravelProfileSaveOperationGuard.isCurrent(
+                activeOperationID: activeOperationID,
+                operationID: operationID
+            )
+            && currentDraft == submittedDraft
+    }
+}
+
 enum TravelProfileLength {
     enum Error: Swift.Error, Equatable { case invalid, outOfRange }
 

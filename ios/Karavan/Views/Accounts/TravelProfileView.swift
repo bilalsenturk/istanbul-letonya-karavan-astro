@@ -14,8 +14,6 @@ struct TravelProfileView: View {
     @State private var draftRevision = 0
     @State private var saveTask: Task<Void, Never>?
     @State private var activeSaveOperationID: UUID?
-    @State private var ignoredFormChanges = 0
-    @State private var ignoredLengthChanges = 0
 
     private let vehicleSeed: String?
 
@@ -78,18 +76,10 @@ struct TravelProfileView: View {
             isLoading = true
         }
         .onChange(of: form) { _, _ in
-            guard ignoredFormChanges == 0 else {
-                ignoredFormChanges -= 1
-                return
-            }
             draftRevision += 1
             saved = false
         }
         .onChange(of: totalLengthText) { _, _ in
-            guard ignoredLengthChanges == 0 else {
-                ignoredLengthChanges -= 1
-                return
-            }
             draftRevision += 1
             saved = false
         }
@@ -126,7 +116,6 @@ struct TravelProfileView: View {
         case .failure(.outOfRange): validationError = "Toplam uzunluk 1 ile 30 metre arasında olmalı."
         case let .success(length):
             validationError = nil
-            ignoredFormChanges += 1
             form.totalLengthMeters = length
             form.updatedAt = ISO8601DateFormatter().string(from: Date())
             saved = false
@@ -138,9 +127,12 @@ struct TravelProfileView: View {
             }
             guard boundAccountID == user.id else { loadProfile(); return }
             let requestAccountID = user.id
-            let submittedRevision = draftRevision
             let submitted = form
             let operationID = UUID()
+            let submittedDraft = TravelProfileDraftFingerprint(
+                profile: submitted,
+                totalLengthText: totalLengthText
+            )
             profileStore.persistAccount(submitted, accountID: requestAccountID)
             isSaving = true
             activeSaveOperationID = operationID
@@ -156,11 +148,16 @@ struct TravelProfileView: View {
                         expectedUserID: requestAccountID
                     )
                     guard !Task.isCancelled,
-                          TravelProfileSaveGuard.accepts(
+                          TravelProfileReconciliationGuard.accepts(
                             currentAccountID: account.user?.id,
                             requestAccountID: requestAccountID,
-                            submittedRevision: submittedRevision,
-                            currentRevision: draftRevision
+                            activeOperationID: activeSaveOperationID,
+                            operationID: operationID,
+                            currentDraft: TravelProfileDraftFingerprint(
+                                profile: form,
+                                totalLengthText: totalLengthText
+                            ),
+                            submittedDraft: submittedDraft
                           )
                     else { return }
                     profileStore.persistAccount(updated.travelProfile, accountID: requestAccountID)
@@ -183,15 +180,8 @@ struct TravelProfileView: View {
     }
 
     private func applyProgrammaticProfile(_ profile: AccountTravelProfile) {
-        if form != profile {
-            ignoredFormChanges += 1
-            form = profile
-        }
-        let lengthText = profile.totalLengthMeters.map(Self.lengthText) ?? ""
-        if totalLengthText != lengthText {
-            ignoredLengthChanges += 1
-            totalLengthText = lengthText
-        }
+        form = profile
+        totalLengthText = profile.totalLengthMeters.map(Self.lengthText) ?? ""
     }
 
     private func finishSave(operationID: UUID) {

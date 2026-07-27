@@ -242,6 +242,25 @@ final class TripPlanStore: ObservableObject {
         }
     }
 
+    func upsertSubplan(_ subplan: DaySubplan, slug: String) {
+        update(slug: slug) { edit in
+            var values = edit.subplans ?? []
+            if let index = values.firstIndex(where: { $0.id == subplan.id }) {
+                values[index] = subplan
+            } else {
+                values.append(subplan)
+            }
+            edit.subplans = values.sorted { $0.startMinute < $1.startMinute }
+        }
+    }
+
+    func removeSubplan(id: String, slug: String) {
+        update(slug: slug) { edit in
+            let values = (edit.subplans ?? []).filter { $0.id != id }
+            edit.subplans = values.isEmpty ? nil : values
+        }
+    }
+
     func reset(slug: String) {
         edits.days.removeValue(forKey: slug)
         commit()

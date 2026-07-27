@@ -253,6 +253,38 @@ struct ArrivalTargetCheck {
                 currentAccountID: "account-a", requestAccountID: "account-a",
                 submittedRevision: revisionBeforeLengthEdit, currentRevision: revisionAfterLengthEdit
               ))
+        var sameSecondProfile = seeded
+        sameSecondProfile.updatedAt = "2026-07-27T12:00:00Z"
+        let submittedDraft = TravelProfileDraftFingerprint(
+            profile: sameSecondProfile,
+            totalLengthText: "10,5"
+        )
+        check("aynı saniyedeki tekrar kaydetme taslağı uzlaştırabilir",
+              TravelProfileReconciliationGuard.accepts(
+                currentAccountID: "account-a", requestAccountID: "account-a",
+                activeOperationID: activeSave, operationID: activeSave,
+                currentDraft: submittedDraft, submittedDraft: submittedDraft
+              ))
+        var editedDuringSave = sameSecondProfile
+        editedDuringSave.additionalNeeds = "Sessiz köşe"
+        check("kaydetme sırasında gerçek form düzenlemesi yanıtı reddeder",
+              !TravelProfileReconciliationGuard.accepts(
+                currentAccountID: "account-a", requestAccountID: "account-a",
+                activeOperationID: activeSave, operationID: activeSave,
+                currentDraft: TravelProfileDraftFingerprint(
+                    profile: editedDuringSave, totalLengthText: "10,5"
+                ),
+                submittedDraft: submittedDraft
+              ))
+        check("yalnız uzunluk metni düzenlenirse yanıt reddedilir",
+              !TravelProfileReconciliationGuard.accepts(
+                currentAccountID: "account-a", requestAccountID: "account-a",
+                activeOperationID: activeSave, operationID: activeSave,
+                currentDraft: TravelProfileDraftFingerprint(
+                    profile: sameSecondProfile, totalLengthText: "10.5"
+                ),
+                submittedDraft: submittedDraft
+              ))
         check("boş uzunluk boş değer olur", TravelProfileLength.parse("") == .success(nil))
         check("virgüllü uzunluk okunur", TravelProfileLength.parse("10,5", locale: Locale(identifier: "tr_TR")) == .success(10.5))
         check("sınır dışı uzunluk reddedilir", TravelProfileLength.parse("31") == .failure(.outOfRange))
