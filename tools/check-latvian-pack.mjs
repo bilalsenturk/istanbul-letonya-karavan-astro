@@ -14,7 +14,7 @@ import {
   parseReviewResponse,
   parseSceneResponse,
 } from '../src/learning-lv/generate-prompts.ts';
-import { PACK_VERSION, validatePack } from '../src/learning-lv/pack-schema.ts';
+import { normalizeLatvianCase, PACK_VERSION, validatePack } from '../src/learning-lv/pack-schema.ts';
 import { SCENE_PLAN } from '../src/learning-lv/scenes.ts';
 
 let failures = 0;
@@ -112,6 +112,51 @@ rejects(() => {
   return pack;
 }, 'çeldiricisi doğru ekle aynı', 'doğru ekle çakışan çeldirici reddediliyor');
 
+rejects(() => {
+  const pack = validPack();
+  pack.scenes[0].words[0].caseForm = {
+    base: 'kafija',
+    form: 'kafiju',
+    case: 'accusative',
+    suffix: 'u',
+    distractorSuffixes: ['a', 'as'],
+  };
+  return pack;
+}, 'hâli geçersiz', 'şema dışı hâl adı (accusative) reddediliyor');
+
+console.log('\n=== Hâl adı normalize etme ===');
+
+const canonicalCases = ['nominativ', 'genitiv', 'dativ', 'akuzativ', 'instrumental', 'lokativ', 'vokativ'];
+expect(
+  canonicalCases.every(value => normalizeLatvianCase(value) === value),
+  'şemanın yedi kendi adı olduğu gibi eşleniyor',
+);
+
+const englishToCanonical = {
+  nominative: 'nominativ',
+  genitive: 'genitiv',
+  dative: 'dativ',
+  accusative: 'akuzativ',
+  instrumental: 'instrumental',
+  locative: 'lokativ',
+  vocative: 'vokativ',
+};
+expect(
+  Object.entries(englishToCanonical).every(([english, canonical]) => normalizeLatvianCase(english) === canonical),
+  'İngilizce hâl adlarının tümü karşılığına eşleniyor',
+);
+expect(
+  Object.entries(englishToCanonical).every(
+    ([english, canonical]) =>
+      normalizeLatvianCase(english.toUpperCase()) === canonical &&
+      normalizeLatvianCase(`  ${english}  `) === canonical,
+  ),
+  'büyük/küçük harf ve baştaki/sondaki boşluk fark etmiyor',
+);
+
+expect(normalizeLatvianCase('uçan_daire') === undefined, 'tanınmayan hâl adı undefined dönüyor');
+expect(normalizeLatvianCase('') === undefined, 'boş girdi undefined dönüyor');
+
 console.log('\n=== Sahne planı ===');
 
 expect(SCENE_PLAN.length === 12, '12 sahne var');
@@ -191,10 +236,43 @@ const draft = parseSceneResponse(`\`\`\`json
 
 expect(draft.words.length === 2, 'boş kelime ayıklanıyor');
 expect(draft.words[0].caseForm.distractorSuffixes.length === 2, 'doğru ekle çakışan çeldirici temizleniyor');
+expect(draft.words[0].caseForm.case === 'instrumental', 'zaten şema adıyla gelen hâl adı korunuyor');
 expect(draft.words[1].caseForm === undefined, 'çekim bilgisi yoksa alan boş kalıyor');
 expect(draft.sentences.length === 1, 'tanımsız kelimeye bağlı cümle ayıklanıyor');
 expect(!draft.sentences[0].supports.includes('ucan_daire'), 'bilinmeyen soru tipi ayıklanıyor');
 expect(draft.sentences[0].supports.length === 2, 'geçerli soru tipleri korunuyor');
+
+const accusativeDraft = parseSceneResponse(`{
+  "words": [
+    {"lv":"maize","tr":"ekmek","lemma":"maize",
+     "caseForm":{"base":"maize","form":"maizi","case":"Accusative","suffix":"i","distractorSuffixes":["e","es"]}}
+  ],
+  "sentences": [
+    {"lv":"Es gribu maizi.","tr":"Ekmek istiyorum.","usesWords":["maize"],"supports":["case_drill"]}
+  ]
+}`);
+expect(
+  accusativeDraft.words[0].caseForm?.case === 'akuzativ',
+  'model yanıtındaki "Accusative" akuzativ olarak normalize ediliyor',
+);
+
+const unmappableCaseDraft = parseSceneResponse(`{
+  "words": [
+    {"lv":"maize","tr":"ekmek","lemma":"maize",
+     "caseForm":{"base":"maize","form":"maizi","case":"uçan_daire","suffix":"i","distractorSuffixes":["e","es"]}}
+  ],
+  "sentences": [
+    {"lv":"Es gribu maizi.","tr":"Ekmek istiyorum.","usesWords":["maize"],"supports":["tr_to_lv"]}
+  ]
+}`);
+expect(
+  unmappableCaseDraft.words[0].caseForm === undefined,
+  'eşlenemeyen hâl adında caseForm tamamen düşüyor',
+);
+expect(
+  unmappableCaseDraft.words[0].lv === 'maize',
+  'caseForm düşse de kelimenin kendisi pakette kalıyor',
+);
 
 try {
   parseSceneResponse('düz metin');
@@ -206,9 +284,9 @@ try {
 const dedupedDraft = parseSceneResponse(`{
   "words": [
     {"lv":"upe","tr":"nehir","lemma":"upe",
-     "caseForm":{"base":"upe","form":"upē","case":"lokatīvs","suffix":"ē","distractorSuffixes":["a","a","ē"]}},
+     "caseForm":{"base":"upe","form":"upē","case":"lokativ","suffix":"ē","distractorSuffixes":["a","a","ē"]}},
     {"lv":"kalns","tr":"dağ","lemma":"kalns",
-     "caseForm":{"base":"kalns","form":"kalnā","case":"lokatīvs","suffix":"ā","distractorSuffixes":["a","am","u"]}}
+     "caseForm":{"base":"kalns","form":"kalnā","case":"lokativ","suffix":"ā","distractorSuffixes":["a","am","u"]}}
   ],
   "sentences": [
     {"lv":"Es eju uz upi.","tr":"Nehre gidiyorum.","usesWords":["upe","kalns"],"supports":["order"]}

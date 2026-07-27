@@ -30,7 +30,7 @@ import {
   parseReviewResponse,
   parseSceneResponse,
 } from '../src/learning-lv/generate-prompts.ts';
-import { PACK_VERSION, validatePack } from '../src/learning-lv/pack-schema.ts';
+import { PACK_VERSION, normalizeLatvianCase, validatePack } from '../src/learning-lv/pack-schema.ts';
 import { SCENE_PLAN } from '../src/learning-lv/scenes.ts';
 
 const CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -193,13 +193,15 @@ if (stages.pack) {
     console.error('Taslakta hiç sahne yok. Önce --text çalıştır.');
     process.exit(1);
   }
-  const pack = buildPack(draft, audioBaseUrl);
+  const caseStats = { normalized: 0, dropped: 0 };
+  const pack = buildPack(draft, audioBaseUrl, caseStats);
   validatePack(pack);
   await fs.writeFile(packPath, `${JSON.stringify(pack, null, 2)}\n`);
   const wordCount = pack.scenes.reduce((sum, scene) => sum + scene.words.length, 0);
   const sentenceCount = pack.scenes.reduce((sum, scene) => sum + scene.sentences.length, 0);
   console.log(`\nPaket yazıldı: ${pack.scenes.length} sahne, ${wordCount} kelime, ${sentenceCount} cümle`);
   console.log(`  → ${path.relative(root, packPath)}`);
+  console.log(`  hâl adları: ${caseStats.normalized} normalize edildi, ${caseStats.dropped} caseForm düşürüldü`);
 }
 
 async function chat(request) {
@@ -344,7 +346,18 @@ async function encodeMp3(wav) {
   }
 }
 
-function buildPack(value, audioBaseUrl) {
+function normalizeDraftCaseForm(caseForm, caseStats) {
+  if (!caseForm) return undefined;
+  const normalizedCase = normalizeLatvianCase(caseForm.case);
+  if (!normalizedCase) {
+    caseStats.dropped += 1;
+    return undefined;
+  }
+  if (normalizedCase !== caseForm.case) caseStats.normalized += 1;
+  return { ...caseForm, case: normalizedCase };
+}
+
+function buildPack(value, audioBaseUrl, caseStats = { normalized: 0, dropped: 0 }) {
   const scenes = SCENE_PLAN
     .filter(scene => value.scenes[scene.id])
     .map((scene, position) => {
@@ -364,7 +377,7 @@ function buildPack(value, audioBaseUrl) {
           audioId: word.audioId,
           lemma: word.lemma,
           freqRank: word.freqRank,
-          caseForm: word.caseForm,
+          caseForm: normalizeDraftCaseForm(word.caseForm, caseStats),
         })),
         sentences: entry.sentences.map(sentence => ({
           id: `${scene.id}-s-${sentence.audioId}`,

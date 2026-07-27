@@ -1,0 +1,5950 @@
+{
+  "version": 1,
+  "generatedAt": "2026-07-27T13:59:46.297Z",
+  "audioBaseUrl": "https://istanbul-letonya-karavan-astro.vercel.app/assets/letonca/ses",
+  "scenes": [
+    {
+      "id": "lv-s01-tanisma",
+      "index": 1,
+      "title": "Tanışma",
+      "words": [
+        {
+          "id": "lv-s01-tanisma-w-efb4583aa9a6",
+          "lv": "sveiki",
+          "tr": "merhaba",
+          "audioId": "efb4583aa9a6",
+          "lemma": "sveiki",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s01-tanisma-w-bbb63997bc17",
+          "lv": "labdien",
+          "tr": "iyi günler",
+          "audioId": "bbb63997bc17",
+          "lemma": "labdien",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s01-tanisma-w-987c4c5b34c3",
+          "lv": "paldies",
+          "tr": "teşekkürler",
+          "audioId": "987c4c5b34c3",
+          "lemma": "paldies",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s01-tanisma-w-3da6ff35c1cc",
+          "lv": "lūdzu",
+          "tr": "lütfen",
+          "audioId": "3da6ff35c1cc",
+          "lemma": "lūdzu",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s01-tanisma-w-a50c03f50952",
+          "lv": "jā",
+          "tr": "evet",
+          "audioId": "a50c03f50952",
+          "lemma": "jā",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s01-tanisma-w-9d399b143527",
+          "lv": "nē",
+          "tr": "hayır",
+          "audioId": "9d399b143527",
+          "lemma": "nē",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s01-tanisma-w-09cd68a2a77b",
+          "lv": "es",
+          "tr": "ben",
+          "audioId": "09cd68a2a77b",
+          "lemma": "es",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s01-tanisma-w-d7137e37007b",
+          "lv": "mani sauc",
+          "tr": "benim adım",
+          "audioId": "d7137e37007b",
+          "lemma": "saukt",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s01-tanisma-w-4b593d6d2572",
+          "lv": "labrīt",
+          "tr": "günaydın",
+          "audioId": "4b593d6d2572",
+          "lemma": "labrīt",
+          "freqRank": 535
+        },
+        {
+          "id": "lv-s01-tanisma-w-24016bc23755",
+          "lv": "labvakar",
+          "tr": "iyi akşamlar",
+          "audioId": "24016bc23755",
+          "lemma": "labvakar",
+          "freqRank": 1415
+        },
+        {
+          "id": "lv-s01-tanisma-w-5309dfde5aa8",
+          "lv": "atvainojiet",
+          "tr": "affedersiniz",
+          "audioId": "5309dfde5aa8",
+          "lemma": "atvainot",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s01-tanisma-w-a47a5d0b0ae5",
+          "lv": "Turcija",
+          "tr": "Türkiye",
+          "icon": "🇹🇷",
+          "audioId": "a47a5d0b0ae5",
+          "lemma": "Turcija",
+          "freqRank": 0,
+          "caseForm": {
+            "base": "Turcija",
+            "form": "Turcijas",
+            "suffix": "as",
+            "distractorSuffixes": [
+              "ā",
+              "ai"
+            ],
+            "case": "genitiv"
+          }
+        },
+        {
+          "id": "lv-s01-tanisma-w-550dd0ebc4ab",
+          "lv": "Latvija",
+          "tr": "Letonya",
+          "icon": "🇱🇻",
+          "audioId": "550dd0ebc4ab",
+          "lemma": "Latvija",
+          "freqRank": 0,
+          "caseForm": {
+            "base": "Latvija",
+            "form": "Latvijā",
+            "suffix": "ā",
+            "distractorSuffixes": [
+              "as",
+              "ai"
+            ],
+            "case": "lokativ"
+          }
+        },
+        {
+          "id": "lv-s01-tanisma-w-fd1286353570",
+          "lv": "no",
+          "tr": "-den / -dan",
+          "audioId": "fd1286353570",
+          "lemma": "no",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s01-tanisma-w-631afce368bf",
+          "lv": "čau",
+          "tr": "selam",
+          "audioId": "631afce368bf",
+          "lemma": "čau",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s01-tanisma-w-e764dfe5ab55",
+          "lv": "kā",
+          "tr": "nasıl",
+          "audioId": "e764dfe5ab55",
+          "lemma": "kā",
+          "freqRank": 14
+        },
+        {
+          "id": "lv-s01-tanisma-w-29d6f4496326",
+          "lv": "iet",
+          "tr": "gitmek",
+          "audioId": "29d6f4496326",
+          "lemma": "iet",
+          "freqRank": 142
+        },
+        {
+          "id": "lv-s01-tanisma-w-0a6f355af864",
+          "lv": "labi",
+          "tr": "iyi",
+          "audioId": "0a6f355af864",
+          "lemma": "labi",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s01-tanisma-w-dd3bc42b2cbb",
+          "lv": "un",
+          "tr": "ve",
+          "audioId": "dd3bc42b2cbb",
+          "lemma": "un",
+          "freqRank": 3
+        },
+        {
+          "id": "lv-s01-tanisma-w-a3da4c6307d2",
+          "lv": "tu",
+          "tr": "sen",
+          "audioId": "a3da4c6307d2",
+          "lemma": "tu",
+          "freqRank": 2
+        },
+        {
+          "id": "lv-s01-tanisma-w-174f862608ec",
+          "lv": "esmu",
+          "tr": "ben ...-yım/-yim",
+          "audioId": "174f862608ec",
+          "lemma": "būt",
+          "freqRank": 32
+        },
+        {
+          "id": "lv-s01-tanisma-w-f2ae20faf45c",
+          "lv": "prieks",
+          "tr": "memnuniyet",
+          "audioId": "f2ae20faf45c",
+          "lemma": "prieks",
+          "freqRank": 399
+        },
+        {
+          "id": "lv-s01-tanisma-w-28aee45d0434",
+          "lv": "iepazīties",
+          "tr": "tanışmak",
+          "audioId": "28aee45d0434",
+          "lemma": "iepazīties",
+          "freqRank": 735
+        }
+      ],
+      "sentences": [
+        {
+          "id": "lv-s01-tanisma-s-4165c1b51c56",
+          "lv": "Sveiki!",
+          "tr": "Merhaba!",
+          "audioId": "4165c1b51c56",
+          "wordIds": [
+            "lv-s01-tanisma-w-efb4583aa9a6"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "listen_choose",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s01-tanisma-s-e6f8752e31ff",
+          "lv": "Labdien!",
+          "tr": "İyi günler!",
+          "audioId": "e6f8752e31ff",
+          "wordIds": [
+            "lv-s01-tanisma-w-bbb63997bc17"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "listen_choose",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s01-tanisma-s-3b4b5de2f877",
+          "lv": "Paldies!",
+          "tr": "Teşekkürler!",
+          "audioId": "3b4b5de2f877",
+          "wordIds": [
+            "lv-s01-tanisma-w-987c4c5b34c3"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "listen_choose",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s01-tanisma-s-81dafdc40263",
+          "lv": "Lūdzu.",
+          "tr": "Rica ederim.",
+          "audioId": "81dafdc40263",
+          "wordIds": [
+            "lv-s01-tanisma-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "listen_choose",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s01-tanisma-s-5844b1182347",
+          "lv": "Jā, paldies.",
+          "tr": "Evet, teşekkürler.",
+          "audioId": "5844b1182347",
+          "wordIds": [
+            "lv-s01-tanisma-w-a50c03f50952",
+            "lv-s01-tanisma-w-987c4c5b34c3"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "listen_choose",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s01-tanisma-s-bb88561237bb",
+          "lv": "Nē, paldies.",
+          "tr": "Hayır, teşekkürler.",
+          "audioId": "bb88561237bb",
+          "wordIds": [
+            "lv-s01-tanisma-w-9d399b143527",
+            "lv-s01-tanisma-w-987c4c5b34c3"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "listen_choose",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s01-tanisma-s-9313fb4c1b4c",
+          "lv": "Mani sauc Ali.",
+          "tr": "Benim adım Ali.",
+          "audioId": "9313fb4c1b4c",
+          "wordIds": [
+            "lv-s01-tanisma-w-d7137e37007b"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "fill_blank",
+            "dictation"
+          ]
+        },
+        {
+          "id": "lv-s01-tanisma-s-4b3fc1d18f9a",
+          "lv": "Es esmu no Turcijas.",
+          "tr": "Ben Türkiye'denim.",
+          "audioId": "4b3fc1d18f9a",
+          "wordIds": [
+            "lv-s01-tanisma-w-09cd68a2a77b",
+            "lv-s01-tanisma-w-174f862608ec",
+            "lv-s01-tanisma-w-fd1286353570",
+            "lv-s01-tanisma-w-a47a5d0b0ae5"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "case_drill",
+            "fill_blank",
+            "dictation"
+          ]
+        },
+        {
+          "id": "lv-s01-tanisma-s-d6f1a0352416",
+          "lv": "Es esmu tūrists.",
+          "tr": "Ben bir turistim.",
+          "audioId": "d6f1a0352416",
+          "wordIds": [
+            "lv-s01-tanisma-w-09cd68a2a77b",
+            "lv-s01-tanisma-w-174f862608ec"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s01-tanisma-s-f7091656fa52",
+          "lv": "Sveiki, es esmu Ali.",
+          "tr": "Merhaba, ben Ali.",
+          "audioId": "f7091656fa52",
+          "wordIds": [
+            "lv-s01-tanisma-w-efb4583aa9a6",
+            "lv-s01-tanisma-w-09cd68a2a77b",
+            "lv-s01-tanisma-w-174f862608ec"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s01-tanisma-s-a378802f503e",
+          "lv": "Prieks iepazīties!",
+          "tr": "Tanıştığımıza memnun oldum!",
+          "audioId": "a378802f503e",
+          "wordIds": [
+            "lv-s01-tanisma-w-f2ae20faf45c",
+            "lv-s01-tanisma-w-28aee45d0434"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "speak",
+            "match"
+          ]
+        },
+        {
+          "id": "lv-s01-tanisma-s-e80374ef8231",
+          "lv": "Kā iet?",
+          "tr": "Nasıl gidiyor?",
+          "audioId": "e80374ef8231",
+          "wordIds": [
+            "lv-s01-tanisma-w-e764dfe5ab55",
+            "lv-s01-tanisma-w-29d6f4496326"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s01-tanisma-s-c092eaae2012",
+          "lv": "Labi, un tu?",
+          "tr": "İyi, ya sen?",
+          "audioId": "c092eaae2012",
+          "wordIds": [
+            "lv-s01-tanisma-w-0a6f355af864",
+            "lv-s01-tanisma-w-dd3bc42b2cbb",
+            "lv-s01-tanisma-w-a3da4c6307d2"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s01-tanisma-s-d7585dfe86a4",
+          "lv": "Es esmu Latvijā.",
+          "tr": "Ben Letonya'dayım.",
+          "audioId": "d7585dfe86a4",
+          "wordIds": [
+            "lv-s01-tanisma-w-09cd68a2a77b",
+            "lv-s01-tanisma-w-174f862608ec",
+            "lv-s01-tanisma-w-550dd0ebc4ab"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "case_drill",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s01-tanisma-s-56317cd1f6fa",
+          "lv": "Atvainojiet, labdien!",
+          "tr": "Affedersiniz, iyi günler!",
+          "audioId": "56317cd1f6fa",
+          "wordIds": [
+            "lv-s01-tanisma-w-5309dfde5aa8",
+            "lv-s01-tanisma-w-bbb63997bc17"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s01-tanisma-s-d7071ed68e3c",
+          "lv": "Čau! Kā iet?",
+          "tr": "Selam! Nasıl gidiyor?",
+          "audioId": "d7071ed68e3c",
+          "wordIds": [
+            "lv-s01-tanisma-w-631afce368bf",
+            "lv-s01-tanisma-w-e764dfe5ab55",
+            "lv-s01-tanisma-w-29d6f4496326"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s01-tanisma-s-b5933572cfdb",
+          "lv": "Labrīt, es esmu tūrists.",
+          "tr": "Günaydın, ben bir turistim.",
+          "audioId": "b5933572cfdb",
+          "wordIds": [
+            "lv-s01-tanisma-w-4b593d6d2572",
+            "lv-s01-tanisma-w-09cd68a2a77b",
+            "lv-s01-tanisma-w-174f862608ec"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s01-tanisma-s-82ea711bb0ab",
+          "lv": "Labvakar, paldies!",
+          "tr": "İyi akşamlar, teşekkürler!",
+          "audioId": "82ea711bb0ab",
+          "wordIds": [
+            "lv-s01-tanisma-w-24016bc23755",
+            "lv-s01-tanisma-w-987c4c5b34c3"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s01-tanisma-s-896bea92ab63",
+          "lv": "Jā, es esmu Latvijā.",
+          "tr": "Evet, Letonya'dayım.",
+          "audioId": "896bea92ab63",
+          "wordIds": [
+            "lv-s01-tanisma-w-a50c03f50952",
+            "lv-s01-tanisma-w-09cd68a2a77b",
+            "lv-s01-tanisma-w-174f862608ec",
+            "lv-s01-tanisma-w-550dd0ebc4ab"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "case_drill"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lv-s02-sayilar",
+      "index": 2,
+      "title": "Sayılar ve fiyat",
+      "words": [
+        {
+          "id": "lv-s02-sayilar-w-56df0332d1cf",
+          "lv": "viens",
+          "tr": "bir",
+          "audioId": "56df0332d1cf",
+          "lemma": "viens",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s02-sayilar-w-a5a7d09fb11f",
+          "lv": "divi",
+          "tr": "iki",
+          "audioId": "a5a7d09fb11f",
+          "lemma": "divi",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s02-sayilar-w-cde7c1c5dcbc",
+          "lv": "trīs",
+          "tr": "üç",
+          "audioId": "cde7c1c5dcbc",
+          "lemma": "trīs",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s02-sayilar-w-c8f433c00331",
+          "lv": "četri",
+          "tr": "dört",
+          "audioId": "c8f433c00331",
+          "lemma": "četri",
+          "freqRank": 856
+        },
+        {
+          "id": "lv-s02-sayilar-w-b7999212a348",
+          "lv": "pieci",
+          "tr": "beş",
+          "audioId": "b7999212a348",
+          "lemma": "pieci",
+          "freqRank": 756
+        },
+        {
+          "id": "lv-s02-sayilar-w-fe56be8d5d0d",
+          "lv": "desmit",
+          "tr": "on",
+          "audioId": "fe56be8d5d0d",
+          "lemma": "desmit",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s02-sayilar-w-80500b253648",
+          "lv": "divdesmit",
+          "tr": "yirmi",
+          "audioId": "80500b253648",
+          "lemma": "divdesmit",
+          "freqRank": 2132
+        },
+        {
+          "id": "lv-s02-sayilar-w-5c003102a888",
+          "lv": "piecdesmit",
+          "tr": "elli",
+          "audioId": "5c003102a888",
+          "lemma": "piecdesmit",
+          "freqRank": 4318
+        },
+        {
+          "id": "lv-s02-sayilar-w-16f5d00981af",
+          "lv": "simts",
+          "tr": "yüz",
+          "audioId": "16f5d00981af",
+          "lemma": "simts",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s02-sayilar-w-e994e720a091",
+          "lv": "cik maksā",
+          "tr": "ne kadar",
+          "audioId": "e994e720a091",
+          "lemma": "cik maksāt",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s02-sayilar-w-dc6c590879b8",
+          "lv": "eiro",
+          "tr": "euro",
+          "icon": "💶",
+          "audioId": "dc6c590879b8",
+          "lemma": "eiro",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s02-sayilar-w-04ca6860c9fb",
+          "lv": "dārgi",
+          "tr": "pahalı",
+          "audioId": "04ca6860c9fb",
+          "lemma": "dārgi",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s02-sayilar-w-dcf9ed545b04",
+          "lv": "lēti",
+          "tr": "ucuz",
+          "audioId": "dcf9ed545b04",
+          "lemma": "lēti",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s02-sayilar-w-966ced486803",
+          "lv": "nauda",
+          "tr": "para",
+          "icon": "💵",
+          "audioId": "966ced486803",
+          "lemma": "nauda",
+          "freqRank": 389
+        },
+        {
+          "id": "lv-s02-sayilar-w-c250bf9093a2",
+          "lv": "karte",
+          "tr": "kart",
+          "icon": "💳",
+          "audioId": "c250bf9093a2",
+          "lemma": "karte",
+          "freqRank": 2982,
+          "caseForm": {
+            "base": "karte",
+            "form": "karti",
+            "suffix": "i",
+            "distractorSuffixes": [
+              "es",
+              "ei",
+              "ēm"
+            ],
+            "case": "akuzativ"
+          }
+        },
+        {
+          "id": "lv-s02-sayilar-w-2ec4951038e3",
+          "lv": "stāvvieta",
+          "tr": "otopark",
+          "icon": "🅿️",
+          "audioId": "2ec4951038e3",
+          "lemma": "stāvvieta",
+          "freqRank": 17251,
+          "caseForm": {
+            "base": "stāvvieta",
+            "form": "stāvvietā",
+            "suffix": "ā",
+            "distractorSuffixes": [
+              "as",
+              "ai",
+              "u"
+            ],
+            "case": "lokativ"
+          }
+        },
+        {
+          "id": "lv-s02-sayilar-w-fac99488108c",
+          "lv": "ūdens",
+          "tr": "su",
+          "icon": "💧",
+          "audioId": "fac99488108c",
+          "lemma": "ūdens",
+          "freqRank": 0,
+          "caseForm": {
+            "base": "ūdens",
+            "form": "ūdeni",
+            "suffix": "i",
+            "distractorSuffixes": [
+              "s",
+              "im",
+              "a"
+            ],
+            "case": "akuzativ"
+          }
+        },
+        {
+          "id": "lv-s02-sayilar-w-91b805a577ea",
+          "lv": "elektrība",
+          "tr": "elektrik",
+          "icon": "⚡",
+          "audioId": "91b805a577ea",
+          "lemma": "elektrība",
+          "freqRank": 7860
+        },
+        {
+          "id": "lv-s02-sayilar-w-46c06807c969",
+          "lv": "degviela",
+          "tr": "yakıt",
+          "icon": "⛽",
+          "audioId": "46c06807c969",
+          "lemma": "degviela",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s02-sayilar-w-1f58b452d25c",
+          "lv": "maize",
+          "tr": "ekmek",
+          "icon": "🍞",
+          "audioId": "1f58b452d25c",
+          "lemma": "maize",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s02-sayilar-w-0d8b97750ac7",
+          "lv": "kafija",
+          "tr": "kahve",
+          "icon": "☕",
+          "audioId": "0d8b97750ac7",
+          "lemma": "kafija",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s02-sayilar-w-00587f1f8e6a",
+          "lv": "čeks",
+          "tr": "fiş",
+          "icon": "🧾",
+          "audioId": "00587f1f8e6a",
+          "lemma": "čeks",
+          "freqRank": 7272
+        },
+        {
+          "id": "lv-s02-sayilar-w-5d7f86067090",
+          "lv": "bezmaksas",
+          "tr": "ücretsiz",
+          "audioId": "5d7f86067090",
+          "lemma": "bezmaksas",
+          "freqRank": 8959
+        },
+        {
+          "id": "lv-s02-sayilar-w-41a5aa3d9ae2",
+          "lv": "samaksāt",
+          "tr": "ödemek",
+          "audioId": "41a5aa3d9ae2",
+          "lemma": "samaksāt",
+          "freqRank": 2535
+        },
+        {
+          "id": "lv-s02-sayilar-w-3da6ff35c1cc",
+          "lv": "lūdzu",
+          "tr": "lütfen",
+          "audioId": "3da6ff35c1cc",
+          "lemma": "lūdzu",
+          "freqRank": 0
+        }
+      ],
+      "sentences": [
+        {
+          "id": "lv-s02-sayilar-s-25029d4761fc",
+          "lv": "Cik maksā kafija?",
+          "tr": "Kahve ne kadar?",
+          "audioId": "25029d4761fc",
+          "wordIds": [
+            "lv-s02-sayilar-w-e994e720a091",
+            "lv-s02-sayilar-w-0d8b97750ac7"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "listen_choose",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s02-sayilar-s-171168ffd183",
+          "lv": "Divi eiro, lūdzu.",
+          "tr": "İki euro, lütfen.",
+          "audioId": "171168ffd183",
+          "wordIds": [
+            "lv-s02-sayilar-w-a5a7d09fb11f",
+            "lv-s02-sayilar-w-dc6c590879b8",
+            "lv-s02-sayilar-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s02-sayilar-s-dee3ec23c808",
+          "lv": "Cik maksā stāvvieta?",
+          "tr": "Otopark ne kadar?",
+          "audioId": "dee3ec23c808",
+          "wordIds": [
+            "lv-s02-sayilar-w-e994e720a091",
+            "lv-s02-sayilar-w-2ec4951038e3"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s02-sayilar-s-8859e2958699",
+          "lv": "Stāvvieta maksā desmit eiro.",
+          "tr": "Otopark on euro tutuyor.",
+          "audioId": "8859e2958699",
+          "wordIds": [
+            "lv-s02-sayilar-w-2ec4951038e3",
+            "lv-s02-sayilar-w-e994e720a091",
+            "lv-s02-sayilar-w-fe56be8d5d0d",
+            "lv-s02-sayilar-w-dc6c590879b8"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s02-sayilar-s-3d6337364451",
+          "lv": "Tas ir dārgi.",
+          "tr": "Bu pahalı.",
+          "audioId": "3d6337364451",
+          "wordIds": [
+            "lv-s02-sayilar-w-04ca6860c9fb"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s02-sayilar-s-86d3ef663c03",
+          "lv": "Tas ir lēti.",
+          "tr": "Bu ucuz.",
+          "audioId": "86d3ef663c03",
+          "wordIds": [
+            "lv-s02-sayilar-w-dcf9ed545b04"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s02-sayilar-s-1270bbd9dbb2",
+          "lv": "Cik maksā ūdens?",
+          "tr": "Su ne kadar?",
+          "audioId": "1270bbd9dbb2",
+          "wordIds": [
+            "lv-s02-sayilar-w-e994e720a091",
+            "lv-s02-sayilar-w-fac99488108c"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s02-sayilar-s-2455831fdb43",
+          "lv": "Lūdzu ūdeni.",
+          "tr": "Su lütfen.",
+          "audioId": "2455831fdb43",
+          "wordIds": [
+            "lv-s02-sayilar-w-fac99488108c",
+            "lv-s02-sayilar-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "case_drill",
+            "lv_to_tr",
+            "listen_choose"
+          ]
+        },
+        {
+          "id": "lv-s02-sayilar-s-bb64e97b4bc5",
+          "lv": "Stāvvietā ir elektrība.",
+          "tr": "Otoparkta elektrik var.",
+          "audioId": "bb64e97b4bc5",
+          "wordIds": [
+            "lv-s02-sayilar-w-2ec4951038e3",
+            "lv-s02-sayilar-w-91b805a577ea"
+          ],
+          "supports": [
+            "case_drill",
+            "lv_to_tr",
+            "tr_to_lv"
+          ]
+        },
+        {
+          "id": "lv-s02-sayilar-s-cede58eb72ee",
+          "lv": "Cik maksā degviela?",
+          "tr": "Yakıt ne kadar?",
+          "audioId": "cede58eb72ee",
+          "wordIds": [
+            "lv-s02-sayilar-w-e994e720a091",
+            "lv-s02-sayilar-w-46c06807c969"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv"
+          ]
+        },
+        {
+          "id": "lv-s02-sayilar-s-17dc67267f35",
+          "lv": "Trīs eiro, lūdzu.",
+          "tr": "Üç euro, lütfen.",
+          "audioId": "17dc67267f35",
+          "wordIds": [
+            "lv-s02-sayilar-w-cde7c1c5dcbc",
+            "lv-s02-sayilar-w-dc6c590879b8",
+            "lv-s02-sayilar-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s02-sayilar-s-e683147274f3",
+          "lv": "Četri eiro.",
+          "tr": "Dört euro.",
+          "audioId": "e683147274f3",
+          "wordIds": [
+            "lv-s02-sayilar-w-c8f433c00331",
+            "lv-s02-sayilar-w-dc6c590879b8"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "match",
+            "listen_choose"
+          ]
+        },
+        {
+          "id": "lv-s02-sayilar-s-51b954e58500",
+          "lv": "Pieci eiro.",
+          "tr": "Beş euro.",
+          "audioId": "51b954e58500",
+          "wordIds": [
+            "lv-s02-sayilar-w-b7999212a348",
+            "lv-s02-sayilar-w-dc6c590879b8"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "match",
+            "listen_choose"
+          ]
+        },
+        {
+          "id": "lv-s02-sayilar-s-9a125652c71a",
+          "lv": "Divdesmit eiro.",
+          "tr": "Yirmi euro.",
+          "audioId": "9a125652c71a",
+          "wordIds": [
+            "lv-s02-sayilar-w-80500b253648",
+            "lv-s02-sayilar-w-dc6c590879b8"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "match",
+            "listen_choose"
+          ]
+        },
+        {
+          "id": "lv-s02-sayilar-s-f16a61bd659e",
+          "lv": "Piecdesmit eiro.",
+          "tr": "Elli euro.",
+          "audioId": "f16a61bd659e",
+          "wordIds": [
+            "lv-s02-sayilar-w-5c003102a888",
+            "lv-s02-sayilar-w-dc6c590879b8"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "match",
+            "listen_choose"
+          ]
+        },
+        {
+          "id": "lv-s02-sayilar-s-21913e50010d",
+          "lv": "Samaksāt ar karti, lūdzu.",
+          "tr": "Kartla ödemek istiyorum, lütfen.",
+          "audioId": "21913e50010d",
+          "wordIds": [
+            "lv-s02-sayilar-w-41a5aa3d9ae2",
+            "lv-s02-sayilar-w-c250bf9093a2",
+            "lv-s02-sayilar-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "case_drill",
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s02-sayilar-s-a0c79d72a193",
+          "lv": "Čeks, lūdzu.",
+          "tr": "Fiş, lütfen.",
+          "audioId": "a0c79d72a193",
+          "wordIds": [
+            "lv-s02-sayilar-w-00587f1f8e6a",
+            "lv-s02-sayilar-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "match",
+            "listen_choose"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lv-s03-markette",
+      "index": 3,
+      "title": "Markette",
+      "words": [
+        {
+          "id": "lv-s03-markette-w-01146b2aaf1f",
+          "lv": "maizi",
+          "tr": "ekmek (belirtme hali)",
+          "icon": "🍞",
+          "audioId": "01146b2aaf1f",
+          "lemma": "maize",
+          "freqRank": 4614,
+          "caseForm": {
+            "base": "maize",
+            "form": "maizi",
+            "suffix": "i",
+            "distractorSuffixes": [
+              "es",
+              "ei"
+            ],
+            "case": "akuzativ"
+          }
+        },
+        {
+          "id": "lv-s03-markette-w-365c2877bd65",
+          "lv": "ūdeni",
+          "tr": "su (belirtme hali)",
+          "icon": "💧",
+          "audioId": "365c2877bd65",
+          "lemma": "ūdens",
+          "freqRank": 943,
+          "caseForm": {
+            "base": "ūdens",
+            "form": "ūdeni",
+            "suffix": "i",
+            "distractorSuffixes": [
+              "im",
+              "ī"
+            ],
+            "case": "akuzativ"
+          }
+        },
+        {
+          "id": "lv-s03-markette-w-e5e3db4be957",
+          "lv": "pienu",
+          "tr": "süt (belirtme hali)",
+          "icon": "🥛",
+          "audioId": "e5e3db4be957",
+          "lemma": "piens",
+          "freqRank": 4116,
+          "caseForm": {
+            "base": "piens",
+            "form": "pienu",
+            "suffix": "u",
+            "distractorSuffixes": [
+              "am",
+              "ā"
+            ],
+            "case": "akuzativ"
+          }
+        },
+        {
+          "id": "lv-s03-markette-w-39a9e3350884",
+          "lv": "kafiju",
+          "tr": "kahve (belirtme hali)",
+          "icon": "☕",
+          "audioId": "39a9e3350884",
+          "lemma": "kafija",
+          "freqRank": 998,
+          "caseForm": {
+            "base": "kafija",
+            "form": "kafiju",
+            "suffix": "u",
+            "distractorSuffixes": [
+              "as",
+              "ā"
+            ],
+            "case": "akuzativ"
+          }
+        },
+        {
+          "id": "lv-s03-markette-w-6882477b984f",
+          "lv": "veikalā",
+          "tr": "markette",
+          "icon": "🛒",
+          "audioId": "6882477b984f",
+          "lemma": "veikals",
+          "freqRank": 1709,
+          "caseForm": {
+            "base": "veikals",
+            "form": "veikalā",
+            "suffix": "ā",
+            "distractorSuffixes": [
+              "am",
+              "u"
+            ],
+            "case": "lokativ"
+          }
+        },
+        {
+          "id": "lv-s03-markette-w-a0dc465e4d2c",
+          "lv": "gribu",
+          "tr": "istiyorum",
+          "audioId": "a0dc465e4d2c",
+          "lemma": "gribēt",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s03-markette-w-997e90455812",
+          "lv": "man vajag",
+          "tr": "ihtiyacım var",
+          "audioId": "997e90455812",
+          "lemma": "vajadzēt",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s03-markette-w-1f58b452d25c",
+          "lv": "maize",
+          "tr": "ekmek",
+          "icon": "🍞",
+          "audioId": "1f58b452d25c",
+          "lemma": "maize",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s03-markette-w-fac99488108c",
+          "lv": "ūdens",
+          "tr": "su",
+          "icon": "💧",
+          "audioId": "fac99488108c",
+          "lemma": "ūdens",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s03-markette-w-d114bafe8e29",
+          "lv": "piens",
+          "tr": "süt",
+          "icon": "🥛",
+          "audioId": "d114bafe8e29",
+          "lemma": "piens",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s03-markette-w-0d8b97750ac7",
+          "lv": "kafija",
+          "tr": "kahve",
+          "icon": "☕",
+          "audioId": "0d8b97750ac7",
+          "lemma": "kafija",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s03-markette-w-7d30d911ffe6",
+          "lv": "veikals",
+          "tr": "market",
+          "icon": "🛒",
+          "audioId": "7d30d911ffe6",
+          "lemma": "veikals",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s03-markette-w-0d23689f8fbc",
+          "lv": "siers",
+          "tr": "peynir",
+          "icon": "🧀",
+          "audioId": "0d23689f8fbc",
+          "lemma": "siers",
+          "freqRank": 6965
+        },
+        {
+          "id": "lv-s03-markette-w-752014b69c63",
+          "lv": "olas",
+          "tr": "yumurta",
+          "icon": "🥚",
+          "audioId": "752014b69c63",
+          "lemma": "ola",
+          "freqRank": 2462
+        },
+        {
+          "id": "lv-s03-markette-w-ef5bbafdfd79",
+          "lv": "sviests",
+          "tr": "tereyağı",
+          "icon": "🧈",
+          "audioId": "ef5bbafdfd79",
+          "lemma": "sviests",
+          "freqRank": 7762
+        },
+        {
+          "id": "lv-s03-markette-w-3cf74cee40c2",
+          "lv": "tēja",
+          "tr": "çay",
+          "icon": "🍵",
+          "audioId": "3cf74cee40c2",
+          "lemma": "tēja",
+          "freqRank": 7664
+        },
+        {
+          "id": "lv-s03-markette-w-65a16ada3ac1",
+          "lv": "sāls",
+          "tr": "tuz",
+          "icon": "🧂",
+          "audioId": "65a16ada3ac1",
+          "lemma": "sāls",
+          "freqRank": 7736
+        },
+        {
+          "id": "lv-s03-markette-w-3da6ff35c1cc",
+          "lv": "lūdzu",
+          "tr": "lütfen",
+          "audioId": "3da6ff35c1cc",
+          "lemma": "lūdzu",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s03-markette-w-987c4c5b34c3",
+          "lv": "paldies",
+          "tr": "teşekkürler",
+          "audioId": "987c4c5b34c3",
+          "lemma": "paldies",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s03-markette-w-bbb63997bc17",
+          "lv": "labdien",
+          "tr": "merhaba",
+          "audioId": "bbb63997bc17",
+          "lemma": "labdien",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s03-markette-w-2f74ad5375bb",
+          "lv": "cik",
+          "tr": "ne kadar",
+          "audioId": "2f74ad5375bb",
+          "lemma": "cik",
+          "freqRank": 79
+        },
+        {
+          "id": "lv-s03-markette-w-be94f1e79009",
+          "lv": "maksā",
+          "tr": "tutar",
+          "audioId": "be94f1e79009",
+          "lemma": "maksāt",
+          "freqRank": 1018
+        },
+        {
+          "id": "lv-s03-markette-w-dd3bc42b2cbb",
+          "lv": "un",
+          "tr": "ve",
+          "audioId": "dd3bc42b2cbb",
+          "lemma": "un",
+          "freqRank": 3
+        }
+      ],
+      "sentences": [
+        {
+          "id": "lv-s03-markette-s-e6f8752e31ff",
+          "lv": "Labdien!",
+          "tr": "Merhaba!",
+          "audioId": "e6f8752e31ff",
+          "wordIds": [
+            "lv-s03-markette-w-bbb63997bc17"
+          ],
+          "supports": [
+            "listen_choose",
+            "speak",
+            "lv_to_tr"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-3b4b5de2f877",
+          "lv": "Paldies!",
+          "tr": "Teşekkürler!",
+          "audioId": "3b4b5de2f877",
+          "wordIds": [
+            "lv-s03-markette-w-987c4c5b34c3"
+          ],
+          "supports": [
+            "listen_choose",
+            "speak",
+            "lv_to_tr"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-bb89867ab1c9",
+          "lv": "Gribu kafiju, lūdzu.",
+          "tr": "Kahve istiyorum, lütfen.",
+          "audioId": "bb89867ab1c9",
+          "wordIds": [
+            "lv-s03-markette-w-a0dc465e4d2c",
+            "lv-s03-markette-w-39a9e3350884",
+            "lv-s03-markette-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "tr_to_lv",
+            "order",
+            "case_drill",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-5f727268b622",
+          "lv": "Man vajag ūdeni.",
+          "tr": "Suya ihtiyacım var.",
+          "audioId": "5f727268b622",
+          "wordIds": [
+            "lv-s03-markette-w-997e90455812",
+            "lv-s03-markette-w-365c2877bd65"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "fill_blank",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-d5e67876c913",
+          "lv": "Man vajag pienu un maizi.",
+          "tr": "Süt ve ekmeğe ihtiyacım var.",
+          "audioId": "d5e67876c913",
+          "wordIds": [
+            "lv-s03-markette-w-997e90455812",
+            "lv-s03-markette-w-e5e3db4be957",
+            "lv-s03-markette-w-dd3bc42b2cbb",
+            "lv-s03-markette-w-01146b2aaf1f"
+          ],
+          "supports": [
+            "tr_to_lv",
+            "order",
+            "case_drill",
+            "dictation"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-25029d4761fc",
+          "lv": "Cik maksā kafija?",
+          "tr": "Kahve ne kadar?",
+          "audioId": "25029d4761fc",
+          "wordIds": [
+            "lv-s03-markette-w-2f74ad5375bb",
+            "lv-s03-markette-w-be94f1e79009",
+            "lv-s03-markette-w-0d8b97750ac7"
+          ],
+          "supports": [
+            "tr_to_lv",
+            "order",
+            "lv_to_tr"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-d907911a5151",
+          "lv": "Cik maksā piens?",
+          "tr": "Süt ne kadar?",
+          "audioId": "d907911a5151",
+          "wordIds": [
+            "lv-s03-markette-w-2f74ad5375bb",
+            "lv-s03-markette-w-be94f1e79009",
+            "lv-s03-markette-w-d114bafe8e29"
+          ],
+          "supports": [
+            "tr_to_lv",
+            "order",
+            "lv_to_tr"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-cbf8aca6e37a",
+          "lv": "Siers un desa, lūdzu.",
+          "tr": "Peynir ve sosis, lütfen.",
+          "audioId": "cbf8aca6e37a",
+          "wordIds": [
+            "lv-s03-markette-w-0d23689f8fbc",
+            "lv-s03-markette-w-dd3bc42b2cbb",
+            "lv-s03-markette-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "tr_to_lv",
+            "order",
+            "match"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-61c4c1077e82",
+          "lv": "Gribu pienu.",
+          "tr": "Süt istiyorum.",
+          "audioId": "61c4c1077e82",
+          "wordIds": [
+            "lv-s03-markette-w-a0dc465e4d2c",
+            "lv-s03-markette-w-e5e3db4be957"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "case_drill",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-dfcf5656a5c7",
+          "lv": "Man vajag olas.",
+          "tr": "Yumurtaya ihtiyacım var.",
+          "audioId": "dfcf5656a5c7",
+          "wordIds": [
+            "lv-s03-markette-w-997e90455812",
+            "lv-s03-markette-w-752014b69c63"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-13d753bafba1",
+          "lv": "Maize un piens.",
+          "tr": "Ekmek ve süt.",
+          "audioId": "13d753bafba1",
+          "wordIds": [
+            "lv-s03-markette-w-1f58b452d25c",
+            "lv-s03-markette-w-dd3bc42b2cbb",
+            "lv-s03-markette-w-d114bafe8e29"
+          ],
+          "supports": [
+            "tr_to_lv",
+            "order",
+            "match"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-0b6f1cf1a229",
+          "lv": "Tēja un cukurs, lūdzu.",
+          "tr": "Çay ve şeker, lütfen.",
+          "audioId": "0b6f1cf1a229",
+          "wordIds": [
+            "lv-s03-markette-w-3cf74cee40c2",
+            "lv-s03-markette-w-dd3bc42b2cbb",
+            "lv-s03-markette-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "tr_to_lv",
+            "order",
+            "match"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-be85baf4ea52",
+          "lv": "Gribu ūdeni un maizi.",
+          "tr": "Su ve ekmek istiyorum.",
+          "audioId": "be85baf4ea52",
+          "wordIds": [
+            "lv-s03-markette-w-a0dc465e4d2c",
+            "lv-s03-markette-w-365c2877bd65",
+            "lv-s03-markette-w-dd3bc42b2cbb",
+            "lv-s03-markette-w-01146b2aaf1f"
+          ],
+          "supports": [
+            "tr_to_lv",
+            "order",
+            "case_drill",
+            "dictation"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-a0953caacaf4",
+          "lv": "Cik maksā maize?",
+          "tr": "Ekmek ne kadar?",
+          "audioId": "a0953caacaf4",
+          "wordIds": [
+            "lv-s03-markette-w-2f74ad5375bb",
+            "lv-s03-markette-w-be94f1e79009",
+            "lv-s03-markette-w-1f58b452d25c"
+          ],
+          "supports": [
+            "tr_to_lv",
+            "order",
+            "lv_to_tr"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-2df3827de1ab",
+          "lv": "Cik maksā siers?",
+          "tr": "Peynir ne kadar?",
+          "audioId": "2df3827de1ab",
+          "wordIds": [
+            "lv-s03-markette-w-2f74ad5375bb",
+            "lv-s03-markette-w-be94f1e79009",
+            "lv-s03-markette-w-0d23689f8fbc"
+          ],
+          "supports": [
+            "tr_to_lv",
+            "order",
+            "lv_to_tr"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-b14316001a06",
+          "lv": "Gribu ūdeni, lūdzu.",
+          "tr": "Su istiyorum, lütfen.",
+          "audioId": "b14316001a06",
+          "wordIds": [
+            "lv-s03-markette-w-a0dc465e4d2c",
+            "lv-s03-markette-w-365c2877bd65",
+            "lv-s03-markette-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "tr_to_lv",
+            "order",
+            "case_drill",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-ea82cc0368d7",
+          "lv": "Gribu pienu, lūdzu.",
+          "tr": "Süt istiyorum, lütfen.",
+          "audioId": "ea82cc0368d7",
+          "wordIds": [
+            "lv-s03-markette-w-a0dc465e4d2c",
+            "lv-s03-markette-w-e5e3db4be957",
+            "lv-s03-markette-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "tr_to_lv",
+            "order",
+            "case_drill",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-b3aadd65c36c",
+          "lv": "Man vajag kafiju.",
+          "tr": "Kahveye ihtiyacım var.",
+          "audioId": "b3aadd65c36c",
+          "wordIds": [
+            "lv-s03-markette-w-997e90455812",
+            "lv-s03-markette-w-39a9e3350884"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "case_drill",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-1ddf1edb3794",
+          "lv": "Man vajag maizi.",
+          "tr": "Ekmeğe ihtiyacım var.",
+          "audioId": "1ddf1edb3794",
+          "wordIds": [
+            "lv-s03-markette-w-997e90455812",
+            "lv-s03-markette-w-01146b2aaf1f"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "case_drill",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s03-markette-s-5e186e6d4882",
+          "lv": "Cik maksā desa?",
+          "tr": "Sosis ne kadar?",
+          "audioId": "5e186e6d4882",
+          "wordIds": [
+            "lv-s03-markette-w-2f74ad5375bb",
+            "lv-s03-markette-w-be94f1e79009"
+          ],
+          "supports": [
+            "tr_to_lv",
+            "order",
+            "lv_to_tr"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lv-s04-benzinlik",
+      "index": 4,
+      "title": "Benzinlik ve yol",
+      "words": [
+        {
+          "id": "lv-s04-benzinlik-w-46c06807c969",
+          "lv": "degviela",
+          "tr": "yakıt",
+          "icon": "⛽",
+          "audioId": "46c06807c969",
+          "lemma": "degviela",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s04-benzinlik-w-fabd0e55d0d8",
+          "lv": "pilnu bāku",
+          "tr": "tam depo",
+          "icon": "⛽",
+          "audioId": "fabd0e55d0d8",
+          "lemma": "pilna bāka",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s04-benzinlik-w-3132e930ecc6",
+          "lv": "kur ir",
+          "tr": "nerede",
+          "audioId": "3132e930ecc6",
+          "lemma": "kur ir",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s04-benzinlik-w-eca51d0c449a",
+          "lv": "pa kreisi",
+          "tr": "sola",
+          "icon": "⬅️",
+          "audioId": "eca51d0c449a",
+          "lemma": "pa kreisi",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s04-benzinlik-w-c7d67ce0139f",
+          "lv": "pa labi",
+          "tr": "sağa",
+          "icon": "➡️",
+          "audioId": "c7d67ce0139f",
+          "lemma": "pa labi",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s04-benzinlik-w-3ae00f27d87e",
+          "lv": "taisni",
+          "tr": "düz",
+          "icon": "⬆️",
+          "audioId": "3ae00f27d87e",
+          "lemma": "taisni",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s04-benzinlik-w-a0f179714770",
+          "lv": "ceļš",
+          "tr": "yol",
+          "icon": "🛣️",
+          "audioId": "a0f179714770",
+          "lemma": "ceļš",
+          "freqRank": 0,
+          "caseForm": {
+            "base": "ceļš",
+            "form": "ceļā",
+            "suffix": "ā",
+            "distractorSuffixes": [
+              "am",
+              "u"
+            ],
+            "case": "lokativ"
+          }
+        },
+        {
+          "id": "lv-s04-benzinlik-w-6d02a3be45f0",
+          "lv": "benzīns",
+          "tr": "benzin",
+          "icon": "⛽",
+          "audioId": "6d02a3be45f0",
+          "lemma": "benzīns",
+          "freqRank": 8837
+        },
+        {
+          "id": "lv-s04-benzinlik-w-e6bfa92f0826",
+          "lv": "gāze",
+          "tr": "gaz",
+          "icon": "💨",
+          "audioId": "e6bfa92f0826",
+          "lemma": "gāze",
+          "freqRank": 6121
+        },
+        {
+          "id": "lv-s04-benzinlik-w-c250bf9093a2",
+          "lv": "karte",
+          "tr": "harita",
+          "icon": "🗺️",
+          "audioId": "c250bf9093a2",
+          "lemma": "karte",
+          "freqRank": 2982
+        },
+        {
+          "id": "lv-s04-benzinlik-w-fac99488108c",
+          "lv": "ūdens",
+          "tr": "su",
+          "icon": "💧",
+          "audioId": "fac99488108c",
+          "lemma": "ūdens",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s04-benzinlik-w-0d8b97750ac7",
+          "lv": "kafija",
+          "tr": "kahve",
+          "icon": "☕",
+          "audioId": "0d8b97750ac7",
+          "lemma": "kafija",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s04-benzinlik-w-c23a2684d8da",
+          "lv": "tualete",
+          "tr": "tuvalet",
+          "icon": "🚾",
+          "audioId": "c23a2684d8da",
+          "lemma": "tualete",
+          "freqRank": 5665
+        },
+        {
+          "id": "lv-s04-benzinlik-w-7d30d911ffe6",
+          "lv": "veikals",
+          "tr": "market",
+          "icon": "🏪",
+          "audioId": "7d30d911ffe6",
+          "lemma": "veikals",
+          "freqRank": 0,
+          "caseForm": {
+            "base": "veikals",
+            "form": "veikalā",
+            "suffix": "ā",
+            "distractorSuffixes": [
+              "am",
+              "u"
+            ],
+            "case": "lokativ"
+          }
+        },
+        {
+          "id": "lv-s04-benzinlik-w-8a8360790832",
+          "lv": "stacija",
+          "tr": "istasyon",
+          "icon": "⛽",
+          "audioId": "8a8360790832",
+          "lemma": "stacija",
+          "freqRank": 4747
+        },
+        {
+          "id": "lv-s04-benzinlik-w-3da6ff35c1cc",
+          "lv": "lūdzu",
+          "tr": "lütfen",
+          "audioId": "3da6ff35c1cc",
+          "lemma": "lūdzu",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s04-benzinlik-w-987c4c5b34c3",
+          "lv": "paldies",
+          "tr": "teşekkürler",
+          "audioId": "987c4c5b34c3",
+          "lemma": "paldies",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s04-benzinlik-w-e2b35db435fa",
+          "lv": "maksāt",
+          "tr": "ödemek",
+          "audioId": "e2b35db435fa",
+          "lemma": "maksāt",
+          "freqRank": 3024
+        },
+        {
+          "id": "lv-s04-benzinlik-w-c17ccce40334",
+          "lv": "tuvu",
+          "tr": "yakın",
+          "audioId": "c17ccce40334",
+          "lemma": "tuvu",
+          "freqRank": 558
+        },
+        {
+          "id": "lv-s04-benzinlik-w-07cf4ed58a5d",
+          "lv": "tālu",
+          "tr": "uzak",
+          "audioId": "07cf4ed58a5d",
+          "lemma": "tālu",
+          "freqRank": 514
+        },
+        {
+          "id": "lv-s04-benzinlik-w-8bcac5dabf06",
+          "lv": "kur",
+          "tr": "nerede",
+          "audioId": "8bcac5dabf06",
+          "lemma": "kur",
+          "freqRank": 45
+        },
+        {
+          "id": "lv-s04-benzinlik-w-aa1553beed5d",
+          "lv": "ir",
+          "tr": "dır/dir (olmak)",
+          "audioId": "aa1553beed5d",
+          "lemma": "būt",
+          "freqRank": 0
+        }
+      ],
+      "sentences": [
+        {
+          "id": "lv-s04-benzinlik-s-0de7ff84e933",
+          "lv": "Kur ir degviela?",
+          "tr": "Yakıt nerede?",
+          "audioId": "0de7ff84e933",
+          "wordIds": [
+            "lv-s04-benzinlik-w-3132e930ecc6",
+            "lv-s04-benzinlik-w-46c06807c969"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s04-benzinlik-s-2e813c104113",
+          "lv": "Lūdzu, pilnu bāku.",
+          "tr": "Tam depo, lütfen.",
+          "audioId": "2e813c104113",
+          "wordIds": [
+            "lv-s04-benzinlik-w-3da6ff35c1cc",
+            "lv-s04-benzinlik-w-fabd0e55d0d8"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s04-benzinlik-s-da4318df805c",
+          "lv": "Kur ir tualete?",
+          "tr": "Tuvalet nerede?",
+          "audioId": "da4318df805c",
+          "wordIds": [
+            "lv-s04-benzinlik-w-3132e930ecc6",
+            "lv-s04-benzinlik-w-c23a2684d8da"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s04-benzinlik-s-36cfce895c3f",
+          "lv": "Kur ir kase?",
+          "tr": "Kasa nerede?",
+          "audioId": "36cfce895c3f",
+          "wordIds": [
+            "lv-s04-benzinlik-w-3132e930ecc6"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s04-benzinlik-s-e63a89d42729",
+          "lv": "Es gribu maksāt.",
+          "tr": "Ödemek istiyorum.",
+          "audioId": "e63a89d42729",
+          "wordIds": [
+            "lv-s04-benzinlik-w-e2b35db435fa"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s04-benzinlik-s-e56f6fa53742",
+          "lv": "Kur ir dīzelis?",
+          "tr": "Dizel nerede?",
+          "audioId": "e56f6fa53742",
+          "wordIds": [
+            "lv-s04-benzinlik-w-3132e930ecc6"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s04-benzinlik-s-7bfea86c547b",
+          "lv": "Kur ir benzīns?",
+          "tr": "Benzin nerede?",
+          "audioId": "7bfea86c547b",
+          "wordIds": [
+            "lv-s04-benzinlik-w-3132e930ecc6",
+            "lv-s04-benzinlik-w-6d02a3be45f0"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s04-benzinlik-s-57f562e3f012",
+          "lv": "Taisni, lūdzu.",
+          "tr": "Düz, lütfen.",
+          "audioId": "57f562e3f012",
+          "wordIds": [
+            "lv-s04-benzinlik-w-3ae00f27d87e",
+            "lv-s04-benzinlik-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s04-benzinlik-s-5ada8a6fe3a8",
+          "lv": "Tagad pa kreisi.",
+          "tr": "Şimdi sola.",
+          "audioId": "5ada8a6fe3a8",
+          "wordIds": [
+            "lv-s04-benzinlik-w-eca51d0c449a"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s04-benzinlik-s-82902a38f34f",
+          "lv": "Tagad pa labi.",
+          "tr": "Şimdi sağa.",
+          "audioId": "82902a38f34f",
+          "wordIds": [
+            "lv-s04-benzinlik-w-c7d67ce0139f"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s04-benzinlik-s-e6e7cb0dfe06",
+          "lv": "Kur ir veikals?",
+          "tr": "Market nerede?",
+          "audioId": "e6e7cb0dfe06",
+          "wordIds": [
+            "lv-s04-benzinlik-w-3132e930ecc6",
+            "lv-s04-benzinlik-w-7d30d911ffe6"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s04-benzinlik-s-094579c3fc70",
+          "lv": "Tas ir ceļš.",
+          "tr": "Bu yol.",
+          "audioId": "094579c3fc70",
+          "wordIds": [
+            "lv-s04-benzinlik-w-aa1553beed5d",
+            "lv-s04-benzinlik-w-a0f179714770"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s04-benzinlik-s-62e695c73050",
+          "lv": "Vai stacija ir tuvu?",
+          "tr": "İstasyon yakın mı?",
+          "audioId": "62e695c73050",
+          "wordIds": [
+            "lv-s04-benzinlik-w-8a8360790832",
+            "lv-s04-benzinlik-w-aa1553beed5d",
+            "lv-s04-benzinlik-w-c17ccce40334"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s04-benzinlik-s-f1f214e9df3b",
+          "lv": "Nē, tas ir tālu.",
+          "tr": "Hayır, o uzak.",
+          "audioId": "f1f214e9df3b",
+          "wordIds": [
+            "lv-s04-benzinlik-w-aa1553beed5d",
+            "lv-s04-benzinlik-w-07cf4ed58a5d"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s04-benzinlik-s-84d4165653f3",
+          "lv": "Kur ir kemperis?",
+          "tr": "Karavan nerede?",
+          "audioId": "84d4165653f3",
+          "wordIds": [
+            "lv-s04-benzinlik-w-3132e930ecc6"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s04-benzinlik-s-1764a6aad325",
+          "lv": "Kur ir karte?",
+          "tr": "Harita nerede?",
+          "audioId": "1764a6aad325",
+          "wordIds": [
+            "lv-s04-benzinlik-w-3132e930ecc6",
+            "lv-s04-benzinlik-w-c250bf9093a2"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s04-benzinlik-s-e3d5ee7a9861",
+          "lv": "Maksāt kasē, lūdzu.",
+          "tr": "Kasada ödeyin, lütfen.",
+          "audioId": "e3d5ee7a9861",
+          "wordIds": [
+            "lv-s04-benzinlik-w-e2b35db435fa",
+            "lv-s04-benzinlik-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s04-benzinlik-s-cd692a726197",
+          "lv": "Es esmu ceļā.",
+          "tr": "Yoldayım.",
+          "audioId": "cd692a726197",
+          "wordIds": [
+            "lv-s04-benzinlik-w-aa1553beed5d",
+            "lv-s04-benzinlik-w-a0f179714770"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s04-benzinlik-s-48e83c53ada0",
+          "lv": "Ūdens ir veikalā.",
+          "tr": "Su markette.",
+          "audioId": "48e83c53ada0",
+          "wordIds": [
+            "lv-s04-benzinlik-w-fac99488108c",
+            "lv-s04-benzinlik-w-aa1553beed5d",
+            "lv-s04-benzinlik-w-7d30d911ffe6"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill",
+            "fill_blank"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lv-s05-kamp",
+      "index": 5,
+      "title": "Kamp alanı",
+      "words": [
+        {
+          "id": "lv-s05-kamp-w-5f5f810fd1de",
+          "lv": "telts",
+          "tr": "çadır",
+          "icon": "⛺",
+          "audioId": "5f5f810fd1de",
+          "lemma": "telts",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s05-kamp-w-8703043ee1c5",
+          "lv": "vieta",
+          "tr": "yer",
+          "icon": "📍",
+          "audioId": "8703043ee1c5",
+          "lemma": "vieta",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s05-kamp-w-c168bb971c1e",
+          "lv": "nakts",
+          "tr": "gece",
+          "icon": "🌃",
+          "audioId": "c168bb971c1e",
+          "lemma": "nakts",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s05-kamp-w-d0de6a5e1ae5",
+          "lv": "cik ilgi",
+          "tr": "ne kadar süre",
+          "audioId": "d0de6a5e1ae5",
+          "lemma": "cik ilgi",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s05-kamp-w-2b9cad04ad22",
+          "lv": "vai ir brīvs",
+          "tr": "boş yer var mı",
+          "audioId": "2b9cad04ad22",
+          "lemma": "vai ir brīvs",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s05-kamp-w-8f541d3b31d2",
+          "lv": "kempings",
+          "tr": "kamp alanı",
+          "icon": "🏕️",
+          "audioId": "8f541d3b31d2",
+          "lemma": "kempings",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s05-kamp-w-91b805a577ea",
+          "lv": "elektrība",
+          "tr": "elektrik",
+          "icon": "⚡",
+          "audioId": "91b805a577ea",
+          "lemma": "elektrība",
+          "freqRank": 7860
+        },
+        {
+          "id": "lv-s05-kamp-w-fac99488108c",
+          "lv": "ūdens",
+          "tr": "su",
+          "icon": "💧",
+          "audioId": "fac99488108c",
+          "lemma": "ūdens",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s05-kamp-w-c23a2684d8da",
+          "lv": "tualete",
+          "tr": "tuvalet",
+          "icon": "🚽",
+          "audioId": "c23a2684d8da",
+          "lemma": "tualete",
+          "freqRank": 5665
+        },
+        {
+          "id": "lv-s05-kamp-w-62e5582aace0",
+          "lv": "cena",
+          "tr": "fiyat",
+          "icon": "💶",
+          "audioId": "62e5582aace0",
+          "lemma": "cena",
+          "freqRank": 2830
+        },
+        {
+          "id": "lv-s05-kamp-w-e79113f506e4",
+          "lv": "par",
+          "tr": "için",
+          "audioId": "e79113f506e4",
+          "lemma": "par",
+          "freqRank": 11
+        },
+        {
+          "id": "lv-s05-kamp-w-ce964d86d8e9",
+          "lv": "vienu",
+          "tr": "bir",
+          "audioId": "ce964d86d8e9",
+          "lemma": "viens",
+          "freqRank": 128
+        },
+        {
+          "id": "lv-s05-kamp-w-680d87dcb4b8",
+          "lv": "divas",
+          "tr": "iki",
+          "audioId": "680d87dcb4b8",
+          "lemma": "divi",
+          "freqRank": 345
+        },
+        {
+          "id": "lv-s05-kamp-w-dbd9b79b4341",
+          "lv": "naktis",
+          "tr": "geceler",
+          "icon": "🌃",
+          "audioId": "dbd9b79b4341",
+          "lemma": "nakts",
+          "freqRank": 6311
+        },
+        {
+          "id": "lv-s05-kamp-w-9ce97f540e45",
+          "lv": "mēs",
+          "tr": "biz",
+          "audioId": "9ce97f540e45",
+          "lemma": "mēs",
+          "freqRank": 20
+        },
+        {
+          "id": "lv-s05-kamp-w-e31d06c84f95",
+          "lv": "gribam",
+          "tr": "istiyoruz",
+          "audioId": "e31d06c84f95",
+          "lemma": "gribēt",
+          "freqRank": 1044
+        },
+        {
+          "id": "lv-s05-kamp-w-5473771ee319",
+          "lv": "palikt",
+          "tr": "kalmak",
+          "audioId": "5473771ee319",
+          "lemma": "palikt",
+          "freqRank": 452
+        },
+        {
+          "id": "lv-s05-kamp-w-bbb63997bc17",
+          "lv": "labdien",
+          "tr": "merhaba",
+          "icon": "👋",
+          "audioId": "bbb63997bc17",
+          "lemma": "labdien",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s05-kamp-w-987c4c5b34c3",
+          "lv": "paldies",
+          "tr": "teşekkürler",
+          "icon": "🙏",
+          "audioId": "987c4c5b34c3",
+          "lemma": "paldies",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s05-kamp-w-3da6ff35c1cc",
+          "lv": "lūdzu",
+          "tr": "lütfen",
+          "audioId": "3da6ff35c1cc",
+          "lemma": "lūdzu",
+          "freqRank": 0
+        }
+      ],
+      "sentences": [
+        {
+          "id": "lv-s05-kamp-s-6b932e3c07dd",
+          "lv": "Labdien! Vai ir brīvs?",
+          "tr": "Merhaba! Boş yer var mı?",
+          "audioId": "6b932e3c07dd",
+          "wordIds": [
+            "lv-s05-kamp-w-bbb63997bc17",
+            "lv-s05-kamp-w-2b9cad04ad22"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "speak",
+            "listen_choose"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-582e15aa36f7",
+          "lv": "Vai kempingā ir brīva vieta?",
+          "tr": "Kamp alanında boş yer var mı?",
+          "audioId": "582e15aa36f7",
+          "wordIds": [
+            "lv-s05-kamp-w-8703043ee1c5"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-ebaac878303c",
+          "lv": "Mēs gribam palikt kempingā.",
+          "tr": "Kamp alanında kalmak istiyoruz.",
+          "audioId": "ebaac878303c",
+          "wordIds": [
+            "lv-s05-kamp-w-9ce97f540e45",
+            "lv-s05-kamp-w-e31d06c84f95",
+            "lv-s05-kamp-w-5473771ee319"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-7aedeb1c344d",
+          "lv": "Cik ilgi jūs gribat palikt?",
+          "tr": "Ne kadar süre kalmak istiyorsunuz?",
+          "audioId": "7aedeb1c344d",
+          "wordIds": [
+            "lv-s05-kamp-w-d0de6a5e1ae5",
+            "lv-s05-kamp-w-5473771ee319"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-97e1988bdaa7",
+          "lv": "Mēs gribam palikt vienu nakti.",
+          "tr": "Bir gece kalmak istiyoruz.",
+          "audioId": "97e1988bdaa7",
+          "wordIds": [
+            "lv-s05-kamp-w-9ce97f540e45",
+            "lv-s05-kamp-w-e31d06c84f95",
+            "lv-s05-kamp-w-5473771ee319",
+            "lv-s05-kamp-w-ce964d86d8e9",
+            "lv-s05-kamp-w-c168bb971c1e"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-76e6bc6f4633",
+          "lv": "Mēs gribam palikt divas naktis.",
+          "tr": "İki gece kalmak istiyoruz.",
+          "audioId": "76e6bc6f4633",
+          "wordIds": [
+            "lv-s05-kamp-w-9ce97f540e45",
+            "lv-s05-kamp-w-e31d06c84f95",
+            "lv-s05-kamp-w-5473771ee319",
+            "lv-s05-kamp-w-680d87dcb4b8",
+            "lv-s05-kamp-w-dbd9b79b4341"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-6f56a54a97c4",
+          "lv": "Vai ir vieta karavānai?",
+          "tr": "Karavan için yer var mı?",
+          "audioId": "6f56a54a97c4",
+          "wordIds": [
+            "lv-s05-kamp-w-8703043ee1c5"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-2f135bebe77d",
+          "lv": "Vai ir vieta teltij?",
+          "tr": "Çadır için yer var mı?",
+          "audioId": "2f135bebe77d",
+          "wordIds": [
+            "lv-s05-kamp-w-8703043ee1c5"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-2c7828f323dc",
+          "lv": "Kāda ir cena par nakti?",
+          "tr": "Gecelik ücret nedir?",
+          "audioId": "2c7828f323dc",
+          "wordIds": [
+            "lv-s05-kamp-w-62e5582aace0",
+            "lv-s05-kamp-w-e79113f506e4",
+            "lv-s05-kamp-w-c168bb971c1e"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-a8486a1f1e6d",
+          "lv": "Kāda ir cena karavānai?",
+          "tr": "Karavan için ücret nedir?",
+          "audioId": "a8486a1f1e6d",
+          "wordIds": [
+            "lv-s05-kamp-w-62e5582aace0"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-20855c48fa72",
+          "lv": "Vai kempingā ir elektrība?",
+          "tr": "Kamp alanında elektrik var mı?",
+          "audioId": "20855c48fa72",
+          "wordIds": [
+            "lv-s05-kamp-w-91b805a577ea"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-138b814bb475",
+          "lv": "Vai kempingā ir ūdens?",
+          "tr": "Kamp alanında su var mı?",
+          "audioId": "138b814bb475",
+          "wordIds": [
+            "lv-s05-kamp-w-fac99488108c"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-971c80468ab8",
+          "lv": "Kur ir duša un tualete?",
+          "tr": "Duş ve tuvalet nerede?",
+          "audioId": "971c80468ab8",
+          "wordIds": [
+            "lv-s05-kamp-w-c23a2684d8da"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-c43575546700",
+          "lv": "Lūdzu, viena vieta teltij.",
+          "tr": "Lütfen, çadır için bir yer.",
+          "audioId": "c43575546700",
+          "wordIds": [
+            "lv-s05-kamp-w-3da6ff35c1cc",
+            "lv-s05-kamp-w-ce964d86d8e9",
+            "lv-s05-kamp-w-8703043ee1c5"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-05e92ae3a058",
+          "lv": "Paldies! Kempings ir ļoti skaists.",
+          "tr": "Teşekkürler! Kamp alanı çok güzel.",
+          "audioId": "05e92ae3a058",
+          "wordIds": [
+            "lv-s05-kamp-w-987c4c5b34c3",
+            "lv-s05-kamp-w-8f541d3b31d2"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-54aa23f9e7d3",
+          "lv": "Vai kempings ir atvērts?",
+          "tr": "Kamp alanı açık mı?",
+          "audioId": "54aa23f9e7d3",
+          "wordIds": [
+            "lv-s05-kamp-w-8f541d3b31d2"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-5aded73ae966",
+          "lv": "Mums vajag vietu karavānai.",
+          "tr": "Karavan için yere ihtiyacımız var.",
+          "audioId": "5aded73ae966",
+          "wordIds": [
+            "lv-s05-kamp-w-8703043ee1c5"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-4c1fb31365b6",
+          "lv": "Cik maksā vieta teltij?",
+          "tr": "Çadır yeri ne kadar?",
+          "audioId": "4c1fb31365b6",
+          "wordIds": [
+            "lv-s05-kamp-w-8703043ee1c5"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-efac797417e7",
+          "lv": "Cik ilgi var palikt kempingā?",
+          "tr": "Kamp alanında ne kadar süre kalınabilir?",
+          "audioId": "efac797417e7",
+          "wordIds": [
+            "lv-s05-kamp-w-d0de6a5e1ae5",
+            "lv-s05-kamp-w-5473771ee319"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s05-kamp-s-8084c7bbccf7",
+          "lv": "Lūdzu, parādiet, kur ir vieta.",
+          "tr": "Lütfen yerin nerede olduğunu gösterin.",
+          "audioId": "8084c7bbccf7",
+          "wordIds": [
+            "lv-s05-kamp-w-3da6ff35c1cc",
+            "lv-s05-kamp-w-8703043ee1c5"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lv-s06-yemek",
+      "index": 6,
+      "title": "Yemek",
+      "words": [
+        {
+          "id": "lv-s06-yemek-w-2272a0c4dd61",
+          "lv": "ēst",
+          "tr": "yemek yemek",
+          "icon": "🍽️",
+          "audioId": "2272a0c4dd61",
+          "lemma": "ēst",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s06-yemek-w-d66dda217678",
+          "lv": "dzert",
+          "tr": "içmek",
+          "icon": "🥤",
+          "audioId": "d66dda217678",
+          "lemma": "dzert",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s06-yemek-w-924898faa1ca",
+          "lv": "garšīgs",
+          "tr": "lezzetli",
+          "icon": "😋",
+          "audioId": "924898faa1ca",
+          "lemma": "garšīgs",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s06-yemek-w-9ace16a5e718",
+          "lv": "rēķinu",
+          "tr": "hesap",
+          "icon": "🧾",
+          "audioId": "9ace16a5e718",
+          "lemma": "rēķins",
+          "freqRank": 5259,
+          "caseForm": {
+            "base": "rēķins",
+            "form": "rēķinu",
+            "suffix": "u",
+            "distractorSuffixes": [
+              "am",
+              "ā"
+            ],
+            "case": "akuzativ"
+          }
+        },
+        {
+          "id": "lv-s06-yemek-w-3da6ff35c1cc",
+          "lv": "lūdzu",
+          "tr": "lütfen",
+          "audioId": "3da6ff35c1cc",
+          "lemma": "lūdzu",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s06-yemek-w-ab0200990c9f",
+          "lv": "bez",
+          "tr": "-siz, -sız",
+          "audioId": "ab0200990c9f",
+          "lemma": "bez",
+          "freqRank": 141
+        },
+        {
+          "id": "lv-s06-yemek-w-6ac5ee98300c",
+          "lv": "gaļas",
+          "tr": "et",
+          "icon": "🥩",
+          "audioId": "6ac5ee98300c",
+          "lemma": "gaļa",
+          "freqRank": 2627,
+          "caseForm": {
+            "base": "gaļa",
+            "form": "gaļas",
+            "suffix": "as",
+            "distractorSuffixes": [
+              "u",
+              "ai"
+            ],
+            "case": "genitiv"
+          }
+        },
+        {
+          "id": "lv-s06-yemek-w-2319c949af1e",
+          "lv": "zupa",
+          "tr": "çorba",
+          "icon": "🥣",
+          "audioId": "2319c949af1e",
+          "lemma": "zupa",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s06-yemek-w-fac99488108c",
+          "lv": "ūdens",
+          "tr": "su",
+          "icon": "💧",
+          "audioId": "fac99488108c",
+          "lemma": "ūdens",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s06-yemek-w-0d8b97750ac7",
+          "lv": "kafija",
+          "tr": "kahve",
+          "icon": "☕",
+          "audioId": "0d8b97750ac7",
+          "lemma": "kafija",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s06-yemek-w-3cf74cee40c2",
+          "lv": "tēja",
+          "tr": "çay",
+          "icon": "🍵",
+          "audioId": "3cf74cee40c2",
+          "lemma": "tēja",
+          "freqRank": 7664
+        },
+        {
+          "id": "lv-s06-yemek-w-1f58b452d25c",
+          "lv": "maize",
+          "tr": "ekmek",
+          "icon": "🍞",
+          "audioId": "1f58b452d25c",
+          "lemma": "maize",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s06-yemek-w-a7d1b47a7c13",
+          "lv": "alus",
+          "tr": "bira",
+          "icon": "🍺",
+          "audioId": "a7d1b47a7c13",
+          "lemma": "alus",
+          "freqRank": 1469
+        },
+        {
+          "id": "lv-s06-yemek-w-a0dc465e4d2c",
+          "lv": "gribu",
+          "tr": "istiyorum",
+          "audioId": "a0dc465e4d2c",
+          "lemma": "gribēt",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s06-yemek-w-bbb63997bc17",
+          "lv": "labdien",
+          "tr": "merhaba",
+          "icon": "👋",
+          "audioId": "bbb63997bc17",
+          "lemma": "labdien",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s06-yemek-w-987c4c5b34c3",
+          "lv": "paldies",
+          "tr": "teşekkürler",
+          "icon": "🙏",
+          "audioId": "987c4c5b34c3",
+          "lemma": "paldies",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s06-yemek-w-00eac7461513",
+          "lv": "karsts",
+          "tr": "sıcak",
+          "icon": "🔥",
+          "audioId": "00eac7461513",
+          "lemma": "karsts",
+          "freqRank": 3350
+        },
+        {
+          "id": "lv-s06-yemek-w-2bfbc7df2934",
+          "lv": "auksts",
+          "tr": "soğuk",
+          "icon": "❄️",
+          "audioId": "2bfbc7df2934",
+          "lemma": "auksts",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s06-yemek-w-7e1cd3a216cf",
+          "lv": "brokastis",
+          "tr": "kahvaltı",
+          "icon": "🍳",
+          "audioId": "7e1cd3a216cf",
+          "lemma": "brokastis",
+          "freqRank": 2106
+        },
+        {
+          "id": "lv-s06-yemek-w-1ef103c8670e",
+          "lv": "pusdienas",
+          "tr": "öğle yemeği",
+          "icon": "🍲",
+          "audioId": "1ef103c8670e",
+          "lemma": "pusdienas",
+          "freqRank": 1549
+        },
+        {
+          "id": "lv-s06-yemek-w-192a29118f3f",
+          "lv": "vakariņas",
+          "tr": "akşam yemeği",
+          "icon": "🍽️",
+          "audioId": "192a29118f3f",
+          "lemma": "vakariņas",
+          "freqRank": 1119
+        },
+        {
+          "id": "lv-s06-yemek-w-d114bafe8e29",
+          "lv": "piens",
+          "tr": "süt",
+          "icon": "🥛",
+          "audioId": "d114bafe8e29",
+          "lemma": "piens",
+          "freqRank": 0
+        }
+      ],
+      "sentences": [
+        {
+          "id": "lv-s06-yemek-s-e6f8752e31ff",
+          "lv": "Labdien!",
+          "tr": "Merhaba!",
+          "audioId": "e6f8752e31ff",
+          "wordIds": [
+            "lv-s06-yemek-w-bbb63997bc17"
+          ],
+          "supports": [
+            "listen_choose",
+            "lv_to_tr",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s06-yemek-s-81665ed7ae02",
+          "lv": "Paldies.",
+          "tr": "Teşekkürler.",
+          "audioId": "81665ed7ae02",
+          "wordIds": [
+            "lv-s06-yemek-w-987c4c5b34c3"
+          ],
+          "supports": [
+            "listen_choose",
+            "lv_to_tr"
+          ]
+        },
+        {
+          "id": "lv-s06-yemek-s-79ce0ab1ee05",
+          "lv": "Es gribu ēst.",
+          "tr": "Yemek yemek istiyorum.",
+          "audioId": "79ce0ab1ee05",
+          "wordIds": [
+            "lv-s06-yemek-w-a0dc465e4d2c",
+            "lv-s06-yemek-w-2272a0c4dd61"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "fill_blank",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s06-yemek-s-240724dc4584",
+          "lv": "Es gribu dzert.",
+          "tr": "İçmek istiyorum.",
+          "audioId": "240724dc4584",
+          "wordIds": [
+            "lv-s06-yemek-w-a0dc465e4d2c",
+            "lv-s06-yemek-w-d66dda217678"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s06-yemek-s-a420fde6ed23",
+          "lv": "Zupa ir garšīga.",
+          "tr": "Çorba lezzetli.",
+          "audioId": "a420fde6ed23",
+          "wordIds": [
+            "lv-s06-yemek-w-2319c949af1e",
+            "lv-s06-yemek-w-924898faa1ca"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s06-yemek-s-dbcdcee77bed",
+          "lv": "Rēķinu, lūdzu!",
+          "tr": "Hesap, lütfen!",
+          "audioId": "dbcdcee77bed",
+          "wordIds": [
+            "lv-s06-yemek-w-9ace16a5e718",
+            "lv-s06-yemek-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "case_drill",
+            "fill_blank",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s06-yemek-s-4002a769b246",
+          "lv": "Kafija ar pienu, lūdzu.",
+          "tr": "Sütlü kahve, lütfen.",
+          "audioId": "4002a769b246",
+          "wordIds": [
+            "lv-s06-yemek-w-0d8b97750ac7",
+            "lv-s06-yemek-w-d114bafe8e29",
+            "lv-s06-yemek-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s06-yemek-s-385e3f189771",
+          "lv": "Tēja ar cukuru, lūdzu.",
+          "tr": "Şekerli çay, lütfen.",
+          "audioId": "385e3f189771",
+          "wordIds": [
+            "lv-s06-yemek-w-3cf74cee40c2",
+            "lv-s06-yemek-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s06-yemek-s-1c666a739649",
+          "lv": "Ūdens ir auksts.",
+          "tr": "Su soğuk.",
+          "audioId": "1c666a739649",
+          "wordIds": [
+            "lv-s06-yemek-w-fac99488108c",
+            "lv-s06-yemek-w-2bfbc7df2934"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s06-yemek-s-d406672a6acb",
+          "lv": "Kafija ir karsta.",
+          "tr": "Kahve sıcak.",
+          "audioId": "d406672a6acb",
+          "wordIds": [
+            "lv-s06-yemek-w-0d8b97750ac7",
+            "lv-s06-yemek-w-00eac7461513"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s06-yemek-s-081bcdbc71c7",
+          "lv": "Lūdzu ēdienkarti!",
+          "tr": "Menü, lütfen!",
+          "audioId": "081bcdbc71c7",
+          "wordIds": [
+            "lv-s06-yemek-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s06-yemek-s-9a2f6da5647c",
+          "lv": "Tas ir garšīgi.",
+          "tr": "Bu lezzetli.",
+          "audioId": "9a2f6da5647c",
+          "wordIds": [
+            "lv-s06-yemek-w-924898faa1ca"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s06-yemek-s-750852d68245",
+          "lv": "Es gribu veģetāras pusdienas.",
+          "tr": "Vejetaryen öğle yemeği istiyorum.",
+          "audioId": "750852d68245",
+          "wordIds": [
+            "lv-s06-yemek-w-a0dc465e4d2c",
+            "lv-s06-yemek-w-1ef103c8670e"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s06-yemek-s-62db5aa1caca",
+          "lv": "Maize ir garšīga.",
+          "tr": "Ekmek lezzetli.",
+          "audioId": "62db5aa1caca",
+          "wordIds": [
+            "lv-s06-yemek-w-1f58b452d25c",
+            "lv-s06-yemek-w-924898faa1ca"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s06-yemek-s-b916e6a56a6e",
+          "lv": "Auksts alus, lūdzu.",
+          "tr": "Soğuk bira, lütfen.",
+          "audioId": "b916e6a56a6e",
+          "wordIds": [
+            "lv-s06-yemek-w-2bfbc7df2934",
+            "lv-s06-yemek-w-a7d1b47a7c13",
+            "lv-s06-yemek-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s06-yemek-s-5abe1b98ac46",
+          "lv": "Brokastis ir garšīgas.",
+          "tr": "Kahvaltı lezzetli.",
+          "audioId": "5abe1b98ac46",
+          "wordIds": [
+            "lv-s06-yemek-w-7e1cd3a216cf",
+            "lv-s06-yemek-w-924898faa1ca"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s06-yemek-s-d1bda57c4683",
+          "lv": "Es gribu tēju.",
+          "tr": "Çay istiyorum.",
+          "audioId": "d1bda57c4683",
+          "wordIds": [
+            "lv-s06-yemek-w-a0dc465e4d2c",
+            "lv-s06-yemek-w-3cf74cee40c2"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s06-yemek-s-382cf0e74c5a",
+          "lv": "Ūdeni, lūdzu.",
+          "tr": "Su, lütfen.",
+          "audioId": "382cf0e74c5a",
+          "wordIds": [
+            "lv-s06-yemek-w-fac99488108c",
+            "lv-s06-yemek-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "speak"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lv-s07-zaman",
+      "index": 7,
+      "title": "Zaman",
+      "words": [
+        {
+          "id": "lv-s07-zaman-w-4cc2d0e134bc",
+          "lv": "šodien",
+          "tr": "bugün",
+          "audioId": "4cc2d0e134bc",
+          "lemma": "šodien",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s07-zaman-w-c04b09f7548a",
+          "lv": "rīt",
+          "tr": "yarın",
+          "audioId": "c04b09f7548a",
+          "lemma": "rīt",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s07-zaman-w-310d112788ad",
+          "lv": "vakar",
+          "tr": "dün",
+          "audioId": "310d112788ad",
+          "lemma": "vakar",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s07-zaman-w-3f3d959755f5",
+          "lv": "pulksten",
+          "tr": "saat (saat ...'te)",
+          "audioId": "3f3d959755f5",
+          "lemma": "pulksten",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s07-zaman-w-775564e2d2b2",
+          "lv": "cikos",
+          "tr": "kaçta",
+          "audioId": "775564e2d2b2",
+          "lemma": "cikos",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s07-zaman-w-fd1286353570",
+          "lv": "no",
+          "tr": "-den/-dan",
+          "audioId": "fd1286353570",
+          "lemma": "no",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s07-zaman-w-f24d33147eba",
+          "lv": "līdz",
+          "tr": "-e kadar",
+          "audioId": "f24d33147eba",
+          "lemma": "līdz",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s07-zaman-w-90110627d0ad",
+          "lv": "diena",
+          "tr": "gün",
+          "icon": "☀️",
+          "audioId": "90110627d0ad",
+          "lemma": "diena",
+          "freqRank": 301
+        },
+        {
+          "id": "lv-s07-zaman-w-c168bb971c1e",
+          "lv": "nakts",
+          "tr": "gece",
+          "icon": "🌙",
+          "audioId": "c168bb971c1e",
+          "lemma": "nakts",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s07-zaman-w-a258fc9a8187",
+          "lv": "stunda",
+          "tr": "saat (süre)",
+          "icon": "⏳",
+          "audioId": "a258fc9a8187",
+          "lemma": "stunda",
+          "freqRank": 2207
+        },
+        {
+          "id": "lv-s07-zaman-w-93478b342c36",
+          "lv": "minūte",
+          "tr": "dakika",
+          "audioId": "93478b342c36",
+          "lemma": "minūte",
+          "freqRank": 4412
+        },
+        {
+          "id": "lv-s07-zaman-w-46fd144be230",
+          "lv": "laiks",
+          "tr": "zaman",
+          "audioId": "46fd144be230",
+          "lemma": "laiks",
+          "freqRank": 164
+        },
+        {
+          "id": "lv-s07-zaman-w-30899f08134f",
+          "lv": "piektdiena",
+          "tr": "cuma",
+          "audioId": "30899f08134f",
+          "lemma": "piektdiena",
+          "freqRank": 14315
+        },
+        {
+          "id": "lv-s07-zaman-w-c26ce564b6d4",
+          "lv": "sestdiena",
+          "tr": "cumartesi",
+          "audioId": "c26ce564b6d4",
+          "lemma": "sestdiena",
+          "freqRank": 13439
+        },
+        {
+          "id": "lv-s07-zaman-w-291f77c1fb7d",
+          "lv": "svētdiena",
+          "tr": "pazar",
+          "audioId": "291f77c1fb7d",
+          "lemma": "svētdiena",
+          "freqRank": 15146
+        },
+        {
+          "id": "lv-s07-zaman-w-8b8845d14d45",
+          "lv": "rīts",
+          "tr": "sabah",
+          "icon": "🌅",
+          "audioId": "8b8845d14d45",
+          "lemma": "rīts",
+          "freqRank": 4012
+        },
+        {
+          "id": "lv-s07-zaman-w-8f2d7701fb0c",
+          "lv": "vakars",
+          "tr": "akşam",
+          "icon": "🌇",
+          "audioId": "8f2d7701fb0c",
+          "lemma": "vakars",
+          "freqRank": 1547
+        },
+        {
+          "id": "lv-s07-zaman-w-add359028b5e",
+          "lv": "tagad",
+          "tr": "şimdi",
+          "audioId": "add359028b5e",
+          "lemma": "tagad",
+          "freqRank": 57
+        },
+        {
+          "id": "lv-s07-zaman-w-be631dc0ac55",
+          "lv": "vēlu",
+          "tr": "geç",
+          "audioId": "be631dc0ac55",
+          "lemma": "vēlu",
+          "freqRank": 560
+        },
+        {
+          "id": "lv-s07-zaman-w-b8b2b052e960",
+          "lv": "agri",
+          "tr": "erken",
+          "audioId": "b8b2b052e960",
+          "lemma": "agri",
+          "freqRank": 1963
+        },
+        {
+          "id": "lv-s07-zaman-w-ca5a3d90c657",
+          "lv": "pulkstenis",
+          "tr": "saat (cihaz)",
+          "icon": "🕒",
+          "audioId": "ca5a3d90c657",
+          "lemma": "pulkstenis",
+          "freqRank": 1674
+        }
+      ],
+      "sentences": [
+        {
+          "id": "lv-s07-zaman-s-658b8477f05e",
+          "lv": "Cikos mēs braucam?",
+          "tr": "Kaçta gidiyoruz?",
+          "audioId": "658b8477f05e",
+          "wordIds": [
+            "lv-s07-zaman-w-775564e2d2b2"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s07-zaman-s-1506bcaa67f0",
+          "lv": "Šodien ir pirmdiena.",
+          "tr": "Bugün pazartesi.",
+          "audioId": "1506bcaa67f0",
+          "wordIds": [
+            "lv-s07-zaman-w-4cc2d0e134bc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "fill_blank",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s07-zaman-s-7144be30b70b",
+          "lv": "Rīt mēs būsim kempingā.",
+          "tr": "Yarın kamp alanında olacağız.",
+          "audioId": "7144be30b70b",
+          "wordIds": [
+            "lv-s07-zaman-w-c04b09f7548a"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s07-zaman-s-fe5c3246db15",
+          "lv": "Vakar mēs atbraucām vēlu.",
+          "tr": "Dün geç geldik.",
+          "audioId": "fe5c3246db15",
+          "wordIds": [
+            "lv-s07-zaman-w-310d112788ad",
+            "lv-s07-zaman-w-be631dc0ac55"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s07-zaman-s-019f2fbaf0fe",
+          "lv": "No cikos līdz cikos?",
+          "tr": "Kaçtan kaça kadar?",
+          "audioId": "019f2fbaf0fe",
+          "wordIds": [
+            "lv-s07-zaman-w-fd1286353570",
+            "lv-s07-zaman-w-775564e2d2b2",
+            "lv-s07-zaman-w-f24d33147eba"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s07-zaman-s-f98399a7c2a1",
+          "lv": "Tagad ir pulksten divi.",
+          "tr": "Şimdi saat iki.",
+          "audioId": "f98399a7c2a1",
+          "wordIds": [
+            "lv-s07-zaman-w-add359028b5e",
+            "lv-s07-zaman-w-3f3d959755f5"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s07-zaman-s-75bf758e6f14",
+          "lv": "Rīt būs silta diena.",
+          "tr": "Yarın sıcak bir gün olacak.",
+          "audioId": "75bf758e6f14",
+          "wordIds": [
+            "lv-s07-zaman-w-c04b09f7548a",
+            "lv-s07-zaman-w-90110627d0ad"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s07-zaman-s-0013aa711ee1",
+          "lv": "Kempingā ir klusa nakts.",
+          "tr": "Kamp alanında sessiz bir gece var.",
+          "audioId": "0013aa711ee1",
+          "wordIds": [
+            "lv-s07-zaman-w-c168bb971c1e"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "case_drill",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s07-zaman-s-f16010712eaf",
+          "lv": "Mēs paliekam šeit trīs stundas.",
+          "tr": "Burada üç saat kalıyoruz.",
+          "audioId": "f16010712eaf",
+          "wordIds": [
+            "lv-s07-zaman-w-a258fc9a8187"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s07-zaman-s-d384ec3eef69",
+          "lv": "Uzgaidiet vienu minūti, lūdzu.",
+          "tr": "Lütfen bir dakika bekleyin.",
+          "audioId": "d384ec3eef69",
+          "wordIds": [
+            "lv-s07-zaman-w-93478b342c36"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s07-zaman-s-38a7d61b1034",
+          "lv": "Sestdien mēs braucam uz Rīgu.",
+          "tr": "Cumartesi günü Riga'ya gidiyoruz.",
+          "audioId": "38a7d61b1034",
+          "wordIds": [
+            "lv-s07-zaman-w-c26ce564b6d4"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s07-zaman-s-081fae15c78a",
+          "lv": "Svētdien veikals ir slēgts.",
+          "tr": "Pazar günü market kapalı.",
+          "audioId": "081fae15c78a",
+          "wordIds": [
+            "lv-s07-zaman-w-291f77c1fb7d"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "fill_blank",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s07-zaman-s-dbdc947b3564",
+          "lv": "Šodien mēs esam stāvvietā.",
+          "tr": "Bugün park yerindeyiz.",
+          "audioId": "dbdc947b3564",
+          "wordIds": [
+            "lv-s07-zaman-w-4cc2d0e134bc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s07-zaman-s-001a1af48b27",
+          "lv": "Vakar bija ļoti vēlu.",
+          "tr": "Dün çok geç oldu.",
+          "audioId": "001a1af48b27",
+          "wordIds": [
+            "lv-s07-zaman-w-310d112788ad",
+            "lv-s07-zaman-w-be631dc0ac55"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s07-zaman-s-94edaa2d1ceb",
+          "lv": "Mēs mostamies agri no rīta.",
+          "tr": "Sabah erkenden uyanıyoruz.",
+          "audioId": "94edaa2d1ceb",
+          "wordIds": [
+            "lv-s07-zaman-w-b8b2b052e960",
+            "lv-s07-zaman-w-fd1286353570",
+            "lv-s07-zaman-w-8b8845d14d45"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s07-zaman-s-24284c8de8c1",
+          "lv": "Piektdien būs koncerts.",
+          "tr": "Cuma günü konser olacak.",
+          "audioId": "24284c8de8c1",
+          "wordIds": [
+            "lv-s07-zaman-w-30899f08134f"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s07-zaman-s-0a6306155855",
+          "lv": "Cikos atveras veikals?",
+          "tr": "Market kaçta açılıyor?",
+          "audioId": "0a6306155855",
+          "wordIds": [
+            "lv-s07-zaman-w-775564e2d2b2"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s07-zaman-s-325231062068",
+          "lv": "Es esmu veikalā tagad.",
+          "tr": "Şimdi marketteyim.",
+          "audioId": "325231062068",
+          "wordIds": [
+            "lv-s07-zaman-w-add359028b5e"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "case_drill",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s07-zaman-s-25f106f7d3b0",
+          "lv": "No pirmdienas līdz piektdienai.",
+          "tr": "Pazartesiden cumaya kadar.",
+          "audioId": "25f106f7d3b0",
+          "wordIds": [
+            "lv-s07-zaman-w-fd1286353570",
+            "lv-s07-zaman-w-f24d33147eba",
+            "lv-s07-zaman-w-30899f08134f"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lv-s08-hava",
+      "index": 8,
+      "title": "Hava ve yol durumu",
+      "words": [
+        {
+          "id": "lv-s08-hava-w-7a3c3432c64d",
+          "lv": "lietus",
+          "tr": "yağmur",
+          "icon": "🌧️",
+          "audioId": "7a3c3432c64d",
+          "lemma": "lietus",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s08-hava-w-b8536d2075bc",
+          "lv": "sniegs",
+          "tr": "kar",
+          "icon": "❄️",
+          "audioId": "b8536d2075bc",
+          "lemma": "sniegs",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s08-hava-w-2bfbc7df2934",
+          "lv": "auksts",
+          "tr": "soğuk",
+          "audioId": "2bfbc7df2934",
+          "lemma": "auksts",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s08-hava-w-f8a1e477c654",
+          "lv": "silts",
+          "tr": "sıcak",
+          "audioId": "f8a1e477c654",
+          "lemma": "silts",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s08-hava-w-8d0aa4fed6f3",
+          "lv": "slidens",
+          "tr": "kaygan",
+          "audioId": "8d0aa4fed6f3",
+          "lemma": "slidens",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s08-hava-w-3bcf5166cbe0",
+          "lv": "vējš",
+          "tr": "rüzgar",
+          "icon": "💨",
+          "audioId": "3bcf5166cbe0",
+          "lemma": "vējš",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s08-hava-w-a0f179714770",
+          "lv": "ceļš",
+          "tr": "yol",
+          "icon": "🛣️",
+          "audioId": "a0f179714770",
+          "lemma": "ceļš",
+          "freqRank": 0,
+          "caseForm": {
+            "base": "ceļš",
+            "form": "ceļa",
+            "suffix": "a",
+            "distractorSuffixes": [
+              "am",
+              "ā"
+            ],
+            "case": "genitiv"
+          }
+        },
+        {
+          "id": "lv-s08-hava-w-46fd144be230",
+          "lv": "laiks",
+          "tr": "hava",
+          "audioId": "46fd144be230",
+          "lemma": "laiks",
+          "freqRank": 164
+        },
+        {
+          "id": "lv-s08-hava-w-92424df66198",
+          "lv": "saule",
+          "tr": "güneş",
+          "icon": "☀️",
+          "audioId": "92424df66198",
+          "lemma": "saule",
+          "freqRank": 1425
+        },
+        {
+          "id": "lv-s08-hava-w-35224c9bbecb",
+          "lv": "migla",
+          "tr": "sis",
+          "icon": "🌫️",
+          "audioId": "35224c9bbecb",
+          "lemma": "migla",
+          "freqRank": 19646
+        },
+        {
+          "id": "lv-s08-hava-w-4d7ad45656cb",
+          "lv": "slapjš",
+          "tr": "islak",
+          "audioId": "4d7ad45656cb",
+          "lemma": "slapjš",
+          "freqRank": 12657
+        },
+        {
+          "id": "lv-s08-hava-w-6a0e1004e760",
+          "lv": "ledus",
+          "tr": "buz",
+          "icon": "🧊",
+          "audioId": "6a0e1004e760",
+          "lemma": "ledus",
+          "freqRank": 2020
+        },
+        {
+          "id": "lv-s08-hava-w-614a9dd30a7f",
+          "lv": "grādi",
+          "tr": "derece",
+          "audioId": "614a9dd30a7f",
+          "lemma": "grādi",
+          "freqRank": 4553
+        },
+        {
+          "id": "lv-s08-hava-w-4cc2d0e134bc",
+          "lv": "šodien",
+          "tr": "bugün",
+          "audioId": "4cc2d0e134bc",
+          "lemma": "šodien",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s08-hava-w-c04b09f7548a",
+          "lv": "rīt",
+          "tr": "yarın",
+          "audioId": "c04b09f7548a",
+          "lemma": "rīt",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s08-hava-w-c52018ce1908",
+          "lv": "būs",
+          "tr": "olacak",
+          "audioId": "c52018ce1908",
+          "lemma": "būt",
+          "freqRank": 53
+        },
+        {
+          "id": "lv-s08-hava-w-aa1553beed5d",
+          "lv": "ir",
+          "tr": "dır/dir",
+          "audioId": "aa1553beed5d",
+          "lemma": "būt",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s08-hava-w-1aec085df907",
+          "lv": "braukt",
+          "tr": "sürmek",
+          "audioId": "1aec085df907",
+          "lemma": "braukt",
+          "freqRank": 682
+        },
+        {
+          "id": "lv-s08-hava-w-208847174c18",
+          "lv": "lēni",
+          "tr": "yavaşça",
+          "audioId": "208847174c18",
+          "lemma": "lēni",
+          "freqRank": 3969
+        },
+        {
+          "id": "lv-s08-hava-w-31b7820cf512",
+          "lv": "bīstams",
+          "tr": "tehlikeli",
+          "audioId": "31b7820cf512",
+          "lemma": "bīstams",
+          "freqRank": 2533
+        },
+        {
+          "id": "lv-s08-hava-w-6bbd44fed635",
+          "lv": "labs",
+          "tr": "iyi",
+          "audioId": "6bbd44fed635",
+          "lemma": "labs",
+          "freqRank": 179
+        },
+        {
+          "id": "lv-s08-hava-w-550dd0ebc4ab",
+          "lv": "Latvija",
+          "tr": "Letonya",
+          "icon": "🇱🇻",
+          "audioId": "550dd0ebc4ab",
+          "lemma": "Latvija",
+          "freqRank": 0,
+          "caseForm": {
+            "base": "Latvija",
+            "form": "Latvijā",
+            "suffix": "ā",
+            "distractorSuffixes": [
+              "as",
+              "ai"
+            ],
+            "case": "lokativ"
+          }
+        }
+      ],
+      "sentences": [
+        {
+          "id": "lv-s08-hava-s-f7a231d5ca66",
+          "lv": "Šodien ir silts laiks.",
+          "tr": "Bugün hava sıcak.",
+          "audioId": "f7a231d5ca66",
+          "wordIds": [
+            "lv-s08-hava-w-4cc2d0e134bc",
+            "lv-s08-hava-w-aa1553beed5d",
+            "lv-s08-hava-w-f8a1e477c654",
+            "lv-s08-hava-w-46fd144be230"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s08-hava-s-b603b3b04254",
+          "lv": "Rīt būs auksts vējš.",
+          "tr": "Yarın soğuk rüzgar olacak.",
+          "audioId": "b603b3b04254",
+          "wordIds": [
+            "lv-s08-hava-w-c04b09f7548a",
+            "lv-s08-hava-w-c52018ce1908",
+            "lv-s08-hava-w-2bfbc7df2934",
+            "lv-s08-hava-w-3bcf5166cbe0"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s08-hava-s-b93312aa85c9",
+          "lv": "Ceļš ir slidens.",
+          "tr": "Yol kaygan.",
+          "audioId": "b93312aa85c9",
+          "wordIds": [
+            "lv-s08-hava-w-a0f179714770",
+            "lv-s08-hava-w-aa1553beed5d",
+            "lv-s08-hava-w-8d0aa4fed6f3"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s08-hava-s-b16990729228",
+          "lv": "Šodien būs lietus.",
+          "tr": "Bugün yağmur olacak.",
+          "audioId": "b16990729228",
+          "wordIds": [
+            "lv-s08-hava-w-4cc2d0e134bc",
+            "lv-s08-hava-w-c52018ce1908",
+            "lv-s08-hava-w-7a3c3432c64d"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s08-hava-s-767ee0079635",
+          "lv": "Uz ceļa ir ledus.",
+          "tr": "Yolda buz var.",
+          "audioId": "767ee0079635",
+          "wordIds": [
+            "lv-s08-hava-w-a0f179714770",
+            "lv-s08-hava-w-aa1553beed5d",
+            "lv-s08-hava-w-6a0e1004e760"
+          ],
+          "supports": [
+            "case_drill",
+            "lv_to_tr",
+            "tr_to_lv"
+          ]
+        },
+        {
+          "id": "lv-s08-hava-s-b7df94b7855e",
+          "lv": "Rīt būs sniegs.",
+          "tr": "Yarın kar yağacak.",
+          "audioId": "b7df94b7855e",
+          "wordIds": [
+            "lv-s08-hava-w-c04b09f7548a",
+            "lv-s08-hava-w-c52018ce1908",
+            "lv-s08-hava-w-b8536d2075bc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "listen_choose"
+          ]
+        },
+        {
+          "id": "lv-s08-hava-s-8f4949317b3b",
+          "lv": "Latvijā šodien ir silts.",
+          "tr": "Letonya'da bugün hava sıcak.",
+          "audioId": "8f4949317b3b",
+          "wordIds": [
+            "lv-s08-hava-w-550dd0ebc4ab",
+            "lv-s08-hava-w-4cc2d0e134bc",
+            "lv-s08-hava-w-aa1553beed5d",
+            "lv-s08-hava-w-f8a1e477c654"
+          ],
+          "supports": [
+            "case_drill",
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s08-hava-s-461eb3330375",
+          "lv": "Braukt lēni!",
+          "tr": "Yavaş sürün!",
+          "audioId": "461eb3330375",
+          "wordIds": [
+            "lv-s08-hava-w-1aec085df907",
+            "lv-s08-hava-w-208847174c18"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s08-hava-s-78830b763378",
+          "lv": "Ceļš ir bīstams.",
+          "tr": "Yol tehlikeli.",
+          "audioId": "78830b763378",
+          "wordIds": [
+            "lv-s08-hava-w-a0f179714770",
+            "lv-s08-hava-w-aa1553beed5d",
+            "lv-s08-hava-w-31b7820cf512"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s08-hava-s-6d2d3ee3084e",
+          "lv": "Šodien ir migla.",
+          "tr": "Bugün sis var.",
+          "audioId": "6d2d3ee3084e",
+          "wordIds": [
+            "lv-s08-hava-w-4cc2d0e134bc",
+            "lv-s08-hava-w-aa1553beed5d",
+            "lv-s08-hava-w-35224c9bbecb"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "icon_choose"
+          ]
+        },
+        {
+          "id": "lv-s08-hava-s-7837f75216a8",
+          "lv": "Laiks ir mākoņains.",
+          "tr": "Hava bulutlu.",
+          "audioId": "7837f75216a8",
+          "wordIds": [
+            "lv-s08-hava-w-46fd144be230",
+            "lv-s08-hava-w-aa1553beed5d"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s08-hava-s-74a35fb51025",
+          "lv": "Ceļš ir sauss.",
+          "tr": "Yol kuru.",
+          "audioId": "74a35fb51025",
+          "wordIds": [
+            "lv-s08-hava-w-a0f179714770",
+            "lv-s08-hava-w-aa1553beed5d"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv"
+          ]
+        },
+        {
+          "id": "lv-s08-hava-s-fb5f182d45aa",
+          "lv": "Ceļš ir slapjš.",
+          "tr": "Yol ıslak.",
+          "audioId": "fb5f182d45aa",
+          "wordIds": [
+            "lv-s08-hava-w-a0f179714770",
+            "lv-s08-hava-w-aa1553beed5d",
+            "lv-s08-hava-w-4d7ad45656cb"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv"
+          ]
+        },
+        {
+          "id": "lv-s08-hava-s-bef4ea838fbb",
+          "lv": "Šodien ir divdesmit grādi.",
+          "tr": "Bugün yirmi derece.",
+          "audioId": "bef4ea838fbb",
+          "wordIds": [
+            "lv-s08-hava-w-4cc2d0e134bc",
+            "lv-s08-hava-w-aa1553beed5d",
+            "lv-s08-hava-w-614a9dd30a7f"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "dictation"
+          ]
+        },
+        {
+          "id": "lv-s08-hava-s-9db468ab25e2",
+          "lv": "Rīt būs vējš.",
+          "tr": "Yarın rüzgar olacak.",
+          "audioId": "9db468ab25e2",
+          "wordIds": [
+            "lv-s08-hava-w-c04b09f7548a",
+            "lv-s08-hava-w-c52018ce1908",
+            "lv-s08-hava-w-3bcf5166cbe0"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s08-hava-s-762cf20f97d7",
+          "lv": "Laiks ir labs.",
+          "tr": "Hava iyi.",
+          "audioId": "762cf20f97d7",
+          "wordIds": [
+            "lv-s08-hava-w-46fd144be230",
+            "lv-s08-hava-w-aa1553beed5d",
+            "lv-s08-hava-w-6bbd44fed635"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s08-hava-s-a49ad7c8483a",
+          "lv": "Laiks ir auksts.",
+          "tr": "Hava soğuk.",
+          "audioId": "a49ad7c8483a",
+          "wordIds": [
+            "lv-s08-hava-w-46fd144be230",
+            "lv-s08-hava-w-aa1553beed5d",
+            "lv-s08-hava-w-2bfbc7df2934"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv"
+          ]
+        },
+        {
+          "id": "lv-s08-hava-s-5fa25d82355b",
+          "lv": "Šodien spīd saule.",
+          "tr": "Bugün güneş parlıyor.",
+          "audioId": "5fa25d82355b",
+          "wordIds": [
+            "lv-s08-hava-w-4cc2d0e134bc",
+            "lv-s08-hava-w-92424df66198"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "icon_choose"
+          ]
+        },
+        {
+          "id": "lv-s08-hava-s-5103ed34be26",
+          "lv": "Šis ceļš ir bīstams.",
+          "tr": "Bu yol tehlikeli.",
+          "audioId": "5103ed34be26",
+          "wordIds": [
+            "lv-s08-hava-w-a0f179714770",
+            "lv-s08-hava-w-aa1553beed5d",
+            "lv-s08-hava-w-31b7820cf512"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lv-s09-sinir",
+      "index": 9,
+      "title": "Sınır ve belgeler",
+      "words": [
+        {
+          "id": "lv-s09-sinir-w-090070303022",
+          "lv": "pase",
+          "tr": "pasaport",
+          "icon": "🛂",
+          "audioId": "090070303022",
+          "lemma": "pase",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s09-sinir-w-49431918d808",
+          "lv": "dokumenti",
+          "tr": "belgeler",
+          "icon": "📄",
+          "audioId": "49431918d808",
+          "lemma": "dokumenti",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s09-sinir-w-8eee34ab42e1",
+          "lv": "mašīna",
+          "tr": "araba",
+          "icon": "🚗",
+          "audioId": "8eee34ab42e1",
+          "lemma": "mašīna",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s09-sinir-w-76081e4731ec",
+          "lv": "no Turcijas",
+          "tr": "Türkiye'den",
+          "audioId": "76081e4731ec",
+          "lemma": "Turcija",
+          "freqRank": 0,
+          "caseForm": {
+            "base": "Turcija",
+            "form": "Turcijas",
+            "suffix": "as",
+            "distractorSuffixes": [
+              "ā",
+              "u"
+            ],
+            "case": "genitiv"
+          }
+        },
+        {
+          "id": "lv-s09-sinir-w-328c4c97aec0",
+          "lv": "robeža",
+          "tr": "sınır",
+          "icon": "🚧",
+          "audioId": "328c4c97aec0",
+          "lemma": "robeža",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s09-sinir-w-e301058fa233",
+          "lv": "tiesības",
+          "tr": "ehliyet",
+          "icon": "🪪",
+          "audioId": "e301058fa233",
+          "lemma": "tiesības",
+          "freqRank": 780
+        },
+        {
+          "id": "lv-s09-sinir-w-67913b7474ae",
+          "lv": "apdrošināšana",
+          "tr": "sigorta",
+          "icon": "📄",
+          "audioId": "67913b7474ae",
+          "lemma": "apdrošināšana",
+          "freqRank": 4638
+        },
+        {
+          "id": "lv-s09-sinir-w-29f726546da3",
+          "lv": "Sveiki",
+          "tr": "Merhaba",
+          "audioId": "29f726546da3",
+          "lemma": "Sveiki",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s09-sinir-w-b71d88ec01db",
+          "lv": "Labdien",
+          "tr": "İyi günler",
+          "audioId": "b71d88ec01db",
+          "lemma": "Labdien",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s09-sinir-w-3da6ff35c1cc",
+          "lv": "lūdzu",
+          "tr": "lütfen / buyurun",
+          "audioId": "3da6ff35c1cc",
+          "lemma": "lūdzu",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s09-sinir-w-987c4c5b34c3",
+          "lv": "paldies",
+          "tr": "teşekkürler",
+          "audioId": "987c4c5b34c3",
+          "lemma": "paldies",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s09-sinir-w-8bcac5dabf06",
+          "lv": "kur",
+          "tr": "nerede",
+          "audioId": "8bcac5dabf06",
+          "lemma": "kur",
+          "freqRank": 45
+        },
+        {
+          "id": "lv-s09-sinir-w-f33faf45c119",
+          "lv": "šeit",
+          "tr": "burada",
+          "audioId": "f33faf45c119",
+          "lemma": "šeit",
+          "freqRank": 59
+        },
+        {
+          "id": "lv-s09-sinir-w-9fe5f55bc635",
+          "lv": "kontrole",
+          "tr": "kontrol",
+          "audioId": "9fe5f55bc635",
+          "lemma": "kontrole",
+          "freqRank": 5761
+        },
+        {
+          "id": "lv-s09-sinir-w-9ce97f540e45",
+          "lv": "mēs",
+          "tr": "biz",
+          "audioId": "9ce97f540e45",
+          "lemma": "mēs",
+          "freqRank": 20
+        },
+        {
+          "id": "lv-s09-sinir-w-09cd68a2a77b",
+          "lv": "es",
+          "tr": "ben",
+          "audioId": "09cd68a2a77b",
+          "lemma": "es",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s09-sinir-w-8d22f9226f48",
+          "lv": "braucam",
+          "tr": "sürüyoruz / geliyoruz",
+          "audioId": "8d22f9226f48",
+          "lemma": "braukt",
+          "freqRank": 679
+        },
+        {
+          "id": "lv-s09-sinir-w-90c8d50b6a06",
+          "lv": "ceļojums",
+          "tr": "seyahat",
+          "audioId": "90c8d50b6a06",
+          "lemma": "ceļojums",
+          "freqRank": 3081
+        },
+        {
+          "id": "lv-s09-sinir-w-714851f5e170",
+          "lv": "ID karte",
+          "tr": "kimlik kartı",
+          "icon": "🪪",
+          "audioId": "714851f5e170",
+          "lemma": "ID karte",
+          "freqRank": 13376
+        },
+        {
+          "id": "lv-s09-sinir-w-12a02ed4b88c",
+          "lv": "mašīnā",
+          "tr": "arabada",
+          "icon": "🚗",
+          "audioId": "12a02ed4b88c",
+          "lemma": "mašīna",
+          "freqRank": 628,
+          "caseForm": {
+            "base": "mašīna",
+            "form": "mašīnā",
+            "suffix": "ā",
+            "distractorSuffixes": [
+              "as",
+              "ai"
+            ],
+            "case": "lokativ"
+          }
+        }
+      ],
+      "sentences": [
+        {
+          "id": "lv-s09-sinir-s-596580da49f3",
+          "lv": "Labdien! Šeit ir mana pase.",
+          "tr": "İyi günler! İşte pasaportum.",
+          "audioId": "596580da49f3",
+          "wordIds": [
+            "lv-s09-sinir-w-b71d88ec01db",
+            "lv-s09-sinir-w-f33faf45c119",
+            "lv-s09-sinir-w-090070303022"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s09-sinir-s-7e52644f5fc2",
+          "lv": "Lūdzu, reģistrācija un apdrošināšana.",
+          "tr": "Buyurun, ruhsat ve sigorta.",
+          "audioId": "7e52644f5fc2",
+          "wordIds": [
+            "lv-s09-sinir-w-3da6ff35c1cc",
+            "lv-s09-sinir-w-67913b7474ae"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s09-sinir-s-ff2bd875a61e",
+          "lv": "Mēs braucam no Turcijas.",
+          "tr": "Türkiye'den geliyoruz.",
+          "audioId": "ff2bd875a61e",
+          "wordIds": [
+            "lv-s09-sinir-w-9ce97f540e45",
+            "lv-s09-sinir-w-8d22f9226f48",
+            "lv-s09-sinir-w-76081e4731ec"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill",
+            "order",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s09-sinir-s-acca544513c1",
+          "lv": "Kur ir robeža?",
+          "tr": "Sınır nerede?",
+          "audioId": "acca544513c1",
+          "wordIds": [
+            "lv-s09-sinir-w-8bcac5dabf06",
+            "lv-s09-sinir-w-328c4c97aec0"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "listen_choose"
+          ]
+        },
+        {
+          "id": "lv-s09-sinir-s-2e46ae87e92d",
+          "lv": "Šeit ir mūsu dokumenti.",
+          "tr": "Belgelerimiz burada.",
+          "audioId": "2e46ae87e92d",
+          "wordIds": [
+            "lv-s09-sinir-w-f33faf45c119",
+            "lv-s09-sinir-w-49431918d808"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s09-sinir-s-ea11b1cfb810",
+          "lv": "Šeit ir vadītāja tiesības.",
+          "tr": "İşte ehliyet.",
+          "audioId": "ea11b1cfb810",
+          "wordIds": [
+            "lv-s09-sinir-w-f33faf45c119",
+            "lv-s09-sinir-w-e301058fa233"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s09-sinir-s-f41e7a15a8f7",
+          "lv": "Sveiki! Kontrole šeit?",
+          "tr": "Merhaba! Kontrol burada mı?",
+          "audioId": "f41e7a15a8f7",
+          "wordIds": [
+            "lv-s09-sinir-w-29f726546da3",
+            "lv-s09-sinir-w-9fe5f55bc635",
+            "lv-s09-sinir-w-f33faf45c119"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv"
+          ]
+        },
+        {
+          "id": "lv-s09-sinir-s-b1705403d00d",
+          "lv": "Dokumenti ir mašīnā.",
+          "tr": "Belgeler arabada.",
+          "audioId": "b1705403d00d",
+          "wordIds": [
+            "lv-s09-sinir-w-49431918d808",
+            "lv-s09-sinir-w-12a02ed4b88c"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s09-sinir-s-8f3041ca3346",
+          "lv": "Pase ir kemperī.",
+          "tr": "Pasaport karavanda.",
+          "audioId": "8f3041ca3346",
+          "wordIds": [
+            "lv-s09-sinir-w-090070303022"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s09-sinir-s-e6006b04276c",
+          "lv": "Lūdzu, mana ID karte.",
+          "tr": "Buyurun, kimlik kartım.",
+          "audioId": "e6006b04276c",
+          "wordIds": [
+            "lv-s09-sinir-w-3da6ff35c1cc",
+            "lv-s09-sinir-w-714851f5e170"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv"
+          ]
+        },
+        {
+          "id": "lv-s09-sinir-s-91a3a7a9d03c",
+          "lv": "Paldies, visu labu!",
+          "tr": "Teşekkürler, iyi günler!",
+          "audioId": "91a3a7a9d03c",
+          "wordIds": [
+            "lv-s09-sinir-w-987c4c5b34c3"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv"
+          ]
+        },
+        {
+          "id": "lv-s09-sinir-s-55adb649865f",
+          "lv": "Kur ir mašīna?",
+          "tr": "Araba nerede?",
+          "audioId": "55adb649865f",
+          "wordIds": [
+            "lv-s09-sinir-w-8bcac5dabf06",
+            "lv-s09-sinir-w-8eee34ab42e1"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "listen_choose"
+          ]
+        },
+        {
+          "id": "lv-s09-sinir-s-8f4992cb3c07",
+          "lv": "Atveriet, lūdzu, bagažnieku.",
+          "tr": "Lütfen bagajı açın.",
+          "audioId": "8f4992cb3c07",
+          "wordIds": [
+            "lv-s09-sinir-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s09-sinir-s-1bfc6fe4b88e",
+          "lv": "Šis ir ceļojums.",
+          "tr": "Bu bir seyahat.",
+          "audioId": "1bfc6fe4b88e",
+          "wordIds": [
+            "lv-s09-sinir-w-90c8d50b6a06"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv"
+          ]
+        },
+        {
+          "id": "lv-s09-sinir-s-4b3fc1d18f9a",
+          "lv": "Es esmu no Turcijas.",
+          "tr": "Ben Türkiye'denim.",
+          "audioId": "4b3fc1d18f9a",
+          "wordIds": [
+            "lv-s09-sinir-w-09cd68a2a77b",
+            "lv-s09-sinir-w-76081e4731ec"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s09-sinir-s-e0af256eca33",
+          "lv": "Kur ir dokumenti?",
+          "tr": "Belgeler nerede?",
+          "audioId": "e0af256eca33",
+          "wordIds": [
+            "lv-s09-sinir-w-8bcac5dabf06",
+            "lv-s09-sinir-w-49431918d808"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "listen_choose"
+          ]
+        },
+        {
+          "id": "lv-s09-sinir-s-02fbe7c4e160",
+          "lv": "Robeža ir tur.",
+          "tr": "Sınır orada.",
+          "audioId": "02fbe7c4e160",
+          "wordIds": [
+            "lv-s09-sinir-w-328c4c97aec0"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv"
+          ]
+        },
+        {
+          "id": "lv-s09-sinir-s-7835589e7255",
+          "lv": "Lūdzu, mana pase.",
+          "tr": "Buyurun, pasaportum.",
+          "audioId": "7835589e7255",
+          "wordIds": [
+            "lv-s09-sinir-w-3da6ff35c1cc",
+            "lv-s09-sinir-w-090070303022"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "match"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lv-s10-yardim",
+      "index": 10,
+      "title": "Yardım ve acil",
+      "words": [
+        {
+          "id": "lv-s10-yardim-w-07682b89323f",
+          "lv": "palīdziet",
+          "tr": "yardım edin",
+          "icon": "🆘",
+          "audioId": "07682b89323f",
+          "lemma": "palīdzēt",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s10-yardim-w-936c93e1fc4e",
+          "lv": "ārsts",
+          "tr": "doktor",
+          "icon": "👨‍⚕️",
+          "audioId": "936c93e1fc4e",
+          "lemma": "ārsts",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s10-yardim-w-4d0edf8d8b38",
+          "lv": "slimnīca",
+          "tr": "hastane",
+          "icon": "🏥",
+          "audioId": "4d0edf8d8b38",
+          "lemma": "slimnīca",
+          "freqRank": 0,
+          "caseForm": {
+            "base": "slimnīca",
+            "form": "slimnīcā",
+            "suffix": "ā",
+            "distractorSuffixes": [
+              "as",
+              "u",
+              "ai"
+            ],
+            "case": "lokativ"
+          }
+        },
+        {
+          "id": "lv-s10-yardim-w-1935223ec1f0",
+          "lv": "man sāp",
+          "tr": "ağrıyor",
+          "icon": "😢",
+          "audioId": "1935223ec1f0",
+          "lemma": "sāpēt",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s10-yardim-w-c13c1068f0ee",
+          "lv": "policija",
+          "tr": "polis",
+          "icon": "专",
+          "audioId": "c13c1068f0ee",
+          "lemma": "policija",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s10-yardim-w-a9817dc626e9",
+          "lv": "aptieka",
+          "tr": "eczane",
+          "icon": "💊",
+          "audioId": "a9817dc626e9",
+          "lemma": "aptieka",
+          "freqRank": 0,
+          "caseForm": {
+            "base": "aptieka",
+            "form": "aptiekā",
+            "suffix": "ā",
+            "distractorSuffixes": [
+              "as",
+              "u",
+              "ai"
+            ],
+            "case": "lokativ"
+          }
+        },
+        {
+          "id": "lv-s10-yardim-w-1c5975431915",
+          "lv": "palīdzība",
+          "tr": "yardım",
+          "audioId": "1c5975431915",
+          "lemma": "palīdzība",
+          "freqRank": 916
+        },
+        {
+          "id": "lv-s10-yardim-w-92a2f5940f95",
+          "lv": "ātrā palīdzība",
+          "tr": "ambulans",
+          "icon": "🚑",
+          "audioId": "92a2f5940f95",
+          "lemma": "ātrā palīdzība",
+          "freqRank": 12946
+        },
+        {
+          "id": "lv-s10-yardim-w-7d8b78e20412",
+          "lv": "zāles",
+          "tr": "ilaç",
+          "icon": "💊",
+          "audioId": "7d8b78e20412",
+          "lemma": "zāles",
+          "freqRank": 964
+        },
+        {
+          "id": "lv-s10-yardim-w-c153200d102f",
+          "lv": "avārija",
+          "tr": "kaza",
+          "icon": "💥",
+          "audioId": "c153200d102f",
+          "lemma": "avārija",
+          "freqRank": 7051
+        },
+        {
+          "id": "lv-s10-yardim-w-e2e3f9379f06",
+          "lv": "ugunsgrēks",
+          "tr": "yangın",
+          "icon": "🔥",
+          "audioId": "e2e3f9379f06",
+          "lemma": "ugunsgrēks",
+          "freqRank": 5879
+        },
+        {
+          "id": "lv-s10-yardim-w-9fc3b91426ba",
+          "lv": "galva",
+          "tr": "baş",
+          "icon": "👤",
+          "audioId": "9fc3b91426ba",
+          "lemma": "galva",
+          "freqRank": 1599
+        },
+        {
+          "id": "lv-s10-yardim-w-4f15a4dae6fd",
+          "lv": "vēders",
+          "tr": "karın",
+          "audioId": "4f15a4dae6fd",
+          "lemma": "vēders",
+          "freqRank": 10381
+        },
+        {
+          "id": "lv-s10-yardim-w-7ef0e68ad7aa",
+          "lv": "temperatūra",
+          "tr": "ateş",
+          "icon": "🌡️",
+          "audioId": "7ef0e68ad7aa",
+          "lemma": "temperatūra",
+          "freqRank": 7657
+        },
+        {
+          "id": "lv-s10-yardim-w-5b06e6124b0c",
+          "lv": "recepte",
+          "tr": "reçete",
+          "icon": "📄",
+          "audioId": "5b06e6124b0c",
+          "lemma": "recepte",
+          "freqRank": 8709
+        },
+        {
+          "id": "lv-s10-yardim-w-67913b7474ae",
+          "lv": "apdrošināšana",
+          "tr": "sigorta",
+          "icon": "📄",
+          "audioId": "67913b7474ae",
+          "lemma": "apdrošināšana",
+          "freqRank": 4638
+        },
+        {
+          "id": "lv-s10-yardim-w-090070303022",
+          "lv": "pase",
+          "tr": "pasaport",
+          "icon": "🛂",
+          "audioId": "090070303022",
+          "lemma": "pase",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s10-yardim-w-2a05ecdab271",
+          "lv": "telefons",
+          "tr": "telefon",
+          "icon": "📱",
+          "audioId": "2a05ecdab271",
+          "lemma": "telefons",
+          "freqRank": 1924
+        },
+        {
+          "id": "lv-s10-yardim-w-ba3711e21c57",
+          "lv": "slims",
+          "tr": "hasta",
+          "icon": "🤒",
+          "audioId": "ba3711e21c57",
+          "lemma": "slims",
+          "freqRank": 2268
+        },
+        {
+          "id": "lv-s10-yardim-w-ecf4047935bf",
+          "lv": "trauma",
+          "tr": "yaralanma",
+          "icon": "🩹",
+          "audioId": "ecf4047935bf",
+          "lemma": "trauma",
+          "freqRank": 14390
+        },
+        {
+          "id": "lv-s10-yardim-w-fac99488108c",
+          "lv": "ūdens",
+          "tr": "su",
+          "icon": "💧",
+          "audioId": "fac99488108c",
+          "lemma": "ūdens",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s10-yardim-w-957a9d6de905",
+          "lv": "sirds",
+          "tr": "kalp",
+          "icon": "❤️",
+          "audioId": "957a9d6de905",
+          "lemma": "sirds",
+          "freqRank": 520
+        },
+        {
+          "id": "lv-s10-yardim-w-996c373c3d25",
+          "lv": "bīstami",
+          "tr": "tehlikeli",
+          "icon": "⚠️",
+          "audioId": "996c373c3d25",
+          "lemma": "bīstami",
+          "freqRank": 987
+        }
+      ],
+      "sentences": [
+        {
+          "id": "lv-s10-yardim-s-9afc88f68768",
+          "lv": "Palīdziet man!",
+          "tr": "Bana yardım edin!",
+          "audioId": "9afc88f68768",
+          "wordIds": [
+            "lv-s10-yardim-w-07682b89323f"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "speak",
+            "dictation"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-0b2e196e2407",
+          "lv": "Kur ir slimnīca?",
+          "tr": "Hastane nerede?",
+          "audioId": "0b2e196e2407",
+          "wordIds": [
+            "lv-s10-yardim-w-4d0edf8d8b38"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-6f2e9dbcd2fb",
+          "lv": "Man sāp galva.",
+          "tr": "Başım ağrıyor.",
+          "audioId": "6f2e9dbcd2fb",
+          "wordIds": [
+            "lv-s10-yardim-w-1935223ec1f0",
+            "lv-s10-yardim-w-9fc3b91426ba"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-8ab1ab68202c",
+          "lv": "Sauciet policiju!",
+          "tr": "Polis çağırın!",
+          "audioId": "8ab1ab68202c",
+          "wordIds": [
+            "lv-s10-yardim-w-c13c1068f0ee"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-57fc84a542f9",
+          "lv": "Kur ir tuvākā aptieka?",
+          "tr": "En yakın eczane nerede?",
+          "audioId": "57fc84a542f9",
+          "wordIds": [
+            "lv-s10-yardim-w-a9817dc626e9"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-539cc70d8bd8",
+          "lv": "Man vajag ārstu.",
+          "tr": "Doktora ihtiyacım var.",
+          "audioId": "539cc70d8bd8",
+          "wordIds": [
+            "lv-s10-yardim-w-936c93e1fc4e"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-22919742161e",
+          "lv": "Man ir temperatūra.",
+          "tr": "Ateşim var.",
+          "audioId": "22919742161e",
+          "wordIds": [
+            "lv-s10-yardim-w-7ef0e68ad7aa"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-ded77ddd051e",
+          "lv": "Es esmu slimnīcā.",
+          "tr": "Hastanedeyim.",
+          "audioId": "ded77ddd051e",
+          "wordIds": [
+            "lv-s10-yardim-w-4d0edf8d8b38"
+          ],
+          "supports": [
+            "case_drill",
+            "lv_to_tr",
+            "tr_to_lv"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-82c1972dae3c",
+          "lv": "Man sāp vēders.",
+          "tr": "Karnım ağrıyor.",
+          "audioId": "82c1972dae3c",
+          "wordIds": [
+            "lv-s10-yardim-w-1935223ec1f0",
+            "lv-s10-yardim-w-4f15a4dae6fd"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-e4a25c61cee0",
+          "lv": "Sauciet ātro palīdzību!",
+          "tr": "Ambulans çağırın!",
+          "audioId": "e4a25c61cee0",
+          "wordIds": [
+            "lv-s10-yardim-w-92a2f5940f95"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-949195f1aee1",
+          "lv": "Tas ir bīstami.",
+          "tr": "Bu tehlikeli.",
+          "audioId": "949195f1aee1",
+          "wordIds": [
+            "lv-s10-yardim-w-996c373c3d25"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-0129bed20d45",
+          "lv": "Man vajag zāles.",
+          "tr": "İlaca ihtiyacım var.",
+          "audioId": "0129bed20d45",
+          "wordIds": [
+            "lv-s10-yardim-w-7d8b78e20412"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-0dd20c176349",
+          "lv": "Kur ir mana pase?",
+          "tr": "Pasaportum nerede?",
+          "audioId": "0dd20c176349",
+          "wordIds": [
+            "lv-s10-yardim-w-090070303022"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-d1980d3c983b",
+          "lv": "Man ir apdrošināšana.",
+          "tr": "Sigortam var.",
+          "audioId": "d1980d3c983b",
+          "wordIds": [
+            "lv-s10-yardim-w-67913b7474ae"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-68819ba60da4",
+          "lv": "Es esmu aptiekā.",
+          "tr": "Eczanedeyim.",
+          "audioId": "68819ba60da4",
+          "wordIds": [
+            "lv-s10-yardim-w-a9817dc626e9"
+          ],
+          "supports": [
+            "case_drill",
+            "lv_to_tr",
+            "tr_to_lv"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-5fa308282af6",
+          "lv": "Mums ir avārija.",
+          "tr": "Kaza yaptık.",
+          "audioId": "5fa308282af6",
+          "wordIds": [
+            "lv-s10-yardim-w-c153200d102f"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-74b2137ffbbb",
+          "lv": "Lūdzu, dodiet man ūdeni.",
+          "tr": "Lütfen bana su verin.",
+          "audioId": "74b2137ffbbb",
+          "wordIds": [
+            "lv-s10-yardim-w-fac99488108c"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-dec2a4d52554",
+          "lv": "Man sāp sirds.",
+          "tr": "Kalbim ağrıyor.",
+          "audioId": "dec2a4d52554",
+          "wordIds": [
+            "lv-s10-yardim-w-1935223ec1f0",
+            "lv-s10-yardim-w-957a9d6de905"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-15787b56f68a",
+          "lv": "Kur ir mans telefons?",
+          "tr": "Telefonum nerede?",
+          "audioId": "15787b56f68a",
+          "wordIds": [
+            "lv-s10-yardim-w-2a05ecdab271"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s10-yardim-s-15e37348b6ec",
+          "lv": "Mums vajag palīdzību.",
+          "tr": "Yardıma ihtiyacımız var.",
+          "audioId": "15e37348b6ec",
+          "wordIds": [
+            "lv-s10-yardim-w-1c5975431915"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lv-s11-sohbet",
+      "index": 11,
+      "title": "Sohbet",
+      "words": [
+        {
+          "id": "lv-s11-sohbet-w-9f657410348a",
+          "lv": "kā tev iet",
+          "tr": "nasıl gidiyor",
+          "audioId": "9f657410348a",
+          "lemma": "kā tev iet",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s11-sohbet-w-b6563ecfb695",
+          "lv": "no kurienes",
+          "tr": "nereden / nereli",
+          "audioId": "b6563ecfb695",
+          "lemma": "no kurienes",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s11-sohbet-w-f88491586a05",
+          "lv": "patīk",
+          "tr": "hoşuna gitmek / sevmek",
+          "audioId": "f88491586a05",
+          "lemma": "patikt",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s11-sohbet-w-7c4227a90b8a",
+          "lv": "ļoti",
+          "tr": "çok",
+          "audioId": "7c4227a90b8a",
+          "lemma": "ļoti",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s11-sohbet-w-0a6f355af864",
+          "lv": "labi",
+          "tr": "iyi / güzel",
+          "audioId": "0a6f355af864",
+          "lemma": "labi",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s11-sohbet-w-631afce368bf",
+          "lv": "čau",
+          "tr": "selam",
+          "audioId": "631afce368bf",
+          "lemma": "čau",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s11-sohbet-w-efb4583aa9a6",
+          "lv": "sveiki",
+          "tr": "merhaba",
+          "audioId": "efb4583aa9a6",
+          "lemma": "sveiki",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s11-sohbet-w-09cd68a2a77b",
+          "lv": "es",
+          "tr": "ben",
+          "audioId": "09cd68a2a77b",
+          "lemma": "es",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s11-sohbet-w-a3da4c6307d2",
+          "lv": "tu",
+          "tr": "sen",
+          "audioId": "a3da4c6307d2",
+          "lemma": "tu",
+          "freqRank": 2
+        },
+        {
+          "id": "lv-s11-sohbet-w-fd1286353570",
+          "lv": "no",
+          "tr": "-den / -dan",
+          "audioId": "fd1286353570",
+          "lemma": "no",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s11-sohbet-w-550dd0ebc4ab",
+          "lv": "Latvija",
+          "tr": "Letonya",
+          "icon": "🇱🇻",
+          "audioId": "550dd0ebc4ab",
+          "lemma": "Latvija",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s11-sohbet-w-6244ceb6c149",
+          "lv": "ceļot",
+          "tr": "seyahat etmek",
+          "audioId": "6244ceb6c149",
+          "lemma": "ceļot",
+          "freqRank": 6597
+        },
+        {
+          "id": "lv-s11-sohbet-w-0d8b97750ac7",
+          "lv": "kafija",
+          "tr": "kahve",
+          "icon": "☕",
+          "audioId": "0d8b97750ac7",
+          "lemma": "kafija",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s11-sohbet-w-3cf74cee40c2",
+          "lv": "tēja",
+          "tr": "çay",
+          "icon": "🍵",
+          "audioId": "3cf74cee40c2",
+          "lemma": "tēja",
+          "freqRank": 7664
+        },
+        {
+          "id": "lv-s11-sohbet-w-bda5cfe36629",
+          "lv": "daba",
+          "tr": "doğa",
+          "icon": "🌲",
+          "audioId": "bda5cfe36629",
+          "lemma": "daba",
+          "freqRank": 4242
+        },
+        {
+          "id": "lv-s11-sohbet-w-8175e3c8753a",
+          "lv": "man",
+          "tr": "bana / benim",
+          "audioId": "8175e3c8753a",
+          "lemma": "es",
+          "freqRank": 6
+        },
+        {
+          "id": "lv-s11-sohbet-w-007f39ac76a2",
+          "lv": "tev",
+          "tr": "sana / senin",
+          "audioId": "007f39ac76a2",
+          "lemma": "tu",
+          "freqRank": 16
+        },
+        {
+          "id": "lv-s11-sohbet-w-21313a463d0b",
+          "lv": "kas",
+          "tr": "ne / kim",
+          "audioId": "21313a463d0b",
+          "lemma": "kas",
+          "freqRank": 12
+        },
+        {
+          "id": "lv-s11-sohbet-w-987c4c5b34c3",
+          "lv": "paldies",
+          "tr": "teşekkürler",
+          "audioId": "987c4c5b34c3",
+          "lemma": "paldies",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s11-sohbet-w-3da6ff35c1cc",
+          "lv": "lūdzu",
+          "tr": "lütfen / rica ederim",
+          "audioId": "3da6ff35c1cc",
+          "lemma": "lūdzu",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s11-sohbet-w-305c0156c669",
+          "lv": "skaisti",
+          "tr": "güzel",
+          "audioId": "305c0156c669",
+          "lemma": "skaisti",
+          "freqRank": 721
+        }
+      ],
+      "sentences": [
+        {
+          "id": "lv-s11-sohbet-s-cc1553fc6cd9",
+          "lv": "Čau! Kā tev iet?",
+          "tr": "Selam! Nasıl gidiyor?",
+          "audioId": "cc1553fc6cd9",
+          "wordIds": [
+            "lv-s11-sohbet-w-631afce368bf",
+            "lv-s11-sohbet-w-9f657410348a"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s11-sohbet-s-7bfd15dee30e",
+          "lv": "Man iet ļoti labi.",
+          "tr": "Çok iyiyim.",
+          "audioId": "7bfd15dee30e",
+          "wordIds": [
+            "lv-s11-sohbet-w-8175e3c8753a",
+            "lv-s11-sohbet-w-7c4227a90b8a",
+            "lv-s11-sohbet-w-0a6f355af864"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s11-sohbet-s-41b34ff316e5",
+          "lv": "No kurienes tu esi?",
+          "tr": "Nerelisin?",
+          "audioId": "41b34ff316e5",
+          "wordIds": [
+            "lv-s11-sohbet-w-b6563ecfb695",
+            "lv-s11-sohbet-w-a3da4c6307d2"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s11-sohbet-s-4b3fc1d18f9a",
+          "lv": "Es esmu no Turcijas.",
+          "tr": "Türkiye'denim.",
+          "audioId": "4b3fc1d18f9a",
+          "wordIds": [
+            "lv-s11-sohbet-w-09cd68a2a77b",
+            "lv-s11-sohbet-w-fd1286353570"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s11-sohbet-s-728d979d8e2f",
+          "lv": "Man ļoti patīk Latvija.",
+          "tr": "Letonya'yı çok seviyorum.",
+          "audioId": "728d979d8e2f",
+          "wordIds": [
+            "lv-s11-sohbet-w-8175e3c8753a",
+            "lv-s11-sohbet-w-7c4227a90b8a",
+            "lv-s11-sohbet-w-f88491586a05",
+            "lv-s11-sohbet-w-550dd0ebc4ab"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s11-sohbet-s-5adab71eab85",
+          "lv": "Sveiki! Kā tev iet?",
+          "tr": "Merhaba! Nasıl gidiyor?",
+          "audioId": "5adab71eab85",
+          "wordIds": [
+            "lv-s11-sohbet-w-efb4583aa9a6",
+            "lv-s11-sohbet-w-9f657410348a"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "dictation"
+          ]
+        },
+        {
+          "id": "lv-s11-sohbet-s-c02b493a158a",
+          "lv": "Man patīk ceļot.",
+          "tr": "Seyahat etmeyi seviyorum.",
+          "audioId": "c02b493a158a",
+          "wordIds": [
+            "lv-s11-sohbet-w-8175e3c8753a",
+            "lv-s11-sohbet-w-f88491586a05",
+            "lv-s11-sohbet-w-6244ceb6c149"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s11-sohbet-s-d7585dfe86a4",
+          "lv": "Es esmu Latvijā.",
+          "tr": "Letonya'dayım.",
+          "audioId": "d7585dfe86a4",
+          "wordIds": [
+            "lv-s11-sohbet-w-09cd68a2a77b"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "case_drill"
+          ]
+        },
+        {
+          "id": "lv-s11-sohbet-s-84435b4b0841",
+          "lv": "Es dzīvoju karavānā.",
+          "tr": "Karavanda yaşıyorum.",
+          "audioId": "84435b4b0841",
+          "wordIds": [
+            "lv-s11-sohbet-w-09cd68a2a77b"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "case_drill"
+          ]
+        },
+        {
+          "id": "lv-s11-sohbet-s-401a84fd4cb7",
+          "lv": "Man patīk kafija.",
+          "tr": "Kahve seviyorum.",
+          "audioId": "401a84fd4cb7",
+          "wordIds": [
+            "lv-s11-sohbet-w-8175e3c8753a",
+            "lv-s11-sohbet-w-f88491586a05",
+            "lv-s11-sohbet-w-0d8b97750ac7"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s11-sohbet-s-8e52caac4c21",
+          "lv": "Man patīk tēja.",
+          "tr": "Çay seviyorum.",
+          "audioId": "8e52caac4c21",
+          "wordIds": [
+            "lv-s11-sohbet-w-8175e3c8753a",
+            "lv-s11-sohbet-w-f88491586a05",
+            "lv-s11-sohbet-w-3cf74cee40c2"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s11-sohbet-s-890c6eb6f4e3",
+          "lv": "Latvijā ir ļoti skaisti.",
+          "tr": "Letonya'da çok güzel.",
+          "audioId": "890c6eb6f4e3",
+          "wordIds": [
+            "lv-s11-sohbet-w-7c4227a90b8a",
+            "lv-s11-sohbet-w-305c0156c669"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s11-sohbet-s-f30565c14fd9",
+          "lv": "Man ļoti patīk daba.",
+          "tr": "Doğayı çok seviyorum.",
+          "audioId": "f30565c14fd9",
+          "wordIds": [
+            "lv-s11-sohbet-w-8175e3c8753a",
+            "lv-s11-sohbet-w-7c4227a90b8a",
+            "lv-s11-sohbet-w-f88491586a05",
+            "lv-s11-sohbet-w-bda5cfe36629"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s11-sohbet-s-b58ed6b2a4ea",
+          "lv": "Paldies, labi!",
+          "tr": "Teşekkürler, iyi!",
+          "audioId": "b58ed6b2a4ea",
+          "wordIds": [
+            "lv-s11-sohbet-w-987c4c5b34c3",
+            "lv-s11-sohbet-w-0a6f355af864"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s11-sohbet-s-19567a28bba5",
+          "lv": "Kafija, lūdzu.",
+          "tr": "Kahve, lütfen.",
+          "audioId": "19567a28bba5",
+          "wordIds": [
+            "lv-s11-sohbet-w-0d8b97750ac7",
+            "lv-s11-sohbet-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "listen_choose"
+          ]
+        },
+        {
+          "id": "lv-s11-sohbet-s-037ad5400b79",
+          "lv": "Kas tev patīk?",
+          "tr": "Neyi seversin?",
+          "audioId": "037ad5400b79",
+          "wordIds": [
+            "lv-s11-sohbet-w-21313a463d0b",
+            "lv-s11-sohbet-w-007f39ac76a2",
+            "lv-s11-sohbet-w-f88491586a05"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s11-sohbet-s-52e9f69390b5",
+          "lv": "Man patīk karavāna.",
+          "tr": "Karavanı seviyorum.",
+          "audioId": "52e9f69390b5",
+          "wordIds": [
+            "lv-s11-sohbet-w-8175e3c8753a",
+            "lv-s11-sohbet-w-f88491586a05"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s11-sohbet-s-9f9b225021ee",
+          "lv": "Sveiki, no kurienes tu esi?",
+          "tr": "Merhaba, nerelisin?",
+          "audioId": "9f9b225021ee",
+          "wordIds": [
+            "lv-s11-sohbet-w-efb4583aa9a6",
+            "lv-s11-sohbet-w-b6563ecfb695",
+            "lv-s11-sohbet-w-a3da4c6307d2"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lv-s12-veda",
+      "index": 12,
+      "title": "Kibarlık ve veda",
+      "words": [
+        {
+          "id": "lv-s12-veda-w-5309dfde5aa8",
+          "lv": "atvainojiet",
+          "tr": "affedersiniz",
+          "audioId": "5309dfde5aa8",
+          "lemma": "atvainot",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s12-veda-w-e5d8279e68cf",
+          "lv": "uz redzēšanos",
+          "tr": "görüşmek üzere",
+          "audioId": "e5d8279e68cf",
+          "lemma": "uz redzēšanos",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s12-veda-w-bbeafcd12601",
+          "lv": "ar prieku",
+          "tr": "memnuniyetle",
+          "audioId": "bbeafcd12601",
+          "lemma": "ar prieku",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s12-veda-w-935c10da2ae3",
+          "lv": "nekas",
+          "tr": "sorun değil",
+          "audioId": "935c10da2ae3",
+          "lemma": "nekas",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s12-veda-w-631afce368bf",
+          "lv": "čau",
+          "tr": "selam",
+          "audioId": "631afce368bf",
+          "lemma": "čau",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s12-veda-w-987c4c5b34c3",
+          "lv": "paldies",
+          "tr": "teşekkürler",
+          "audioId": "987c4c5b34c3",
+          "lemma": "paldies",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s12-veda-w-3da6ff35c1cc",
+          "lv": "lūdzu",
+          "tr": "lütfen",
+          "audioId": "3da6ff35c1cc",
+          "lemma": "lūgt",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s12-veda-w-61134331a1ec",
+          "lv": "atvaino",
+          "tr": "kusura bakma",
+          "audioId": "61134331a1ec",
+          "lemma": "atvainot",
+          "freqRank": 350
+        },
+        {
+          "id": "lv-s12-veda-w-efb4583aa9a6",
+          "lv": "sveiki",
+          "tr": "merhaba",
+          "audioId": "efb4583aa9a6",
+          "lemma": "sveiks",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s12-veda-w-a764164d87c4",
+          "lv": "visu labu",
+          "tr": "her şey gönlünüzce olsun",
+          "audioId": "a764164d87c4",
+          "lemma": "visu labu",
+          "freqRank": 330
+        },
+        {
+          "id": "lv-s12-veda-w-4035fb5f1319",
+          "lv": "dienu",
+          "tr": "günü",
+          "audioId": "4035fb5f1319",
+          "lemma": "diena",
+          "freqRank": 211,
+          "caseForm": {
+            "base": "diena",
+            "form": "dienu",
+            "suffix": "u",
+            "distractorSuffixes": [
+              "as",
+              "ai"
+            ],
+            "case": "akuzativ"
+          }
+        },
+        {
+          "id": "lv-s12-veda-w-59735ad00855",
+          "lv": "jauku",
+          "tr": "güzel",
+          "audioId": "59735ad00855",
+          "lemma": "jauks",
+          "freqRank": 1850
+        },
+        {
+          "id": "lv-s12-veda-w-1c5975431915",
+          "lv": "palīdzība",
+          "tr": "yardım",
+          "audioId": "1c5975431915",
+          "lemma": "palīdzība",
+          "freqRank": 916
+        },
+        {
+          "id": "lv-s12-veda-w-7fab092dc207",
+          "lv": "liels",
+          "tr": "büyük",
+          "audioId": "7fab092dc207",
+          "lemma": "liels",
+          "freqRank": 300
+        },
+        {
+          "id": "lv-s12-veda-w-0a6f355af864",
+          "lv": "labi",
+          "tr": "iyi",
+          "audioId": "0a6f355af864",
+          "lemma": "labi",
+          "freqRank": 0
+        },
+        {
+          "id": "lv-s12-veda-w-d136dc90e71e",
+          "lv": "drīz",
+          "tr": "yakında",
+          "audioId": "d136dc90e71e",
+          "lemma": "drīz",
+          "freqRank": 321
+        },
+        {
+          "id": "lv-s12-veda-w-016c8fe9b167",
+          "lv": "veiksmi",
+          "tr": "bol şans",
+          "audioId": "016c8fe9b167",
+          "lemma": "veiksme",
+          "freqRank": 1175,
+          "caseForm": {
+            "base": "veiksme",
+            "form": "veiksmi",
+            "suffix": "i",
+            "distractorSuffixes": [
+              "es",
+              "ei"
+            ],
+            "case": "akuzativ"
+          }
+        }
+      ],
+      "sentences": [
+        {
+          "id": "lv-s12-veda-s-40546a61a4a1",
+          "lv": "Atvainojiet, kur ir karte?",
+          "tr": "Affedersiniz, harita nerede?",
+          "audioId": "40546a61a4a1",
+          "wordIds": [
+            "lv-s12-veda-w-5309dfde5aa8"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s12-veda-s-32e0fb81847f",
+          "lv": "Uz redzēšanos rīt!",
+          "tr": "Yarın görüşmek üzere!",
+          "audioId": "32e0fb81847f",
+          "wordIds": [
+            "lv-s12-veda-w-e5d8279e68cf"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s12-veda-s-ea928722180b",
+          "lv": "Liels paldies par palīdzību!",
+          "tr": "Yardımınız için çok teşekkürler!",
+          "audioId": "ea928722180b",
+          "wordIds": [
+            "lv-s12-veda-w-7fab092dc207",
+            "lv-s12-veda-w-987c4c5b34c3",
+            "lv-s12-veda-w-1c5975431915"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s12-veda-s-1f9bb3c22064",
+          "lv": "Nekas, viss kārtībā.",
+          "tr": "Sorun değil, her şey yolunda.",
+          "audioId": "1f9bb3c22064",
+          "wordIds": [
+            "lv-s12-veda-w-935c10da2ae3"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "fill_blank"
+          ]
+        },
+        {
+          "id": "lv-s12-veda-s-3562efd7ebd6",
+          "lv": "Jauku dienu jums!",
+          "tr": "Size iyi günler dilerim!",
+          "audioId": "3562efd7ebd6",
+          "wordIds": [
+            "lv-s12-veda-w-59735ad00855",
+            "lv-s12-veda-w-4035fb5f1319"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill"
+          ]
+        },
+        {
+          "id": "lv-s12-veda-s-8b3d365d794a",
+          "lv": "Sveiki, lūdzu, karte.",
+          "tr": "Merhaba, harita lütfen.",
+          "audioId": "8b3d365d794a",
+          "wordIds": [
+            "lv-s12-veda-w-efb4583aa9a6",
+            "lv-s12-veda-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s12-veda-s-35e5043bc0fc",
+          "lv": "Uz redzēšanos, visu labu!",
+          "tr": "Görüşmek üzere, her şey gönlünüzce olsun!",
+          "audioId": "35e5043bc0fc",
+          "wordIds": [
+            "lv-s12-veda-w-e5d8279e68cf",
+            "lv-s12-veda-w-a764164d87c4"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s12-veda-s-d142989b0db6",
+          "lv": "Paldies! Ar prieku!",
+          "tr": "Teşekkürler! Memnuniyetle!",
+          "audioId": "d142989b0db6",
+          "wordIds": [
+            "lv-s12-veda-w-987c4c5b34c3",
+            "lv-s12-veda-w-bbeafcd12601"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "match"
+          ]
+        },
+        {
+          "id": "lv-s12-veda-s-3f595202228b",
+          "lv": "Veiksmi ceļā!",
+          "tr": "İyi yolculuklar!",
+          "audioId": "3f595202228b",
+          "wordIds": [
+            "lv-s12-veda-w-016c8fe9b167"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "case_drill"
+          ]
+        },
+        {
+          "id": "lv-s12-veda-s-ce52d9352fd7",
+          "lv": "Atvainojiet, lūdzu!",
+          "tr": "Affedersiniz, lütfen!",
+          "audioId": "ce52d9352fd7",
+          "wordIds": [
+            "lv-s12-veda-w-5309dfde5aa8",
+            "lv-s12-veda-w-3da6ff35c1cc"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s12-veda-s-2d2c0caa3a08",
+          "lv": "Čau, tiksimies vakarā!",
+          "tr": "Selam, akşam görüşürüz!",
+          "audioId": "2d2c0caa3a08",
+          "wordIds": [
+            "lv-s12-veda-w-631afce368bf"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "case_drill"
+          ]
+        },
+        {
+          "id": "lv-s12-veda-s-a9be4f21d3b5",
+          "lv": "Liels paldies par ūdeni!",
+          "tr": "Su için çok teşekkürler!",
+          "audioId": "a9be4f21d3b5",
+          "wordIds": [
+            "lv-s12-veda-w-7fab092dc207",
+            "lv-s12-veda-w-987c4c5b34c3"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s12-veda-s-9f25630e455a",
+          "lv": "Atvaino, kur ir kemperis?",
+          "tr": "Kusura bakma, karavan nerede?",
+          "audioId": "9f25630e455a",
+          "wordIds": [
+            "lv-s12-veda-w-61134331a1ec"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s12-veda-s-ab8a73b8e1aa",
+          "lv": "Drīz tiksimies, uz redzēšanos!",
+          "tr": "Yakında görüşmek üzere, hoşça kalın!",
+          "audioId": "ab8a73b8e1aa",
+          "wordIds": [
+            "lv-s12-veda-w-d136dc90e71e",
+            "lv-s12-veda-w-e5d8279e68cf"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "speak"
+          ]
+        },
+        {
+          "id": "lv-s12-veda-s-b3eab3b3471a",
+          "lv": "Labi, paldies, visu labu!",
+          "tr": "Tamam, teşekkürler, her şey gönlünüzce olsun!",
+          "audioId": "b3eab3b3471a",
+          "wordIds": [
+            "lv-s12-veda-w-0a6f355af864",
+            "lv-s12-veda-w-987c4c5b34c3",
+            "lv-s12-veda-w-a764164d87c4"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s12-veda-s-74bff519e2c9",
+          "lv": "Sveiki, kur ir karte?",
+          "tr": "Merhaba, harita nerede?",
+          "audioId": "74bff519e2c9",
+          "wordIds": [
+            "lv-s12-veda-w-efb4583aa9a6"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s12-veda-s-18725306f03b",
+          "lv": "Nekas, drīz būs labi.",
+          "tr": "Sorun değil, yakında düzelir.",
+          "audioId": "18725306f03b",
+          "wordIds": [
+            "lv-s12-veda-w-935c10da2ae3",
+            "lv-s12-veda-w-d136dc90e71e",
+            "lv-s12-veda-w-0a6f355af864"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order"
+          ]
+        },
+        {
+          "id": "lv-s12-veda-s-9c177ae55776",
+          "lv": "Jauku dienu, tiksimies rīt!",
+          "tr": "İyi günler, yarın görüşürüz!",
+          "audioId": "9c177ae55776",
+          "wordIds": [
+            "lv-s12-veda-w-59735ad00855",
+            "lv-s12-veda-w-4035fb5f1319"
+          ],
+          "supports": [
+            "lv_to_tr",
+            "tr_to_lv",
+            "order",
+            "case_drill"
+          ]
+        }
+      ]
+    }
+  ]
+}

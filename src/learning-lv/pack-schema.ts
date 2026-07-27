@@ -24,6 +24,45 @@ export type LatvianCase =
   | 'lokativ'
   | 'vokativ';
 
+const CANONICAL_CASES: readonly LatvianCase[] = [
+  'nominativ',
+  'genitiv',
+  'dativ',
+  'akuzativ',
+  'instrumental',
+  'lokativ',
+  'vokativ',
+];
+
+const CASE_ALIASES: Record<string, LatvianCase> = {
+  nominativ: 'nominativ',
+  nominative: 'nominativ',
+  genitiv: 'genitiv',
+  genitive: 'genitiv',
+  dativ: 'dativ',
+  dative: 'dativ',
+  akuzativ: 'akuzativ',
+  accusative: 'akuzativ',
+  instrumental: 'instrumental',
+  lokativ: 'lokativ',
+  locative: 'lokativ',
+  vokativ: 'vokativ',
+  vocative: 'vokativ',
+};
+
+/**
+ * Modelin döndürdüğü hâl adını şemanın kendi adlandırmasına eşler.
+ * Şemanın yedi adını, İngilizce karşılıklarını ve büyük/küçük harf ile
+ * baştaki/sondaki boşluk farklarını kabul eder. Eşlenemeyen girdi için
+ * undefined döner — tahmin yürütmez.
+ */
+export function normalizeLatvianCase(raw: string): LatvianCase | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const key = raw.trim().toLowerCase();
+  if (!key) return undefined;
+  return CASE_ALIASES[key];
+}
+
 export interface LatvianCaseForm {
   /** Yalın hâl: "kafija" */
   base: string;
@@ -133,6 +172,9 @@ export function validatePack(input: unknown): LatvianPack {
 
 function validateCaseForm(wordId: string, caseForm: LatvianCaseForm): void {
   if (!caseForm.base || !caseForm.form) fail(`${wordId} caseForm base/form eksik`);
+  if (!CANONICAL_CASES.includes(caseForm.case)) {
+    fail(`${wordId} caseForm hâli geçersiz: ${caseForm.case}`);
+  }
   if (!caseForm.suffix) fail(`${wordId} caseForm suffix boş`);
   if (caseForm.distractorSuffixes.length < 2) {
     fail(`${wordId} caseForm en az iki çeldirici ek istiyor`);

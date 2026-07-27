@@ -1,4 +1,4 @@
-import { EXERCISE_KINDS, type ExerciseKind, type LatvianCase } from './pack-schema.ts';
+import { EXERCISE_KINDS, normalizeLatvianCase, type ExerciseKind, type LatvianCase } from './pack-schema.ts';
 import type { ScenePlan } from './scenes.ts';
 
 export interface DraftWord {
@@ -60,7 +60,8 @@ export function buildSceneRequest(scene: ScenePlan, model: string): OpenRouterCh
     '- icon alanı yalnızca somut nesneler için tek emoji; soyut kelimelerde boş bırak.',
     '- caseForm alanını yalnızca çekimin öğretici olduğu kelimelerde doldur.',
     '  Doldurursan: base yalın hâl, form bağlamıyla çekimli hâl, suffix beklenen ek,',
-    '  distractorSuffixes en az iki yanlış ek, case alanı hâlin adı.',
+    '  distractorSuffixes en az iki yanlış ek, case alanı şu yedi değerden biri olsun:',
+    '  nominativ, genitiv, dativ, akuzativ, instrumental, lokativ, vokativ.',
     '- 20 cümle üret. Her cümle en fazla 7 kelime olsun.',
     '- usesWords, cümlede geçen kelimelerin lv değerleri olsun.',
     `- supports şu değerlerden seçilsin: ${EXERCISE_KINDS.join(', ')}.`,
@@ -130,6 +131,8 @@ export function parseSceneResponse(raw: string): SceneDraft {
 
 function normalizeCaseForm(input: DraftWord['caseForm']): DraftWord['caseForm'] {
   if (!input || !input.base || !input.form || !input.suffix) return undefined;
+  const normalizedCase = normalizeLatvianCase(input.case);
+  if (!normalizedCase) return undefined;
   const distractors = [
     ...new Set(
       (input.distractorSuffixes ?? [])
@@ -138,7 +141,7 @@ function normalizeCaseForm(input: DraftWord['caseForm']): DraftWord['caseForm'] 
     ),
   ];
   if (distractors.length < 2) return undefined;
-  return { ...input, distractorSuffixes: distractors.slice(0, 3) };
+  return { ...input, case: normalizedCase, distractorSuffixes: distractors.slice(0, 3) };
 }
 
 function stripCodeFence(raw: string): string {
