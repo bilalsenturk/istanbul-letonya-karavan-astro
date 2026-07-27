@@ -189,3 +189,66 @@ Camp cards, attraction cards, and source sheets use injected `now` values for fr
 - The revision/trip/user guard and local-override precedence are covered by deterministic policy tests, while transport ordering is covered by the cancellation-ignoring URL protocol fixture. There is no end-to-end test with two real server updates completing out of order; a server-side revision conflict can leave the newest local choice visible with the honest unsynced warning until retry.
 - Fix Round 1 rebuilt the complete iOS simulator target but did not repeat the earlier manual VoiceOver, Dynamic Type, Maps, or contact-composer interaction audit.
 - The pre-existing full `npm run check` TypeScript failures and lint findings documented above were outside this round and were not changed.
+
+---
+
+## Fix Round 2 — 2026-07-27
+
+### Status and commits
+
+Fix Round 2 is implemented and verified in three narrow production commits:
+
+- `e37f386 fix: align account ETA wire format`
+- `1f9de43 fix: make travel content updates race safe`
+- `8166d77 fix: persist offline camp selection`
+
+Overlapping shared files were staged hunk-by-hunk. Unrelated preview fixtures, legacy decoder changes, route-data edits, and the rest of the dirty checkout were not included.
+
+### RED / GREEN evidence
+
+ETA contract tests failed before the wire adapter and strict web validators existed. Swift's synthesized `Date` decoder could not consume the server ISO string (`Expected to decode Double but found a string instead`), and the web negative cases reported missing expected exceptions for noncanonical dates and an invalid IANA zone. The final account suites pass with ISO encode/server decode/legacy numeric coverage.
+
+Travel-store tests were added first for exact raw keys and IDs, critical camp facts, unsafe local media paths, and deterministic suspensions at decode/cache/embedded stages. The pre-change implementation had no injected async I/O generation boundary, so the new gated tests could not compile or guarantee that an older operation would be rejected after resuming. After implementation, the full store harness passes, including older decode, cache fallback, cache write, and embedded fallback losing to the newest generation.
+
+Durable-selection tests were added before the scoped types and resolver. The RED compile failed because `ArrivalTargetOverrideScope`, `ScopedArrivalTargetOverride`, `ArrivalTargetSelectionResolver`, and `DayEdit.arrivalTargetScope` did not exist. The GREEN planner harness proves JSON persistence through view recreation, local-over-stale-account precedence for a matching scope, and no leakage across trip, day, or user scopes.
+
+### Account ETA wire contract
+
+`AccountStayDetails` now uses a private wire DTO for the ETA window. Encoding always emits ISO-8601 UTC strings ending in `Z`; decoding accepts server ISO-8601 strings with or without fractional seconds and the legacy Foundation reference-date numbers. The local `StayETAWindow` representation remains unchanged.
+
+The web boundary accepts only canonical UTC forms (`YYYY-MM-DDTHH:mm:ssZ` or exactly three fractional digits), rejects impossible round trips and offsets, verifies `end > start`, and validates the supplied IANA identifier with `Intl.DateTimeFormat`. Omitted legacy fields remain valid.
+
+### Canonical admission and race-safe I/O
+
+Admission now preflights the raw JSON object before Codable normalization. It requires exactly the version-1 root shape, the six canonical destination keys, city policy `25`, the approved camp and attraction ID sets, HTTPS factual/photo sources, and safe `/assets/...` media paths with no traversal, escaping, percent encoding, query, or fragment. Representative media semantics and the WOK, Camping & Yachts, Ave Natura, Clepardia, Riga City Camping, and Farma 47 critical facts are pinned. Content older than 90 days remains admissible and continues to use the existing freshness warning.
+
+Immutable travel-content values crossing concurrency boundaries conform to `Sendable`. Decode, cache read/write, and main-bundle reads run through `TravelContentIO`; the store advances its generation before work and rechecks generation/cancellation immediately after every suspension. Deterministic continuation gates prove a resumed old decode cannot publish or overwrite cache, and resumed old cache/embedded fallbacks cannot replace a newer remote result.
+
+HTTP response admission checks status, JSON MIME, declared `Content-Length`/`expectedContentLength`, and the actual two-MiB byte count. This rejects an oversized declared body before decoding and rejects any oversized received body before admission or cache persistence.
+
+### Durable offline camp selection
+
+Camp selection is persisted in `DayEdit` with a trip/day/user scope, then resolved ahead of stale account data only when that scope matches. Recreating `DayDetailView` therefore restores an unsynced local choice from `TripPlanStore`; changing trip or account cancels pending work and prevents the prior selection from leaking. A current successful account update replaces workspace state and clears only the matching local override. Failed or unavailable sync keeps the scoped device selection.
+
+The scope is local metadata and is stripped from the public plan payload. Contact-only and viewer permission behavior from Round 1 remains unchanged.
+
+### Final verification
+
+Fresh passes (exit 0):
+
+- `./ios/Tests/run-travel-content-store-check.sh`
+- `./ios/Tests/run-travel-content-check.sh`
+- `./ios/Tests/run-arrival-target-check.sh`
+- `./ios/Tests/run-account-check.sh`
+- `./ios/Tests/run-planner-check.sh`
+- `npm run check:accounts`
+- `npm run check:account-auth`
+- `npm run check:trip-api`
+- `xcodebuild -project ios/Kuzey.xcodeproj -scheme Kuzey -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build` — `BUILD SUCCEEDED`
+- `git diff --cached --check`
+
+### Remaining concerns
+
+- `URLSession.data(for:)` still materializes a response when `Content-Length` is absent or dishonest. The actual-byte cap prevents decode, publication, and cache persistence after receipt, but it is not a streaming memory bound. A delegate/streamed download with enforced cancellation remains a future hardening step.
+- The scoped resolver/store behavior has deterministic model tests and the app target compiles, but this round did not add a UI automation test that kills/relaunches the app during a real failed account request.
+- Exact version-1 IDs and critical content are deliberately app-pinned. Any legitimate version, destination, or curated-item-set change requires an app admission-policy update rather than being silently accepted.
