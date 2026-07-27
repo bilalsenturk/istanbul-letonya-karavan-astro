@@ -214,28 +214,43 @@ export function parseReviewResponse(raw: string): ReviewVerdict[] {
   if (!Array.isArray(verdicts)) throw new Error('Denetim yanıtında verdicts dizisi yok');
   return verdicts
     .filter(entry => typeof (entry as ReviewVerdict)?.lv === 'string')
+    .filter(entry => typeof (entry as ReviewVerdict)?.ok === 'boolean')
     .map(entry => {
       const verdict = entry as ReviewVerdict;
       return {
         lv: verdict.lv.trim(),
-        ok: verdict.ok !== false,
+        ok: verdict.ok,
         reason: verdict.reason?.trim() || undefined,
       };
     });
 }
 
+/** Denetim kararını maddeyle eşlerken modelin noktalama ve boşluk oynamalarını tolere eder. */
+function reviewKey(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[.,!?;:]+$/, '');
+}
+
 export function applyReview(
   draft: SceneDraft,
   verdicts: readonly ReviewVerdict[],
-): { accepted: SceneDraft; dropped: Array<{ lv: string; reason: string }> } {
+): { accepted: SceneDraft; dropped: Array<{ lv: string; reason: string }>; unreviewed: string[] } {
   const rejectedBy = new Map<string, string>();
+  const reviewedKeys = new Set<string>();
   for (const verdict of verdicts) {
-    if (!verdict.ok) rejectedBy.set(verdict.lv.toLowerCase(), verdict.reason ?? 'denetim reddetti');
+    reviewedKeys.add(reviewKey(verdict.lv));
+    if (!verdict.ok) rejectedBy.set(reviewKey(verdict.lv), verdict.reason ?? 'denetim reddetti');
   }
 
   const dropped: Array<{ lv: string; reason: string }> = [];
+  const unreviewed: string[] = [];
   const keepWord = (lv: string): boolean => {
-    const reason = rejectedBy.get(lv.toLowerCase());
+    const key = reviewKey(lv);
+    if (!reviewedKeys.has(key)) unreviewed.push(lv);
+    const reason = rejectedBy.get(key);
     if (reason) {
       dropped.push({ lv, reason });
       return false;
@@ -244,21 +259,24 @@ export function applyReview(
   };
 
   const words = draft.words.filter(word => keepWord(word.lv));
-  const survivingWords = new Set(words.map(word => word.lv.toLowerCase()));
+  const survivingWords = new Set(words.map(word => reviewKey(word.lv)));
 
   // Elenen bir kelimeye bağlı cümle de düşer: o kelime artık pakette yok.
   const sentences = draft.sentences.filter(sentence => {
     if (!keepWord(sentence.lv)) return false;
-    const orphaned = sentence.usesWords.filter(lv => !survivingWords.has(lv.toLowerCase()));
+    const orphaned = sentence.usesWords.filter(lv => !survivingWords.has(reviewKey(lv)));
     if (orphaned.length === sentence.usesWords.length) {
-      dropped.push({ lv: sentence.lv, reason: `bağlı olduğu kelimeler elendi: ${orphaned.join(', ')}` });
+      const reason = sentence.usesWords.length === 0
+        ? 'cümle hiçbir kelimeye bağlı değil'
+        : `bağlı olduğu kelimeler elendi: ${orphaned.join(', ')}`;
+      dropped.push({ lv: sentence.lv, reason });
       return false;
     }
     return true;
   }).map(sentence => ({
     ...sentence,
-    usesWords: sentence.usesWords.filter(lv => survivingWords.has(lv.toLowerCase())),
+    usesWords: sentence.usesWords.filter(lv => survivingWords.has(reviewKey(lv))),
   }));
 
-  return { accepted: { words, sentences }, dropped };
+  return { accepted: { words, sentences }, dropped, unreviewed };
 }

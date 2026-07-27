@@ -264,6 +264,63 @@ expect(
 );
 expect(reviewed.accepted.sentences[0].lv === 'Es gribu kafiju.', 'geçerli cümle kalıyor');
 
+// Finding 1: ok alanı olmayan veya boolean olmayan girdiler onay sayılmamalı.
+const malformedVerdicts = parseReviewResponse(
+  '{"verdicts":[{"lv":"kafija"},{"lv":"yanlışkelime","ok":"false","reason":"x"}]}',
+);
+expect(malformedVerdicts.length === 0, 'ok alanı eksik veya boolean olmayan kararlar elenir');
+
+const malformedApplied = applyReview(reviewDraft, malformedVerdicts);
+expect(malformedApplied.accepted.words.length === 2, 'eksik kararlı kelime hâlâ pakette kalır');
+expect(
+  malformedApplied.unreviewed.includes('kafija') && malformedApplied.unreviewed.includes('yanlışkelime'),
+  'kararı elenen maddeler unreviewed listesinde görünür',
+);
+
+// Finding 2: noktalama, boşluk ve büyük/küçük harf farkları eşleşmeyi kaçırmamalı.
+const punctuationDraft = {
+  words: [{ lv: 'kafija', tr: 'kahve', lemma: 'kafija' }],
+  sentences: [],
+};
+const punctuationVerdicts = parseReviewResponse(
+  '{"verdicts":[{"lv":"  Kafija.  ","ok":false,"reason":"yanlış"}]}',
+);
+const punctuationApplied = applyReview(punctuationDraft, punctuationVerdicts);
+expect(punctuationApplied.accepted.words.length === 0, 'noktalama/boşluk/büyük-küçük harf farkı ret kararını kaçırmaz');
+
+// Finding 3: hiç karar verilmeyen madde unreviewed listesinde görünür ve pakette kalır.
+const unreviewedDraft = {
+  words: [{ lv: 'maize', tr: 'ekmek', lemma: 'maize' }],
+  sentences: [],
+};
+const unreviewedApplied = applyReview(unreviewedDraft, []);
+expect(unreviewedApplied.accepted.words.length === 1, 'kararsız madde pakette kalır');
+expect(unreviewedApplied.unreviewed.includes('maize'), 'kararsız madde unreviewed listesinde görünür');
+
+// Cümlenin kendi lv değeri doğrudan reddedilirse kendi gerekçesiyle düşer.
+const sentenceRejectDraft = {
+  words: [{ lv: 'ūdens', tr: 'su', lemma: 'ūdens' }],
+  sentences: [{ lv: 'Es gribu ūdeni.', tr: 'Su istiyorum.', usesWords: ['ūdens'], supports: ['tr_to_lv'] }],
+};
+const sentenceRejectVerdicts = parseReviewResponse(
+  '{"verdicts":[{"lv":"ūdens","ok":true},{"lv":"Es gribu ūdeni.","ok":false,"reason":"cümle bozuk"}]}',
+);
+const sentenceRejectApplied = applyReview(sentenceRejectDraft, sentenceRejectVerdicts);
+expect(sentenceRejectApplied.accepted.sentences.length === 0, 'doğrudan reddedilen cümle düşer');
+expect(
+  sentenceRejectApplied.dropped.some(entry => entry.lv === 'Es gribu ūdeni.' && entry.reason === 'cümle bozuk'),
+  'doğrudan reddedilen cümle kendi gerekçesini taşır',
+);
+
+// Diyakritikler katlanmamalı: "lūdzu" reddi "ludzu" maddesini düşürmemeli.
+const diacriticsDraft = {
+  words: [{ lv: 'ludzu', tr: 'lütfen (diyakritiksiz)', lemma: 'ludzu' }],
+  sentences: [],
+};
+const diacriticsVerdicts = parseReviewResponse('{"verdicts":[{"lv":"lūdzu","ok":false,"reason":"yanlış"}]}');
+const diacriticsApplied = applyReview(diacriticsDraft, diacriticsVerdicts);
+expect(diacriticsApplied.accepted.words.length === 1, 'diyakritikler katlanmaz, farklı kelimeler karışmaz');
+
 if (failures > 0) {
   console.error(`\n${failures} kontrol başarısız.`);
   process.exit(1);
