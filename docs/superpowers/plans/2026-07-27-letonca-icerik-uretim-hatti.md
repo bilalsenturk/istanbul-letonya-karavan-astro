@@ -796,17 +796,29 @@ export function parseSceneResponse(raw: string): SceneDraft {
 
 function normalizeCaseForm(input: DraftWord['caseForm']): DraftWord['caseForm'] {
   if (!input || !input.base || !input.form || !input.suffix) return undefined;
-  const distractors = (input.distractorSuffixes ?? [])
-    .map(entry => String(entry).trim())
-    .filter(entry => entry && entry !== input.suffix);
+  // Önce tekilleştir, sonra say: yinelenen çeldiriciler sayıyı şişirip
+  // tek gerçek yanlış cevabı olan bir hal tatbikatının geçmesine yol açardı.
+  const distractors = [
+    ...new Set(
+      (input.distractorSuffixes ?? [])
+        .map(entry => String(entry).trim())
+        .filter(entry => entry && entry !== input.suffix),
+    ),
+  ];
   if (distractors.length < 2) return undefined;
-  return { ...input, distractorSuffixes: [...new Set(distractors)].slice(0, 3) };
+  return { ...input, distractorSuffixes: distractors.slice(0, 3) };
 }
 
 function stripCodeFence(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed.startsWith('```')) return trimmed;
-  return trimmed.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '').trim();
+  const withoutOpening = trimmed.replace(/^```[a-z]*\n?/i, '');
+  // İlk kapanış çitine kadarını al: modeller kapanıştan sonra sık sık
+  // "başka bir şey ister misin?" gibi bir cümle ekliyor ve sonlanmaya
+  // sabitlenmiş bir regex o yanıtı tamamen çöpe atardı.
+  const closingIndex = withoutOpening.indexOf('```');
+  const content = closingIndex === -1 ? withoutOpening : withoutOpening.slice(0, closingIndex);
+  return content.trim();
 }
 ```
 
