@@ -19,6 +19,7 @@ const jsonHeaders = {
 
 // Yerel dev fallback (Blob yokken dev sunucu belleğinde tutulur).
 let memRecord: string | null = null;
+const blobToken = import.meta.env.LIVE_BLOB_READ_WRITE_TOKEN || import.meta.env.BLOB_READ_WRITE_TOKEN;
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: jsonHeaders });
@@ -70,9 +71,10 @@ export const POST: APIRoute = async ({ request }) => {
   };
 
   const payload = JSON.stringify(record);
-  if (import.meta.env.BLOB_READ_WRITE_TOKEN) {
+  if (blobToken) {
     await put(BLOB_PATH, payload, {
       access: 'public',
+      token: blobToken,
       addRandomSuffix: false,
       allowOverwrite: true,
       contentType: 'application/json',
@@ -85,13 +87,13 @@ export const POST: APIRoute = async ({ request }) => {
 };
 
 export const GET: APIRoute = async () => {
-  if (!import.meta.env.BLOB_READ_WRITE_TOKEN) {
+  if (!blobToken) {
     return memRecord
       ? new Response(memRecord, { headers: jsonHeaders })
       : json({ error: 'no data yet' }, 404);
   }
   try {
-    const meta = await head(BLOB_PATH);
+    const meta = await head(BLOB_PATH, { token: blobToken });
     const res = await fetch(meta.downloadUrl, { cache: 'no-store' });
     return new Response(await res.text(), { headers: jsonHeaders });
   } catch {
