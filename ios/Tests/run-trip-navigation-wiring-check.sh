@@ -4,8 +4,11 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$root"
 
+revision="${1:-HEAD}"
+git rev-parse --verify --quiet "${revision}^{commit}" >/dev/null
+
 source_for() {
-  git show ":$1"
+  git show "${revision}:$1"
 }
 
 app="$(source_for ios/Karavan/KaravanApp.swift)"
@@ -23,4 +26,4 @@ done
 grep -Fq 'case map' <<<"$navigation"
 grep -Fq 'if arguments.contains("-ui-preview-map") { selectedTab = .map }' <<<"$navigation"
 
-printf '✅ PAYLAŞILAN GEZİ NAVİGASYONU BAĞLANTILARI GEÇTİ\n'
+printf '✅ PAYLAŞILAN GEZİ NAVİGASYONU BAĞLANTILARI GEÇTİ (%s)\n' "$revision"
