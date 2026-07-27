@@ -332,7 +332,7 @@ expect(LatvianExerciseKind.dictation.modality == .production, "dikte üretim sor
 expect(LatvianExerciseKind.order.modality == .production, "sıralama üretim sorusu")
 expect(LatvianExerciseKind.speak.modality == .production, "telaffuz üretim sorusu")
 expect(LatvianExerciseKind.fillBlank.modality == .recognition, "boşluk doldurma tanıma sorusu")
-expect(LatvianExerciseKind.caseDrill.modality == .production, "hal tatbikatı üretim sorusu")
+expect(LatvianExerciseKind.caseDrill.modality == .recognition, "hal tatbikatı tanıma sorusu")
 
 let choiceExercise = LatvianExercise(
     id: "e1",
@@ -379,9 +379,12 @@ extension LatvianExerciseKind {
     /// Hangi hafıza kaydını beslediğini belirler.
     var modality: LatvianModality {
         switch self {
-        case .listenChoose, .iconChoose, .match, .lvToTr, .fillBlank:
+        // caseDrill bir dilbilgisi alıştırması: gövde verilir, üç ekten biri seçilir.
+        // Kelime üretilmediği için tanıma sayılır — üretim sayılsaydı yalnızca ek
+        // alıştırması yapan biri o kelimede üretim ustalığı kazanmış görünürdü.
+        case .listenChoose, .iconChoose, .match, .lvToTr, .fillBlank, .caseDrill:
             return .recognition
-        case .trToLv, .dictation, .order, .speak, .caseDrill:
+        case .trToLv, .dictation, .order, .speak:
             return .production
         }
     }
