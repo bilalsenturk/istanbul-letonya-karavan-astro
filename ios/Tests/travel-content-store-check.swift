@@ -597,6 +597,34 @@ struct TravelContentStoreCheck {
               (try? Data(contentsOf: decodeRaceCache)) == versioned(committedEmbedded, 61))
 
         FixtureURLProtocol.reset()
+        let staleCacheWrite = versioned(committedEmbedded, 66)
+        let freshCacheWrite = versioned(committedEmbedded, 67)
+        FixtureURLProtocol.enqueue(fixture(staleCacheWrite))
+        FixtureURLProtocol.enqueue(fixture(freshCacheWrite))
+        let cacheWriteGate = OperationGate()
+        let cacheWriteIO = TravelContentIO { stage, generation in
+            if stage == .cacheWrite, generation == 1 { await cacheWriteGate.pause() }
+        }
+        let cacheWriteRaceURL = root.appendingPathComponent("cache-write-race.json")
+        let cacheWriteRaceStore = TravelContentStore(
+            remoteURL: URL(string: "https://example.test/assets/travel-content.json")!,
+            session: session,
+            cacheURL: cacheWriteRaceURL,
+            embeddedData: { embedded },
+            io: cacheWriteIO
+        )
+        let pausedCacheWrite = Task { await cacheWriteRaceStore.load() }
+        await cacheWriteGate.waitUntilPaused()
+        check("eski nesil cacheWrite aşamasında belleği yayınlamıştır",
+              hasMarker(cacheWriteRaceStore.bundle, 66))
+        let newerCacheWrite = Task { await cacheWriteRaceStore.load() }
+        await newerCacheWrite.value
+        await cacheWriteGate.release()
+        await pausedCacheWrite.value
+        check("cacheWrite sonrası nesil koruması yeni cache'i korur",
+              (try? Data(contentsOf: cacheWriteRaceURL)) == freshCacheWrite)
+
+        FixtureURLProtocol.reset()
         let staleFallback = versioned(committedEmbedded, 62)
         let freshRemote = versioned(committedEmbedded, 63)
         try! staleFallback.write(to: root.appendingPathComponent("fallback-race.json"), options: .atomic)

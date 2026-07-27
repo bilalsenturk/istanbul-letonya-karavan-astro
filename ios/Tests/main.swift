@@ -145,6 +145,58 @@ let scopedEdit = DayEdit(
 let scopedEditRoundTrip = try! JSONDecoder().decode(DayEdit.self, from: JSONEncoder().encode(scopedEdit))
 check("kalıcı gün düzenlemesi rota gün kullanıcı kapsamını JSON turunda korur",
       scopedEditRoundTrip.arrivalTargetScope == selectionScope)
+var scopedOverrides = ScopedArrivalTargetOverrides()
+scopedOverrides.set(persistedSelection)
+let scopedOverridesRoundTrip = try! JSONDecoder().decode(
+    ScopedArrivalTargetOverrides.self,
+    from: JSONEncoder().encode(scopedOverrides)
+)
+check("özel seçim ayrı depoda uygulama yeniden açıldığında korunur",
+      scopedOverridesRoundTrip.value(for: selectionScope)?.target.id == "local-selection")
+check("özel seçim yalnız tam rota gün kullanıcı anahtarıyla okunur",
+      scopedOverridesRoundTrip.value(
+        for: ArrivalTargetOverrideScope(
+            tripID: "trip-a", daySlug: "istanbul-sofya", userID: "user-b"
+        )
+      ) == nil)
+var clearedOverrides = scopedOverridesRoundTrip
+clearedOverrides.remove(scope: ArrivalTargetOverrideScope(
+    tripID: "trip-a", daySlug: "istanbul-sofya", userID: "user-b"
+))
+check("başka hesabın başarılı yanıtı bekleyen seçimi temizlemez",
+      clearedOverrides.value(for: selectionScope)?.target.id == "local-selection")
+clearedOverrides.remove(scope: selectionScope)
+check("yalnız eşleşen başarılı yanıt bekleyen seçimi temizler",
+      clearedOverrides.value(for: selectionScope) == nil)
+let sharedScopedEdits = TripEdits(days: [
+    selectionScope.daySlug: DayEdit(
+        note: "paylaşılan not",
+        arrivalTarget: localSelection.publicSummary,
+        stayDetails: StayDetails(estimatedArrival: "18:00"),
+        arrivalTargetScope: selectionScope
+    )
+]).sharedSyncState
+check("ortak senkron tabanı özel hedef ve kapsamı taşımaz",
+      sharedScopedEdits.days[selectionScope.daySlug]?.arrivalTarget == nil
+        && sharedScopedEdits.days[selectionScope.daySlug]?.stayDetails == nil
+        && sharedScopedEdits.days[selectionScope.daySlug]?.arrivalTargetScope == nil
+        && sharedScopedEdits.days[selectionScope.daySlug]?.note == "paylaşılan not")
+var scopedPlannerEdits = TripEdits()
+scopedPlannerEdits.days[selectionScope.daySlug] = scopedEdit
+let scopedEffectiveDay = TripPlanner.days(trip: trip, edits: scopedPlannerEdits)
+    .first { $0.id == selectionScope.daySlug }!
+check("kapsam doğrulanmadan özel hedef etkin plana sızmaz",
+      scopedEffectiveDay.arrivalTarget?.id != "local-selection")
+check("kapsam doğrulanmadan özel konaklama etkin plana sızmaz",
+      scopedEffectiveDay.stayDetails.estimatedArrival == nil)
+check("başarılı yanıttan sonra hesap hedefi tabanın önünde görünür",
+      ArrivalTargetSelectionResolver.target(
+        scope: selectionScope,
+        ephemeral: nil,
+        persisted: nil,
+        account: accountSelection,
+        base: baseSelection
+      )?.id == "account-selection")
 let legacyDay = try! JSONDecoder().decode(DayPlan.self, from: Data(#"{"slug":"old","date":"3 Ağustos","origin":"İstanbul","destination":"Sofya","distanceKm":"1 km","duration":"1 dk","fuel":"€1","risks":[],"opportunities":[],"contingencies":[],"camp":{"name":"Kamp","place":"Sofya","note":"","link":""},"stops":[{"type":"Mola","name":"Eski mola"}]}"#.utf8))
 check("eski gün JSON'u ETA alanları olmadan açılır",
       legacyDay.borderBufferMinutes == nil && legacyDay.waypoints?.first?.estimatedMinutes == nil)

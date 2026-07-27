@@ -68,10 +68,27 @@ struct ArrivalTargetOverrideScope: Codable, Equatable, Hashable {
     let userID: String?
 }
 
-struct ScopedArrivalTargetOverride: Equatable {
+struct ScopedArrivalTargetOverride: Codable, Equatable {
     let scope: ArrivalTargetOverrideScope
     let target: ArrivalTarget
     let stay: StayDetails
+}
+
+struct ScopedArrivalTargetOverrides: Codable, Equatable {
+    private var values: [ScopedArrivalTargetOverride] = []
+
+    func value(for scope: ArrivalTargetOverrideScope) -> ScopedArrivalTargetOverride? {
+        values.first { $0.scope == scope }
+    }
+
+    mutating func set(_ value: ScopedArrivalTargetOverride) {
+        values.removeAll { $0.scope == value.scope }
+        values.append(value)
+    }
+
+    mutating func remove(scope: ArrivalTargetOverrideScope) {
+        values.removeAll { $0.scope == scope }
+    }
 }
 
 enum ArrivalTargetSelectionResolver {
@@ -131,6 +148,22 @@ struct DayEdit: Codable, Equatable {
 struct TripEdits: Codable, Equatable {
     var departureAt: Date?              // kalkış tarihi/saati (nil → web verisi)
     var days: [String: DayEdit] = [:]   // slug → düzenleme
+
+    var sharedSyncState: TripEdits {
+        var shared = self
+        for (slug, edit) in shared.days where edit.arrivalTargetScope != nil {
+            var safe = edit
+            safe.arrivalTarget = nil
+            safe.stayDetails = nil
+            safe.arrivalTargetScope = nil
+            if safe.isEmpty {
+                shared.days.removeValue(forKey: slug)
+            } else {
+                shared.days[slug] = safe
+            }
+        }
+        return shared
+    }
 }
 
 // Web verisi + kullanıcı düzenlemeleri birleşiminden türetilen tek gerçek gün.
@@ -156,8 +189,14 @@ struct EffectiveDay: Identifiable {
     var fuel: String { edit?.fuel ?? base.fuel }
     var campName: String { edit?.campName ?? base.camp.name }
     var campPlace: String { edit?.campPlace ?? base.camp.place }
-    var arrivalTarget: ArrivalTarget? { edit?.arrivalTarget }
-    var stayDetails: StayDetails { edit?.stayDetails ?? StayDetails() }
+    var arrivalTarget: ArrivalTarget? {
+        guard edit?.arrivalTargetScope == nil else { return nil }
+        return edit?.arrivalTarget
+    }
+    var stayDetails: StayDetails {
+        guard edit?.arrivalTargetScope == nil else { return StayDetails() }
+        return edit?.stayDetails ?? StayDetails()
+    }
     var note: String? { edit?.note?.isEmpty == false ? edit?.note : nil }
     var subplans: [DaySubplan] { edit?.subplans ?? [] }
     var isRestDay: Bool { edit?.isRestDay ?? (origin == destination) }

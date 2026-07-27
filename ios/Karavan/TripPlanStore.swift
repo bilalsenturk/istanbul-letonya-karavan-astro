@@ -33,6 +33,7 @@ final class TripPlanStore: ObservableObject {
     /// Son senkron/gönderim anındaki düzenlemeler: 3-yönlü birleştirmede
     /// "bu cihazda ne değişti" tabanı. Diske yazılır (yeniden başlatmada da geçerli).
     private var syncBase = TripEdits()
+    private var arrivalTargetOverrides = ScopedArrivalTargetOverrides()
 
     private var fileURL: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -42,6 +43,11 @@ final class TripPlanStore: ObservableObject {
     private var baseFileURL: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("trip-edits-sync-base.json")
+    }
+
+    private var arrivalTargetOverridesFileURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("arrival-target-overrides.json")
     }
 
     init() {
@@ -54,6 +60,11 @@ final class TripPlanStore: ObservableObject {
            let decoded = try? JSONDecoder().decode(TripEdits.self, from: data) {
             syncBase = decoded
         }
+        if let data = try? Data(contentsOf: arrivalTargetOverridesFileURL),
+           let decoded = try? JSONDecoder().decode(ScopedArrivalTargetOverrides.self, from: data) {
+            arrivalTargetOverrides = decoded
+        }
+        migrateScopedArrivalTargetEdits()
     }
 
     // MARK: - Cihazlar arası senkron
@@ -69,8 +80,13 @@ final class TripPlanStore: ObservableObject {
 
         guard let remote = await Self.fetchRemote(url: url) else { return }
         lastSyncedAt = Date()
-        let merged = merge(local: edits, base: syncBase, remote: remote)
-        syncBase = remote
+        let sharedRemote = remote.sharedSyncState
+        let merged = merge(
+            local: edits.sharedSyncState,
+            base: syncBase.sharedSyncState,
+            remote: sharedRemote
+        )
+        syncBase = sharedRemote
         persistBase()
 
         if merged != edits {
@@ -80,7 +96,7 @@ final class TripPlanStore: ObservableObject {
             objectWillChange.send()
         }
         // Yerel değişiklikler uzaktakinde yoksa birleşik hâli geri gönder.
-        if merged != remote { enqueue(merged, url: url) }
+        if merged != sharedRemote { enqueue(merged, url: url) }
     }
 
     /// Düzenlemeleri web'e yazar. Gün düzenlemelerini HER cihaz gönderebilir;
@@ -91,9 +107,13 @@ final class TripPlanStore: ObservableObject {
     private func pushToWeb() {
         guard let url = Config.editsURL else { return }
         Task {
-            var outgoing = edits
+            var outgoing = edits.sharedSyncState
             if let remote = await Self.fetchRemote(url: url) {
-                outgoing = merge(local: edits, base: syncBase, remote: remote)
+                outgoing = merge(
+                    local: edits.sharedSyncState,
+                    base: syncBase.sharedSyncState,
+                    remote: remote.sharedSyncState
+                )
                 if outgoing != edits {
                     edits = outgoing
                     persist()
@@ -142,9 +162,10 @@ final class TripPlanStore: ObservableObject {
     /// GÖNDERİLMEZ: takipçi kalkışı asla taşıyamaz (sunucu eksik anahtarı
     /// "mevcudu koru" sayar — bkz. src/pages/api/edits.ts).
     private func enqueue(_ outgoing: TripEdits, url: URL) {
-        var payload: [String: Any] = ["days": Self.encodeDays(outgoing.days)]
+        let sharedOutgoing = outgoing.sharedSyncState
+        var payload: [String: Any] = ["days": Self.encodeDays(sharedOutgoing.days)]
         if canMoveDeparture {
-            if let dep = outgoing.departureAt {
+            if let dep = sharedOutgoing.departureAt {
                 payload["departureAt"] = ISO8601DateFormatter().string(from: dep)
             } else {
                 payload["departureAt"] = NSNull()
@@ -154,7 +175,7 @@ final class TripPlanStore: ObservableObject {
 
         let signature = String(data: body, encoding: .utf8) ?? ""
         PublishOutbox.shared.enqueue(key: "edits", url: url, body: body, signature: signature)
-        syncBase = outgoing
+        syncBase = sharedOutgoing
         persistBase()
     }
 
@@ -217,15 +238,8 @@ final class TripPlanStore: ObservableObject {
         slug: String,
         scope: ArrivalTargetOverrideScope
     ) -> ScopedArrivalTargetOverride? {
-        guard let edit = edits.days[slug],
-              edit.arrivalTargetScope == scope,
-              let target = edit.arrivalTarget
-        else { return nil }
-        return ScopedArrivalTargetOverride(
-            scope: scope,
-            target: target,
-            stay: edit.stayDetails ?? StayDetails()
-        )
+        guard scope.daySlug == slug else { return nil }
+        return arrivalTargetOverrides.value(for: scope)
     }
 
     // MARK: - Düzenleme
@@ -253,24 +267,27 @@ final class TripPlanStore: ObservableObject {
         slug: String,
         scope: ArrivalTargetOverrideScope
     ) {
-        update(slug: slug) { edit in
-            edit.arrivalTarget = target.publicSummary
-            var safeStay = stay
-            safeStay.reservationReference = nil
-            safeStay.note = nil
-            safeStay.lastContactedAt = nil
-            edit.stayDetails = safeStay
-            edit.arrivalTargetScope = scope
-        }
+        guard scope.daySlug == slug else { return }
+        var safeStay = stay
+        safeStay.reservationReference = nil
+        safeStay.note = nil
+        safeStay.lastContactedAt = nil
+        arrivalTargetOverrides.set(ScopedArrivalTargetOverride(
+            scope: scope,
+            target: target.publicSummary,
+            stay: safeStay
+        ))
+        persistArrivalTargetOverrides()
+        objectWillChange.send()
     }
 
     func clearArrivalTargetOverride(slug: String, scope: ArrivalTargetOverrideScope) {
-        guard edits.days[slug]?.arrivalTargetScope == scope else { return }
-        update(slug: slug) { edit in
-            edit.arrivalTarget = nil
-            edit.stayDetails = nil
-            edit.arrivalTargetScope = nil
-        }
+        guard scope.daySlug == slug,
+              arrivalTargetOverrides.value(for: scope) != nil
+        else { return }
+        arrivalTargetOverrides.remove(scope: scope)
+        persistArrivalTargetOverrides()
+        objectWillChange.send()
     }
 
     func upsertSubplan(_ subplan: DaySubplan, slug: String) {
@@ -326,6 +343,41 @@ final class TripPlanStore: ObservableObject {
     private func persistBase() {
         if let data = try? JSONEncoder().encode(syncBase) {
             try? data.write(to: baseFileURL, options: .atomic)
+        }
+    }
+
+    private func persistArrivalTargetOverrides() {
+        if let data = try? JSONEncoder().encode(arrivalTargetOverrides) {
+            try? data.write(to: arrivalTargetOverridesFileURL, options: .atomic)
+        }
+    }
+
+    private func migrateScopedArrivalTargetEdits() {
+        var migrated = false
+        for (slug, edit) in edits.days where edit.arrivalTargetScope != nil {
+            if let scope = edit.arrivalTargetScope,
+               scope.daySlug == slug,
+               let target = edit.arrivalTarget {
+                arrivalTargetOverrides.set(ScopedArrivalTargetOverride(
+                    scope: scope,
+                    target: target.publicSummary,
+                    stay: edit.stayDetails ?? StayDetails()
+                ))
+            }
+            migrated = true
+        }
+        let sharedEdits = edits.sharedSyncState
+        let sharedBase = syncBase.sharedSyncState
+        if sharedEdits != edits {
+            edits = sharedEdits
+            persist()
+        }
+        if sharedBase != syncBase {
+            syncBase = sharedBase
+            persistBase()
+        }
+        if migrated {
+            persistArrivalTargetOverrides()
         }
     }
 }
