@@ -1,3 +1,4 @@
+import MapKit
 import SwiftUI
 
 struct DayDetailView: View {
@@ -13,12 +14,16 @@ struct DayDetailView: View {
     @EnvironmentObject var routeSession: RouteSession
     @EnvironmentObject private var account: AccountSessionStore
     @EnvironmentObject private var workspace: TripWorkspaceStore
+    @EnvironmentObject private var travelContent: TravelContentStore
     @Environment(\.openURL) private var openURL
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var showEdit = false
     @State private var showTargetPicker = false
     @State private var showTargetEditor = false
+    @State private var showAddSubplan = false
     @State private var targetError: String?
+    @State private var contactCamp: CuratedCamp?
+    @State private var pendingCampSelection: CuratedCamp?
 
     /// Türetilmiş gün (kullanıcı düzenlemeleri + hesaplanmış tarih).
     private var eff: EffectiveDay? {
@@ -48,6 +53,10 @@ struct DayDetailView: View {
         return routeStore.legInfo(legIndex)
     }
 
+    private var destinationContent: TravelDestinationContent? {
+        travelContent.content(for: eff?.destination ?? day.destination)
+    }
+
     var body: some View {
         let e = eff
         let isRest = e?.isRestDay ?? day.isRestDay
@@ -59,14 +68,6 @@ struct DayDetailView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    // En üstte: hedef şehrin kaydırmalı foto galerisi (açıklamalı).
-                    let galleryPhotos = gallery.photos(forDestination: destination)
-                    if galleryPhotos.isEmpty {
-                        CampImage(path: day.camp.image, height: 200)
-                    } else {
-                        DayGalleryView(photos: galleryPhotos)
-                    }
-
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 8) {
                             MonoLabel(text: "\(index + 1). gün · \(e?.dateText ?? day.date)", color: Theme.c1)
@@ -80,7 +81,7 @@ struct DayDetailView: View {
                             Spacer()
                         }
                         Text(isRest ? "\(origin)\nDinlenme günü" : "\(origin) →\n\(destination)")
-                            .font(.system(size: 32, weight: .heavy, design: .rounded))
+                            .font(.system(size: 28, weight: .heavy, design: .rounded))
                             .foregroundStyle(Theme.text)
                     }
 
@@ -96,29 +97,32 @@ struct DayDetailView: View {
                         .background(Theme.c1.opacity(0.10), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
                     }
 
-                    if !isRest {
-                        HStack(spacing: 8) {
-                            chip("road.lanes", e?.distanceKm ?? day.distanceKm)
-                            chip("clock.fill", e?.duration ?? day.duration)
-                        }
-                        chip("fuelpump.fill", e?.fuel ?? day.fuel)
+                    arrivalTargetSection(isRest: isRest)
+                    communicationStateSection
 
+                    if let content = destinationContent {
+                        NearbyCampSection(
+                            camps: content.camps,
+                            cityCenter: content.cityCenter ?? destinationGeoPoint,
+                            selectedTargetID: exactTarget?.id,
+                            onOpenMaps: { openMap(name: $0.name, location: $0.location, directions: false) },
+                            onContact: { contactCamp = $0 },
+                            onSelect: { pendingCampSelection = $0 }
+                        )
+                        NearbyAttractionSection(
+                            attractions: content.attractions,
+                            referenceLocation: selectedStayLocation ?? content.camps.first?.location,
+                            onOpenMaps: { openMap(name: $0.name, location: $0.location, directions: true) }
+                        )
                     }
 
-                    arrivalTargetSection(isRest: isRest)
+                    waypointsSection
+                    subplansSection
 
                     if let targetError {
                         Text(targetError).font(.footnote).foregroundStyle(Theme.warn)
                     }
 
-                    waypointsSection
-                    camerasSection
-
-                    section("Sorun senaryoları", items: day.risks, tint: Theme.bad)
-                    section("Fırsatlar", items: day.opportunities, tint: Theme.ok)
-                    section("Yedek plan", items: day.contingencies, tint: Theme.warn)
-
-                    alternativesSection
                 }
                 .padding(18)
                 .frame(maxWidth: Adaptive.contentWidth(sizeClass))
@@ -162,7 +166,7 @@ struct DayDetailView: View {
                             .signedOutProfile(vehicleSeed: workspace.selectedTrip?.kind == .kuzey2026 ? TravelProfileVehicleSeed.kuzey : nil)
                         : nil,
                     transportMode: workspace.selectedTrip?.transportMode ?? .automobile,
-                    camp: day.camp.maximumLengthMeters.map(StayCamp.init),
+                    camp: (exactTarget?.maximumLengthMeters ?? day.camp.maximumLengthMeters).map(StayCamp.init),
                     automaticETA: defaultStay.estimatedArrivalWindow,
                     vehicleSeed: workspace.selectedTrip?.kind == .kuzey2026 ? TravelProfileVehicleSeed.kuzey : nil
                 ) { target, stay in
@@ -170,11 +174,112 @@ struct DayDetailView: View {
                 }
             }
         }
+        .sheet(item: $contactCamp) { camp in
+            ArrivalTargetEditorView(
+                target: arrivalTarget(for: camp),
+                stay: derivedStay(from: exactStay),
+                routeId: workspace.selectedTrip?.id ?? "kuzey-local",
+                profile: account.user?.travelProfile,
+                signedOutProfile: account.user == nil
+                    ? StayContactProfileStore(routeId: workspace.selectedTrip?.id ?? "kuzey-local")
+                        .signedOutProfile(vehicleSeed: workspace.selectedTrip?.kind == .kuzey2026 ? TravelProfileVehicleSeed.kuzey : nil)
+                    : nil,
+                transportMode: workspace.selectedTrip?.transportMode ?? .automobile,
+                camp: camp.maximumLengthMeters.map(StayCamp.init),
+                automaticETA: defaultStay.estimatedArrivalWindow,
+                vehicleSeed: workspace.selectedTrip?.kind == .kuzey2026 ? TravelProfileVehicleSeed.kuzey : nil
+            ) { target, stay in
+                saveTarget(target, stay: stay)
+            }
+        }
+        .alert(
+            "Bu kampı varış yeri seç?",
+            isPresented: Binding(
+                get: { pendingCampSelection != nil },
+                set: { if !$0 { pendingCampSelection = nil } }
+            ),
+            presenting: pendingCampSelection
+        ) { camp in
+            Button("\(camp.name) kampını seç") {
+                saveTarget(arrivalTarget(for: camp), stay: derivedStay(from: exactStay))
+                pendingCampSelection = nil
+            }
+            Button("Vazgeç", role: .cancel) { pendingCampSelection = nil }
+        } message: { camp in
+            Text(selectionSummary(for: camp))
+        }
+        .fullScreenCover(isPresented: $showAddSubplan) {
+            AddSubplanFlowView(daySlug: day.slug)
+        }
         // Web senkronu günü kaldırırsa (eff → nil) açık sheet boş kalırdı — kapat.
         .onChange(of: eff == nil) { _, gone in
             if gone { showEdit = false }
         }
         .preferredColorScheme(.dark)
+    }
+
+    private var subplansSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Alt planlar")
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.text)
+                Spacer()
+                Button { showAddSubplan = true } label: {
+                    Image(systemName: "plus")
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.bordered)
+                .accessibilityLabel("Alt plan ekle")
+            }
+
+            if let items = eff?.subplans, !items.isEmpty {
+                VStack(spacing: 0) {
+                    ForEach(items) { item in
+                        NavigationLink {
+                            SubplanDetailView(daySlug: day.slug, subplan: item)
+                        } label: {
+                            SubplanCompactRow(subplan: item)
+                        }
+                        .buttonStyle(.plain)
+                        if item.id != items.last?.id {
+                            Divider().overlay(Theme.line).padding(.leading, 48)
+                        }
+                    }
+                }
+                .background(Theme.panel, in: RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Theme.line))
+            }
+        }
+    }
+
+    private var communicationStateSection: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            MonoLabel(text: "İletişim durumu", color: Theme.c4)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: "message.badge")
+                    .foregroundStyle(Theme.c4)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(exactStay.reservationStatus.title)
+                        .font(.headline)
+                        .foregroundStyle(Theme.text)
+                    Text("Bu durum senin kaydındır; teslimatı, rezervasyonu veya karşı tarafın yanıtını doğrulamaz.")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.muted)
+                }
+                Spacer(minLength: 0)
+            }
+            if exactTarget != nil {
+                Button {
+                    showTargetEditor = true
+                } label: {
+                    Label("İletişim ve konaklama ayrıntıları", systemImage: "square.and.pencil")
+                }
+                .buttonStyle(.bordered)
+                .accessibilityHint("Hazır mesajı, iletişim kanallarını ve elle tutulan durumu açar")
+            }
+        }
+        .card()
     }
 
     private func routeActionText(_ state: RouteStepState) -> String {
@@ -291,6 +396,56 @@ struct DayDetailView: View {
             } catch {
                 targetError = "Varış yeri cihazda kaydedildi ancak üyelerle eşitlenemedi: \(error.localizedDescription)"
             }
+        }
+    }
+
+    private var destinationGeoPoint: GeoPoint? {
+        guard let coordinate = destinationStop?.coordinate else { return nil }
+        return GeoPoint(latitude: coordinate.latitude, longitude: coordinate.longitude)
+    }
+
+    private var selectedStayLocation: GeoPoint? {
+        guard let target = exactTarget, target.hasValidCoordinate else { return nil }
+        return GeoPoint(latitude: target.latitude, longitude: target.longitude)
+    }
+
+    private func arrivalTarget(for camp: CuratedCamp) -> ArrivalTarget {
+        ArrivalTarget(
+            id: "curated-camp:\(camp.id)",
+            name: camp.name,
+            kind: camp.supportsCaravan ? .campground : .caravanPark,
+            latitude: camp.location.latitude,
+            longitude: camp.location.longitude,
+            formattedAddress: camp.address,
+            phone: camp.phone,
+            whatsAppPhone: camp.phone,
+            email: camp.email,
+            websiteURL: camp.websiteURL,
+            maximumLengthMeters: camp.maximumLengthMeters,
+            source: .user
+        )
+    }
+
+    private func selectionSummary(for camp: CuratedCamp) -> String {
+        var changes = ["Varış: \(camp.name)"]
+        if let phone = camp.phone { changes.append("Telefon: \(phone)") }
+        if let email = camp.email { changes.append("E-posta: \(email)") }
+        if let maximum = camp.maximumLengthMeters {
+            changes.append("Uzunluk sınırı: \(maximum.formatted(.number.precision(.fractionLength(0...1)))) m")
+        }
+        return changes.joined(separator: "\n")
+    }
+
+    private func openMap(name: String, location: GeoPoint, directions: Bool) {
+        let item = MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(
+            latitude: location.latitude,
+            longitude: location.longitude
+        )))
+        item.name = name
+        if directions {
+            item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
+        } else {
+            item.openInMaps()
         }
     }
 

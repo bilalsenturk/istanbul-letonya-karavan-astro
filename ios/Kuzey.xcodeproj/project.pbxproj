@@ -21,6 +21,7 @@
 		2130C966D5FCAFA0967C5F6E /* LatvianLearningAudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F19E1ECFBF25163C68CD2418 /* LatvianLearningAudioPlayer.swift */; };
 		22A19743A1935E2794049F5E /* LatvianLearningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5812269C44F69EBD88B82194 /* LatvianLearningView.swift */; };
 		22D96D78997EF1373A786A00 /* LatvianGrader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67367AF55B30AAC1CE748427 /* LatvianGrader.swift */; };
+		27A673718D6E3BC46735200E /* NearbyTravelSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = D374371A328544BA4E8295D1 /* NearbyTravelSections.swift */; };
 		27D303E4234299F590A82DC4 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D158F3DF63E4C9036FB22C7 /* Config.swift */; };
 		285679F12AFA8F6E889BE911 /* lv-streak.wav in Resources */ = {isa = PBXBuildFile; fileRef = D3276F3D23A709BB108E3A4C /* lv-streak.wav */; };
 		2BDE8F65A582F4E7E7245FA1 /* NotificationBudget.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9EC5D3FE46DF622AC25DD1 /* NotificationBudget.swift */; };
@@ -80,6 +81,7 @@
 		91A7A4AF00849EC63ACF1005 /* RouteDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 951D0A85ADCE46B95E28C1FF /* RouteDraft.swift */; };
 		97E4A7C1666A8B3E0DB1F8F3 /* AccountPreviewFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82F38AF9528057CFB313385F /* AccountPreviewFixtures.swift */; };
 		98203BBB392444D23B4B8A7D /* lv-a0-phoneme-long-a.wav in Resources */ = {isa = PBXBuildFile; fileRef = 60381A80163D3A30637AF850 /* lv-a0-phoneme-long-a.wav */; };
+		9952626709FCF1CC394E843F /* travel-content.json in Resources */ = {isa = PBXBuildFile; fileRef = 819AB5D14C463B536FAE8B15 /* travel-content.json */; };
 		99F5012B3D2DA7222B949BC2 /* JournalPhotoPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E826910845682027B3A136D /* JournalPhotoPicker.swift */; };
 		9D272A9C456DA5941DE1E972 /* lv-a0-speak-labdien.wav in Resources */ = {isa = PBXBuildFile; fileRef = 3D9F3A0BB3C15CC80EAAB4C3 /* lv-a0-speak-labdien.wav */; };
 		9D2EE3E601345925BDEA151D /* PublishOutbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D37D4838C53B2F0A2D94B66 /* PublishOutbox.swift */; };
@@ -134,6 +136,7 @@
 		EF3F584FDB22426380668F50 /* MapScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86097054B82CA8512E4AA874 /* MapScreen.swift */; };
 		F141E4DDF91017C2B4BE29E0 /* TripActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD2D245D3ADDC9A38B3E287 /* TripActivityAttributes.swift */; };
 		F2B564D69F4210E1706BD4D0 /* JourneyMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7E574F9940C5A4DDA5BE464 /* JourneyMenuView.swift */; };
+		F2CD340AB8260F2899D0A188 /* TravelContentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1D4DFC09D7DE7C3D482F5B /* TravelContentStore.swift */; };
 		F3FF95676307867E576FCA49 /* NotificationRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB162821D5118BBCDA717991 /* NotificationRules.swift */; };
 		F9AC44806989F94432E793EB /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28813A01A61F007F63AFB19A /* UpdateChecker.swift */; };
 		FA3A58E4C230882AAD9F18EB /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DC95431B932CB4DFD5412C9 /* Notifications.swift */; };
@@ -244,6 +247,7 @@
 		7CE18DB1B8C9E34F0F54CFF1 /* LatvianFSRSAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianFSRSAdapter.swift; sourceTree = "<group>"; };
 		7F985E8F1101B1BF5AACB057 /* LatvianPack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianPack.swift; sourceTree = "<group>"; };
 		805F78AAB9DA84F69009C2E2 /* AltimeterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AltimeterService.swift; sourceTree = "<group>"; };
+		819AB5D14C463B536FAE8B15 /* travel-content.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "travel-content.json"; sourceTree = "<group>"; };
 		81CE9A05E62626B4DCFCFF0D /* JournalStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalStore.swift; sourceTree = "<group>"; };
 		82F38AF9528057CFB313385F /* AccountPreviewFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountPreviewFixtures.swift; sourceTree = "<group>"; };
 		854400F42C0A6BF3D1C19B27 /* trip.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = trip.json; sourceTree = "<group>"; };
@@ -261,6 +265,7 @@
 		96EB120F6B3CEED16E316CB7 /* ArrivalTargetCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrivalTargetCard.swift; sourceTree = "<group>"; };
 		977364A8D7BA4B4AA6BF8534 /* LatvianExerciseFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianExerciseFactory.swift; sourceTree = "<group>"; };
 		9AEF46AA6EEEAA6BB1DFD19E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		9B1D4DFC09D7DE7C3D482F5B /* TravelContentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelContentStore.swift; sourceTree = "<group>"; };
 		9EB765A0FAD14A446314722A /* lv-complete.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "lv-complete.wav"; sourceTree = "<group>"; };
 		9F5C959C02D3AEB61D35B2E4 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		AA9EC5D3FE46DF622AC25DD1 /* NotificationBudget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationBudget.swift; sourceTree = "<group>"; };
@@ -283,6 +288,7 @@
 		D15A7CA5BF2EB50B47129E9B /* JournalComposeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalComposeView.swift; sourceTree = "<group>"; };
 		D3276F3D23A709BB108E3A4C /* lv-streak.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "lv-streak.wav"; sourceTree = "<group>"; };
 		D3638EB3FFB78BC53DDEDF21 /* TravelProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelProfileView.swift; sourceTree = "<group>"; };
+		D374371A328544BA4E8295D1 /* NearbyTravelSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyTravelSections.swift; sourceTree = "<group>"; };
 		D7E574F9940C5A4DDA5BE464 /* JourneyMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyMenuView.swift; sourceTree = "<group>"; };
 		DB162821D5118BBCDA717991 /* NotificationRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationRules.swift; sourceTree = "<group>"; };
 		DC44A961C70396158E35B2A1 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -400,6 +406,7 @@
 				5F74EC0068F98CB8265C4B89 /* StayContactProfileStore.swift */,
 				00954AF5EE56487B60F675E1 /* Theme.swift */,
 				00036B17DE4FEA80F2A12ACA /* TravelContent.swift */,
+				9B1D4DFC09D7DE7C3D482F5B /* TravelContentStore.swift */,
 				B4035201F31588EB77A1717A /* TripPlanner.swift */,
 				48245403E32764040394E43C /* TripPlanStore.swift */,
 				5CFA86E52D515272F7F13F10 /* TripStore.swift */,
@@ -451,6 +458,7 @@
 				370CBB45D2A76FE6AC6681D0 /* ExpensesView.swift */,
 				8C443FE724E722869D208BAC /* LiveLocationCard.swift */,
 				86097054B82CA8512E4AA874 /* MapScreen.swift */,
+				D374371A328544BA4E8295D1 /* NearbyTravelSections.swift */,
 				4CC66F61F5A93C2097EF6381 /* PlanScreen.swift */,
 				BC2167794D2466CE9840E18E /* RoadFeedCard.swift */,
 				8B4128827CE9CD4E8B042A1C /* StayContactComposer.swift */,
@@ -492,6 +500,7 @@
 				E37D025A8C64E0D219CF91D5 /* lv-a0-listen-sveiki.wav */,
 				60381A80163D3A30637AF850 /* lv-a0-phoneme-long-a.wav */,
 				3D9F3A0BB3C15CC80EAAB4C3 /* lv-a0-speak-labdien.wav */,
+				819AB5D14C463B536FAE8B15 /* travel-content.json */,
 				854400F42C0A6BF3D1C19B27 /* trip.json */,
 				2772527F27CFF162F11FCE0A /* Sounds */,
 			);
@@ -697,6 +706,7 @@
 				70D6A9F7D0AFC7A88DCB6820 /* lv-tap.wav in Resources */,
 				70B86A0823739FECBC7FD816 /* lv-wrong.wav in Resources */,
 				DE99B75699F908E19AA1DAA3 /* lv-xp.wav in Resources */,
+				9952626709FCF1CC394E843F /* travel-content.json in Resources */,
 				D639120DCFB9ED1C9D94A027 /* trip.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -785,6 +795,7 @@
 				ADA7F1305B6AE1417A407E29 /* MusicView.swift in Sources */,
 				B47A0043B3BC95932E1E9FF4 /* NavProgressStore.swift in Sources */,
 				3B014CAF3ED8C77379FD5729 /* Navigation.swift in Sources */,
+				27A673718D6E3BC46735200E /* NearbyTravelSections.swift in Sources */,
 				2BDE8F65A582F4E7E7245FA1 /* NotificationBudget.swift in Sources */,
 				F3FF95676307867E576FCA49 /* NotificationRules.swift in Sources */,
 				FA3A58E4C230882AAD9F18EB /* Notifications.swift in Sources */,
@@ -815,6 +826,7 @@
 				FAD7DD8D7AC36626072723B3 /* Theme.swift in Sources */,
 				7E537C5724BCAD205276581C /* ToolsView.swift in Sources */,
 				E1081AE615EDA9FEE361CDEA /* TravelContent.swift in Sources */,
+				F2CD340AB8260F2899D0A188 /* TravelContentStore.swift in Sources */,
 				5B490ACD26DF99EB4BFB5647 /* TravelProfileView.swift in Sources */,
 				F141E4DDF91017C2B4BE29E0 /* TripActivityAttributes.swift in Sources */,
 				A59FFDEF88DDBE3125C26C1A /* TripNotifier.swift in Sources */,

@@ -14,6 +14,10 @@ struct KaravanApp: App {
     @StateObject private var gallery = GalleryStore()
     @StateObject private var roadFeed = RoadFeedService()
     @StateObject private var journal = JournalStore()
+    @StateObject private var travelContent = TravelContentStore(
+        remoteURL: (Config.imageBaseURL ?? URL(string: "https://istanbul-letonya-karavan-astro.vercel.app")!)
+            .appendingPathComponent("assets/travel-content.json")
+    )
     @ObservedObject private var departurePrompt = DeparturePrompt.shared
     @Environment(\.scenePhase) private var scenePhase
 
@@ -40,6 +44,7 @@ struct KaravanApp: App {
                 .environmentObject(gallery)
                 .environmentObject(roadFeed)
                 .environmentObject(journal)
+                .environmentObject(travelContent)
                 .preferredColorScheme(.dark)
                 // Kalkış saati gelince ekrana düşen modal (kullanıcı isteği).
                 .sheet(item: $departurePrompt.pendingStop) { stop in
@@ -60,6 +65,7 @@ struct KaravanApp: App {
                                                nextStop: navProgress.nextStop)
                 }
                 .task {
+                    let contentLoad = Task { await travelContent.loadIfNeeded() }
                     await NotificationManager.shared.requestAuthorization()
                     weather.notifier = NotificationManager.shared
                     locationManager.nav = navProgress
@@ -90,6 +96,7 @@ struct KaravanApp: App {
                     NotificationManager.shared.scheduleDailyJournalReminder()
                     NotificationManager.shared.scheduleDailySummary()
                     BackgroundWeather.schedule()
+                    await contentLoad.value
                 }
                 .onChange(of: store.lastRefreshed) { _, _ in
                     applyPlanCascade()   // uzak veri geldi → takvimi yeniden yayınla

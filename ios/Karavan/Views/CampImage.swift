@@ -7,10 +7,11 @@ struct CampImage: View {
     var height: CGFloat = 190
     var width: CGFloat? = nil  // nil → tüm genişliği kaplar
     var cornerRadius: CGFloat = 18
+    var symbol = "tent.fill"
+    var accessibilityLabel = "Kamp görseli"
 
     private var url: URL? {
-        guard let path, !path.isEmpty else { return nil }
-        return URL(string: path, relativeTo: Config.imageBaseURL)
+        Self.resolve(path: path, relativeTo: Config.imageBaseURL)
     }
 
     var body: some View {
@@ -32,15 +33,27 @@ struct CampImage: View {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .strokeBorder(Theme.line, lineWidth: 1)
         )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
     }
 
     private var placeholder: some View {
         ZStack {
             Theme.gradWarm.opacity(0.5)
-            Image(systemName: "tent.fill")
+            Image(systemName: symbol)
                 .font(.system(size: min(height * 0.32, 34), weight: .semibold))
                 .foregroundStyle(.white.opacity(0.85))
         }
+    }
+
+    static func resolve(path: String?, relativeTo baseURL: URL?) -> URL? {
+        guard let value = path?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
+        if let absolute = URL(string: value), let scheme = absolute.scheme {
+            guard scheme == "https" || scheme == "http" else { return nil }
+            return absolute
+        }
+        guard let baseURL, ["https", "http"].contains(baseURL.scheme?.lowercased() ?? "") else { return nil }
+        return URL(string: value, relativeTo: baseURL)?.absoluteURL
     }
 }
 

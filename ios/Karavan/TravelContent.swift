@@ -61,6 +61,35 @@ struct TravelMedia: Codable, Hashable {
     let url: URL
     let credit: String
     let license: String
+    let role: String?
+    let depictsCampground: Bool?
+    let alt: String?
+    let disclosure: String?
+    let source: TravelMediaSource?
+
+    init(
+        url: URL,
+        credit: String,
+        license: String,
+        role: String? = nil,
+        depictsCampground: Bool? = nil,
+        alt: String? = nil,
+        disclosure: String? = nil,
+        source: TravelMediaSource? = nil
+    ) {
+        self.url = url
+        self.credit = credit
+        self.license = license
+        self.role = role
+        self.depictsCampground = depictsCampground
+        self.alt = alt
+        self.disclosure = disclosure
+        self.source = source
+    }
+}
+
+struct TravelMediaSource: Codable, Hashable {
+    let url: URL
 }
 
 struct TravelSource: Codable, Hashable {
@@ -234,9 +263,24 @@ struct NearbyAttraction: Codable, Identifiable, Hashable {
 
 struct TravelDestinationContent: Codable, Hashable {
     let cityName: String
+    let cityCenter: GeoPoint?
     let policy: CampDistancePolicy
     let camps: [CuratedCamp]
     let attractions: [NearbyAttraction]
+
+    init(
+        cityName: String,
+        policy: CampDistancePolicy,
+        camps: [CuratedCamp],
+        attractions: [NearbyAttraction],
+        cityCenter: GeoPoint? = nil
+    ) {
+        self.cityName = cityName
+        self.cityCenter = cityCenter
+        self.policy = policy
+        self.camps = camps
+        self.attractions = attractions
+    }
 }
 
 struct TravelContentBundle: Codable, Hashable {
@@ -289,12 +333,17 @@ enum ContentFreshness {
 
 enum DestinationKey {
     static func resolve(_ destination: String) -> String {
-        destination
+        let normalized = destination
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "ı", with: "i")
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
             .lowercased()
             .replacingOccurrences(of: #"\s+"#, with: "-", options: .regularExpression)
+        return [
+            "sofya": "sofia",
+            "budapeste": "budapest",
+            "varsova": "warsaw"
+        ][normalized] ?? normalized
     }
 }
 

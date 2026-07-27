@@ -73,6 +73,7 @@ struct AccountArrivalTarget: Codable, Equatable {
     var whatsAppPhone: String?
     var email: String?
     var websiteURL: String?
+    var maximumLengthMeters: Double?
     var source: ArrivalTargetSource
     var updatedAt: String
 
@@ -88,6 +89,7 @@ struct AccountArrivalTarget: Codable, Equatable {
         whatsAppPhone = target.whatsAppPhone
         email = target.email
         websiteURL = target.websiteURL?.absoluteString
+        maximumLengthMeters = target.maximumLengthMeters
         source = target.source
         updatedAt = ISO8601DateFormatter().string(from: target.updatedAt)
     }
@@ -106,6 +108,7 @@ struct AccountArrivalTarget: Codable, Equatable {
             whatsAppPhone: whatsAppPhone,
             email: email,
             websiteURL: websiteURL.flatMap(URL.init(string:)),
+            maximumLengthMeters: maximumLengthMeters,
             source: source,
             updatedAt: updatedAt
         )

@@ -54,6 +54,7 @@ struct ArrivalTarget: Codable, Equatable, Identifiable, Hashable {
     var whatsAppPhone: String?
     var email: String?
     var websiteURL: URL?
+    var maximumLengthMeters: Double?
     var source: ArrivalTargetSource
     var updatedAt: Date
 
@@ -69,6 +70,7 @@ struct ArrivalTarget: Codable, Equatable, Identifiable, Hashable {
         whatsAppPhone: String? = nil,
         email: String? = nil,
         websiteURL: URL? = nil,
+        maximumLengthMeters: Double? = nil,
         source: ArrivalTargetSource = .appleMaps,
         updatedAt: Date = Date()
     ) {
@@ -83,6 +85,7 @@ struct ArrivalTarget: Codable, Equatable, Identifiable, Hashable {
         self.whatsAppPhone = whatsAppPhone
         self.email = email
         self.websiteURL = websiteURL
+        self.maximumLengthMeters = maximumLengthMeters
         self.source = source
         self.updatedAt = updatedAt
     }
