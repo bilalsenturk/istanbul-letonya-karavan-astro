@@ -67,10 +67,16 @@ export const createAccountRepository = (dependencies: AccountStore & {
   const accountById = async (id: string): Promise<AccountRecord | null> => {
     const account = await dependencies.read<AccountRecord>(userPath(id));
     if (!account) return null;
-    const profile = await dependencies.read<TravelProfileRecord>(profilePath(id));
+    const snapshotProfile = account.travelProfile
+      ?? defaultTravelProfile(account.displayName ?? '', account.email, account.updatedAt);
+    let profile = await dependencies.read<TravelProfileRecord>(profilePath(id));
+    if (!profile || profileIsNewer(snapshotProfile, profile)) {
+      await dependencies.write(profilePath(id), snapshotProfile);
+      profile = snapshotProfile;
+    }
     return {
       ...account,
-      travelProfile: profile ?? account.travelProfile ?? defaultTravelProfile(account.displayName ?? '', account.email, account.updatedAt),
+      travelProfile: profile,
     };
   };
 
@@ -99,10 +105,12 @@ export const createAccountRepository = (dependencies: AccountStore & {
         updatedAt: timestamp,
         travelProfile,
       };
-      await dependencies.write(userPath(id), record);
+      // Establish private profile authority before publishing a first account. A PATCH can
+      // only discover the account after this write has completed, so it cannot be seeded over.
       if (!existing) await dependencies.write(profilePath(id), travelProfile);
+      await dependencies.write(userPath(id), record);
       if (email) await dependencies.write(`accounts/email-index/${emailHash(email)}.json`, { userId: id });
-      return record;
+      return (await accountById(id))!;
     },
     updateTravelProfile: async (userId, profile) => {
       const account = await accountById(userId);
@@ -114,7 +122,7 @@ export const createAccountRepository = (dependencies: AccountStore & {
       await dependencies.write(profilePath(userId), travelProfile);
       const updated: AccountRecord = { ...account, updatedAt: timestamp, travelProfile };
       await dependencies.write(userPath(userId), updated);
-      return updated;
+      return (await accountById(userId))!;
     },
   };
 };
@@ -191,3 +199,6 @@ const emailHash = (email: string): string => createHash('sha256').update(normali
 
 const defaultTravelProfile = (contactName: string, contactEmail: string | null, updatedAt: string): TravelProfileRecord =>
   normalizeTravelProfile({ contactName, contactEmail, updatedAt });
+
+const profileIsNewer = (candidate: TravelProfileRecord, current: TravelProfileRecord): boolean =>
+  Date.parse(candidate.updatedAt) > Date.parse(current.updatedAt);

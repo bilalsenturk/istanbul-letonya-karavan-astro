@@ -101,8 +101,9 @@ export const verifyRefreshToken = async (
 export const requireSession = async (request: Request, secret?: Uint8Array, now = new Date()): Promise<AccessClaims> => {
   const authorization = request.headers.get('authorization');
   if (!authorization?.startsWith('Bearer ')) throw new UnauthorizedError();
+  const verificationSecret = secret ?? sessionSecretFromEnv();
   try {
-    return await verifyAccessToken(authorization.slice(7), secret ?? sessionSecretFromEnv(), now);
+    return await verifyAccessToken(authorization.slice(7), verificationSecret, now);
   } catch {
     throw new UnauthorizedError();
   }

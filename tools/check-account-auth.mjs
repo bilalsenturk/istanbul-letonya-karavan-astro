@@ -54,6 +54,50 @@ const reauthenticated = await accountRepository.upsertAppleAccount({
 }, 'Changed Apple Name');
 assert.equal(reauthenticated.travelProfile.contactName, 'Leyla');
 await assert.rejects(accountRepository.updateTravelProfile('missing', travelProfile), /account_not_found/);
+const isolated = await accountRepository.upsertAppleAccount({
+  appleSubject: 'apple-2', email: 'second@example.com', emailVerified: true,
+}, 'Second User');
+await accountRepository.updateTravelProfile(isolated.id, { ...travelProfile, contactName: 'Second Profile' });
+assert.equal((await accountRepository.accountById(seeded.id)).travelProfile.contactName, 'Leyla');
+assert.equal((await accountRepository.accountById(isolated.id)).travelProfile.contactName, 'Second Profile');
+
+const legacyData = new Map();
+const legacyRecord = structuredClone(seeded);
+legacyRecord.travelProfile = undefined;
+legacyData.set('accounts/users/user-legacy.json', legacyRecord);
+const legacyRepository = createAccountRepository({
+  read: async (path) => legacyData.has(path) ? structuredClone(legacyData.get(path)) : null,
+  write: async (path, value) => { legacyData.set(path, structuredClone(value)); },
+  subjectId: (subject) => `user-${subject}`,
+});
+const migratedLegacy = await legacyRepository.accountById('user-legacy');
+assert.equal(migratedLegacy.travelProfile.contactName, 'Bilal Şentürk');
+assert.equal(legacyData.get('accounts/profiles/user-legacy.json').contactName, 'Bilal Şentürk');
+
+const firstSeedData = new Map();
+let firstSeedProfileWriteStarted;
+let releaseFirstSeedProfileWrite;
+const firstSeedProfileWriteGate = new Promise((resolve) => { firstSeedProfileWriteStarted = resolve; });
+const releaseFirstSeedGate = new Promise((resolve) => { releaseFirstSeedProfileWrite = resolve; });
+const firstSeedRepository = createAccountRepository({
+  read: async (path) => firstSeedData.has(path) ? structuredClone(firstSeedData.get(path)) : null,
+  write: async (path, value) => {
+    if (path === 'accounts/profiles/user-apple-first.json') {
+      firstSeedProfileWriteStarted();
+      await releaseFirstSeedGate;
+    }
+    firstSeedData.set(path, structuredClone(value));
+  },
+  subjectId: (subject) => `user-${subject}`,
+});
+const firstSeedIdentity = { appleSubject: 'apple-first', email: 'first@example.com', emailVerified: true };
+const pendingFirstSeed = firstSeedRepository.upsertAppleAccount(firstSeedIdentity, 'First User');
+await firstSeedProfileWriteGate;
+assert.equal(await firstSeedRepository.accountById('user-apple-first'), null);
+releaseFirstSeedProfileWrite();
+await pendingFirstSeed;
+await firstSeedRepository.updateTravelProfile('user-apple-first', { ...travelProfile, contactName: 'First Saved' });
+assert.equal((await firstSeedRepository.accountById('user-apple-first')).travelProfile.contactName, 'First Saved');
 
 const interleavedData = new Map();
 let pauseProfileRead = false;
@@ -81,8 +125,9 @@ await profileReadGate;
 pauseProfileRead = false;
 await interleavedRepository.updateTravelProfile('user-apple-race', { ...travelProfile, contactName: 'Saved Profile' });
 releaseProfileRead();
-await interleavedUpsert;
+const interleavedReturned = await interleavedUpsert;
 assert.equal(interleavedData.get('accounts/users/user-apple-race.json').travelProfile.contactName, 'Race User');
+assert.equal(interleavedReturned.travelProfile.contactName, 'Saved Profile');
 assert.equal((await interleavedRepository.accountById('user-apple-race')).travelProfile.contactName, 'Saved Profile');
 
 const reverseData = new Map();
@@ -139,11 +184,25 @@ assert.equal((await patched.json()).user.travelProfile.contactName, 'Ayşe');
 
 const accessRequest = new Request('https://test.invalid/api/v2/me', { headers: { authorization: 'Bearer malformed' } });
 const authNow = new Date('2026-07-26T08:00:00.000Z');
+const authSecret = new TextEncoder().encode('a-test-secret-with-at-least-thirty-two-bytes');
+await assert.rejects(requireSession(new Request('https://test.invalid'), undefined, authNow), UnauthorizedError);
 await assert.rejects(requireSession(accessRequest, new TextEncoder().encode('a-test-secret-with-at-least-thirty-two-bytes'), authNow), UnauthorizedError);
 const expired = await issueSession({ id: 'expired', email: null, displayName: null, globalRole: 'user' },
-  new TextEncoder().encode('a-test-secret-with-at-least-thirty-two-bytes'), new Date('2026-07-01T00:00:00.000Z'));
+  authSecret, new Date('2026-07-01T00:00:00.000Z'));
 await assert.rejects(requireSession(new Request('https://test.invalid', { headers: { authorization: `Bearer ${expired.accessToken}` } }),
-  new TextEncoder().encode('a-test-secret-with-at-least-thirty-two-bytes'), authNow), UnauthorizedError);
+  authSecret, authNow), UnauthorizedError);
+const wrongSignature = await issueSession({ id: 'wrong-signature', email: null, displayName: null, globalRole: 'user' },
+  new TextEncoder().encode('another-test-secret-with-at-least-thirty-two-bytes'), authNow);
+await assert.rejects(requireSession(new Request('https://test.invalid', { headers: { authorization: `Bearer ${wrongSignature.accessToken}` } }),
+  authSecret, authNow), UnauthorizedError);
+const invalidClaims = await new SignJWT({ type: 'access', sid: 'invalid-claims', globalRole: 'not-a-role' })
+  .setProtectedHeader({ alg: 'HS256' }).setIssuer('kuzey-api').setAudience('kuzey-ios').setSubject('invalid-claims')
+  .setIssuedAt(Math.floor(authNow.getTime() / 1000)).setExpirationTime(Math.floor(authNow.getTime() / 1000) + 300).sign(authSecret);
+await assert.rejects(requireSession(new Request('https://test.invalid', { headers: { authorization: `Bearer ${invalidClaims}` } }),
+  authSecret, authNow), UnauthorizedError);
+const configuredSession = await issueSession({ id: 'config', email: null, displayName: null, globalRole: 'user' }, authSecret, authNow);
+await assert.rejects(requireSession(new Request('https://test.invalid', { headers: { authorization: `Bearer ${configuredSession.accessToken}` } }), undefined, authNow),
+  (error) => !(error instanceof UnauthorizedError) && /AUTH_SESSION_SECRET/.test(error.message));
 const unauthorized = errorResponse(new UnauthorizedError());
 assert.equal(unauthorized.status, 401);
 assert.deepEqual(await unauthorized.json(), { error: 'unauthorized', message: 'Oturum açmanız gerekiyor.' });
