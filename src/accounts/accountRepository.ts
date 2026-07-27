@@ -76,7 +76,10 @@ export const createAccountRepository = (dependencies: AccountStore & {
   const validTimestamp = (value: unknown): string | null => {
     if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) return null;
     const time = Date.parse(value);
-    return Number.isFinite(time) ? new Date(time).toISOString() : null;
+    if (!Number.isFinite(time)) return null;
+    const canonical = new Date(time).toISOString();
+    const expected = value.includes('.') ? value : value.replace('Z', '.000Z');
+    return canonical === expected ? canonical : null;
   };
   const appendProfile = async (id: string, profile: TravelProfileRecord, kind: ProfileRevision['kind']): Promise<void> => {
     const timestamp = validTimestamp(profile.updatedAt);
@@ -97,7 +100,7 @@ export const createAccountRepository = (dependencies: AccountStore & {
       const revisions = await Promise.all(paths.map(async (path) => ({ path, value: await dependencies.read<unknown>(path) })));
       const candidate = (profile: unknown, priority: number, revisionId: string) => {
         if (!profile || typeof profile !== 'object' || !validTimestamp((profile as TravelProfileRecord).updatedAt)) return null;
-        return { profile: profile as TravelProfileRecord, priority, revisionId };
+        return { profile: profile as TravelProfileRecord, priority, revisionId, path: revisionId };
       };
       const candidates = [candidate(fixed, 0, 'fixed'), candidate(snapshotProfile, 0, 'snapshot'), ...revisions.map(({ path, value }) => {
         const envelope = value && typeof value === 'object' && 'profile' in value ? value as Partial<ProfileRevision> : null;
@@ -105,12 +108,14 @@ export const createAccountRepository = (dependencies: AccountStore & {
           if ((envelope.kind !== 'userUpdate' && envelope.kind !== 'appleSeed' && envelope.kind !== 'legacyMigration')
             || typeof envelope.revisionId !== 'string' || !envelope.revisionId
             || !validTimestamp(envelope.writtenAt)) return null;
-          return candidate(envelope.profile, envelope.kind === 'userUpdate' ? 2 : 1, envelope.revisionId);
+          const item = candidate(envelope.profile, envelope.kind === 'userUpdate' ? 2 : 1, envelope.revisionId);
+          return item && { ...item, path };
         }
         return candidate(value, 0, path);
-      })].filter(Boolean) as { profile: TravelProfileRecord; priority: number; revisionId: string }[];
+      })].filter(Boolean) as { profile: TravelProfileRecord; priority: number; revisionId: string; path: string }[];
       const selected = candidates.sort((left, right) => Date.parse(right.profile.updatedAt) - Date.parse(left.profile.updatedAt)
-        || right.priority - left.priority || right.revisionId.localeCompare(left.revisionId))[0];
+        || right.priority - left.priority || compareDescending(left.revisionId, right.revisionId)
+        || compareDescending(left.path, right.path))[0];
       return { profile: selected?.profile ?? snapshotProfile, paths };
     };
     let { profile, paths } = await selectProfile();
@@ -171,6 +176,8 @@ export const createAccountRepository = (dependencies: AccountStore & {
   };
 };
 
+const compareDescending = (left: string, right: string): number => left === right ? 0 : left > right ? -1 : 1;
+
 export const normalizeTravelProfile = (
   input: Partial<TravelProfileRecord>,
   fallback?: TravelProfileRecord,
@@ -201,6 +208,9 @@ export const normalizeTravelProfile = (
   if (totalLength !== null && (!Number.isFinite(totalLength) || totalLength < 1 || totalLength > 30)) return invalid();
   const preferredLanguage = input.preferredLanguage === undefined ? fallback?.preferredLanguage ?? 'english' : input.preferredLanguage;
   if (preferredLanguage !== 'english' && preferredLanguage !== 'turkish') return invalid();
+  const updatedAt = string(input.updatedAt, 64, fallback?.updatedAt ?? new Date().toISOString());
+  const normalizedUpdatedAt = canonicalTimestamp(updatedAt);
+  if (!normalizedUpdatedAt) return invalid();
   return {
     contactName: string(input.contactName, 120, fallback?.contactName),
     contactEmail: contactEmail ? normalizeEmail(contactEmail) : null,
@@ -212,7 +222,7 @@ export const normalizeTravelProfile = (
     hasPet: boolean(input.hasPet, fallback?.hasPet ?? false),
     additionalNeeds: string(input.additionalNeeds, 1_000, fallback?.additionalNeeds),
     preferredLanguage,
-    updatedAt: string(input.updatedAt, 64, fallback?.updatedAt ?? new Date().toISOString()),
+    updatedAt: normalizedUpdatedAt,
   };
 };
 
@@ -243,3 +253,11 @@ const emailHash = (email: string): string => createHash('sha256').update(normali
 
 const defaultTravelProfile = (contactName: string, contactEmail: string | null, updatedAt: string): TravelProfileRecord =>
   normalizeTravelProfile({ contactName, contactEmail, updatedAt });
+
+const canonicalTimestamp = (value: string): string | null => {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) return null;
+  const time = Date.parse(value);
+  if (!Number.isFinite(time)) return null;
+  const canonical = new Date(time).toISOString();
+  return canonical === (value.includes('.') ? value : value.replace('Z', '.000Z')) ? canonical : null;
+};

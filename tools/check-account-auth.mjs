@@ -16,11 +16,14 @@ const travelProfile = normalizeTravelProfile({
   contactName: ' Bilal Şentürk ', contactEmail: ' BILAL@EXAMPLE.COM ',
   adults: 2, children: 0, vehicleDescription: 'VW Passat + Adria',
   totalLengthMeters: 10.8, needsElectricity: true, hasPet: false,
-  additionalNeeds: '', preferredLanguage: 'english', updatedAt: 'client-controlled',
+  additionalNeeds: '', preferredLanguage: 'english', updatedAt: '2026-07-26T08:00:00Z',
 });
 assert.equal(travelProfile.contactName, 'Bilal Şentürk');
 assert.equal(travelProfile.contactEmail, 'bilal@example.com');
-assert.equal(travelProfile.updatedAt, 'client-controlled');
+assert.equal(travelProfile.updatedAt, '2026-07-26T08:00:00.000Z');
+for (const timestamp of ['2027-02-30T00:00:00Z', '2027-13-01T00:00:00Z', '2027-02-29T00:00:00Z', '2027-01-01T24:00:00Z']) {
+  assert.throws(() => normalizeTravelProfile({ ...travelProfile, updatedAt: timestamp }), /invalid_travel_profile/);
+}
 assert.throws(() => normalizeTravelProfile({ ...travelProfile, adults: 99 }), /invalid_travel_profile/);
 assert.throws(() => normalizeTravelProfile({ ...travelProfile, children: -1 }), /invalid_travel_profile/);
 assert.throws(() => normalizeTravelProfile({ ...travelProfile, totalLengthMeters: 30.1 }), /invalid_travel_profile/);
@@ -46,10 +49,10 @@ const seeded = await accountRepository.upsertAppleAccount({
 assert.equal(seeded.travelProfile.contactName, 'Bilal Şentürk');
 assert.equal(seeded.travelProfile.contactEmail, 'bilal@example.com');
 const saved = await accountRepository.updateTravelProfile(seeded.id, {
-  ...travelProfile, contactName: 'Leyla', updatedAt: 'client-time',
+  ...travelProfile, contactName: 'Leyla', updatedAt: '2026-07-26T08:00:00Z',
 });
 assert.equal(saved.travelProfile.contactName, 'Leyla');
-assert.notEqual(saved.travelProfile.updatedAt, 'client-time');
+assert.notEqual(saved.travelProfile.updatedAt, '2026-07-26T08:00:00.000Z');
 const reauthenticated = await accountRepository.upsertAppleAccount({
   appleSubject: 'apple-1', email: 'bilal@example.com', emailVerified: true,
 }, 'Changed Apple Name');
