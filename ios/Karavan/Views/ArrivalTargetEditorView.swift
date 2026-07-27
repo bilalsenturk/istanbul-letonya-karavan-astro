@@ -6,7 +6,14 @@ struct ArrivalTargetEditorView: View {
     @Environment(\.openURL) private var openURL
     @State private var target: ArrivalTarget
     @State private var stay: StayDetails
-    @State private var copied = false
+    @State private var copyConfirmationVisible = false
+    @State private var copyResetTask: Task<Void, Never>?
+    @State private var activeComposer: ActiveStayContactComposer?
+    @State private var unavailableNotice = false
+    @State private var awaitingReplyPrompt = false
+    @State private var pendingWhatsAppReturnID: UUID?
+    @State private var sawWhatsAppBackground = false
+    @Environment(\.scenePhase) private var scenePhase
 
     let onSave: (ArrivalTarget, StayDetails) -> Void
     private let profile: StayContactProfile
@@ -87,14 +94,23 @@ struct ArrivalTargetEditorView: View {
                 Section("Hazır mesaj") {
                     Text(message.body).font(.system(size: 13)).textSelection(.enabled)
                     Button {
-                        UIPasteboard.general.string = message.body
-                        copied = true
-                    } label: { Label(copied ? "Kopyalandı" : "Mesajı kopyala", systemImage: copied ? "checkmark" : "doc.on.doc") }
-                    if let url = ContactLinkBuilder.whatsAppURL(phone: target.whatsAppPhone ?? target.phone, message: message.body) {
-                        Button { openURL(url) } label: { Label("WhatsApp'tan yaz", systemImage: "message.fill") }
+                        copy(message.body)
+                    } label: {
+                        Label(copyConfirmationVisible ? "Kopyalandı" : "Mesajı kopyala", systemImage: copyConfirmationVisible ? "checkmark" : "doc.on.doc")
                     }
-                    if let url = ContactLinkBuilder.emailURL(email: target.email, subject: message.subject, body: message.body) {
-                        Button { openURL(url) } label: { Label("E-posta hazırla", systemImage: "envelope.fill") }
+                    .accessibilityLabel("Hazır mesajı panoya kopyala")
+
+                    if let action = StayContactAction.whatsApp.prepare(message: message, target: target) {
+                        Button { start(action) } label: { Label("WhatsApp'tan yaz", systemImage: "message.fill") }
+                            .accessibilityLabel("WhatsApp'ta hazır mesaj aç")
+                    }
+                    if let action = StayContactAction.messages.prepare(message: message, target: target) {
+                        Button { start(action) } label: { Label("Mesajlar'da yaz", systemImage: "message") }
+                            .accessibilityLabel("Mesajlar'da hazır mesaj aç")
+                    }
+                    if let action = StayContactAction.email.prepare(message: message, target: target) {
+                        Button { start(action) } label: { Label("E-posta hazırla", systemImage: "envelope.fill") }
+                            .accessibilityLabel("E-posta oluşturucusunda hazır mesaj aç")
                     }
                     if let phone = target.phone, let url = URL(string: "tel:\(phone.filter { !$0.isWhitespace })") {
                         Button { openURL(url) } label: { Label("Ara", systemImage: "phone.fill") }
@@ -106,6 +122,17 @@ struct ArrivalTargetEditorView: View {
             }
             .navigationTitle("Konaklama")
             .navigationBarTitleDisplayMode(.inline)
+            .overlay(alignment: .bottom) {
+                if copyConfirmationVisible {
+                    Label("Mesaj kopyalandı", systemImage: "checkmark.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(.regularMaterial, in: Capsule())
+                        .padding(.bottom, 18)
+                        .accessibilityLabel("Mesaj panoya kopyalandı")
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Vazgeç") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
@@ -116,6 +143,105 @@ struct ArrivalTargetEditorView: View {
                     }.fontWeight(.bold)
                 }
             }
+        }
+        .sheet(item: $activeComposer) { presentation in
+            switch presentation.action.channel {
+            case .messages:
+                MessageComposerSheet(action: presentation.action, onResult: handleComposerResult)
+            case .email:
+                MailComposerSheet(action: presentation.action, onResult: handleComposerResult)
+            case .whatsApp:
+                EmptyView()
+            }
+        }
+        .alert("Mesaj hazır; uygulama kullanılamadığı için panoya kopyalandı.", isPresented: $unavailableNotice) {
+            Button("Tamam", role: .cancel) {}
+        }
+        .alert("Durumu “Yanıt bekleniyor” yap?", isPresented: $awaitingReplyPrompt) {
+            Button("Yanıt bekleniyor") {
+                if StayContactFollowUp.shouldMarkAwaitingReply(userConfirmed: true) {
+                    stay.reservationStatus = .awaitingReply
+                    stay.lastContactedAt = Date()
+                }
+            }
+            Button("Şimdi değil", role: .cancel) {}
+        } message: {
+            Text("Bu yalnızca sizin seçtiğiniz iletişim durumudur; teslimat veya yanıt doğrulaması değildir.")
+        }
+        .onChange(of: scenePhase) { _, phase in
+            switch phase {
+            case .inactive, .background:
+                if pendingWhatsAppReturnID != nil { sawWhatsAppBackground = true }
+            case .active:
+                guard sawWhatsAppBackground, pendingWhatsAppReturnID != nil else { return }
+                pendingWhatsAppReturnID = nil
+                sawWhatsAppBackground = false
+                awaitingReplyPrompt = true
+            @unknown default:
+                break
+            }
+        }
+        .onDisappear {
+            copyResetTask?.cancel()
+            pendingWhatsAppReturnID = nil
+        }
+    }
+
+    private func copy(_ body: String) {
+        UIPasteboard.general.string = body
+        copyConfirmationVisible = true
+        copyResetTask?.cancel()
+        copyResetTask = Task {
+            do {
+                try await Task.sleep(for: .seconds(2))
+                guard !Task.isCancelled else { return }
+                copyConfirmationVisible = false
+            } catch {
+                // A later copy or view dismissal cancels the prior confirmation task.
+            }
+        }
+    }
+
+    private func start(_ action: PreparedContactAction) {
+        copy(action.clipboardText)
+        switch action.channel {
+        case .messages:
+            guard MessageComposerSheet.availability == .available else {
+                unavailableNotice = true
+                return
+            }
+            activeComposer = ActiveStayContactComposer(action: action)
+        case .email:
+            guard MailComposerSheet.availability == .available else {
+                unavailableNotice = true
+                return
+            }
+            activeComposer = ActiveStayContactComposer(action: action)
+        case .whatsApp:
+            guard let url = ContactLinkBuilder.whatsAppURL(
+                phone: target.whatsAppPhone ?? target.phone,
+                message: action.body
+            ), UIApplication.shared.canOpenURL(url) else {
+                unavailableNotice = true
+                return
+            }
+            let launchID = UUID()
+            pendingWhatsAppReturnID = launchID
+            sawWhatsAppBackground = false
+            UIApplication.shared.open(url, options: [:]) { opened in
+                guard pendingWhatsAppReturnID == launchID else { return }
+                if !opened {
+                    pendingWhatsAppReturnID = nil
+                    unavailableNotice = true
+                }
+            }
+        }
+    }
+
+    private func handleComposerResult(_ result: StayContactComposerResult) {
+        activeComposer = nil
+        if StayContactFollowUp.shouldOfferAwaitingReply(after: result) {
+            awaitingReplyPrompt = true
         }
     }
 

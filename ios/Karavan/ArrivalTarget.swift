@@ -372,6 +372,62 @@ struct StayMessage: Equatable {
     let body: String
 }
 
+/// The exact values handed to a system composer or an external messaging app.
+/// This is deliberately Foundation-only so recipient validation remains testable
+/// without attempting to open an app or inspect a user's accounts.
+struct PreparedContactAction: Equatable {
+    let channel: StayContactAction
+    let recipient: String
+    let subject: String?
+    let body: String
+
+    var clipboardText: String { body }
+}
+
+enum StayContactAction: String, CaseIterable, Equatable {
+    case whatsApp
+    case messages
+    case email
+
+    func prepare(message: StayMessage, target: ArrivalTarget) -> PreparedContactAction? {
+        switch self {
+        case .email:
+            guard let recipient = ContactLinkBuilder.normalizedEmail(target.email) else { return nil }
+            return PreparedContactAction(channel: self, recipient: recipient, subject: message.subject, body: message.body)
+        case .messages:
+            guard let recipient = Self.normalizedMessageRecipient(target.phone) else { return nil }
+            return PreparedContactAction(channel: self, recipient: recipient, subject: nil, body: message.body)
+        case .whatsApp:
+            guard let recipient = ContactLinkBuilder.normalizedWhatsAppPhone(target.whatsAppPhone ?? target.phone) else { return nil }
+            return PreparedContactAction(channel: self, recipient: recipient, subject: nil, body: message.body)
+        }
+    }
+
+    private static func normalizedMessageRecipient(_ phone: String?) -> String? {
+        guard let phone else { return nil }
+        let trimmed = phone.trimmingCharacters(in: .whitespacesAndNewlines)
+        let digits = trimmed.filter(\.isNumber)
+        guard (3 ... 15).contains(digits.count) else { return nil }
+        return trimmed.hasPrefix("+") ? "+\(digits)" : digits
+    }
+}
+
+enum StayContactComposerResult: Equatable {
+    case sent
+    case cancelled
+    case failed
+}
+
+enum StayContactFollowUp {
+    static func shouldOfferAwaitingReply(after result: StayContactComposerResult) -> Bool {
+        result == .sent
+    }
+
+    static func shouldMarkAwaitingReply(userConfirmed: Bool) -> Bool {
+        userConfirmed
+    }
+}
+
 enum ArrivalTargetRequirement {
     static func canStart(isRestDay: Bool, target: ArrivalTarget?) -> Bool {
         isRestDay || target?.hasValidCoordinate == true
@@ -512,7 +568,7 @@ enum StayMessageComposer {
 
 enum ContactLinkBuilder {
     static func whatsAppURL(phone: String?, message: String) -> URL? {
-        guard let normalized = normalizedPhone(phone) else { return nil }
+        guard let normalized = normalizedWhatsAppPhone(phone) else { return nil }
         var components = URLComponents()
         components.scheme = "https"
         components.host = "wa.me"
@@ -522,9 +578,7 @@ enum ContactLinkBuilder {
     }
 
     static func emailURL(email: String?, subject: String, body: String) -> URL? {
-        guard let email = email?.trimmingCharacters(in: .whitespacesAndNewlines),
-              email.range(of: #"^[^\s@]+@[^\s@]+\.[^\s@]+$"#, options: .regularExpression) != nil
-        else { return nil }
+        guard let email = normalizedEmail(email) else { return nil }
         var components = URLComponents()
         components.scheme = "mailto"
         components.path = email
@@ -535,7 +589,14 @@ enum ContactLinkBuilder {
         return components.url
     }
 
-    private static func normalizedPhone(_ phone: String?) -> String? {
+    static func normalizedEmail(_ email: String?) -> String? {
+        guard let email = email?.trimmingCharacters(in: .whitespacesAndNewlines),
+              email.range(of: #"^[^\s@]+@[^\s@]+\.[^\s@]+$"#, options: .regularExpression) != nil
+        else { return nil }
+        return email
+    }
+
+    static func normalizedWhatsAppPhone(_ phone: String?) -> String? {
         guard let phone else { return nil }
         let digits = phone.filter(\.isNumber)
         guard (8 ... 15).contains(digits.count) else { return nil }

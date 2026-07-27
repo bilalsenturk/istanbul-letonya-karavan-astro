@@ -235,6 +235,47 @@ struct ArrivalTargetCheck {
         check("boş telefon reddedilir",
               ContactLinkBuilder.whatsAppURL(phone: " ", message: "x") == nil)
 
+        print("\n=== Hazırlanmış iletişim eylemleri ===")
+        let exactBody = "Merhaba & + % /?= — aynı metin"
+        let exactMessage = StayMessage(subject: "Konaklama & fiyat", body: exactBody)
+        let mailAction = StayContactAction.email.prepare(message: exactMessage, target: target)
+        check("e-posta hazırlığı alıcı konu ve gövdeyi değiştirmez",
+              mailAction?.recipient == "hello@example.com"
+                && mailAction?.subject == "Konaklama & fiyat"
+                && mailAction?.body == exactBody)
+        let messagesAction = StayContactAction.messages.prepare(message: exactMessage, target: target)
+        check("Mesajlar hazırlığı telefon ve gövdeyi taşır",
+              messagesAction?.recipient == "+359881234567" && messagesAction?.body == exactBody)
+        let whatsAppAction = StayContactAction.whatsApp.prepare(message: exactMessage, target: target)
+        check("WhatsApp hazırlığı E.164 alıcı ve özgün gövde taşır",
+              whatsAppAction?.recipient == "359881234567" && whatsAppAction?.body == exactBody)
+        check("her kanal panoya aynı gövdeyi verir",
+              mailAction?.clipboardText == exactBody
+                && messagesAction?.clipboardText == exactBody
+                && whatsAppAction?.clipboardText == exactBody)
+        var missingEmailTarget = target
+        missingEmailTarget.email = "geçersiz"
+        check("geçersiz e-posta eylemi hazırlanmaz",
+              StayContactAction.email.prepare(message: exactMessage, target: missingEmailTarget) == nil)
+        var missingPhoneTarget = target
+        missingPhoneTarget.phone = "telefon yok"
+        missingPhoneTarget.whatsAppPhone = nil
+        check("geçersiz telefonla Mesajlar eylemi hazırlanmaz",
+              StayContactAction.messages.prepare(message: exactMessage, target: missingPhoneTarget) == nil)
+        check("geçersiz telefonla WhatsApp eylemi hazırlanmaz",
+              StayContactAction.whatsApp.prepare(message: exactMessage, target: missingPhoneTarget) == nil)
+        let encodedWhatsApp = ContactLinkBuilder.whatsAppURL(phone: target.phone, message: exactBody)
+        check("WhatsApp URL'si gövdenin ayırıcılarını kodlar",
+              encodedWhatsApp?.absoluteString.contains("%26") == true
+                && encodedWhatsApp?.absoluteString.contains("%25") == true
+                && !(encodedWhatsApp?.absoluteString.contains("?text=Merhaba%20&") ?? true))
+        check("gönderim sonrası durum yardımı yalnız açık onayla beklemeye geçer",
+              StayContactFollowUp.shouldOfferAwaitingReply(after: .sent)
+                && !StayContactFollowUp.shouldOfferAwaitingReply(after: .cancelled)
+                && !StayContactFollowUp.shouldOfferAwaitingReply(after: .failed)
+                && StayContactFollowUp.shouldMarkAwaitingReply(userConfirmed: true)
+                && !StayContactFollowUp.shouldMarkAwaitingReply(userConfirmed: false))
+
         print("\n=== Apple Maps sonuç eşlemesi ===")
         let snapshot = ArrivalPlaceSnapshot(
             id: "apple-campuccino",
