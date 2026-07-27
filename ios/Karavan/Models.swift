@@ -80,6 +80,7 @@ struct DayPlan: Codable, Identifiable {
     let opportunities: [String]
     let contingencies: [String]
     let camp: Camp
+    let arrivalTarget: ArrivalTarget?
     /// Sınır geçişi gecikmeleri için ETA'ya eklenen açık dakika payı.
     let borderBufferMinutes: Int?
 
@@ -94,7 +95,7 @@ struct DayPlan: Codable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case slug, date, origin, destination, distanceKm, duration, fuel
-        case risks, opportunities, contingencies, camp, borderBufferMinutes
+        case risks, opportunities, contingencies, camp, arrivalTarget, borderBufferMinutes
         case waypoints = "stops"          // JSON'da "stops" = günün ara durakları
         case route, trafficLabel, cityCameras
     }
