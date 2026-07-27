@@ -121,6 +121,14 @@ struct LatvianEngineCheck {
         expect(LatvianGrader.normalize("Paldies") == LatvianGrader.normalize("paldies."), "büyük harf ve nokta önemsiz")
         expect(LatvianGrader.normalize("IŞIK") == LatvianGrader.normalize("ışık"), "Türkçe büyük harf farkı eriyor")
         expect(LatvianGrader.normalize("kafiju") != LatvianGrader.normalize("kafija"), "farklı ek farklı cevap")
+        expect(LatvianGrader.normalize("\u{0130}STANBUL") == LatvianGrader.normalize("istanbul"),
+               "noktalı büyük İ (U+0130) küçük i'ye eriyor")
+        expect(LatvianGrader.normalize("\u{0130}yi") == LatvianGrader.normalize("iyi"),
+               "karışık İ/i yazımı aynı köke eriyor")
+        expect(LatvianGrader.normalize("Īsi") == LatvianGrader.normalize("isi"),
+               "Letonca Ī, İ eşlemesinden etkilenmeden diakritikle eriyor")
+        expect(LatvianGrader.normalize("kafija") != LatvianGrader.normalize("kafiju"),
+               "İ eşlemesi Letonca farklı ekleri birbirine karıştırmıyor")
 
         func exercise(_ kind: LatvianExerciseKind, _ content: LatvianExerciseContent) -> LatvianExercise {
             LatvianExercise(id: "x", kind: kind, targetWordId: "w1", prompt: "p", content: content)
@@ -164,6 +172,10 @@ struct LatvianEngineCheck {
         expect(!LatvianGrader.grade(exercise: matchQuestion, answer: .pairs([
             LatvianMatchPair(lv: "paldies", tr: "teşekkürler"),
         ])).isCorrect, "eksik eşleştirme yanlış")
+        expect(!LatvianGrader.grade(exercise: matchQuestion, answer: .pairs([
+            LatvianMatchPair(lv: "paldies", tr: "teşekkürler"),
+            LatvianMatchPair(lv: "paldies", tr: "teşekkürler"),
+        ])).isCorrect, "aynı çiftin tekrarı diğer çifti karşılamıyor, yanlış sayılıyor")
 
         let speakQuestion = exercise(.speak, .speaking(target: "Lūdzu"))
         expect(LatvianGrader.grade(exercise: speakQuestion, answer: .spoken(transcript: "ludzu")).isCorrect,

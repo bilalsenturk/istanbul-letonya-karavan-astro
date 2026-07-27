@@ -52,7 +52,16 @@ enum LatvianGrader {
             }
             var expected: [String: String] = [:]
             for pair in pairs { expected[normalize(pair.lv)] = normalize(pair.tr) }
-            let isCorrect = submitted.allSatisfy { expected[normalize($0.lv)] == normalize($0.tr) }
+            var covered: Set<String> = []
+            let allMatch = submitted.allSatisfy { submittedPair -> Bool in
+                let key = normalize(submittedPair.lv)
+                guard expected[key] == normalize(submittedPair.tr), !covered.contains(key) else {
+                    return false
+                }
+                covered.insert(key)
+                return true
+            }
+            let isCorrect = allMatch && covered.count == expected.count
             return LatvianGrade(isCorrect: isCorrect, correctAnswer: correctAnswer)
 
         case .typing(let accepted):
