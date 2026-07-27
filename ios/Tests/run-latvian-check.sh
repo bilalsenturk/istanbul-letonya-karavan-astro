@@ -7,5 +7,6 @@ swiftc -O -parse-as-library -o "$OUT/latviancheck" \
   "$DIR/latvian-engine-check.swift" \
   "$SRC/LatvianPack.swift" \
   "$SRC/LatvianExercise.swift" \
-  "$SRC/LatvianGrader.swift"
+  "$SRC/LatvianGrader.swift" \
+  "$SRC/LatvianMemory.swift"
 "$OUT/latviancheck"

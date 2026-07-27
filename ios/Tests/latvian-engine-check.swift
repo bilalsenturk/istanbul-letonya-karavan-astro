@@ -183,6 +183,59 @@ struct LatvianEngineCheck {
         expect(!LatvianGrader.grade(exercise: speakQuestion, answer: .spoken(transcript: "paldies")).isCorrect,
                "yanlış telaffuz kalıyor")
 
+        print("\n=== Hafıza ===")
+
+        expect(LatvianRating.from(isCorrect: true, attempts: 1, usedHint: false, elapsed: 2) == .easy,
+               "ilk denemede hızlı doğru → easy")
+        expect(LatvianRating.from(isCorrect: true, attempts: 1, usedHint: false, elapsed: 9) == .good,
+               "ilk denemede yavaş doğru → good")
+        expect(LatvianRating.from(isCorrect: true, attempts: 1, usedHint: true, elapsed: 2) == .hard,
+               "ipuçlu doğru → hard")
+        expect(LatvianRating.from(isCorrect: true, attempts: 2, usedHint: false, elapsed: 2) == .hard,
+               "ikinci denemede doğru → hard")
+        expect(LatvianRating.from(isCorrect: false, attempts: 1, usedHint: false, elapsed: 2) == .again,
+               "yanlış → again")
+
+        let scheduler = LatvianDefaultScheduler()
+        let epoch = Date(timeIntervalSince1970: 1_800_000_000)
+
+        let fresh = LatvianMemoryCard.new()
+        expect(fresh.reviewCount == 0, "yeni kart hiç tekrar edilmemiş")
+        expect(fresh.retrievability(at: epoch) == 0, "hiç görülmemiş kartın hatırlanma olasılığı sıfır")
+
+        let afterGood = scheduler.review(card: fresh, rating: .good, now: epoch)
+        expect(afterGood.reviewCount == 1, "tekrar sayacı artıyor")
+        expect(afterGood.stability > fresh.stability, "doğru cevap kararlılığı artırıyor")
+        expect(afterGood.dueAt > epoch, "sonraki tekrar ileri tarihte")
+        expect(afterGood.retrievability(at: epoch) > 0.99, "tekrar anında hatırlanma olasılığı tam")
+
+        let afterEasy = scheduler.review(card: fresh, rating: .easy, now: epoch)
+        expect(afterEasy.stability > afterGood.stability, "easy, good'dan daha uzun aralık veriyor")
+
+        let matured = scheduler.review(card: scheduler.review(card: fresh, rating: .good, now: epoch),
+                                       rating: .good,
+                                       now: epoch.addingTimeInterval(86_400))
+        let lapsed = scheduler.review(card: matured, rating: .again, now: epoch.addingTimeInterval(200_000))
+        expect(lapsed.stability < matured.stability, "yanlış cevap kararlılığı düşürüyor")
+        expect(lapsed.dueAt.timeIntervalSince(epoch.addingTimeInterval(200_000)) < 86_400,
+               "yanlış cevaptan sonra kart bir gün içinde geri geliyor")
+
+        expect(matured.retrievability(at: matured.dueAt) < matured.retrievability(at: epoch),
+               "zaman geçtikçe hatırlanma olasılığı düşüyor")
+        expect(matured.retrievability(at: epoch.addingTimeInterval(86_400 * 3650)) < 0.2,
+               "çok uzun aradan sonra hatırlanma olasılığı çöküyor")
+
+        let key = LatvianMemoryKey(wordId: "w1", modality: .production)
+        expect(key == LatvianMemoryKey(wordId: "w1", modality: .production), "aynı anahtar eşit")
+        expect(key != LatvianMemoryKey(wordId: "w1", modality: .recognition), "modalite anahtarı ayırıyor")
+        expect(key.storageKey == "w1#production", "anahtar dizeye çevrilebiliyor")
+        expect(LatvianMemoryKey(storageKey: "w1#production") == key, "anahtar dizeden geri okunuyor")
+
+        let separatorKey = LatvianMemoryKey(wordId: "w#1", modality: .recognition)
+        expect(separatorKey.storageKey == "w#1#recognition", "ayırıcı içeren kelime id'si anahtara yazılıyor")
+        expect(LatvianMemoryKey(storageKey: separatorKey.storageKey) == separatorKey,
+               "ayırıcı içeren kelime id'li anahtar dizeden geri okunuyor")
+
         if failures > 0 {
             fputs("\n\(failures) kontrol başarısız.\n", stderr)
             exit(1)
