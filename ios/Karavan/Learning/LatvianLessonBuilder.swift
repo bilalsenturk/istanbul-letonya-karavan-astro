@@ -29,18 +29,30 @@ struct LatvianLessonTarget: Hashable, Sendable {
 /// Ders kurgusu ve sahne kilidi.
 ///
 /// Sahne kilidi tek bir cümleyle: bir sahne, kelimelerinin en az `masteryCoverage`
-/// kadarı **hem tanıma hem üretim** kartında `masteryThreshold` hatırlanma olasılığını
-/// geçtiğinde tamamlanmış sayılır. "N ders yaptın, geç" değil, "gerçekten biliyor musun".
+/// kadarı **hem tanıma hem üretim** kartında *kalıcı* olarak öğrenildiğinde tamamlanmış
+/// sayılır. "N ders yaptın, geç" değil, "gerçekten biliyor musun".
 ///
-/// `LatvianDefaultScheduler` ile bu eşik tam olarak "kartın vadesi henüz gelmedi"
-/// demek: planlayıcı bir sonraki tekrarı, hatırlanma olasılığının 0.9'a düştüğü ana
-/// koyuyor. Yani hakimiyet, vadesi gelmemiş iki kartla eşdeğer.
+/// Kalıcılık iki koşulla ölçülüyor, ikisi de aynı boşluğu kapatıyor: hatırlanma olasılığı
+/// **tekrar anında tanım gereği 1.0**, dolayısıyla "şu anda hatırlıyor mu" sorusu yalnızca
+/// "az önce gördü mü" demeye geliyor. Bunun yerine soru `masteryHorizon` kadar ileri
+/// taşınıyor ("bugünden N gün sonra da hatırlar mıydı") ve karta en az `minimumReviews`
+/// tekrar şartı konuyor ("bir kez bilmek tesadüf olabilir"). İkisi birden, tek oturumda
+/// arka arkaya ders yaparak kapıyı zorlamayı imkânsız kılıyor.
+///
+/// İleri taşınan soru tam olarak FSRS'in kararlılığını okuyor: hatırlanma olasılığı
+/// kararlılık kadar gün sonra 0.9'a indiğinden, `retrievability(at: now + H) >= 0.9`
+/// koşulu "kartın kararlılığı en az H kadar" demenin başka bir yazılışı. Gerçek FSRS
+/// kitaplığına geçildiğinde de aynı anlamı taşımaya devam ediyor.
 enum LatvianLessonBuilder {
     static let lessonLength = 16
-    /// Bir kartın öğrenilmiş sayılması için gereken hatırlama olasılığı.
+    /// Kartı hatırlıyor mu: bu olasılığın altındaki kart bilinmiyor sayılıyor.
     static let masteryThreshold = 0.9
-    /// Sahnenin tamamlanması için bu orandaki kelime eşiği geçmeli.
+    /// Sahneyi biliyor mu: kelimelerinin bu kadarı geçmeden sahne kapanmıyor.
     static let masteryCoverage = 0.8
+    /// Kalıcı mı: hatırlama bugün değil, bu kadar zaman sonrası için soruluyor (üç gün).
+    static let masteryHorizon: TimeInterval = 3 * 86_400
+    /// Tesadüf mü: bir kart bu kadar ayrı tekrar görmeden hakim sayılmıyor.
+    static let minimumReviews = 2
 
     private static let newShare = 0.5
     private static let reviewShare = 0.3
@@ -56,7 +68,11 @@ enum LatvianLessonBuilder {
 
     // MARK: - Hakimiyet
 
-    /// Tek bir kartın eşiği geçip geçmediği. Kart hiç yoksa geçmemiş sayılır.
+    /// Tek bir kartın kalıcı olarak öğrenilip öğrenilmediği. Kart hiç yoksa geçmemiş sayılır.
+    ///
+    /// İki koşul birden aranıyor: kartın `masteryHorizon` sonrasındaki hatırlanma olasılığı
+    /// eşiği geçmeli **ve** kart en az `minimumReviews` kez tekrar edilmiş olmalı. Yalnızca
+    /// anlık olasılığa bakmak, cevabın üzerinden bir dakika geçmiş her kartı hakim sayardı.
     static func isMastered(
         wordId: String,
         modality: LatvianModality,
@@ -64,18 +80,19 @@ enum LatvianLessonBuilder {
         now: Date
     ) -> Bool {
         guard let key = LatvianMemoryKey(wordId: wordId, modality: modality),
-              let card = progress.card(for: key) else { return false }
-        return card.retrievability(at: now) >= masteryThreshold
+              let card = progress.card(for: key),
+              card.reviewCount >= minimumReviews else { return false }
+        return card.retrievability(at: now.addingTimeInterval(masteryHorizon)) >= masteryThreshold
     }
 
-    /// Kelimenin **iki** tarafı da eşiği geçti mi.
+    /// Kelimenin **iki** tarafı da kalıcı olarak öğrenildi mi.
     static func isWordMastered(wordId: String, progress: LatvianProgress, now: Date) -> Bool {
         modalities.allSatisfy {
             isMastered(wordId: wordId, modality: $0, progress: progress, now: now)
         }
     }
 
-    /// Sahnedeki kelimelerin kaçının hem tanıma hem üretim tarafında eşiği geçtiği.
+    /// Sahnedeki kelimelerin kaçının hem tanıma hem üretim tarafında kalıcı olarak öğrenildiği.
     static func masteryRatio(scene: LatvianScene, progress: LatvianProgress, now: Date) -> Double {
         let words = distinctWordIds(in: scene)
         guard !words.isEmpty else { return 1 }
@@ -249,6 +266,11 @@ enum LatvianLessonBuilder {
     ///
     /// Bunun yerine kelime kelime ilerleniyor: bir ders sekiz yeni kelime tanıtıyor ve
     /// her birini hem tanıma hem üretim tarafından soruyor.
+    ///
+    /// Süzgeç hakimiyet değil **tazelik** ölçüyor: taze kart aralıklı tekrar kotasına
+    /// bırakılıyor, yeni malzeme kotası ilerlemeye harcanıyor. Hakimiyet süzgeci burada
+    /// kullanılsaydı ders hep aynı ilk kelimelere dönerdi ve öğrenci aynı oturumda arka
+    /// arkaya ders yaparak sahneyi bitirebilirdi — kapının kapattığı boşluk geri açılırdı.
     private static func newPool(
         words: [LatvianWord],
         progress: LatvianProgress,
@@ -268,11 +290,24 @@ enum LatvianLessonBuilder {
         var result: [(String, LatvianModality)] = []
         for word in ordered {
             for modality in modalities
-            where !isMastered(wordId: word.id, modality: modality, progress: progress, now: now) {
+            where !isFresh(wordId: word.id, modality: modality, progress: progress, now: now) {
                 result.append((word.id, modality))
             }
         }
         return result
+    }
+
+    /// Kartın **şu anda** taze olup olmadığı: az önce doğru cevaplanmış kart taze sayılıyor.
+    /// Hakimiyetten farkı bilinçli — bkz. `newPool`.
+    private static func isFresh(
+        wordId: String,
+        modality: LatvianModality,
+        progress: LatvianProgress,
+        now: Date
+    ) -> Bool {
+        guard let key = LatvianMemoryKey(wordId: wordId, modality: modality),
+              let card = progress.card(for: key) else { return false }
+        return card.retrievability(at: now) >= masteryThreshold
     }
 
     /// Tekrar zamanı gelmiş kartlar; sahne farketmeksizin, en zayıf hatırlanan başta.

@@ -845,6 +845,49 @@ struct LatvianEngineCheck {
         expect(LatvianLessonBuilder.masteryThreshold == 0.9, "hakimiyet eşiği 0.9")
         expect(LatvianLessonBuilder.masteryCoverage == 0.8, "kapsama eşiği 0.8")
         expect(LatvianLessonBuilder.lessonLength == 16, "ders uzunluğu 16")
+        expect(LatvianLessonBuilder.masteryHorizon == 3 * 86_400, "hakimiyet ufku üç gün")
+        expect(LatvianLessonBuilder.minimumReviews == 2, "hakimiyet en az iki tekrar istiyor")
+
+        // Kapının kapattığı boşluk: `retrievability` tekrar anında tanım gereği tavanda.
+        // Aşağıdaki iki kart da "şu anda hatırlıyor" testini geçerdi; hiçbiri hakim değil.
+        let justAnswered = scheduler.review(card: .new(), rating: .easy, now: epoch)
+        expect(justAnswered.retrievability(at: epoch) > 0.99,
+               "az önce kusursuz cevaplanan kart o anda tavanda")
+        var singleReview = LatvianProgress.new()
+        for modality in [LatvianModality.recognition, .production] {
+            singleReview.setCard(justAnswered, for: memoryKey("w1", modality))
+        }
+        expect(!LatvianLessonBuilder.isWordMastered(wordId: "w1", progress: singleReview, now: epoch),
+               "tek tekrarla bilinen kelime hakim sayılmıyor")
+
+        var shakyCard = LatvianMemoryCard.new()
+        for _ in 0..<LatvianLessonBuilder.minimumReviews {
+            shakyCard = scheduler.review(card: shakyCard, rating: .hard, now: epoch)
+        }
+        var shaky = LatvianProgress.new()
+        for modality in [LatvianModality.recognition, .production] {
+            shaky.setCard(shakyCard, for: memoryKey("w1", modality))
+        }
+        expect(shakyCard.reviewCount >= LatvianLessonBuilder.minimumReviews
+               && shakyCard.retrievability(at: epoch) > 0.99,
+               "zorlanarak cevaplanan kart tekrar sayısını dolduruyor ve o anda tavanda")
+        expect(!LatvianLessonBuilder.isWordMastered(wordId: "w1", progress: shaky, now: epoch),
+               "üç gün sonrasını taşımayan kelime hakim sayılmıyor")
+
+        var durableCard = LatvianMemoryCard.new()
+        for _ in 0..<LatvianLessonBuilder.minimumReviews {
+            durableCard = scheduler.review(card: durableCard, rating: .easy, now: epoch)
+        }
+        var durable = LatvianProgress.new()
+        for modality in [LatvianModality.recognition, .production] {
+            durable.setCard(durableCard, for: memoryKey("w1", modality))
+        }
+        expect(LatvianLessonBuilder.isWordMastered(wordId: "w1", progress: durable, now: epoch),
+               "iki kusursuz tekrar üç günlük ufku taşıyor, kelime hakim sayılıyor")
+        expect(!LatvianLessonBuilder.isWordMastered(
+                wordId: "w1", progress: durable,
+                now: epoch.addingTimeInterval(durableCard.stability * 86_400)),
+               "hakimiyet süresiz değil, kararlılık tükendiğinde düşüyor")
 
         expect(LatvianLessonBuilder.masteryRatio(scene: pack.scenes[0], progress: mastered, now: epoch) >= 0.8,
                "ezberlenmiş sahnede hakimiyet oranı yüksek")
@@ -927,18 +970,40 @@ struct LatvianEngineCheck {
         let firstSceneWordIds = Set(firstScene.words.map(\.id))
 
         // Hakimiyet iki modaliteyi de istediğine göre, her kelimenin iki modalitede de
-        // öğretilebilir olması gerekiyor; yoksa sahne asla açılamazdı.
-        var untrainable: [String] = []
+        // öğretilebilir olması gerekiyor; yoksa o kelimenin bir kartı hiç açılamaz ve
+        // kelime asla hakim sayılamaz. Sesler ilk açılışta iniyor, dolayısıyla asıl
+        // sözü verilen durum "tüm sesler elde" hali; kalıcı kontrol bunun üzerinde.
+        var missingRecognition: [String] = []
+        var missingProduction: [String] = []
         for word in realWords {
             let kinds = realFactory.supportedKinds(forWordId: word.id, availableAudio: realAudio)
-            if !kinds.contains(where: { $0.modality == .recognition })
-                || !kinds.contains(where: { $0.modality == .production }) {
-                untrainable.append(word.id)
+            if !kinds.contains(where: { $0.modality == .recognition }) {
+                missingRecognition.append(word.id)
+            }
+            if !kinds.contains(where: { $0.modality == .production }) {
+                missingProduction.append(word.id)
             }
         }
-        expect(untrainable.isEmpty,
-               "her kelime hem tanıma hem üretim sorusu üretebiliyor"
-               + (untrainable.isEmpty ? "" : " — eksik: \(untrainable.prefix(3).joined(separator: ", "))"))
+        expect(missingRecognition.isEmpty,
+               "sesler indiğinde her kelimenin en az bir tanıma sorusu var"
+               + (missingRecognition.isEmpty
+                  ? ""
+                  : " — \(missingRecognition.count) eksik: \(missingRecognition.prefix(5).joined(separator: ", "))"))
+        expect(missingProduction.isEmpty,
+               "sesler indiğinde her kelimenin en az bir üretim sorusu var"
+               + (missingProduction.isEmpty
+                  ? ""
+                  : " — \(missingProduction.count) eksik: \(missingProduction.prefix(5).joined(separator: ", "))"))
+
+        // Sesler inmeden önceki geçici durum ölçülüyor ama kapı yapılmıyor: cümle tabanlı
+        // üretim sorusu olmayan kelimelerin üretim tarafı yalnızca dikte/telaffuz ile,
+        // yani sesle öğretilebiliyor. Sayının sessizce büyümesini görmek için basılıyor.
+        let silentProductionGap = realWords.filter { word in
+            !realFactory.supportedKinds(forWordId: word.id, availableAudio: [])
+                .contains { $0.modality == .production }
+        }
+        print("  sesler inmeden önce üretim sorusu üretemeyen kelime:"
+              + " \(silentProductionGap.count)/\(realWords.count)")
 
         let firstLesson = LatvianLessonBuilder.build(
             scene: firstScene, pack: realPack, progress: LatvianProgress.new(),
@@ -1026,7 +1091,58 @@ struct LatvianEngineCheck {
         expect(emptyPlan.contains { $0.modality == .production },
                "ilk derste üretim tarafı da öğretiliyor")
 
-        print("\n=== Benzetim: her soruyu bilen öğrenci ===")
+        print("\n=== Benzetim: tek oturumda her soruyu bilen öğrenci ===")
+
+        // Kapının var oluş sebebi bu benzetim: aynı oturumda arka arkaya ders yapan,
+        // her soruyu ilk denemede ve hızlı bilen öğrenci. Sorular arasında 20 saniye
+        // geçiyor, gün geçmiyor. "Az önce doğru cevapladım" hakimiyet değildir; bu yol
+        // kaç ders sürerse sürsün sahneyi açmamalı.
+        var sprinter = LatvianProgress.new()
+        var sprinterMoment = epoch
+        var sprinterUnlockedAt: Int?
+        var sprinterPeakRatio = 0.0
+        var sprinterAnswers = 0
+        let sprintLessons = 20
+        for lessonIndex in 1...sprintLessons {
+            let questions = LatvianLessonBuilder.build(
+                scene: firstScene, pack: realPack, progress: sprinter,
+                factory: realFactory, availableAudio: realAudio,
+                seed: UInt64(300 + lessonIndex), now: sprinterMoment
+            )
+            for question in questions {
+                sprinterMoment = sprinterMoment.addingTimeInterval(20)
+                sprinterAnswers += 1
+                sprinter.registerAnswer(
+                    wordId: question.targetWordId, modality: question.modality,
+                    rating: .easy, scheduler: scheduler, now: sprinterMoment
+                )
+            }
+            // Kilit ders biter bitmez ölçülüyor: kartların en taze olduğu an burası.
+            sprinterPeakRatio = max(
+                sprinterPeakRatio,
+                LatvianLessonBuilder.masteryRatio(scene: firstScene, progress: sprinter, now: sprinterMoment)
+            )
+            if sprinterUnlockedAt == nil,
+               LatvianLessonBuilder.isSceneMastered(scene: firstScene, progress: sprinter, now: sprinterMoment) {
+                sprinterUnlockedAt = lessonIndex
+            }
+        }
+        print(String(format: "  %d ders / %d soru / %.0f dakika kesintisiz — en yüksek hakimiyet oranı: %.2f",
+                     sprintLessons, sprinterAnswers,
+                     sprinterMoment.timeIntervalSince(epoch) / 60, sprinterPeakRatio))
+        expect(sprinterAnswers == sprintLessons * LatvianLessonBuilder.lessonLength,
+               "tek oturum benzetiminde \(sprinterAnswers) sorunun tamamı cevaplandı")
+        expect(sprinterUnlockedAt == nil,
+               "tek oturumda \(sprintLessons) ders yapan kusursuz öğrenci sahneyi açamıyor"
+               + (sprinterUnlockedAt.map { " — \($0). derste açıldı" } ?? ""))
+        expect(sprinterPeakRatio < LatvianLessonBuilder.masteryCoverage,
+               String(format: "tek oturumda hakimiyet oranı eşiğin altında kalıyor (%.2f < %.2f)",
+                      sprinterPeakRatio, LatvianLessonBuilder.masteryCoverage))
+        expect(!LatvianLessonBuilder.isSceneUnlocked(scene: realPack.scenes[1], pack: realPack,
+                                                     progress: sprinter, now: sprinterMoment),
+               "tek oturum sonunda ikinci sahne hâlâ kilitli")
+
+        print("\n=== Benzetim: günlere yayılan, her soruyu bilen öğrenci ===")
 
         var learner = LatvianProgress.new()
         var learnerLessonSizes: [Int] = []
@@ -1034,7 +1150,8 @@ struct LatvianEngineCheck {
         var learnerWordClashes = 0
         var unlockedAtLesson: Int?
         var learnerMoment = epoch
-        let learnerLimit = 60
+        // Aynı kusursuz öğrenci, bu kez günde bir oturum: saat gerçekçi biçimde ilerliyor.
+        let learnerLimit = 120
         for lessonIndex in 1...learnerLimit {
             let start = epoch.addingTimeInterval(Double(lessonIndex - 1) * 86_400)
             let questions = LatvianLessonBuilder.build(
@@ -1067,13 +1184,24 @@ struct LatvianEngineCheck {
         }
 
         let ratio = LatvianLessonBuilder.masteryRatio(scene: firstScene, progress: learner, now: learnerMoment)
+        let learnerDays = Int(learnerMoment.timeIntervalSince(epoch) / 86_400) + 1
         print(String(format: "  hakimiyet oranı: %.2f, seri: %d gün, XP: %d",
                      ratio, learner.streakDays, learner.xp))
         if let unlockedAtLesson {
-            print("  sahne \(unlockedAtLesson). derste açıldı")
+            print("  sahne \(unlockedAtLesson). oturumda açıldı (\(learnerDays) güne yayılmış)")
         } else {
-            print("  sahne \(learnerLimit) derste açılmadı")
+            print("  sahne \(learnerLimit) oturumda açılmadı")
         }
+
+        // Kapının aritmetik tabanı: kapsama eşiğini dolduracak kelimelerin iki kartı da
+        // en az `minimumReviews` tekrar görmeli. Bunun altındaki hiçbir ders sayısı yetmez.
+        let requiredWords = Int(
+            (LatvianLessonBuilder.masteryCoverage * Double(firstScene.words.count)).rounded(.up)
+        )
+        let minimumLessons = Int(
+            (Double(requiredWords * 2 * LatvianLessonBuilder.minimumReviews)
+             / Double(LatvianLessonBuilder.lessonLength)).rounded(.up)
+        )
         expect(learnerLessonSizes.allSatisfy { $0 == LatvianLessonBuilder.lessonLength },
                "benzetimdeki her ders 16 soru")
         expect(learnerKindClashes == 0,
@@ -1081,9 +1209,10 @@ struct LatvianEngineCheck {
         expect(learnerWordClashes == 0,
                "benzetimdeki hiçbir derste ardışık aynı kelime yok (\(learnerWordClashes) çakışma)")
         expect(unlockedAtLesson != nil,
-               "her soruyu bilen öğrenci sahneyi \(learnerLimit) ders içinde tamamlıyor")
-        expect((unlockedAtLesson ?? 0) > 1,
-               "sahne ilk derste açılmıyor, gerçek tekrar gerekiyor (\(unlockedAtLesson ?? 0). ders)")
+               "günlere yayılan kusursuz öğrenci sahneyi \(learnerLimit) oturum içinde tamamlıyor")
+        expect((unlockedAtLesson ?? 0) >= minimumLessons,
+               "sahne aritmetik tabandan önce açılmıyor"
+               + " (\(unlockedAtLesson ?? 0) ≥ \(minimumLessons) oturum)")
         expect(LatvianLessonBuilder.isSceneUnlocked(scene: realPack.scenes[1], pack: realPack,
                                                     progress: learner, now: learnerMoment),
                "birinci sahne tamamlanınca ikinci sahne açılıyor")
@@ -1105,7 +1234,8 @@ struct LatvianEngineCheck {
         var mixedUnlockedAt: Int?
         var mixedMomentEnd = epoch
         var answered = 0
-        for lessonIndex in 1...80 {
+        let mixedLimit = 200
+        for lessonIndex in 1...mixedLimit {
             let start = epoch.addingTimeInterval(Double(lessonIndex - 1) * 86_400)
             let questions = LatvianLessonBuilder.build(
                 scene: firstScene, pack: realPack, progress: mixedLearner,
@@ -1127,9 +1257,11 @@ struct LatvianEngineCheck {
             }
         }
         if let mixedUnlockedAt {
-            print("  sahne \(mixedUnlockedAt). derste açıldı (\(mixedUnlockedAt * 16) soru)")
+            print("  sahne \(mixedUnlockedAt). oturumda açıldı"
+                  + " (\(mixedUnlockedAt * LatvianLessonBuilder.lessonLength) soru,"
+                  + " \(mixedUnlockedAt) güne yayılmış)")
         } else {
-            print("  sahne 80 derste açılmadı")
+            print("  sahne \(mixedLimit) oturumda açılmadı")
         }
         expect(mixedUnlockedAt != nil, "gerçekçi öğrenci de sahneyi eninde sonunda tamamlıyor")
         expect((mixedUnlockedAt ?? 0) > (unlockedAtLesson ?? 0),
