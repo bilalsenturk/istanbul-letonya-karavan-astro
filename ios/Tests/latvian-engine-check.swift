@@ -58,6 +58,33 @@ func memoryKey(_ wordId: String, _ modality: LatvianModality) -> LatvianMemoryKe
     return key
 }
 
+/// Benzetim öğrencisinin hata modeli: her soruda `errorRate` olasılıkla `again`, kalanında
+/// `good`.
+///
+/// Eski model **konumsaldı** (`cevaplanan % n == 0`): hata sorunun ne olduğuna değil
+/// kaçıncı sırada sorulduğuna bağlıydı, yani ders sıralamasına faz kilitliydi. İki sonucu
+/// vardı ve ikisi de ölçümü bozuyordu: ders içi sıralamayı değiştiren her düzeltme hangi
+/// kelimenin sonsuza dek hata konumuna denk geleceğini yeniden dağıtıyordu, ve ders tohumu
+/// hangi **kartın** sorulacağını değiştirmediği için tohumlar arası varyans sıfırdı — 0.80
+/// eşiğinin yakınındaki her satır tek bir desenin fonksiyonuydu.
+///
+/// Bu model hatayı tohumlu üreteçten çekiyor: aynı tohum aynı koşuyu tekrar üretir (test
+/// belirlenimci kalır) ama farklı tohumlar gerçekten farklı koşular verir, dolayısıyla
+/// sonuç bir aralık olarak raporlanabilir.
+struct LatvianSimulatedLearner {
+    private var generator: LatvianSeededGenerator
+    private let errorRate: Double
+
+    init(seed: UInt64, errorRate: Double) {
+        generator = LatvianSeededGenerator(seed: seed &* 6_700_417 &+ 11)
+        self.errorRate = errorRate
+    }
+
+    mutating func nextRating() -> LatvianRating {
+        Double.random(in: 0..<1, using: &generator) < errorRate ? .again : .good
+    }
+}
+
 /// Seri hesabı takvime bağlı; testler sistem saat diliminden etkilenmesin diye UTC kullanıyor.
 let utcCalendar: Calendar = {
     var calendar = Calendar(identifier: .gregorian)
@@ -1184,6 +1211,107 @@ struct LatvianEngineCheck {
         expect(!LatvianLessonBuilder.isLeech(card: .new()),
                "hiç görülmemiş kart takılmış sayılmıyor")
 
+        print("\n=== Takılan kartın sıfırlanması (planlayıcı) ===")
+
+        // Kural planlayıcının içinde durduğu için bu bölüm `LatvianDefaultScheduler`
+        // üzerinden sınanıyor; `LatvianFSRSScheduler` aynı `LatvianLeechReset.applied`
+        // çağrısını yapıyor (bkz. `LatvianFSRSAdapter.swift`), dolayısıyla sınanan kural
+        // ikisinde de aynı.
+        let freshCard = LatvianMemoryCard.new()
+        expect(LatvianLeechReset.lapseSpacing == 2,
+               "iki sıfırlama arasında en az iki unutma (\(LatvianLeechReset.lapseSpacing))")
+
+        // Tam eşikteki takılan kart, bir kez daha unutuluyor.
+        let atThreshold = stuckCard(stability: 2.0, lapses: LatvianLessonBuilder.leechLapseThreshold)
+        expect(LatvianLessonBuilder.isLeech(card: atThreshold), "sınanan kart gerçekten takılmış")
+        let firstReset = scheduler.review(card: atThreshold, rating: .again, now: epoch)
+        expect(firstReset.stability == freshCard.stability,
+               "takılan kart yeniden unutulunca kararlılığı taze kartınkine dönüyor"
+               + String(format: " (%.3f)", firstReset.stability))
+        expect(firstReset.difficulty == freshCard.difficulty,
+               "sıfırlanan kartın zorluğu taze kartınkine dönüyor"
+               + String(format: " (%.1f → %.1f)", atThreshold.difficulty, firstReset.difficulty))
+        expect(firstReset.lapseCount == atThreshold.lapseCount + 1,
+               "sıfırlama unutma sayacını silmiyor, biriktirmeye devam ediyor"
+               + " (\(firstReset.lapseCount))")
+        expect(firstReset.reviewCount == atThreshold.reviewCount + 1,
+               "sıfırlama tekrar sayacını da koruyor (\(firstReset.reviewCount))")
+        expect(firstReset.reviewCount >= LatvianLessonBuilder.minimumReviews,
+               "sıfırlanan kart hakimiyet kapısının tekrar sayısı koşulunu kaybetmiyor")
+        expect(firstReset.dueAt > epoch, "sıfırlanan kart yine ileri bir vade alıyor")
+        expect(firstReset.lastReviewedAt == epoch, "sıfırlanan kartın son tekrar anı cevabın anı")
+        expect(LatvianLessonBuilder.isLeech(card: firstReset),
+               "sıfırlanan kart hâlâ takılmış sayılıyor: kurtarma payı onu öğretmeye devam ediyor")
+
+        // Aynı kart hemen ardından bir kez daha unutuluyor: aralık kuralı ikinci
+        // sıfırlamayı engelliyor, yoksa kart kalıcı olarak taze durumda donardı.
+        let noSecondReset = scheduler.review(
+            card: firstReset, rating: .again, now: epoch.addingTimeInterval(3_600)
+        )
+        expect(noSecondReset.stability > freshCard.stability,
+               "hemen ardından gelen ikinci unutma kartı yeniden sıfırlamıyor"
+               + String(format: " (%.3f)", noSecondReset.stability))
+        expect(noSecondReset.difficulty > freshCard.difficulty,
+               "ikinci unutmada zorluk yeniden birikmeye başlıyor"
+               + String(format: " (%.1f)", noSecondReset.difficulty))
+
+        // Aralık dolunca sıfırlama yeniden devreye giriyor.
+        let secondReset = scheduler.review(
+            card: noSecondReset, rating: .again, now: epoch.addingTimeInterval(7_200)
+        )
+        expect(secondReset.stability == freshCard.stability
+               && secondReset.difficulty == freshCard.difficulty,
+               "aralık dolunca sıfırlama yeniden devreye giriyor")
+        expect(secondReset.lapseCount == atThreshold.lapseCount + 3,
+               "üç unutma boyunca sayaç kesintisiz birikti (\(secondReset.lapseCount))")
+
+        // Doğru cevap hiçbir durumda sıfırlamıyor: öğrencinin az önce kazandığı
+        // kararlılığı geri almak açık zarar olurdu.
+        let leechInWindow = stuckCard(stability: 2.0, lapses: LatvianLessonBuilder.leechLapseThreshold + 2)
+        expect(LatvianLeechReset.isDue(
+                previous: leechInWindow,
+                updated: scheduler.review(card: leechInWindow, rating: .again, now: epoch)),
+               "sınanan kart sıfırlama penceresinde")
+        let afterCorrect = scheduler.review(card: leechInWindow, rating: .good, now: epoch)
+        expect(afterCorrect.stability > leechInWindow.stability,
+               "doğru cevap takılan kartı sıfırlamıyor, kararlılığı büyütüyor"
+               + String(format: " (%.2f → %.2f)", leechInWindow.stability, afterCorrect.stability))
+
+        // Teşhis cevaptan **önceki** duruma bakıyor: her unutma kararlılığı zaten eşiğin
+        // altına çökerttiğinden, sonraki duruma bakmak iyi öğrenilmiş bir kartı da tek
+        // hatayla sıfırlardı.
+        let strongCard = stuckCard(stability: LatvianLessonBuilder.masteryStabilityDays * 4, lapses: 8)
+        expect(!LatvianLessonBuilder.isLeech(card: strongCard), "kalıcılığa ulaşmış kart takılmış değil")
+        let strongAfterLapse = scheduler.review(card: strongCard, rating: .again, now: epoch)
+        expect(strongAfterLapse.stability > freshCard.stability
+               && strongAfterLapse.difficulty > freshCard.difficulty,
+               "kalıcılığa ulaşmış kart tek bir hatayla sıfırlanmıyor"
+               + String(format: " (S=%.2f D=%.1f)", strongAfterLapse.stability, strongAfterLapse.difficulty))
+
+        // Eşiğin altındaki kart da sıfırlanmıyor: teşhis tek yerde, `isLeech`te.
+        let belowThreshold = stuckCard(stability: 2.0, lapses: LatvianLessonBuilder.leechLapseThreshold - 1)
+        let belowAfterLapse = scheduler.review(card: belowThreshold, rating: .again, now: epoch)
+        expect(belowAfterLapse.stability > freshCard.stability,
+               "takılma eşiğinin altındaki kart sıfırlanmıyor"
+               + String(format: " (%.2f)", belowAfterLapse.stability))
+
+        // Döngü koruması: sürekli unutulan kart her unutmada değil, unutmaların yarısında
+        // sıfırlanıyor ve sayaç kırk unutma boyunca kesintisiz birikiyor.
+        var loopCard = stuckCard(stability: 2.0, lapses: LatvianLessonBuilder.leechLapseThreshold)
+        var loopResets = 0
+        var loopMoment = epoch
+        let loopLapses = 40
+        for _ in 0..<loopLapses {
+            loopMoment = loopMoment.addingTimeInterval(3_600)
+            loopCard = scheduler.review(card: loopCard, rating: .again, now: loopMoment)
+            if loopCard.stability == freshCard.stability { loopResets += 1 }
+        }
+        expect(loopCard.lapseCount == atThreshold.lapseCount + loopLapses,
+               "kırk unutma boyunca sayaç birikmeye devam ediyor (\(loopCard.lapseCount))")
+        expect(loopResets == loopLapses / LatvianLeechReset.lapseSpacing,
+               "kırk unutmada \(loopLapses / LatvianLeechReset.lapseSpacing) sıfırlama —"
+               + " her unutmada değil (\(loopResets))")
+
         // Kurtarmanın sınandığı kelime: en az üç tanıma tipi destekleyen ilk sahne kelimesi.
         // Merdivenin basamakları ancak o zaman ayırt edilebilir.
         let rescueWord = firstScene.words.first { word in
@@ -1479,78 +1607,131 @@ struct LatvianEngineCheck {
         expect(learner.streakDays == unlockedAtLesson,
                "her gün bir ders yapan öğrencinin serisi ders sayısına eşit (\(learner.streakDays))")
 
-        print("\n=== Benzetim: gerçekçi öğrenci ===")
+        /// Günde bir oturum yapan (ya da `sameSitting` ile hepsini arka arkaya yapan) bir
+        /// öğrenciyi benzetir.
+        ///
+        /// `errorRate` `nil` ise öğrenci kusursuz (`easy`); değilse her soruda o olasılıkla
+        /// `again`, kalanında `good` (bkz. `LatvianSimulatedLearner`). Ders tohumu da koşu
+        /// tohumundan türetiliyor, böylece bir koşunun tamamı tek bir sayıyla belirleniyor.
+        func simulate(
+            runSeed: UInt64,
+            errorRate: Double?,
+            limit: Int,
+            sameSitting: Bool = false
+        ) -> (unlockedAt: Int?, peak: Double, resets: Int, rescueLessons: Int, productionRescues: Int) {
+            var progress = LatvianProgress.new()
+            var model = LatvianSimulatedLearner(seed: runSeed, errorRate: errorRate ?? 0)
+            var moment = epoch
+            var peak = 0.0
+            var unlockedAt: Int?
+            var resets = 0
+            var rescueLessons = 0
+            var productionRescues = 0
 
-        // Dört soruda birini yanlış yapan, kalanını zorlanmadan ama hızlı olmadan
-        // bilen öğrenci. Kusursuz yolun tek veri noktası olmaması için ölçülüyor.
-        var mixedLearner = LatvianProgress.new()
-        var mixedUnlockedAt: Int?
-        var mixedMomentEnd = epoch
-        var answered = 0
-        // Kurtarmanın bu izde gerçekten çalıştığının kanıtı: kaç ders kurtarma hedefi
-        // taşıdı ve bunların kaçı tanıma tarafından geldi.
-        var rescueLessons = 0
-        var rescueTargets = 0
-        var productionRescues = 0
-        let mixedLimit = 200
-        for lessonIndex in 1...mixedLimit {
-            let start = epoch.addingTimeInterval(Double(lessonIndex - 1) * 86_400)
-            let plan = LatvianLessonBuilder.plan(
-                scene: firstScene, pack: realPack, progress: mixedLearner, now: start
-            )
-            let rescues = plan.filter { $0.source == .leech }
-            if !rescues.isEmpty { rescueLessons += 1 }
-            rescueTargets += rescues.count
-            productionRescues += rescues.filter { $0.modality == .production }.count
-            let questions = LatvianLessonBuilder.build(
-                scene: firstScene, pack: realPack, progress: mixedLearner,
-                factory: realFactory, availableAudio: realAudio,
-                seed: UInt64(900 + lessonIndex), now: start
-            )
-            for (offset, question) in questions.enumerated() {
-                answered += 1
-                mixedMomentEnd = start.addingTimeInterval(Double(offset + 1) * 20)
-                mixedLearner.registerAnswer(
-                    wordId: question.targetWordId, modality: question.modality,
-                    rating: answered % 4 == 0 ? .again : .good,
-                    scheduler: scheduler, now: mixedMomentEnd
+            for lessonIndex in 1...limit {
+                let start = sameSitting
+                    ? moment
+                    : epoch.addingTimeInterval(Double(lessonIndex - 1) * 86_400)
+                let plan = LatvianLessonBuilder.plan(
+                    scene: firstScene, pack: realPack, progress: progress, now: start
                 )
+                let rescues = plan.filter { $0.source == .leech }
+                if !rescues.isEmpty { rescueLessons += 1 }
+                productionRescues += rescues.filter { $0.modality == .production }.count
+
+                let questions = LatvianLessonBuilder.build(
+                    scene: firstScene, pack: realPack, progress: progress,
+                    factory: realFactory, availableAudio: realAudio,
+                    seed: runSeed &* 1_000 &+ UInt64(lessonIndex), now: start
+                )
+                for (offset, question) in questions.enumerated() {
+                    moment = start.addingTimeInterval(Double(offset + 1) * 20)
+                    progress.registerAnswer(
+                        wordId: question.targetWordId, modality: question.modality,
+                        rating: errorRate == nil ? .easy : model.nextRating(),
+                        scheduler: scheduler, now: moment
+                    )
+                    // Sıfırlamanın imzası. Yer tutucu planlayıcı hiçbir olağan yolda
+                    // kararlılığı sıfır bırakmıyor (her dal ya pozitif bir sabitten
+                    // başlıyor ya pozitif çarpanla ilerliyor), dolayısıyla tekrar görmüş
+                    // bir kartta sıfır kararlılık yalnızca sıfırlamadan gelebilir.
+                    let key = memoryKey(question.targetWordId, question.modality)
+                    if let card = progress.card(for: key), card.stability == 0, card.reviewCount > 0 {
+                        resets += 1
+                    }
+                }
+                peak = max(
+                    peak,
+                    LatvianLessonBuilder.masteryRatio(scene: firstScene, progress: progress, now: moment)
+                )
+                if LatvianLessonBuilder.isSceneMastered(scene: firstScene, progress: progress, now: moment) {
+                    unlockedAt = lessonIndex
+                    break
+                }
             }
-            if LatvianLessonBuilder.isSceneMastered(scene: firstScene, progress: mixedLearner, now: mixedMomentEnd) {
-                mixedUnlockedAt = lessonIndex
-                break
-            }
+            return (unlockedAt, peak, resets, rescueLessons, productionRescues)
         }
-        if let mixedUnlockedAt {
-            print("  sahne \(mixedUnlockedAt). oturumda açıldı"
-                  + " (\(mixedUnlockedAt * LatvianLessonBuilder.lessonLength) soru,"
-                  + " \(mixedUnlockedAt) güne yayılmış)")
-        } else {
-            print("  sahne \(mixedLimit) oturumda açılmadı")
+
+        print("\n=== Benzetim: gerçekçi öğrenci (dört soruda bir yanlış) ===")
+
+        // Dört soruda birini yanlış yapan, kalanını zorlanmadan ama hızlı olmadan bilen
+        // öğrenci. Kusursuz yolun tek veri noktası olmaması için ölçülüyor.
+        //
+        // **Altı ayrı tohumla koşuluyor ve yayılım da sınanıyor.** Eski hâlinde tek bir
+        // konumsal hata deseni vardı (`cevaplanan % 4 == 0`); o desen ders sıralamasına faz
+        // kilitli olduğundan tohumlar arası varyans üretmiyordu ve tek bir sayıya bakmak
+        // sonucu olduğundan güvenilir gösteriyordu. Artık tek bir tohumda tutan bir sonuç
+        // yeterli değil: altısı da geçmeli.
+        let mixedSeeds: [UInt64] = [1, 2, 3, 4, 5, 6]
+        let mixedLimit = 200
+        var mixedRuns: [(seed: UInt64, unlockedAt: Int?, peak: Double, resets: Int)] = []
+        var mixedRescueLessons = 0
+        var mixedProductionRescues = 0
+        for runSeed in mixedSeeds {
+            let run = simulate(runSeed: runSeed, errorRate: 0.25, limit: mixedLimit)
+            mixedRuns.append((runSeed, run.unlockedAt, run.peak, run.resets))
+            mixedRescueLessons += run.rescueLessons
+            mixedProductionRescues += run.productionRescues
         }
-        print("  kurtarma: \(rescueLessons) derste \(rescueTargets) hedef")
-        expect(mixedUnlockedAt != nil, "gerçekçi öğrenci de sahneyi eninde sonunda tamamlıyor")
-        expect((mixedUnlockedAt ?? 0) > (unlockedAtLesson ?? 0),
-               "yanlış yapan öğrenci kusursuz öğrenciden daha çok ders yapıyor"
-               + " (\(mixedUnlockedAt ?? 0) > \(unlockedAtLesson ?? 0))")
-        // Üst sınır, kapının asıl arızasına karşı: ölçüm sırasında (7 günlük kararlılık
-        // eşiği, yer tutucu planlayıcı) bu öğrenci 44. oturumda geçiyordu. Kurtarma
-        // eklendikten sonra yeniden ölçüldü: yine 44. oturum. Kapı ya da planlayıcı
-        // bozulup öğrenciyi sonsuza dek "biraz daha çalış" durumunda bırakırsa bu satır
-        // sessiz kalmasın diye ölçülen değerin biraz üstüne bir tavan konuyor.
-        let mixedBudget = 60
-        expect((mixedUnlockedAt ?? mixedLimit) <= mixedBudget,
-               "gerçekçi öğrenci makul sürede geçiyor"
-               + " (\(mixedUnlockedAt ?? mixedLimit) ≤ \(mixedBudget) oturum)")
-        // Kurtarma bu izde sessizce kapanırsa yukarıdaki tavan bunu yakalamaz: dört soruda
-        // birini yanlış yapan öğrencide takılan kelime **çıkması** gerekiyor ve kurtarma
-        // devreye **girmesi** gerekiyor. Sayı ölçülene değil sıfırdan büyüklüğe bağlanıyor;
-        // ders kurgusundaki her ayar kaç kelimenin takıldığını değiştirir, ama "hiç
-        // kurtarma yok" bu öğrenci profilinde arıza demektir.
-        expect(rescueLessons > 0,
-               "gerçekçi öğrencide kurtarma devreye giriyor (\(rescueLessons) ders)")
-        expect(productionRescues == 0,
-               "kurtarma hedeflerinin hiçbiri üretim tarafından değil (\(productionRescues))")
+        let mixedUnlocks = mixedRuns.compactMap(\.unlockedAt).sorted()
+        let mixedResets = mixedRuns.map(\.resets).reduce(0, +)
+        print("  oturum sayıları (tohum sırasıyla): "
+              + mixedRuns.map { $0.unlockedAt.map(String.init) ?? "açılmadı" }.joined(separator: " "))
+        if let low = mixedUnlocks.first, let high = mixedUnlocks.last {
+            print("  yayılım: \(low)–\(high) oturum (ortanca \(mixedUnlocks[mixedUnlocks.count / 2]))")
+        }
+        print("  kurtarma: \(mixedRescueLessons) ders, sıfırlama: \(mixedResets) kart")
+
+        expect(mixedUnlocks.count == mixedSeeds.count,
+               "gerçekçi öğrenci altı tohumun hepsinde sahneyi tamamlıyor"
+               + " (\(mixedUnlocks.count)/\(mixedSeeds.count))")
+        expect(mixedUnlocks.allSatisfy { $0 > (unlockedAtLesson ?? 0) },
+               "yanlış yapan öğrenci her tohumda kusursuz öğrenciden daha çok ders yapıyor"
+               + " (\(mixedUnlocks.first ?? 0) > \(unlockedAtLesson ?? 0))")
+        // Üst sınır, kapının asıl arızasına karşı: ölçüldüğünde (yer tutucu planlayıcı,
+        // 7 günlük kararlılık eşiği, sıfırlama açık) bu altı tohum 33-52 oturum aralığında
+        // geçiyordu. Kapı ya da planlayıcı bozulup öğrenciyi sonsuza dek "biraz daha çalış"
+        // durumunda bırakırsa bu satır sessiz kalmasın diye ölçülen en kötü tohumun biraz
+        // üstüne tavan konuyor. Alt sınır yok: hızlanmak arıza değil.
+        let mixedBudget = 70
+        expect((mixedUnlocks.last ?? mixedLimit) <= mixedBudget,
+               "gerçekçi öğrenci her tohumda makul sürede geçiyor"
+               + " (\(mixedUnlocks.last ?? mixedLimit) ≤ \(mixedBudget) oturum)")
+        // Yayılımın kendisi de ölçülüyor: tohumlar arası fark yeniden sıfıra inerse hata
+        // modeli sessizce konumsala dönmüş demektir ve yukarıdaki tavan bunu yakalamaz.
+        expect(Set(mixedUnlocks).count > 1,
+               "tohumlar gerçekten farklı koşular üretiyor"
+               + " (\(Set(mixedUnlocks).count) ayrı sonuç)")
+        // Kurtarma ve sıfırlama bu izde sessizce kapanırsa yukarıdaki tavan bunu yakalamaz:
+        // dört soruda birini yanlış yapan öğrencide takılan kelime **çıkması**, kurtarmanın
+        // ve planlayıcı tarafındaki sıfırlamanın **devreye girmesi** gerekiyor. Sayılar
+        // ölçülene değil sıfırdan büyüklüğe bağlanıyor.
+        expect(mixedRescueLessons > 0,
+               "gerçekçi öğrencide kurtarma devreye giriyor (\(mixedRescueLessons) ders)")
+        expect(mixedResets > 0,
+               "gerçekçi öğrencide takılan kart sıfırlanıyor (\(mixedResets) sıfırlama)")
+        expect(mixedProductionRescues == 0,
+               "kurtarma hedeflerinin hiçbiri üretim tarafından değil (\(mixedProductionRescues))")
 
         print("\n=== Benzetim: her soruyu yanlış yapan öğrenci ===")
 
@@ -1628,6 +1809,55 @@ struct LatvianEngineCheck {
         expect(strugglerRescueTargets <= LatvianLessonBuilder.leechQuota,
                "hep yanlış yapan öğrencide de kurtarma payı aşılmıyor"
                + " (\(strugglerRescueTargets) ≤ \(LatvianLessonBuilder.leechQuota))")
+
+        print("\n=== Benzetim: tohum yayılımı (koruma özellikleri) ===")
+
+        // Yukarıdaki üç benzetim tek bir ders tohumuyla koşuyor. Tek tohumda tutan bir
+        // sonuç sonuç değildir: aynı özellikler altı ayrı tohumda da tutmalı. Hata modeli
+        // artık tohumdan beslendiği için bu koşular gerçekten farklı.
+        let spreadSeeds: [UInt64] = [11, 12, 13, 14, 15, 16]
+
+        let perfectRuns = spreadSeeds.map { simulate(runSeed: $0, errorRate: nil, limit: 60) }
+        let perfectUnlocks = perfectRuns.compactMap(\.unlockedAt).sorted()
+        print("  kusursuz, günde bir oturum: "
+              + perfectRuns.map { $0.unlockedAt.map(String.init) ?? "açılmadı" }.joined(separator: " "))
+        expect(perfectUnlocks.count == spreadSeeds.count,
+               "kusursuz öğrenci altı tohumun hepsinde sahneyi açıyor"
+               + " (\(perfectUnlocks.count)/\(spreadSeeds.count))")
+        expect((perfectUnlocks.last ?? 0) <= minimumLessons + 4,
+               "kusursuz öğrenci her tohumda aritmetik tabana yakın kalıyor"
+               + " (\(perfectUnlocks.last ?? 0) ≤ \(minimumLessons + 4) oturum)")
+        expect(perfectRuns.allSatisfy { $0.resets == 0 },
+               "kusursuz öğrencide hiçbir kart sıfırlanmıyor"
+               + " (\(perfectRuns.map(\.resets).reduce(0, +)))")
+        expect(perfectRuns.allSatisfy { $0.rescueLessons == 0 },
+               "kusursuz öğrencide kurtarma hiç devreye girmiyor")
+
+        // Hep yanlış yapan öğrenci: sıfırlama defalarca devreye giriyor ama sahneyi
+        // açmıyor. Sıfırlama "unut ve baştan öğren" demek, "geç" demek değil.
+        let wrongRuns = spreadSeeds.map { simulate(runSeed: $0, errorRate: 1, limit: 40) }
+        print(String(format: "  hep yanlış: en yüksek kapsama %.2f, sıfırlama %d",
+                     wrongRuns.map(\.peak).max() ?? 0,
+                     wrongRuns.map(\.resets).reduce(0, +)))
+        expect(wrongRuns.allSatisfy { $0.unlockedAt == nil },
+               "hep yanlış yapan öğrenci hiçbir tohumda sahneyi açamıyor")
+        expect(wrongRuns.allSatisfy { $0.peak == 0 },
+               "hep yanlış yapan öğrencide hakimiyet oranı her tohumda sıfır")
+        expect(wrongRuns.contains { $0.resets > 0 },
+               "hep yanlış yapan öğrencide sıfırlama devreye giriyor"
+               + " (\(wrongRuns.map(\.resets).reduce(0, +)))")
+
+        // Tek oturumda 20 kusursuz ders: gün geçmediği için kapı kapalı kalmalı.
+        let sittingRuns = spreadSeeds.map {
+            simulate(runSeed: $0, errorRate: nil, limit: 20, sameSitting: true)
+        }
+        print(String(format: "  tek oturumda 20 ders: en yüksek kapsama %.2f",
+                     sittingRuns.map(\.peak).max() ?? 0))
+        expect(sittingRuns.allSatisfy { $0.unlockedAt == nil },
+               "tek oturumda 20 ders yapan kusursuz öğrenci hiçbir tohumda sahneyi açamıyor")
+        expect(sittingRuns.allSatisfy { $0.peak < LatvianLessonBuilder.masteryCoverage },
+               String(format: "tek oturumda hakimiyet oranı her tohumda eşiğin altında (%.2f)",
+                      sittingRuns.map(\.peak).max() ?? 0))
 
         print("\n=== Ders kurma bütçesi ===")
 

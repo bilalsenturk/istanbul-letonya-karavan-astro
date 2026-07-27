@@ -56,7 +56,11 @@ struct LatvianFSRSScheduler: LatvianScheduler {
         // FSRS "lapse"i yalnızca `review` durumundaki bir kart unutulduğunda sayıyor;
         // öğrenme adımlarındaki yanlışlar sayaca girmiyor. Kütüphanenin tanımı korunuyor.
         updated.lapseCount = max(card.lapseCount, scheduled.lapses)
-        return updated
+        // Planlayıcı sözleşmesi: takılan kart burada sıfırlanıyor. Kural kütüphaneden
+        // bağımsız ve `LatvianDefaultScheduler` ile ortak (bkz. `LatvianLeechReset`);
+        // sıfırlanan kart `stability == 0` olduğundan `status(for:)` onu bir sonraki
+        // çağrıda `.new` sayıyor ve FSRS zorluğu dereceden yeniden türetiyor.
+        return LatvianLeechReset.applied(previous: card, updated: updated)
     }
 
     // MARK: - Dönüşüm
