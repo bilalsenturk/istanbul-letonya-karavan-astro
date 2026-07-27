@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		020061CE145F2F5B5C36C6A0 /* LatvianAudioStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 406E314FFE68077386DBDAD3 /* LatvianAudioStore.swift */; };
 		020E8C313C6FBED2120E39DC /* ArrivalTargetEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF4A17AEA5D744333A66588 /* ArrivalTargetEditorView.swift */; };
 		042CD6553C4C9F181A24D979 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F5C959C02D3AEB61D35B2E4 /* DashboardView.swift */; };
 		054FCB4E10C16B21E3D45902 /* DayEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFCA663A470C8DD3B775062E /* DayEditView.swift */; };
@@ -203,6 +204,7 @@
 		3D10B03E5964F14677E5F5C0 /* AccountMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountMenuView.swift; sourceTree = "<group>"; };
 		3D9F3A0BB3C15CC80EAAB4C3 /* lv-a0-speak-labdien.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "lv-a0-speak-labdien.wav"; sourceTree = "<group>"; };
 		3DF4A17AEA5D744333A66588 /* ArrivalTargetEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrivalTargetEditorView.swift; sourceTree = "<group>"; };
+		406E314FFE68077386DBDAD3 /* LatvianAudioStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianAudioStore.swift; sourceTree = "<group>"; };
 		4198F36A45B4A90AFAEB6D59 /* DocumentVaultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentVaultView.swift; sourceTree = "<group>"; };
 		45A0216D469D825CBB437943 /* lv-combo.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "lv-combo.wav"; sourceTree = "<group>"; };
 		45DECAA1995A716526093E8C /* CampImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CampImage.swift; sourceTree = "<group>"; };
@@ -426,6 +428,7 @@
 		4F619D7B4AE1C9157F149647 /* Learning */ = {
 			isa = PBXGroup;
 			children = (
+				406E314FFE68077386DBDAD3 /* LatvianAudioStore.swift */,
 				CA4264125184392A139A1EB7 /* LatvianExercise.swift */,
 				977364A8D7BA4B4AA6BF8534 /* LatvianExerciseFactory.swift */,
 				7CE18DB1B8C9E34F0F54CFF1 /* LatvianFSRSAdapter.swift */,
@@ -771,6 +774,7 @@
 				F2B564D69F4210E1706BD4D0 /* JourneyMenuView.swift in Sources */,
 				89784D251FA5CFB972CFACF6 /* KaravanApp.swift in Sources */,
 				C5D29D91ED0FEEC34F0D3DF2 /* KeychainTokenStore.swift in Sources */,
+				020061CE145F2F5B5C36C6A0 /* LatvianAudioStore.swift in Sources */,
 				FCCF2202D242C69100E74C61 /* LatvianExercise.swift in Sources */,
 				D019D9086375F911707BF093 /* LatvianExerciseFactory.swift in Sources */,
 				38F08606745B15789AEF0AC6 /* LatvianFSRSAdapter.swift in Sources */,
