@@ -1,4 +1,5 @@
 import { PACK_VERSION, validatePack } from '../src/learning-lv/pack-schema.ts';
+import { SCENE_PLAN } from '../src/learning-lv/scenes.ts';
 
 let failures = 0;
 
@@ -94,6 +95,26 @@ rejects(() => {
   };
   return pack;
 }, 'çeldiricisi doğru ekle aynı', 'doğru ekle çakışan çeldirici reddediliyor');
+
+console.log('\n=== Sahne planı ===');
+
+expect(SCENE_PLAN.length === 12, '12 sahne var');
+expect(
+  SCENE_PLAN.every((scene, position) => scene.index === position + 1),
+  'sahne sıraları kesintisiz ve artan',
+);
+expect(
+  new Set(SCENE_PLAN.map(scene => scene.id)).size === SCENE_PLAN.length,
+  'sahne id\'leri benzersiz',
+);
+expect(
+  SCENE_PLAN.every(scene => scene.seedWords.length >= 5),
+  'her sahnede en az beş çekirdek kelime var',
+);
+expect(
+  SCENE_PLAN.every(scene => scene.brief.trim().endsWith('.')),
+  'her sahne açıklaması tam cümle',
+);
 
 if (failures > 0) {
   console.error(`\n${failures} kontrol başarısız.`);
