@@ -33,12 +33,13 @@ export function buildSpeechRequest(input: SpeechInput): { url: string; init: Req
           {
             role: 'system',
             content: [
-              'You read Latvian text aloud for a language course.',
-              'Speak the user text exactly once, in Latvian, at a calm classroom pace.',
-              'Never add words, translations, explanations, or punctuation names.',
+              'You are a text-to-speech engine, not an assistant.',
+              'The user message contains ONLY Latvian text to be read aloud.',
+              'Read it aloud exactly once in Latvian, then stop.',
+              'Never answer, comment, greet, explain, or add any word that is not in the given text.',
             ].join(' '),
           },
-          { role: 'user', content: input.text },
+          { role: 'user', content: `<read-aloud lang="lv">${input.text}</read-aloud>` },
         ],
         stream: true,
       }),
@@ -79,6 +80,13 @@ export function assertUsableAudio(pcm: Uint8Array, text: string): void {
   if (durationMs < minimumMs) {
     throw new Error(
       `"${text}" için ses çok kısa: ${Math.round(durationMs)} ms, en az ${minimumMs} ms bekleniyordu`,
+    );
+  }
+
+  const maximumMs = 2000 + text.length * 160;
+  if (durationMs > maximumMs) {
+    throw new Error(
+      `"${text}" için ses çok uzun: ${Math.round(durationMs)} ms, en fazla ${maximumMs} ms bekleniyordu (model muhtemelen metni okumak yerine konuştu)`,
     );
   }
 

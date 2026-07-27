@@ -2,14 +2,17 @@
 // Letonca içerik paketini üretir.
 //
 //   OPENROUTER_API_KEY=... node tools/generate-latvian-pack.mjs --text     # kelime/cümle üret + denetle
-//   OPENROUTER_API_KEY=... node tools/generate-latvian-pack.mjs --audio    # sesleri üret (Görev 8)
+//   OPENROUTER_API_KEY=... node tools/generate-latvian-pack.mjs --audio    # sesleri üret (public/assets/letonca/ses)
 //   ... --scene lv-s03-markette   # yalnızca bir sahne
 //   ... --dry-run                 # istek atmadan istemi göster
 //
 // Taslak her sahne sonunda kaydedilir; yarıda kalırsa aynı komut kaldığı yerden devam eder.
+// Ses dosyaları repo ile birlikte commit edilir (public/assets/letonca/ses/<audioId>.mp3).
 
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 import {
   assertUsableAudio,
@@ -51,12 +54,11 @@ const stages = {
   text: hasFlag('--text'),
   audio: hasFlag('--audio'),
   pack: hasFlag('--pack'),
-  upload: hasFlag('--upload'),
 };
 
-if (!stages.text && !stages.audio && !stages.pack && !stages.upload) {
+if (!stages.text && !stages.audio && !stages.pack) {
   console.error(
-    'Kullanım: node tools/generate-latvian-pack.mjs [--text] [--audio] [--pack] [--upload] [--scene <id>] [--dry-run]',
+    'Kullanım: node tools/generate-latvian-pack.mjs [--text] [--audio] [--pack] [--scene <id>] [--dry-run]',
   );
   process.exit(1);
 }
@@ -141,10 +143,11 @@ if (stages.text) {
   console.log('\nMetin aşaması tamam.');
 }
 
-const audioDir = path.join(root, 'data/lv-audio');
+const audioDir = path.join(root, 'public/assets/letonca/ses');
 const packPath = path.join(root, 'ios/Karavan/Resources/latvian-pack.json');
 const SPEECH_MODEL = process.env.OPENROUTER_TTS_MODEL ?? 'openai/gpt-audio-mini';
 const SPEECH_VOICE = process.env.OPENROUTER_TTS_VOICE ?? 'nova';
+const DEFAULT_AUDIO_BASE_URL = 'https://istanbul-letonya-karavan-astro.vercel.app/assets/letonca/ses';
 
 if (stages.audio) {
   await fs.mkdir(audioDir, { recursive: true });
@@ -155,7 +158,7 @@ if (stages.audio) {
   let skipped = 0;
   let failed = 0;
   for (const target of targets) {
-    const filePath = path.join(audioDir, `${target.audioId}.wav`);
+    const filePath = path.join(audioDir, `${target.audioId}.mp3`);
     if (await exists(filePath)) {
       skipped += 1;
       continue;
@@ -165,10 +168,10 @@ if (stages.audio) {
       continue;
     }
     try {
-      const wav = await synthesize(target.text);
-      await writeFileAtomic(filePath, wav);
+      const mp3 = await synthesizeWithRetry(target.text);
+      await writeFileAtomic(filePath, mp3);
       produced += 1;
-      console.log(`  ✓ ${target.audioId} "${target.text}" (${Math.round(wav.length / 1024)} KB)`);
+      console.log(`  ✓ ${target.audioId} "${target.text}" (${Math.round(mp3.length / 1024)} KB)`);
     } catch (error) {
       failed += 1;
       console.error(`  ✗ ${target.audioId} "${target.text}" — ${error.message}`);
@@ -178,11 +181,7 @@ if (stages.audio) {
 }
 
 if (stages.pack) {
-  const audioBaseUrl = process.env.LV_AUDIO_BASE_URL ?? draft.audioBaseUrl;
-  if (!audioBaseUrl) {
-    console.error('LV_AUDIO_BASE_URL tanımlı değil ve taslakta kayıtlı değil. Önce --upload çalıştır.');
-    process.exit(1);
-  }
+  const audioBaseUrl = process.env.LV_AUDIO_BASE_URL ?? DEFAULT_AUDIO_BASE_URL;
   if (Object.keys(draft.scenes).length === 0) {
     console.error('Taslakta hiç sahne yok. Önce --text çalıştır.');
     process.exit(1);
@@ -194,46 +193,6 @@ if (stages.pack) {
   const sentenceCount = pack.scenes.reduce((sum, scene) => sum + scene.sentences.length, 0);
   console.log(`\nPaket yazıldı: ${pack.scenes.length} sahne, ${wordCount} kelime, ${sentenceCount} cümle`);
   console.log(`  → ${path.relative(root, packPath)}`);
-}
-
-if (stages.upload) {
-  const { put } = await import('@vercel/blob');
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) {
-    console.error('BLOB_READ_WRITE_TOKEN tanımlı değil.');
-    process.exit(1);
-  }
-  let files;
-  try {
-    files = (await fs.readdir(audioDir)).filter(name => name.endsWith('.wav'));
-  } catch (err) {
-    if (err.code === 'ENOENT') {
-      console.error(`Ses klasörü yok: ${audioDir}. Önce --audio çalıştır.`);
-      process.exit(1);
-    }
-    throw err;
-  }
-  if (files.length === 0) {
-    console.error(`Ses klasöründe .wav dosyası yok: ${audioDir}. Önce --audio çalıştır.`);
-    process.exit(1);
-  }
-  console.log(`\n▸ ${files.length} ses dosyası yükleniyor`);
-  let base;
-  for (const name of files) {
-    const blob = await put(`letonca/ses/${name}`, await fs.readFile(path.join(audioDir, name)), {
-      access: 'public',
-      token,
-      contentType: 'audio/wav',
-      addRandomSuffix: false,
-      allowOverwrite: true,
-    });
-    base ??= blob.url.slice(0, blob.url.lastIndexOf('/'));
-  }
-  if (base) {
-    draft.audioBaseUrl = base;
-    await writeDraft(draft);
-    console.log(`Yükleme tamam. audioBaseUrl: ${base}`);
-  }
 }
 
 async function chat(request) {
@@ -310,6 +269,21 @@ function collectAudioTargets(value) {
   return [...seen].map(([audioId, text]) => ({ audioId, text }));
 }
 
+async function synthesizeWithRetry(text) {
+  try {
+    return await synthesize(text);
+  } catch (firstError) {
+    console.error(`    ↻ ilk deneme başarısız, tekrar deneniyor: ${firstError.message}`);
+    try {
+      return await synthesize(text);
+    } catch (secondError) {
+      throw new Error(
+        `iki deneme de başarısız — 1. deneme: ${firstError.message}; 2. deneme: ${secondError.message}`,
+      );
+    }
+  }
+}
+
 async function synthesize(text) {
   const request = buildSpeechRequest({ apiKey, text, model: SPEECH_MODEL, voice: SPEECH_VOICE });
   const response = await fetch(request.url, { ...request.init, signal: AbortSignal.timeout(60_000) });
@@ -318,7 +292,32 @@ async function synthesize(text) {
   }
   const pcm = extractAudioFromStream(await response.text());
   assertUsableAudio(pcm, text);
-  return wrapPcm16AsWav(pcm);
+  return await encodeMp3(wrapPcm16AsWav(pcm));
+}
+
+async function encodeMp3(wav) {
+  const tmpWav = path.join(os.tmpdir(), `lv-audio-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.wav`);
+  const tmpMp3 = tmpWav.replace(/\.wav$/, '.mp3');
+  try {
+    await fs.writeFile(tmpWav, wav);
+    try {
+      execFileSync('ffmpeg', ['-y', '-i', tmpWav, '-codec:a', 'libmp3lame', '-b:a', '64k', '-ac', '1', tmpMp3], {
+        stdio: ['ignore', 'ignore', 'pipe'],
+      });
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        throw new Error('ffmpeg bulunamadı. MP3 kodlamak için ffmpeg kurulu olmalı.');
+      }
+      throw new Error(`ffmpeg mp3 kodlaması başarısız: ${String(error.stderr || error.message).slice(0, 300)}`);
+    }
+    return await fs.readFile(tmpMp3);
+  } finally {
+    for (const tmp of [tmpWav, tmpMp3]) {
+      try {
+        await fs.unlink(tmp);
+      } catch {}
+    }
+  }
 }
 
 function buildPack(value, audioBaseUrl) {

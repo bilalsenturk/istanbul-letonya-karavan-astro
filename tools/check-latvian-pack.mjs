@@ -344,7 +344,28 @@ const speechRequest = buildSpeechRequest({
 const speechBody = JSON.parse(speechRequest.init.body);
 expect(speechBody.modalities.includes('audio'), 'ses modalitesi isteniyor');
 expect(speechBody.audio.format === 'pcm16', 'pcm16 biçimi isteniyor');
-expect(speechBody.messages[1].content === 'Labdien', 'metin doğrudan geçiyor');
+expect(
+  speechBody.messages[1].content === '<read-aloud lang="lv">Labdien</read-aloud>',
+  'metin <read-aloud> sarmalayıcısı içinde geçiyor',
+);
+expect(
+  speechBody.messages[0].content.includes('text-to-speech engine') &&
+    speechBody.messages[0].content.includes('Never answer'),
+  'sistem istemi katı TTS talimatını içeriyor',
+);
+
+const diacriticsSpeech = buildSpeechRequest({
+  apiKey: 'test-key',
+  text: 'Šodien ir saulaina diena, paldies!',
+  model: 'openai/gpt-audio-mini',
+  voice: 'nova',
+});
+const diacriticsBody = JSON.parse(diacriticsSpeech.init.body);
+expect(
+  diacriticsBody.messages[1].content ===
+    '<read-aloud lang="lv">Šodien ir saulaina diena, paldies!</read-aloud>',
+  'Letonca aksan işaretleri sarmalayıcı içinde değişmeden kalıyor',
+);
 
 function fakeStream(samples) {
   const buffer = Buffer.alloc(samples.length * 2);
@@ -386,6 +407,30 @@ try {
   expect(false, 'sessiz ses reddediliyor');
 } catch (error) {
   expect(error.message.includes('sessiz'), 'sessiz ses reddediliyor');
+}
+
+function toneSamples(count) {
+  return Array.from({ length: count }, (unused, index) => Math.round(8000 * Math.sin(index / 12)));
+}
+
+const rambleMs = 13_700;
+const rambleSampleCount = Math.round((rambleMs / 1000) * SPEECH_SAMPLE_RATE);
+const rambleClip = extractAudioFromStream(fakeStream(toneSamples(rambleSampleCount)));
+try {
+  assertUsableAudio(rambleClip, 'siers');
+  expect(false, 'çok uzun ses (model gevezelik ediyor) reddediliyor');
+} catch (error) {
+  expect(error.message.includes('çok uzun'), 'çok uzun ses (model gevezelik ediyor) reddediliyor');
+}
+
+const properMs = 1700;
+const properSampleCount = Math.round((properMs / 1000) * SPEECH_SAMPLE_RATE);
+const properClip = extractAudioFromStream(fakeStream(toneSamples(properSampleCount)));
+try {
+  assertUsableAudio(properClip, 'Maize un piens.');
+  expect(true, 'doğru uzunluktaki ses kabul ediliyor');
+} catch (error) {
+  expect(false, `doğru uzunluktaki ses kabul ediliyor (${error.message})`);
 }
 
 const wav = wrapPcm16AsWav(loudPcm);
