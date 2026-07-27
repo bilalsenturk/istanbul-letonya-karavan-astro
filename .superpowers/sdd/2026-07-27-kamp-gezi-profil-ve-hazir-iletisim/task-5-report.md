@@ -31,3 +31,7 @@ The brief's example is arithmetically inconsistent: `08:00 + 8 h + 45 min + 90 m
 ## Fix round 1
 
 Added RED checks for nearest-half-hour ETA and Turkish flight wording; they failed under the previous floor-only calculator and ungated camp wording. GREEN now uses absolute-date nearest-half-hour rounding (ties upward), a ±30 minute window, overflow-clamped ETA additions, DST offset labels when a window crosses an offset change, and automobile-only camp-limit messaging. Planner, account and arrival checks pass in the shared worktree.
+
+## Fixture closure
+
+The committed planner fixture now orders `borderBufferMinutes` after `camp` and supplies the new optional camp-length argument. A detached committed-tree compile succeeds. Its runtime planner harness still traps on the pre-existing mismatch between the committed 8-day resource and the separately committed 6-day planner expectations; the shared worktree's synchronized route content passes all three harnesses.
