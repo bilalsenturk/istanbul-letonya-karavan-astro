@@ -171,6 +171,17 @@ func fingerprintLines() throws -> [String] {
             wordId: word.id, modality: modality, rating: rating, scheduler: scheduler, now: epoch
         )
     }
+    // Birkaç kart bilerek takılma durumuna sürükleniyor: kurtarma yolu (havuz sırası,
+    // merdiven, kota kesintisi) da parmak izine girsin. Bu yol sözlükten okuyor ve
+    // kararlılığa göre sıralıyor; sızacak bir belirsizlik ancak ayrı süreçlerde görünür.
+    for (index, word) in pack.scenes.flatMap(\.words).enumerated() where index % 7 == 0 {
+        for round in 0..<5 {
+            progress.registerAnswer(
+                wordId: word.id, modality: .recognition, rating: .again,
+                scheduler: scheduler, now: epoch.addingTimeInterval(Double(round) * 3600)
+            )
+        }
+    }
     let lessonMoment = epoch.addingTimeInterval(86_400 * 10)
     for scene in pack.scenes {
         let plan = LatvianLessonBuilder.plan(
@@ -1125,6 +1136,196 @@ struct LatvianEngineCheck {
                "hata kotası doluyor (\(mixedPlan.filter { $0.source == .mistake }.count))")
         expect(Set(mixedPlan.map(\.debugKey)).count == mixedPlan.count,
                "planda aynı kelime-modalite ikilisi iki kez yok")
+        // "Takılan kelimesi olmayan öğrenci bugünkü dersin aynısını alır" güvencesi:
+        // yukarıdaki üç kota da bozulmadan doluyor ve kurtarma hiç devreye girmiyor.
+        expect(!mixedPlan.contains { $0.source == .leech },
+               "takılan kelimesi olmayan öğrencinin dersinde kurtarma yok")
+
+        print("\n=== Takılan kelime: teşhis ve kurtarma ===")
+
+        expect(LatvianLessonBuilder.leechLapseThreshold == 4, "takılma eşiği 4 unutma")
+        expect(LatvianLessonBuilder.leechQuota == 4, "kurtarma payı 4 soru")
+        expect(LatvianLessonBuilder.leechQuota <= LatvianLessonBuilder.newQuota,
+               "kurtarma payı yeni malzeme kotasından kesilebiliyor"
+               + " (\(LatvianLessonBuilder.leechQuota) ≤ \(LatvianLessonBuilder.newQuota))")
+
+        // Kolaydan zora sıra kurtarma merdiveninin tek dayanağı; tanıma tarafı üretimin
+        // tamamının önünde olmalı, yoksa "en kolay soru" bir üretim sorusu çıkabilir.
+        let hardestRecognition = LatvianExerciseKind.allCases
+            .filter { $0.modality == .recognition }.map(\.difficultyRank).max() ?? 0
+        let easiestProduction = LatvianExerciseKind.allCases
+            .filter { $0.modality == .production }.map(\.difficultyRank).min() ?? 0
+        expect(hardestRecognition < easiestProduction,
+               "zorluk sırasında tüm tanıma tipleri tüm üretim tiplerinin önünde"
+               + " (\(hardestRecognition) < \(easiestProduction))")
+        expect(Set(LatvianExerciseKind.allCases.map(\.difficultyRank)).count
+               == LatvianExerciseKind.allCases.count,
+               "her soru tipinin zorluk sırası ayrı")
+
+        /// Elle kurulmuş kart: teşhisin iki koşulunu tek tek sınamak için.
+        func stuckCard(stability: Double, lapses: Int, reviews: Int = 60) -> LatvianMemoryCard {
+            LatvianMemoryCard(
+                stability: stability,
+                difficulty: 10,
+                dueAt: epoch.addingTimeInterval(stability * 86_400),
+                lastReviewedAt: epoch,
+                reviewCount: reviews,
+                lapseCount: lapses
+            )
+        }
+
+        expect(LatvianLessonBuilder.isLeech(card: stuckCard(stability: 2.0, lapses: 4)),
+               "dört kez unutulup kalıcılığa ulaşamayan kart takılmış sayılıyor")
+        expect(!LatvianLessonBuilder.isLeech(card: stuckCard(stability: 2.0, lapses: 3)),
+               "üç unutma takılmak için yetmiyor")
+        expect(!LatvianLessonBuilder.isLeech(
+                card: stuckCard(stability: LatvianLessonBuilder.masteryStabilityDays, lapses: 30)),
+               "otuz kez unutulmuş olsa da kararlılığa ulaşan kart takılmış sayılmıyor")
+        expect(!LatvianLessonBuilder.isLeech(card: .new()),
+               "hiç görülmemiş kart takılmış sayılmıyor")
+
+        // Kurtarmanın sınandığı kelime: en az üç tanıma tipi destekleyen ilk sahne kelimesi.
+        // Merdivenin basamakları ancak o zaman ayırt edilebilir.
+        let rescueWord = firstScene.words.first { word in
+            realFactory.supportedKinds(forWordId: word.id, availableAudio: realAudio)
+                .filter { $0.modality == .recognition }.count >= 3
+        }
+        expect(rescueWord != nil, "gerçek pakette en az üç tanıma tipli bir kelime var")
+
+        if let rescueWord {
+            let ladder = realFactory
+                .supportedKinds(forWordId: rescueWord.id, availableAudio: realAudio)
+                .filter { $0.modality == .recognition }
+                .sorted { $0.difficultyRank < $1.difficultyRank }
+
+            /// `mixed` fikstürünün üstüne tek bir takılmış kelime konuyor: kotaların geri
+            /// kalanı dolu kaldığından kesintinin nereden yapıldığı doğrudan okunabiliyor.
+            func stuckProgress(recognitionStability: Double) -> LatvianProgress {
+                var value = mixed
+                value.setCard(stuckCard(stability: recognitionStability, lapses: 9),
+                              for: memoryKey(rescueWord.id, .recognition))
+                value.setCard(stuckCard(stability: 1.2, lapses: 11),
+                              for: memoryKey(rescueWord.id, .production))
+                return value
+            }
+
+            let stuck = stuckProgress(recognitionStability: 1.5)
+            expect(LatvianLessonBuilder.isLeech(wordId: rescueWord.id, progress: stuck),
+                   "iki tarafı da çökmüş kelime takılmış sayılıyor")
+            expect(!LatvianLessonBuilder.isLeech(wordId: rescueWord.id, progress: mixed),
+                   "aynı kelime takılmadan önce takılmış sayılmıyor")
+
+            let stuckPlan = LatvianLessonBuilder.plan(
+                scene: firstScene, pack: realPack, progress: stuck, now: mixedMoment
+            )
+            let rescued = stuckPlan.filter { $0.source == .leech }
+            expect(stuckPlan.count == LatvianLessonBuilder.lessonLength,
+                   "kurtarmalı ders de 16 hedef (\(stuckPlan.count))")
+            expect(rescued.count == 1 && rescued.first?.wordId == rescueWord.id,
+                   "takılan kelime derse kurtarma kaynağıyla giriyor (\(rescued.count))")
+            expect(rescued.first?.modality == .recognition,
+                   "kurtarma hedefi tanıma tarafından")
+            expect(stuckPlan.filter { $0.source == .new }.count
+                   == LatvianLessonBuilder.newQuota - rescued.count,
+                   "kurtarma payı yeni malzeme kotasından kesiliyor"
+                   + " (\(stuckPlan.filter { $0.source == .new }.count))")
+            expect(stuckPlan.filter { $0.source == .review }.count == LatvianLessonBuilder.reviewQuota,
+                   "kurtarma tekrar kotasına dokunmuyor"
+                   + " (\(stuckPlan.filter { $0.source == .review }.count))")
+            expect(stuckPlan.filter { $0.source == .mistake }.count == LatvianLessonBuilder.mistakeQuota,
+                   "kurtarma hata kotasına dokunmuyor"
+                   + " (\(stuckPlan.filter { $0.source == .mistake }.count))")
+            expect(!stuckPlan.contains {
+                       $0.wordId == rescueWord.id && $0.source == .new
+                   },
+                   "takılan kelime ayrıca yeni malzeme olarak da sorulmuyor")
+
+            let stuckLesson = LatvianLessonBuilder.build(
+                scene: firstScene, pack: realPack, progress: stuck,
+                factory: realFactory, availableAudio: realAudio, seed: 21, now: mixedMoment
+            )
+            expect(stuckLesson.count == LatvianLessonBuilder.lessonLength,
+                   "kurtarmalı ders de 16 soru (\(stuckLesson.count))")
+            expect(stuckLesson.first?.targetWordId == rescueWord.id,
+                   "ders takılan kelimeyle başlıyor"
+                   + " (\(stuckLesson.first?.targetWordId ?? "-"))")
+            expect(stuckLesson.first?.modality == .recognition,
+                   "takılan kelime üretimle değil tanımayla geri geliyor"
+                   + " (\(stuckLesson.first?.kind.rawValue ?? "-"))")
+            expect(stuckLesson.first?.kind == ladder.first,
+                   "dibe vurmuş kelime merdivenin en kolay basamağından geliyor"
+                   + " (\(stuckLesson.first?.kind.rawValue ?? "-")"
+                   + " ≟ \(ladder.first?.rawValue ?? "-"))")
+
+            // Toparlanan kart merdivende yukarı çıkıyor: kararlılık eşiğin 5/7'sine
+            // geldiğinde üçüncü basamak (kelimenin desteklediği kadarıyla) açılıyor.
+            let recovering = stuckProgress(recognitionStability: 5.0)
+            expect(LatvianLessonBuilder.isLeech(wordId: rescueWord.id, progress: recovering),
+                   "eşiğin altındaki kart toparlanırken hâlâ kurtarma kapsamında")
+            let recoveringLesson = LatvianLessonBuilder.build(
+                scene: firstScene, pack: realPack, progress: recovering,
+                factory: realFactory, availableAudio: realAudio, seed: 21, now: mixedMoment
+            )
+            let expectedStep = ladder[min(2, ladder.count - 1)]
+            expect(recoveringLesson.first?.targetWordId == rescueWord.id,
+                   "toparlanan kelime de derse kurtarmayla giriyor")
+            expect(recoveringLesson.first?.modality == .recognition,
+                   "toparlanma basamağı da tanıma tarafında")
+            expect(recoveringLesson.first?.kind == expectedStep,
+                   "toparlandıkça daha zor tanıma sorusu geliyor"
+                   + " (\(recoveringLesson.first?.kind.rawValue ?? "-")"
+                   + " ≟ \(expectedStep.rawValue))")
+            expect((recoveringLesson.first?.kind.difficultyRank ?? 0)
+                   > (stuckLesson.first?.kind.difficultyRank ?? 0),
+                   "toparlanan kartın sorusu dibe vurmuş kartınkinden zor")
+
+            // Kararlılık eşiği geçtiğinde teşhis kendiliğinden kalkıyor: mezuniyet ayrı bir
+            // kural değil, `isLeech`in ikinci koşulunun düşmesi. İki taraf da eşiği geçince
+            // kelime kurtarmadan tamamen çıkıyor ve kompozisyon eski haline dönüyor.
+            var healed = mixed
+            let clearedCard = stuckCard(stability: LatvianLessonBuilder.masteryStabilityDays, lapses: 9)
+            expect(!LatvianLessonBuilder.isLeech(card: clearedCard),
+                   "kararlılık eşiği geçen kart, dokuz unutmaya rağmen takılmış değil")
+            healed.setCard(clearedCard, for: memoryKey(rescueWord.id, .recognition))
+            healed.setCard(clearedCard, for: memoryKey(rescueWord.id, .production))
+            expect(!LatvianLessonBuilder.isLeech(wordId: rescueWord.id, progress: healed),
+                   "iki tarafı da eşiği geçen kelime kurtarmadan çıkıyor")
+            let healedPlan = LatvianLessonBuilder.plan(
+                scene: firstScene, pack: realPack, progress: healed, now: mixedMoment
+            )
+            expect(!healedPlan.contains { $0.source == .leech },
+                   "kurtarılan kelime iyileşince ders kurtarmasız kurgusuna dönüyor")
+            expect(healedPlan.filter { $0.source == .new }.count == LatvianLessonBuilder.newQuota,
+                   "iyileşince yeni malzeme kotası da tam dolduruluyor"
+                   + " (\(healedPlan.filter { $0.source == .new }.count))")
+
+            // En fazla `leechQuota` kadar: takılan kelime sayısı payı aşarsa ders taşmıyor.
+            var manyStuck = mixed
+            for word in firstScene.words.prefix(9) {
+                manyStuck.setCard(stuckCard(stability: 1.5, lapses: 9),
+                                  for: memoryKey(word.id, .recognition))
+            }
+            let manyPlan = LatvianLessonBuilder.plan(
+                scene: firstScene, pack: realPack, progress: manyStuck, now: mixedMoment
+            )
+            expect(manyPlan.count == LatvianLessonBuilder.lessonLength,
+                   "dokuz takılan kelimede de ders 16 hedef (\(manyPlan.count))")
+            expect(manyPlan.filter { $0.source == .leech }.count == LatvianLessonBuilder.leechQuota,
+                   "kurtarma payı aşılmıyor (\(manyPlan.filter { $0.source == .leech }.count))")
+            let manyLesson = LatvianLessonBuilder.build(
+                scene: firstScene, pack: realPack, progress: manyStuck,
+                factory: realFactory, availableAudio: realAudio, seed: 22, now: mixedMoment
+            )
+            expect(manyLesson.count == LatvianLessonBuilder.lessonLength,
+                   "dokuz takılan kelimede de ders 16 soru (\(manyLesson.count))")
+            var manyClashes = 0
+            for index in 1..<manyLesson.count where manyLesson[index].kind == manyLesson[index - 1].kind
+                || manyLesson[index].targetWordId == manyLesson[index - 1].targetWordId {
+                manyClashes += 1
+            }
+            expect(manyClashes == 0,
+                   "kurtarma ardışık tekrar üretmiyor (\(manyClashes) çakışma)")
+        }
 
         // Havuz boşken kota devrediyor: boş ilerlemede tekrar ve hata havuzu yok.
         let emptyPlan = LatvianLessonBuilder.plan(
@@ -1286,9 +1487,21 @@ struct LatvianEngineCheck {
         var mixedUnlockedAt: Int?
         var mixedMomentEnd = epoch
         var answered = 0
+        // Kurtarmanın bu izde gerçekten çalıştığının kanıtı: kaç ders kurtarma hedefi
+        // taşıdı ve bunların kaçı tanıma tarafından geldi.
+        var rescueLessons = 0
+        var rescueTargets = 0
+        var productionRescues = 0
         let mixedLimit = 200
         for lessonIndex in 1...mixedLimit {
             let start = epoch.addingTimeInterval(Double(lessonIndex - 1) * 86_400)
+            let plan = LatvianLessonBuilder.plan(
+                scene: firstScene, pack: realPack, progress: mixedLearner, now: start
+            )
+            let rescues = plan.filter { $0.source == .leech }
+            if !rescues.isEmpty { rescueLessons += 1 }
+            rescueTargets += rescues.count
+            productionRescues += rescues.filter { $0.modality == .production }.count
             let questions = LatvianLessonBuilder.build(
                 scene: firstScene, pack: realPack, progress: mixedLearner,
                 factory: realFactory, availableAudio: realAudio,
@@ -1315,18 +1528,29 @@ struct LatvianEngineCheck {
         } else {
             print("  sahne \(mixedLimit) oturumda açılmadı")
         }
+        print("  kurtarma: \(rescueLessons) derste \(rescueTargets) hedef")
         expect(mixedUnlockedAt != nil, "gerçekçi öğrenci de sahneyi eninde sonunda tamamlıyor")
         expect((mixedUnlockedAt ?? 0) > (unlockedAtLesson ?? 0),
                "yanlış yapan öğrenci kusursuz öğrenciden daha çok ders yapıyor"
                + " (\(mixedUnlockedAt ?? 0) > \(unlockedAtLesson ?? 0))")
         // Üst sınır, kapının asıl arızasına karşı: ölçüm sırasında (7 günlük kararlılık
-        // eşiği, yer tutucu planlayıcı) bu öğrenci 44. oturumda geçiyordu. Kapı ya da
-        // planlayıcı bozulup öğrenciyi sonsuza dek "biraz daha çalış" durumunda bırakırsa
-        // bu satır sessiz kalmasın diye ölçülen değerin biraz üstüne bir tavan konuyor.
+        // eşiği, yer tutucu planlayıcı) bu öğrenci 44. oturumda geçiyordu. Kurtarma
+        // eklendikten sonra yeniden ölçüldü: yine 44. oturum. Kapı ya da planlayıcı
+        // bozulup öğrenciyi sonsuza dek "biraz daha çalış" durumunda bırakırsa bu satır
+        // sessiz kalmasın diye ölçülen değerin biraz üstüne bir tavan konuyor.
         let mixedBudget = 60
         expect((mixedUnlockedAt ?? mixedLimit) <= mixedBudget,
                "gerçekçi öğrenci makul sürede geçiyor"
                + " (\(mixedUnlockedAt ?? mixedLimit) ≤ \(mixedBudget) oturum)")
+        // Kurtarma bu izde sessizce kapanırsa yukarıdaki tavan bunu yakalamaz: dört soruda
+        // birini yanlış yapan öğrencide takılan kelime **çıkması** gerekiyor ve kurtarma
+        // devreye **girmesi** gerekiyor. Sayı ölçülene değil sıfırdan büyüklüğe bağlanıyor;
+        // ders kurgusundaki her ayar kaç kelimenin takıldığını değiştirir, ama "hiç
+        // kurtarma yok" bu öğrenci profilinde arıza demektir.
+        expect(rescueLessons > 0,
+               "gerçekçi öğrencide kurtarma devreye giriyor (\(rescueLessons) ders)")
+        expect(productionRescues == 0,
+               "kurtarma hedeflerinin hiçbiri üretim tarafından değil (\(productionRescues))")
 
         print("\n=== Benzetim: her soruyu yanlış yapan öğrenci ===")
 
@@ -1335,8 +1559,16 @@ struct LatvianEngineCheck {
         var strugglerPeakRatio = 0.0
         var strugglerKindClashes = 0
         var strugglerWordClashes = 0
+        var strugglerRescueLessons = 0
+        var strugglerRescueTargets = 0
         for lessonIndex in 1...20 {
             let start = epoch.addingTimeInterval(Double(lessonIndex - 1) * 86_400)
+            let strugglerPlan = LatvianLessonBuilder.plan(
+                scene: firstScene, pack: realPack, progress: struggler, now: start
+            )
+            let strugglerRescues = strugglerPlan.filter { $0.source == .leech }
+            if !strugglerRescues.isEmpty { strugglerRescueLessons += 1 }
+            strugglerRescueTargets = max(strugglerRescueTargets, strugglerRescues.count)
             let questions = LatvianLessonBuilder.build(
                 scene: firstScene, pack: realPack, progress: struggler,
                 factory: realFactory, availableAudio: realAudio,
@@ -1387,6 +1619,15 @@ struct LatvianEngineCheck {
                "ders kurgusu aynı zayıf kelimelere dönüyor (\(lastOverlap) ortak kelime)")
         expect(struggler.recentMistakes.count <= LatvianProgress.mistakeMemory,
                "hata listesi 20 dersten sonra da sınırlı (\(struggler.recentMistakes.count))")
+        // Her soruyu yanlış yapan öğrencide sahnenin tamamı takılıyor; kurtarma en çok
+        // payı kadar yer alıyor ve geri kalan kotalar çalışmaya devam ediyor.
+        print("  kurtarma: \(strugglerRescueLessons)/20 derste, en çok \(strugglerRescueTargets) hedef")
+        expect(strugglerRescueLessons > 0,
+               "hep yanlış yapan öğrencide kurtarma devreye giriyor"
+               + " (\(strugglerRescueLessons) ders)")
+        expect(strugglerRescueTargets <= LatvianLessonBuilder.leechQuota,
+               "hep yanlış yapan öğrencide de kurtarma payı aşılmıyor"
+               + " (\(strugglerRescueTargets) ≤ \(LatvianLessonBuilder.leechQuota))")
 
         print("\n=== Ders kurma bütçesi ===")
 

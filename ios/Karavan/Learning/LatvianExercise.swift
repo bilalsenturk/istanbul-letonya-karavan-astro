@@ -20,6 +20,31 @@ extension LatvianExerciseKind {
         }
     }
 
+    /// Soru tipinin öğrenciden istediği şeyin ağırlığı; küçük olan daha kolay.
+    ///
+    /// Sıra iki ölçüte göre: **cevabın biçimi** (birkaç seçenekten dokunmak < bir kelime
+    /// bankasını sıraya dizmek < klavyeyle yazmak) ve **modalite** (tanımak < üretmek).
+    /// Bu yüzden tüm tanıma tipleri tüm üretim tiplerinin önünde geliyor.
+    ///
+    /// Tek kullanıcısı ders kurgusundaki kurtarma merdiveni (bkz.
+    /// `LatvianLessonBuilder.rescueKinds`): takılan bir kelime bu sıranın başından
+    /// yeniden öğretiliyor, kartı toparladıkça merdivende yukarı çıkıyor. Mutlak
+    /// değerlerin anlamı yok, yalnızca sıraları kullanılıyor.
+    var difficultyRank: Int {
+        switch self {
+        case .iconChoose: return 0   // görsel ipucu + dört seçenek
+        case .listenChoose: return 1 // ses ipucu + dört seçenek
+        case .fillBlank: return 2    // cümle bağlamı + dört seçenek
+        case .caseDrill: return 3    // gövde verili, üç ek seçeneği
+        case .match: return 4        // dört çift aynı anda
+        case .lvToTr: return 5       // Letonca cümleyi anlayıp Türkçesini dizme
+        case .order: return 6        // verili Letonca kelimeleri sıraya dizme
+        case .trToLv: return 7       // Türkçeden Letonca cümle kurma
+        case .speak: return 8        // duyduğunu telaffuz etme
+        case .dictation: return 9    // duyduğunu harfi harfine yazma
+        }
+    }
+
     /// Cevabın "easy" sayılması için altında kalması gereken süre (saniye).
     /// Soru tipinin gerektirdiği motor eyleme göre ölçeklenir: bir seçeneğe dokunmak
     /// birkaç saniye sürer, bir cümleyi dikteyle yazmak ya da konuşmak çok daha uzun sürer;

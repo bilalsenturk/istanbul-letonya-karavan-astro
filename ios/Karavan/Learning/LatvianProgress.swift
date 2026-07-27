@@ -115,9 +115,16 @@ struct LatvianProgress: Codable, Equatable, Sendable {
     /// olanların hepsi sıfırdır); eşitlik `storageKey` ile bozuluyor, yoksa sıralama
     /// sözlük sırasına bağlı kalır ve süreçler arası değişirdi.
     func dueEntries(now: Date) -> [LatvianMemoryEntry] {
+        Self.dueEntries(from: allCards(), now: now)
+    }
+
+    /// Aynı sıralama, kayıtlar hazırken. `allCards()` her anahtarı dizeden geri çözüp
+    /// listeyi sıralıyor; ders kurgusu hem tekrar kuyruğunu hem takılan kelime havuzunu
+    /// beslediğinden bunu ders başına iki kez yapmasın diye ayrı bir giriş var.
+    static func dueEntries(from entries: [LatvianMemoryEntry], now: Date) -> [LatvianMemoryEntry] {
         // Hatırlanma olasılığı sıralama başına bir kez hesaplanıyor: karşılaştırıcının
         // içinde hesaplamak her kartı log n kez `pow`'dan geçirirdi.
-        allCards()
+        entries
             .filter { $0.card.isDue(at: now) }
             .map { (entry: $0, score: $0.card.retrievability(at: now)) }
             .sorted { left, right in

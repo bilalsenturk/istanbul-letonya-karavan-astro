@@ -8,6 +8,9 @@ enum LatvianLessonSource: String, Hashable, Sendable {
     case review
     /// Son derslerde yanlış yapılan kelime.
     case mistake
+    /// Defalarca unutulmuş, kalıcılığa bir türlü ulaşamamış kelime ("leech"):
+    /// yeniden sınanmıyor, yeniden öğretiliyor.
+    case leech
     /// Kotalar tükendikten sonra sahne kelimeleriyle yapılan tamamlama.
     case filler
 }
@@ -73,6 +76,16 @@ enum LatvianLessonBuilder {
     static let masteryStabilityDays = 7.0
     /// Tesadüf mü: bir kart bu kadar ayrı tekrar görmeden hakim sayılmıyor.
     static let minimumReviews = 2
+    /// Takıldı mı: kart bu kadar kez unutulduğu hâlde hâlâ kalıcı olamadıysa "leech" sayılıyor.
+    ///
+    /// Soru "kaç kez yanlış yaptı" değil, "kaç kez yanlış yapmasına rağmen hiçbir yere
+    /// varamadı". Bu yüzden ölçüt iki parçalı — sayaç **ve** kararlılık (bkz. `isLeech`):
+    /// dört kez unutulup sonra oturmuş bir kelime takılmış değildir, tekrar kuyruğunun
+    /// normal işidir. Dört, hem "iki kere şanssızlıktı" diyebilecek kadar büyük hem de
+    /// bir kartın kurtarılamaz hale gelmesini beklemeyecek kadar küçük; Anki'nin sekizlik
+    /// varsayılanından düşük tutuldu çünkü buradaki kurtarma kartı askıya almıyor,
+    /// yalnızca daha kolay bir soruya indiriyor — yanlış teşhisin bedeli çok daha ucuz.
+    static let leechLapseThreshold = 4
 
     private static let newShare = 0.5
     private static let reviewShare = 0.3
@@ -83,6 +96,20 @@ enum LatvianLessonBuilder {
     static let reviewQuota = Int((Double(lessonLength) * reviewShare).rounded())
     /// Son hatalar kotası (%20); kalanı alıyor ki üçü her zaman `lessonLength` etsin.
     static let mistakeQuota = max(0, lessonLength - newQuota - reviewQuota)
+    /// Kurtarma payı: takılan kelimelere ders başına ayrılan en fazla soru sayısı.
+    ///
+    /// Pay **yeni malzeme kotasından** kesiliyor, tekrar ya da hata kotasından değil:
+    /// boğulmakta olan öğrenciye yeni kelime tanıtmak yanlış hamle, ama vadesi gelen
+    /// kartı atlamak da öğrendiklerini kaybettirir. Takılan kelime yoksa kesinti sıfır
+    /// ve kompozisyon bugünküyle birebir aynı kalıyor.
+    ///
+    /// Dört, on altı sorunun dörtte biri: ders başına bir soru "zaten olan ve işe
+    /// yaramayan" durum (kelime normal tekrar kuyruğunda zaten o sıklıkta dönüyordu),
+    /// yarım ders ise sahnede ilerlemeyi durdururdu.
+    static let leechQuota = 4
+    /// Kurtarma merdiveninin basamak sayısı: kart kalıcılığa yaklaştıkça soru zorlaşıyor.
+    /// Kelimenin desteklediği tanıma tipi sayısı bundan azsa merdiven o kadar kısalıyor.
+    private static let rescueSteps = 3
 
     private static let modalities: [LatvianModality] = [.recognition, .production]
 
@@ -126,6 +153,35 @@ enum LatvianLessonBuilder {
         masteryRatio(scene: scene, progress: progress, now: now) >= masteryCoverage
     }
 
+    // MARK: - Takılan kelime
+
+    /// Kart takıldı mı: defalarca unutulmuş **ve** buna rağmen kalıcılığa ulaşamamış.
+    ///
+    /// Teşhis kartın kendi durumundan okunuyor, elle tutulan bir listeden değil; kart
+    /// toparlanıp kararlılığı eşiği geçtiği anda teşhis kendiliğinden kalkıyor. İki koşul
+    /// da şart: sayaç tek başına "zorlandı ama sonunda öğrendi"yi de yakalardı, kararlılık
+    /// tek başına henüz yeni tanışılmış her kelimeyi yakalardı.
+    ///
+    /// Gerçek FSRS'te bu durumun imzası nettir: zorluk 10'a dayanır, `(11 − D)` çarpanı 1'e
+    /// iner ve kart her doğru cevapla biraz büyüyüp her yanlışta 2-4 güne düşerek orada kalır.
+    /// Ölçüldü: sabit %25 hata altında sahnenin 23 kelimesinden 7-8'i buraya düşüyor ve
+    /// hakimiyet kapsaması 0.61'de tıkanıyor (bkz. `.superpowers/sdd/p2-task-7-report.md`).
+    /// Saat okunmuyor — iki alan da kartın üstünde duran, zamandan bağımsız sayılar.
+    static func isLeech(card: LatvianMemoryCard) -> Bool {
+        card.lapseCount >= leechLapseThreshold && card.stability < masteryStabilityDays
+    }
+
+    /// Kelimenin herhangi bir tarafı takıldıysa kelime takılmış sayılıyor.
+    /// Kurtarma kelime bazında çalışıyor: takılan üretim kartının çaresi, kelimenin
+    /// çağrışımını tanıma tarafından yeniden kurmak.
+    static func isLeech(wordId: String, progress: LatvianProgress) -> Bool {
+        modalities.contains { modality in
+            LatvianMemoryKey(wordId: wordId, modality: modality)
+                .flatMap { progress.card(for: $0) }
+                .map { isLeech(card: $0) } ?? false
+        }
+    }
+
     /// Sahne bir kez geçildi mi. Şu an hakim olmak ya da geçmişte tamamlamış olmak yeter.
     ///
     /// Tamamlanma kaydı hâlâ gerekli: kararlılık zamanla düşmüyor ama **yanlış cevapla
@@ -161,6 +217,12 @@ enum LatvianLessonBuilder {
     /// Kotalar sırayla değil, "önce yeni, sonra hata, sonra tekrar" sırasıyla dolduruluyor:
     /// son yapılan hatanın kartı zaten vadesi gelmiş olduğundan, tekrar havuzu önce
     /// çalıştırılsa hata kotası hep boş kalır ve kompozisyon sessizce %50/%50'ye kayardı.
+    ///
+    /// Bunların önünde bir kota daha var: **kurtarma**. Takılan kelime (bkz. `isLeech`)
+    /// olağan sıraya bırakılırsa on beş sorunun arasında bir kez daha görünür, bir kez daha
+    /// yanlış cevaplanır ve bir kez daha çöker — yani hâlihazırda çalışmayan durum. Bu
+    /// yüzden kurtarma hem ilk sırada hem kendi payıyla dolduruluyor; pay yeni malzeme
+    /// kotasından kesiliyor. Takılan kelime yoksa kesinti sıfır: kompozisyon aynen kalıyor.
     static func plan(
         scene: LatvianScene,
         pack: LatvianPack,
@@ -170,9 +232,15 @@ enum LatvianLessonBuilder {
         let words = distinctWords(in: scene)
         guard !words.isEmpty else { return [] }
 
-        let newPool = newPool(words: words, progress: progress, now: now)
+        // Hafıza ders başına bir kez geziliyor: hem kurtarma havuzu hem tekrar kuyruğu
+        // aynı listeden besleniyor (`allCards()` her anahtarı dizeden geri çözüyor).
+        let entries = progress.allCards()
+        let leechPool = leechPool(pack: pack, entries: entries)
+        // Yalnızca üyelik testi için; üzerinde gezilmiyor.
+        let leechWords = Set(leechPool.map(\.0))
+        let newPool = newPool(words: words, progress: progress, leeches: leechWords, now: now)
         let mistakePool = mistakePool(pack: pack, progress: progress, now: now)
-        let reviewPool = reviewPool(pack: pack, progress: progress, now: now)
+        let reviewPool = reviewPool(pack: pack, entries: entries, now: now)
         let scenePool = scenePool(words: words)
 
         var picks: [LatvianLessonTarget] = []
@@ -190,7 +258,11 @@ enum LatvianLessonBuilder {
             }
         }
 
-        drain(newPool, source: .new, limit: newQuota)
+        drain(leechPool, source: .leech, limit: leechQuota)
+        // Kesinti havuzun boyundan değil gerçekten alınan yerden hesaplanıyor: tekilleştirme
+        // yüzünden kurtarma payı tam dolmayabilir, o zaman yeni malzeme yerini korumalı.
+        let rescued = picks.count
+        drain(newPool, source: .new, limit: max(0, newQuota - rescued))
         drain(mistakePool, source: .mistake, limit: mistakeQuota)
         drain(reviewPool, source: .review, limit: reviewQuota)
 
@@ -230,7 +302,8 @@ enum LatvianLessonBuilder {
         slots.reserveCapacity(targets.count)
         for target in targets {
             let kinds = orderedKinds(
-                for: target, factory: factory, availableAudio: availableAudio, using: &generator
+                for: target, factory: factory, availableAudio: availableAudio,
+                progress: progress, using: &generator
             )
             if !kinds.isEmpty { slots.append(Slot(target: target, kinds: kinds)) }
         }
@@ -298,6 +371,7 @@ enum LatvianLessonBuilder {
     private static func newPool(
         words: [LatvianWord],
         progress: LatvianProgress,
+        leeches: Set<String>,
         now: Date
     ) -> [(String, LatvianModality)] {
         // Sık kelime önce; `freqRank` paketin büyük kısmında 0 olduğundan eşitlik
@@ -312,7 +386,7 @@ enum LatvianLessonBuilder {
             .map(\.element)
 
         var result: [(String, LatvianModality)] = []
-        for word in ordered {
+        for word in ordered where !leeches.contains(word.id) {
             for modality in modalities
             where !isFresh(wordId: word.id, modality: modality, progress: progress, now: now) {
                 result.append((word.id, modality))
@@ -336,12 +410,19 @@ enum LatvianLessonBuilder {
 
     /// Tekrar zamanı gelmiş kartlar; sahne farketmeksizin, en zayıf hatırlanan başta.
     /// Paketten kalkmış kelimelerin eski kartları eleniyor.
+    ///
+    /// **Takılan kart burada elenmiyor** — Anki'nin "leech'i askıya al" davranışı denendi
+    /// ve ölçüldü: kötüleşti. Sebep, hakimiyet kapsamasının o kelimeleri de istemesi;
+    /// kuyruktan çıkarmak onlara ders başına düşen soruyu azaltıyor. Askıya alma ölçümü
+    /// gerçekçi öğrenciyi yer tutucuda 44 → 77 oturuma, gerçek FSRS'te en yüksek
+    /// kapsamayı 0.65 → 0.57'ye götürdü. Kurtarma payı bu kartlara **ek** süre veriyor,
+    /// var olan süreyi başka yere taşımıyor.
     private static func reviewPool(
         pack: LatvianPack,
-        progress: LatvianProgress,
+        entries: [LatvianMemoryEntry],
         now: Date
     ) -> [(String, LatvianModality)] {
-        progress.dueEntries(now: now)
+        LatvianProgress.dueEntries(from: entries, now: now)
             .filter { pack.word(id: $0.key.wordId) != nil }
             .map { ($0.key.wordId, $0.key.modality) }
     }
@@ -356,6 +437,41 @@ enum LatvianLessonBuilder {
         progress.recentMistakes.reversed()
             .filter { pack.word(id: $0) != nil }
             .map { ($0, weakestModality(wordId: $0, progress: progress, now: now)) }
+    }
+
+    /// Takılan kelimeler, en çaresizi (kararlılığı en düşük kartı olan) başta.
+    ///
+    /// Hedefin modalitesi her zaman **tanıma**: kurtarma yeniden sınamak değil yeniden
+    /// öğretmek, dolayısıyla kelime üretim tarafında takılmış olsa bile derse tanıma
+    /// tarafından dönüyor (soru tipi seçimi için bkz. `rescueKinds`).
+    ///
+    /// Paketten kalkmış kelimelerin eski kartları eleniyor. Sıra belirlenimci: `allCards()`
+    /// zaten `storageKey`'e göre sıralı geldiğinden ilk görülme sırası kararlı, sözlük
+    /// yalnızca en küçük kararlılığı biriktirmek için kullanılıyor, üzerinde gezilmiyor.
+    private static func leechPool(
+        pack: LatvianPack,
+        entries: [LatvianMemoryEntry]
+    ) -> [(String, LatvianModality)] {
+        var weakest: [String: Double] = [:]
+        var order: [String] = []
+        for entry in entries
+        where isLeech(card: entry.card) && pack.word(id: entry.key.wordId) != nil {
+            let wordId = entry.key.wordId
+            if weakest[wordId] == nil {
+                order.append(wordId)
+                weakest[wordId] = entry.card.stability
+            } else {
+                weakest[wordId] = min(weakest[wordId] ?? 0, entry.card.stability)
+            }
+        }
+        return order.enumerated()
+            .sorted { left, right in
+                let leftStability = weakest[left.element] ?? 0
+                let rightStability = weakest[right.element] ?? 0
+                if leftStability != rightStability { return leftStability < rightStability }
+                return left.offset < right.offset
+            }
+            .map { ($0.element, LatvianModality.recognition) }
     }
 
     /// Sahnenin tüm kelime-modalite ikilileri, tanıma/üretim dönüşümlü.
@@ -396,14 +512,57 @@ enum LatvianLessonBuilder {
         for target: LatvianLessonTarget,
         factory: LatvianExerciseFactory,
         availableAudio: Set<String>,
+        progress: LatvianProgress,
         using generator: inout LatvianSeededGenerator
     ) -> [LatvianExerciseKind] {
         var kinds = factory.supportedKinds(forWordId: target.wordId, availableAudio: availableAudio)
         guard !kinds.isEmpty else { return [] }
+        // Kurtarma karıştırılmıyor: tipin hangi sırayla geleceği tesadüfe değil kartın
+        // durumuna bağlı olmalı.
+        if target.source == .leech {
+            return rescueKinds(wordId: target.wordId, supported: kinds, progress: progress)
+        }
         kinds.shuffle(using: &generator)
         // `filter` diziyi sırasıyla geziyor; sonuç karıştırmanın kararlı bir bölünmesi.
         return kinds.filter { $0.modality == target.modality }
             + kinds.filter { $0.modality != target.modality }
+    }
+
+    /// Kurtarma merdiveni: takılan kelimenin hangi soruyla geri geleceği.
+    ///
+    /// Kelimenin desteklediği **tanıma** tipleri kolaydan zora diziliyor ve kart bu
+    /// merdivenin bir basamağından derse dönüyor. Basamak kartın kendi kararlılığından
+    /// okunuyor: dibe vurmuş kart en kolay sorudan (görselden/sesten dört seçenek)
+    /// başlıyor, toparlandıkça bir üst basamağa çıkıyor, kararlılık `masteryStabilityDays`
+    /// eşiğini geçtiğinde zaten takılmış sayılmadığı için olağan sıraya dönüyor. Yani
+    /// mezuniyet ayrı bir kural değil, teşhisin kalkmasının doğal sonucu.
+    ///
+    /// Basamağın üstündeki tipler yedek olarak arkada duruyor — merdiven bir tercih sırası,
+    /// bir yasak değil; `select` ardışık tekrarı kırmak için listede aşağı inebilmeli.
+    /// Üretim tipleri en sona konuyor: kurtarma tam olarak onlardan kaçınmak için var,
+    /// ama kelimenin hiç tanıma sorusu yoksa yuvayı boş bırakmaktansa onlar sorulur.
+    private static func rescueKinds(
+        wordId: String,
+        supported: [LatvianExerciseKind],
+        progress: LatvianProgress
+    ) -> [LatvianExerciseKind] {
+        let ladder = supported
+            .filter { $0.modality == .recognition }
+            .sorted { $0.difficultyRank < $1.difficultyRank }
+        let harder = supported
+            .filter { $0.modality != .recognition }
+            .sorted { $0.difficultyRank < $1.difficultyRank }
+        guard !ladder.isEmpty else { return harder }
+
+        let stability = LatvianMemoryKey(wordId: wordId, modality: .recognition)
+            .flatMap { progress.card(for: $0)?.stability } ?? 0
+        // Oran `Int`'e çevrilmeden önce [0, 1] aralığına kırpılıyor. Kelime yalnızca üretim
+        // tarafından takılmış olabilir; o zaman buradaki tanıma kartının kararlılığı çok
+        // büyük olabilir (yer tutucu planlayıcıda 10^19 güne çıkabiliyor) ve kırpma olmadan
+        // `Int(...)` taşıp süreci düşürürdü. `max(0, ...)` ayrıca NaN'ı sıfıra çekiyor.
+        let reached = min(1, max(0, stability) / masteryStabilityDays)
+        let step = min(Int(reached * Double(rescueSteps)), ladder.count - 1)
+        return Array(ladder[step...]) + Array(ladder[..<step]) + harder
     }
 
     /// Sıradaki soruyu seçer: ardışık iki soru ne aynı tipte ne aynı kelime üzerine olmalı.
@@ -414,6 +573,21 @@ enum LatvianLessonBuilder {
     ///
     /// Yalnızca metaveriye bakıyor: soru üretmek pahalı, dört kademeyi soru üreterek
     /// taramak ders başına binlerce üretim demek olurdu.
+    ///
+    /// Bir kelimenin derste birden çok yuvası olabiliyor: yeni malzeme kotası bir kelimeyi
+    /// iki modaliteden birden öğretiyor, tekrar kuyruğu da aynı kelimenin iki kartını yan
+    /// yana verebiliyor. Açgözlü seçim "kelimesi farklı olan"ı her zaman tercih ettiğinden
+    /// bu yuvalar dersin sonuna itiliyor; sonda başka kelime kalmayınca iki soru zorunlu
+    /// olarak yan yana düşüyor. Kurtarma kotası eklendikten sonra ölçülen arıza tam olarak
+    /// buydu (20 derslik izde bir çakışma).
+    ///
+    /// Çare, kalabalık kelimeyi **kısıt bağlamadan önce** araya sokmak. `k` yuvalı bir
+    /// kelime `n` yuvanın içinde ancak `2k <= n` iken ayrık yerleştirilebilir; eşitlikte
+    /// tek tek atlamalı diziliş kalır. O eşiğe gelindiğinde en kalabalık kelime öne
+    /// alınıyor, öncesinde eski davranış aynen sürüyor — 16 yuvalı olağan bir derste koşul
+    /// ancak son üç dört yuvada bağladığından sıralamanın tamamı bozulmuyor. (Bu ölçüldü:
+    /// koşulsuz "önce kalabalık" sıralaması hata deseni konumsal olan benzetimlerde
+    /// gereksiz oynamaya yol açıyordu.)
     private static func select(
         from slots: [Slot],
         after previous: LatvianExercise?
@@ -425,14 +599,36 @@ enum LatvianLessonBuilder {
             return nil
         }
 
+        // Kelime başına kalan yuva sayısı. Sözlük yalnızca sayaç; üzerinde gezilmiyor
+        // (en büyük değer sayarken tutuluyor), dolayısıyla sırası çıktıya sızmıyor.
+        var load: [String: Int] = [:]
+        var crowdedLoad = 0
+        for slot in slots {
+            let count = (load[slot.target.wordId] ?? 0) + 1
+            load[slot.target.wordId] = count
+            crowdedLoad = max(crowdedLoad, count)
+        }
+        let mustSpread = crowdedLoad * 2 >= slots.count
+
+        /// Kelimesi farklı ilk uygun yuva; kısıt bağlıyorsa aralarından en kalabalığı
+        /// (eşitlikte yine en küçük dizinli).
+        func pick(
+            _ candidate: (Slot) -> LatvianExerciseKind?
+        ) -> (slot: Int, kind: LatvianExerciseKind)? {
+            var best: (slot: Int, kind: LatvianExerciseKind, load: Int)?
+            for (index, slot) in slots.enumerated() where slot.target.wordId != previous.targetWordId {
+                guard let kind = candidate(slot) else { continue }
+                guard mustSpread else { return (index, kind) }
+                let weight = load[slot.target.wordId] ?? 1
+                if best == nil || weight > best!.load { best = (index, kind, weight) }
+            }
+            return best.map { ($0.slot, $0.kind) }
+        }
+
         // 1. Hem kelime hem tip farklı.
-        for (index, slot) in slots.enumerated() where slot.target.wordId != previous.targetWordId {
-            if let kind = slot.kinds.first(where: { $0 != previous.kind }) { return (index, kind) }
-        }
+        if let choice = pick({ $0.kinds.first(where: { $0 != previous.kind }) }) { return choice }
         // 2. En azından kelime farklı.
-        for (index, slot) in slots.enumerated() where slot.target.wordId != previous.targetWordId {
-            if let kind = slot.kinds.first { return (index, kind) }
-        }
+        if let choice = pick({ $0.kinds.first }) { return choice }
         // 3. En azından tip farklı.
         for (index, slot) in slots.enumerated() {
             if let kind = slot.kinds.first(where: { $0 != previous.kind }) { return (index, kind) }
