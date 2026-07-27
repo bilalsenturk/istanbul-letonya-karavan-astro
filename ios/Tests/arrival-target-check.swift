@@ -112,6 +112,55 @@ struct ArrivalTargetCheck {
         check("Maps'in vermediği iletişim alanı uydurulmaz",
               mapped.email == nil && mapped.whatsAppPhone == nil)
 
+        print("\n=== Seyahat profili geçişi ===")
+        let seeded = TravelProfileSeed.make(
+            accountName: "Bilal Şentürk",
+            accountEmail: "bilal@example.com",
+            vehicleDescription: "VW Passat 2016 + Adria"
+        )
+        check("Apple hesap adı profile gelir", seeded.contactName == "Bilal Şentürk")
+        check("Apple e-postası boş profile gelir", seeded.contactEmail == "bilal@example.com")
+        check("mevcut rota aracı boş profili doldurur", seeded.vehicleDescription.contains("Adria"))
+
+        var preserved = AccountTravelProfile(
+            contactName: "Leyla",
+            contactEmail: "leyla@example.com",
+            vehicleDescription: "Kendi karavanım"
+        )
+        preserved = TravelProfileSeed.make(
+            accountName: "Bilal Şentürk",
+            accountEmail: "bilal@example.com",
+            vehicleDescription: "VW Passat 2016 + Adria",
+            profile: preserved
+        )
+        check("dolu iletişim bilgileri ezilmez",
+              preserved.contactName == "Leyla" && preserved.contactEmail == "leyla@example.com")
+        check("dolu araç bilgisi ezilmez", preserved.vehicleDescription == "Kendi karavanım")
+
+        var oldLocal = seeded
+        oldLocal.updatedAt = "2026-07-26T08:00:00Z"
+        var newRemote = seeded
+        newRemote.updatedAt = "2026-07-27T08:00:00Z"
+        check("sunucu profili daha yeniyse kazanır",
+              TravelProfileMerge.resolve(local: oldLocal, remote: newRemote) == newRemote)
+
+        var equalRemote = seeded
+        equalRemote.contactName = "Sunucu"
+        equalRemote.updatedAt = oldLocal.updatedAt
+        check("eşit zaman damgasında sunucu kararı sabittir",
+              TravelProfileMerge.resolve(local: oldLocal, remote: equalRemote) == equalRemote)
+
+        var malformedRemote = seeded
+        malformedRemote.contactName = "Hatalı sunucu"
+        malformedRemote.updatedAt = "2026-99-99"
+        check("bozuk sunucu zamanı geçerli yereli ezmez",
+              TravelProfileMerge.resolve(local: oldLocal, remote: malformedRemote) == oldLocal)
+
+        var malformedLocal = oldLocal
+        malformedLocal.updatedAt = "not-a-date"
+        check("bozuk yerel zamanda geçerli sunucu kazanır",
+              TravelProfileMerge.resolve(local: malformedLocal, remote: newRemote) == newRemote)
+
         if failures > 0 {
             print("\n❌ \(failures) KONTROL BAŞARISIZ")
             exit(1)

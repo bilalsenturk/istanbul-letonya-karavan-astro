@@ -41,6 +41,7 @@
 		63250E33AB66EC4D9F9CC7BA /* JournalEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EAFE219BA8402205F2B4D91 /* JournalEntry.swift */; };
 		6642C214B22A4BEFC8510FC3 /* TripWorkspaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE5D628F94AB556FE9D36ECD /* TripWorkspaceStore.swift */; };
 		68B14299CB90DBF724E88AA2 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC44A961C70396158E35B2A1 /* Models.swift */; };
+		5B490ACD26DF99EB4BFB5647 /* TravelProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3638EB3FFB78BC53DDEDF21 /* TravelProfileView.swift */; };
 		693934A74992D1B4067B8F14 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7756E3E11615E135A656BFAB /* SignInView.swift */; };
 		69DC5A10A13AE08E1F9CEDC3 /* lv-a0-listen-sveiki.wav in Resources */ = {isa = PBXBuildFile; fileRef = E37D025A8C64E0D219CF91D5 /* lv-a0-listen-sveiki.wav */; };
 		6A8F57A39EEEB2A7FA64075F /* Expense.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB332D14823389349D9F9A9 /* Expense.swift */; };
@@ -113,6 +114,7 @@
 		EE7E4F5FFF6937FF414394D1 /* TripStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CFA86E52D515272F7F13F10 /* TripStore.swift */; };
 		EF3F584FDB22426380668F50 /* MapScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86097054B82CA8512E4AA874 /* MapScreen.swift */; };
 		F141E4DDF91017C2B4BE29E0 /* TripActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD2D245D3ADDC9A38B3E287 /* TripActivityAttributes.swift */; };
+		F2B564D69F4210E1706BD4D0 /* JourneyMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7E574F9940C5A4DDA5BE464 /* JourneyMenuView.swift */; };
 		F3FF95676307867E576FCA49 /* NotificationRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB162821D5118BBCDA717991 /* NotificationRules.swift */; };
 		F9AC44806989F94432E793EB /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28813A01A61F007F63AFB19A /* UpdateChecker.swift */; };
 		FA3A58E4C230882AAD9F18EB /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DC95431B932CB4DFD5412C9 /* Notifications.swift */; };
@@ -205,6 +207,8 @@
 		6AB974EC178B45C5E8C2D43D /* SharedSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedSnapshot.swift; sourceTree = "<group>"; };
 		6E08E05BDE1D73F0761AE46D /* RoadFeedService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadFeedService.swift; sourceTree = "<group>"; };
 		6E826910845682027B3A136D /* JournalPhotoPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalPhotoPicker.swift; sourceTree = "<group>"; };
+		D3638EB3FFB78BC53DDEDF21 /* TravelProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelProfileView.swift; sourceTree = "<group>"; };
+		D7E574F9940C5A4DDA5BE464 /* JourneyMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyMenuView.swift; sourceTree = "<group>"; };
 		74E0A3E285ECB438FA9A8C55 /* RoutePreviewService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePreviewService.swift; sourceTree = "<group>"; };
 		7756E3E11615E135A656BFAB /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		79E023B62FCBECADC69DABCB /* AccountSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountSessionStore.swift; sourceTree = "<group>"; };
@@ -393,6 +397,7 @@
 				5D4F8488E7E8ACA586661498 /* MembersView.swift */,
 				5A355D39936226682FC6D705 /* PlacePickerView.swift */,
 				152914230381950540AF3C38 /* RouteBuilderView.swift */,
+				D7E574F9940C5A4DDA5BE464 /* JourneyMenuView.swift */,
 				E8673B61A33C58C650B05B56 /* StopEditorView.swift */,
 				C8C3BF1BEDB7AD0BB8B471AA /* TripsHomeView.swift */,
 			);
@@ -417,6 +422,7 @@
 			isa = PBXGroup;
 			children = (
 				7756E3E11615E135A656BFAB /* SignInView.swift */,
+				D3638EB3FFB78BC53DDEDF21 /* TravelProfileView.swift */,
 			);
 			path = Accounts;
 			sourceTree = "<group>";
@@ -657,6 +663,7 @@
 				9D8DDBECC20E225D43C47798 /* JournalQueue.swift in Sources */,
 				1BFC8EFF51E1F11FD0BDF86F /* JournalStore.swift in Sources */,
 				43529647794C069DB3288EF5 /* JournalView.swift in Sources */,
+				F2B564D69F4210E1706BD4D0 /* JourneyMenuView.swift in Sources */,
 				89784D251FA5CFB972CFACF6 /* KaravanApp.swift in Sources */,
 				C5D29D91ED0FEEC34F0D3DF2 /* KeychainTokenStore.swift in Sources */,
 				2130C966D5FCAFA0967C5F6E /* LatvianLearningAudioPlayer.swift in Sources */,
@@ -703,6 +710,7 @@
 				FAD7DD8D7AC36626072723B3 /* Theme.swift in Sources */,
 				7E537C5724BCAD205276581C /* ToolsView.swift in Sources */,
 				E1081AE615EDA9FEE361CDEA /* TravelContent.swift in Sources */,
+				5B490ACD26DF99EB4BFB5647 /* TravelProfileView.swift in Sources */,
 				F141E4DDF91017C2B4BE29E0 /* TripActivityAttributes.swift in Sources */,
 				A59FFDEF88DDBE3125C26C1A /* TripNotifier.swift in Sources */,
 				C1B584C0CEEF5E5EDC3E249B /* TripPlanStore.swift in Sources */,
