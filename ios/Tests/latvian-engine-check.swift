@@ -69,7 +69,7 @@ struct LatvianEngineCheck {
         expect(LatvianExerciseKind.order.modality == .production, "sıralama üretim sorusu")
         expect(LatvianExerciseKind.speak.modality == .production, "telaffuz üretim sorusu")
         expect(LatvianExerciseKind.fillBlank.modality == .recognition, "boşluk doldurma tanıma sorusu")
-        expect(LatvianExerciseKind.caseDrill.modality == .production, "hal tatbikatı üretim sorusu")
+        expect(LatvianExerciseKind.caseDrill.modality == .recognition, "hal tatbikatı tanıma sorusu")
 
         let choiceExercise = LatvianExercise(
             id: "e1",
@@ -82,6 +82,37 @@ struct LatvianEngineCheck {
 
         expect(choiceExercise.modality == .recognition, "soru modalitesi tipinden geliyor")
         expect(choiceExercise.optionCount == 3, "seçenek sayısı okunuyor")
+
+        let typingExercise = LatvianExercise(
+            id: "e2",
+            kind: .trToLv,
+            targetWordId: "w1",
+            prompt: "Türkçesini yaz.",
+            content: .typing(accepted: ["labdien"])
+        )
+
+        expect(typingExercise.optionCount == 0, "seçmeli olmayan soruda seçenek sayısı sıfır")
+
+        func exercise(_ kind: LatvianExerciseKind) -> LatvianExercise {
+            LatvianExercise(
+                id: "k-\(kind)",
+                kind: kind,
+                targetWordId: "w1",
+                prompt: "test",
+                content: .typing(accepted: ["labdien"])
+            )
+        }
+
+        expect(exercise(.listenChoose).requiresAudio, "dinle-seç ses gerektiriyor")
+        expect(exercise(.dictation).requiresAudio, "dikte ses gerektiriyor")
+        expect(exercise(.speak).requiresAudio, "telaffuz ses gerektiriyor")
+        expect(!exercise(.iconChoose).requiresAudio, "görselden-seç ses gerektirmiyor")
+        expect(!exercise(.match).requiresAudio, "eşleştirme ses gerektirmiyor")
+        expect(!exercise(.lvToTr).requiresAudio, "LV→TR ses gerektirmiyor")
+        expect(!exercise(.trToLv).requiresAudio, "TR→LV ses gerektirmiyor")
+        expect(!exercise(.order).requiresAudio, "sıralama ses gerektirmiyor")
+        expect(!exercise(.fillBlank).requiresAudio, "boşluk doldurma ses gerektirmiyor")
+        expect(!exercise(.caseDrill).requiresAudio, "hal tatbikatı ses gerektirmiyor")
 
         if failures > 0 {
             fputs("\n\(failures) kontrol başarısız.\n", stderr)

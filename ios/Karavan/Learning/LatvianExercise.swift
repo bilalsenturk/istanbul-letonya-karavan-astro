@@ -11,7 +11,11 @@ extension LatvianExerciseKind {
         switch self {
         case .listenChoose, .iconChoose, .match, .lvToTr, .fillBlank:
             return .recognition
-        case .trToLv, .dictation, .order, .speak, .caseDrill:
+        // Bir çekim eki drilidir ama gövde verilir ve cevap üç seçenekten seçilir
+        // (fillBlank ile aynı yapı); kelime hiç üretilmediği için tanıma sayılır.
+        case .caseDrill:
+            return .recognition
+        case .trToLv, .dictation, .order, .speak:
             return .production
         }
     }
