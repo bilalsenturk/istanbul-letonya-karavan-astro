@@ -32,6 +32,12 @@ enum Config {
     /// Yol bülteni: dizel fiyatı + sınır beklemesi + döviz kuru.
     static var roadFeedURL: URL? { siteURL?.appendingPathComponent("api/roadfeed") }
 
+    /// Güncel sürüm manifest'i (TestFlight build no + zorunlu minimum + davet linki).
+    static var versionManifestURL: URL? { siteURL?.appendingPathComponent("kuzey-version.json") }
+
+    /// Apple oturumu ve kullanıcıya özel rota API'si.
+    static var accountAPIBaseURL: URL? { siteURL?.appendingPathComponent("api/v2") }
+
     /// Kamp/galeri görsellerinin kök adresi (JSON'daki "/assets/..." yolları buna göre çözülür).
     /// Görselleri Cloudflare R2 gibi bir CDN'e taşırsan yalnızca burayı değiştir.
     static var imageBaseURL: URL? { mediaBaseURL ?? siteURL }
@@ -47,5 +53,9 @@ enum Config {
 
     /// Web'e veri gönderirken kullanılan paylaşılan gizli anahtar.
     /// Vercel'de LIVE_POST_SECRET env değişkeniyle aynı olmalı.
+    /// DİKKAT: Bu değer derlenen IPA'nın içinde açık durur; uygulama aile
+    /// cihazları dışına dağıtılacaksa (TestFlight/App Store) anahtarı ROTASYONA
+    /// sok (Vercel + burada değiştir) — binary'den okunup endpoint'lere sahte
+    /// veri basılabilir.
     static let livePostSecret = "kuzey-2026-riga"
 }

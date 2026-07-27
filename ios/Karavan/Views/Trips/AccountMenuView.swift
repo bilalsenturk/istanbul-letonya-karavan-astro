@@ -11,7 +11,6 @@ struct AccountMenuView: View {
                 if let user = account.user {
                     Section {
                         LabeledContent("Hesap", value: user.visibleName)
-                        if let email = user.email { LabeledContent("Apple e-postası", value: email) }
                         LabeledContent("Yetki", value: user.isAdmin ? "Admin" : "Kullanıcı")
                     }
                     Section {

@@ -13,7 +13,7 @@ private func check(_ name: String, _ condition: @autoclosure () -> Bool) {
 
 @main
 struct ArrivalTargetCheck {
-    static func main() {
+    @MainActor static func main() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Europe/Istanbul")!
         let checkIn = calendar.date(from: DateComponents(year: 2026, month: 8, day: 3, hour: 15))!
@@ -160,6 +160,77 @@ struct ArrivalTargetCheck {
         malformedLocal.updatedAt = "not-a-date"
         check("bozuk yerel zamanda geçerli sunucu kazanır",
               TravelProfileMerge.resolve(local: malformedLocal, remote: newRemote) == newRemote)
+
+        print("\n=== Hesap yalıtımlı profil geçişi ===")
+        let suiteName = "arrival-profile-store-check"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        let migrationDate = Date(timeIntervalSince1970: 1_785_000_000)
+        let legacy = StayContactProfile(
+            contactName: "Eski profil",
+            adults: 3,
+            vehicleDescription: "Eski Adria",
+            additionalNeeds: "Sessiz alan"
+        )
+        defaults.set(try! JSONEncoder().encode(legacy), forKey: "stay-contact-profile-shared-route")
+
+        let remoteA = AccountTravelProfile(contactName: "A sunucusu", updatedAt: "2026-07-01T00:00:00Z")
+        let accountA = AccountUser(
+            id: "account-a", email: "a@example.com", displayName: "A Kullanıcısı",
+            globalRole: .user, createdAt: "2026-07-01T00:00:00Z", updatedAt: "2026-07-01T00:00:00Z",
+            travelProfile: remoteA
+        )
+        let storeA = StayContactProfileStore(routeId: "shared-route", defaults: defaults, now: { migrationDate })
+        let boundA = storeA.bind(account: accountA, vehicleSeed: "VW + Adria")
+        check("zaman damgasız eski profil korunur", boundA.profile.contactName == "Eski profil")
+        check("yerel yeni profil eşitleme ister", boundA.needsSync)
+        check("eski kayıt ilk hesapta tüketilir",
+              defaults.string(forKey: "stay-contact-profile-consumed-owner-shared-route") == "account-a"
+                && defaults.data(forKey: "stay-contact-profile-shared-route") == nil)
+
+        let accountB = AccountUser(
+            id: "account-b", email: "b@example.com", displayName: "B Kullanıcısı",
+            globalRole: .user, createdAt: "2026-07-01T00:00:00Z", updatedAt: "2026-07-01T00:00:00Z",
+            travelProfile: AccountTravelProfile(contactName: "B sunucusu", updatedAt: "2026-07-02T00:00:00Z")
+        )
+        let storeB = StayContactProfileStore(routeId: "shared-route", defaults: defaults, now: { migrationDate })
+        let boundB = storeB.bind(account: accountB, vehicleSeed: "B aracı")
+        check("B hesabı A'nın eski profilini almaz", boundB.profile.contactName == "B sunucusu")
+
+        let storeAOtherRoute = StayContactProfileStore(routeId: "other-route", defaults: defaults, now: { migrationDate })
+        let boundAOtherRoute = storeAOtherRoute.bind(account: accountA, vehicleSeed: nil)
+        check("hesap profili rota değişince korunur", boundAOtherRoute.profile.contactName == "Eski profil")
+        let repeatedA = storeA.bind(account: accountA, vehicleSeed: nil)
+        check("tekrar bağlama aynı hesabı korur", repeatedA.profile.contactName == "Eski profil")
+
+        let signedOut = StayContactProfileStore(routeId: "shared-route", defaults: defaults, now: { migrationDate })
+        signedOut.profile = StayContactProfile(contactName: "Yerel misafir", vehicleDescription: "Misafir araç")
+        let freshB = StayContactProfileStore(routeId: "shared-route", defaults: defaults, now: { migrationDate })
+        let boundBAgain = freshB.bind(account: accountB, vehicleSeed: nil)
+        check("imzalı dışı taslak B hesabına taşınmaz", boundBAgain.profile.contactName == "B sunucusu")
+        check("imzalı dışı taslak ayrı kullanılabilir", freshB.profile.contactName == "Yerel misafir")
+
+        check("iki bozuk zaman damgasında sunucu sabit kazanır",
+              TravelProfileMerge.resolve(local: malformedLocal, remote: malformedRemote) == malformedRemote)
+        check("aynı hesap ve değişmeyen taslak yanıtı kabul eder",
+              TravelProfileSaveGuard.accepts(
+                currentAccountID: "account-a", requestAccountID: "account-a",
+                submittedRevision: 4, currentRevision: 4
+              ))
+        check("hesap değişince yanıt reddedilir",
+              !TravelProfileSaveGuard.accepts(
+                currentAccountID: "account-b", requestAccountID: "account-a",
+                submittedRevision: 4, currentRevision: 4
+              ))
+        check("taslak değişince yanıt reddedilir",
+              !TravelProfileSaveGuard.accepts(
+                currentAccountID: "account-a", requestAccountID: "account-a",
+                submittedRevision: 4, currentRevision: 5
+              ))
+        check("boş uzunluk boş değer olur", TravelProfileLength.parse("") == .success(nil))
+        check("virgüllü uzunluk okunur", TravelProfileLength.parse("10,5", locale: Locale(identifier: "tr_TR")) == .success(10.5))
+        check("sınır dışı uzunluk reddedilir", TravelProfileLength.parse("31") == .failure(.outOfRange))
+        check("bozuk uzunluk reddedilir", TravelProfileLength.parse("on") == .failure(.invalid))
 
         if failures > 0 {
             print("\n❌ \(failures) KONTROL BAŞARISIZ")

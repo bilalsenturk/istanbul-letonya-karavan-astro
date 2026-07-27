@@ -26,8 +26,7 @@ struct JourneyMenuView: View {
                         .tint(Theme.c2)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if !account.isSignedIn {
-                    SignInView()
-                        .environmentObject(account)
+                    signedOutContent
                 } else {
                     signedInContent
                 }
@@ -108,6 +107,24 @@ struct JourneyMenuView: View {
                 } label: {
                     Label("Hesap", systemImage: "person.crop.circle")
                 }
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(Theme.bg)
+        .tint(Theme.c2)
+    }
+
+    private var signedOutContent: some View {
+        List {
+            Section {
+                NavigationLink {
+                    TravelProfileView(routeId: workspace.selectedTrip?.id ?? "kuzey-local", vehicleSeed: vehicleSeed)
+                } label: {
+                    Label("Seyahat profili", systemImage: "person.text.rectangle")
+                }
+            }
+            Section {
+                SignInView().environmentObject(account)
             }
         }
         .scrollContentBackground(.hidden)

@@ -309,6 +309,13 @@ struct AccountTrip: Codable, Identifiable, Equatable {
     var roleTitle: String {
         access.tripRole?.title ?? "Admin"
     }
+
+    static func preferred(in trips: [AccountTrip], savedID: String?) -> AccountTrip? {
+        if let savedID, let saved = trips.first(where: { $0.id == savedID }) {
+            return saved
+        }
+        return trips.first(where: { $0.kind == .kuzey2026 }) ?? trips.first
+    }
 }
 
 struct AccountAuthResponse: Codable {
