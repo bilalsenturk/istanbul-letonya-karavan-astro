@@ -31,6 +31,8 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
         UIApplicationSupportsIndirectInputEvents: true
+        LSApplicationQueriesSchemes:
+          - whatsapp
         NSLocationWhenInUseUsageDescription: "Canlı yolculuk takibi: Riga'ya kalan mesafe, hız ve sıradaki durak konumunuza göre hesaplanır."
         NSLocationAlwaysAndWhenInUseUsageDescription: "Arka planda da takip: duraklara varışta otomatik bildirim ve canlı konum yayını için."
         NSCameraUsageDescription: "Fiş/pompa tutarı okuma, belge tarama ve tabela çevirisi için kamera kullanılır."

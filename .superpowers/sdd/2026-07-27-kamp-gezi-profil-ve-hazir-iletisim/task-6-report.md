@@ -25,3 +25,11 @@
 - Değişiklikler yalnız `ArrivalTarget`, varış editörü, yeni besteci sarmalayıcısı ve varış doğrulama testleriyle sınırlıdır.
 - Uygulama konuşma geçmişi, teslimat/okundu işareti veya gelen mesaj iddiası göstermez. `Yanıt bekleniyor` yalnız kullanıcının seçtiği konaklama durumudur.
 - `xcodegen`, paylaşılan kirli çalışma alanındaki başka yeni kaynakları da proje dosyasına ekledi. Task 6 için proje dosyasında yalnız `StayContactComposer.swift` satırları stage edilmelidir; diğer üretilmiş hunks başka görevlerin kapsamındadır.
+
+## Fix Round 1 — WhatsApp Handoff
+
+- WhatsApp artık Safari/web fall-back yerine yalnız `whatsapp://send` uygulama şemasını, E.164 telefon sorgusunu ve URLComponents ile kodlanmış özgün gövdeyi kullanır.
+- `LSApplicationQueriesSchemes` altında `whatsapp` tanımlandı; `canOpenURL` bu doğrudan şemayı doğrular. Uygulama yoksa metin kopyalı kalır ve standart kullanılamaz uyarısı gösterilir.
+- Saf `WhatsAppHandoffState`, başarılı açılış ile gerçek inactive→active dönüşün ikisini de bekler; ters callback sırası, geç başarısızlık, tekrar eden aktif olayları ve eski action ID'leri tek seferlik/doğru davranışla kapsar.
+- E.164 normalleştirme yalnız ASCII biçim ayraçlarını kabul eder; `+`/`00` ön ekini kaldırdıktan sonra `[1-9][0-9]{7,14}` uygular. Unicode rakamlar, harfler, sıfır önekleri ve uzunluk sınır dışı değerler reddedilir.
+- Doğrulama: arrival harness, `xcodegen generate` ve mevcut paylaşılan çalışma alanındaki simulator build geçti. Temiz arşiv sonucu, paylaşılan alandaki bağımsız `SubplanCompactRow` kaynağı nedeniyle bu görev tarafından iddia edilmez.

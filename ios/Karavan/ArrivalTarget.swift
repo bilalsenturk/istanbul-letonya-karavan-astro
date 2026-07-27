@@ -428,6 +428,57 @@ enum StayContactFollowUp {
     }
 }
 
+enum WhatsAppHandoffEffect: Equatable {
+    case none
+    case showUnavailable
+    case offerAwaitingReply
+}
+
+struct WhatsAppHandoffState: Equatable {
+    private var actionID: UUID?
+    private var opened = false
+    private var didLeave = false
+    private var isActive = true
+    private var terminal = false
+
+    mutating func begin(actionID: UUID) {
+        self.actionID = actionID
+        opened = false
+        didLeave = false
+        isActive = true
+        terminal = false
+    }
+
+    mutating func openCompleted(actionID: UUID, opened: Bool) -> WhatsAppHandoffEffect {
+        guard self.actionID == actionID, !terminal else { return .none }
+        guard opened else {
+            terminal = true
+            return .showUnavailable
+        }
+        self.opened = true
+        return consumePromptIfReady()
+    }
+
+    mutating func becameInactive() -> WhatsAppHandoffEffect {
+        guard actionID != nil, !terminal else { return .none }
+        didLeave = true
+        isActive = false
+        return .none
+    }
+
+    mutating func becameActive() -> WhatsAppHandoffEffect {
+        guard actionID != nil, !terminal else { return .none }
+        isActive = true
+        return consumePromptIfReady()
+    }
+
+    private mutating func consumePromptIfReady() -> WhatsAppHandoffEffect {
+        guard opened, didLeave, isActive, !terminal else { return .none }
+        terminal = true
+        return .offerAwaitingReply
+    }
+}
+
 enum ArrivalTargetRequirement {
     static func canStart(isRestDay: Bool, target: ArrivalTarget?) -> Bool {
         isRestDay || target?.hasValidCoordinate == true
@@ -570,10 +621,12 @@ enum ContactLinkBuilder {
     static func whatsAppURL(phone: String?, message: String) -> URL? {
         guard let normalized = normalizedWhatsAppPhone(phone) else { return nil }
         var components = URLComponents()
-        components.scheme = "https"
-        components.host = "wa.me"
-        components.path = "/\(normalized)"
-        components.queryItems = [URLQueryItem(name: "text", value: message)]
+        components.scheme = "whatsapp"
+        components.host = "send"
+        components.queryItems = [
+            URLQueryItem(name: "phone", value: normalized),
+            URLQueryItem(name: "text", value: message),
+        ]
         return components.url
     }
 
@@ -598,12 +651,19 @@ enum ContactLinkBuilder {
 
     static func normalizedWhatsAppPhone(_ phone: String?) -> String? {
         guard let phone else { return nil }
-        let digits = phone.filter(\.isNumber)
-        guard (8 ... 15).contains(digits.count) else { return nil }
-        if phone.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("+") {
-            return digits
+        let trimmed = phone.trimmingCharacters(in: .whitespacesAndNewlines)
+        let accepted = CharacterSet(charactersIn: "+()-. /0123456789")
+        guard trimmed.unicodeScalars.allSatisfy(accepted.contains) else { return nil }
+        let digits = trimmed.filter { $0.isASCII && $0.isNumber }
+        let normalized: String
+        if trimmed.hasPrefix("+") {
+            normalized = digits
+        } else if digits.hasPrefix("00") {
+            normalized = String(digits.dropFirst(2))
+        } else {
+            return nil
         }
-        if digits.hasPrefix("00") { return String(digits.dropFirst(2)) }
-        return nil
+        guard normalized.range(of: #"^[1-9][0-9]{7,14}$"#, options: .regularExpression) != nil else { return nil }
+        return normalized
     }
 }

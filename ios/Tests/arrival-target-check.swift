@@ -218,7 +218,7 @@ struct ArrivalTargetCheck {
         print("\n=== İletişim bağlantıları ===")
         let whatsApp = ContactLinkBuilder.whatsAppURL(phone: target.phone, message: message.body)
         check("WhatsApp numarası E.164 biçimine gelir",
-              whatsApp?.absoluteString.contains("wa.me/359881234567") == true)
+              whatsApp?.absoluteString.contains("phone=359881234567") == true)
         check("WhatsApp metni URL içine eklenir",
               whatsApp?.absoluteString.contains("text=") == true)
         let email = ContactLinkBuilder.emailURL(
@@ -269,6 +269,48 @@ struct ArrivalTargetCheck {
               encodedWhatsApp?.absoluteString.contains("%26") == true
                 && encodedWhatsApp?.absoluteString.contains("%25") == true
                 && !(encodedWhatsApp?.absoluteString.contains("?text=Merhaba%20&") ?? true))
+        check("WhatsApp doğrudan uygulama şemasını kullanır",
+              encodedWhatsApp?.scheme == "whatsapp" && encodedWhatsApp?.host == "send")
+        check("WhatsApp 00 önekli numarayı E.164'e çevirir",
+              ContactLinkBuilder.normalizedWhatsAppPhone("00359 881 234 567") == "359881234567")
+        check("WhatsApp en uzun 15 haneli numarayı kabul eder",
+              ContactLinkBuilder.normalizedWhatsAppPhone("+123456789012345") == "123456789012345")
+        check("WhatsApp Unicode rakamlarını ve geçersiz önekleri reddeder",
+              ContactLinkBuilder.normalizedWhatsAppPhone("+٣٥٩٨٨١٢٣٤٥٦٧") == nil
+                && ContactLinkBuilder.normalizedWhatsAppPhone("+000359881234567") == nil
+                && ContactLinkBuilder.normalizedWhatsAppPhone("+1234567") == nil
+                && ContactLinkBuilder.normalizedWhatsAppPhone("+1234567890123456") == nil
+                && ContactLinkBuilder.normalizedWhatsAppPhone("+359call881234567") == nil)
+
+        let handoffID = UUID()
+        var handoff = WhatsAppHandoffState()
+        handoff.begin(actionID: handoffID)
+        check("WhatsApp başarı önce gelse dönüşte bir kez sorar",
+              handoff.openCompleted(actionID: handoffID, opened: true) == .none
+                && handoff.becameInactive() == .none
+                && handoff.becameActive() == .offerAwaitingReply
+                && handoff.becameActive() == .none)
+        var completionAfterReturn = WhatsAppHandoffState()
+        completionAfterReturn.begin(actionID: handoffID)
+        check("WhatsApp dönüşü tamamlanmadan önce olursa başarı sonrası sorar",
+              completionAfterReturn.becameInactive() == .none
+                && completionAfterReturn.becameActive() == .none
+                && completionAfterReturn.openCompleted(actionID: handoffID, opened: true) == .offerAwaitingReply)
+        var failedHandoff = WhatsAppHandoffState()
+        failedHandoff.begin(actionID: handoffID)
+        check("başarısız WhatsApp açılışı geç gelse bile yalnız bir kez kullanılamaz der",
+              failedHandoff.becameInactive() == .none
+                && failedHandoff.openCompleted(actionID: handoffID, opened: false) == .showUnavailable
+                && failedHandoff.becameActive() == .none
+                && failedHandoff.openCompleted(actionID: handoffID, opened: false) == .none)
+        var staleHandoff = WhatsAppHandoffState()
+        staleHandoff.begin(actionID: handoffID)
+        let replacementID = UUID()
+        staleHandoff.begin(actionID: replacementID)
+        check("eski WhatsApp geri çağrısı yeni eylemi soramaz",
+              staleHandoff.openCompleted(actionID: handoffID, opened: true) == .none
+                && staleHandoff.becameInactive() == .none
+                && staleHandoff.becameActive() == .none)
         check("gönderim sonrası durum yardımı yalnız açık onayla beklemeye geçer",
               StayContactFollowUp.shouldOfferAwaitingReply(after: .sent)
                 && !StayContactFollowUp.shouldOfferAwaitingReply(after: .cancelled)

@@ -11,8 +11,7 @@ struct ArrivalTargetEditorView: View {
     @State private var activeComposer: ActiveStayContactComposer?
     @State private var unavailableNotice = false
     @State private var awaitingReplyPrompt = false
-    @State private var pendingWhatsAppReturnID: UUID?
-    @State private var sawWhatsAppBackground = false
+    @State private var whatsAppHandoff = WhatsAppHandoffState()
     @Environment(\.scenePhase) private var scenePhase
 
     let onSave: (ArrivalTarget, StayDetails) -> Void
@@ -171,19 +170,16 @@ struct ArrivalTargetEditorView: View {
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .inactive, .background:
-                if pendingWhatsAppReturnID != nil { sawWhatsAppBackground = true }
+                apply(whatsAppHandoff.becameInactive())
             case .active:
-                guard sawWhatsAppBackground, pendingWhatsAppReturnID != nil else { return }
-                pendingWhatsAppReturnID = nil
-                sawWhatsAppBackground = false
-                awaitingReplyPrompt = true
+                apply(whatsAppHandoff.becameActive())
             @unknown default:
                 break
             }
         }
         .onDisappear {
             copyResetTask?.cancel()
-            pendingWhatsAppReturnID = nil
+            whatsAppHandoff = WhatsAppHandoffState()
         }
     }
 
@@ -226,14 +222,9 @@ struct ArrivalTargetEditorView: View {
                 return
             }
             let launchID = UUID()
-            pendingWhatsAppReturnID = launchID
-            sawWhatsAppBackground = false
+            whatsAppHandoff.begin(actionID: launchID)
             UIApplication.shared.open(url, options: [:]) { opened in
-                guard pendingWhatsAppReturnID == launchID else { return }
-                if !opened {
-                    pendingWhatsAppReturnID = nil
-                    unavailableNotice = true
-                }
+                apply(whatsAppHandoff.openCompleted(actionID: launchID, opened: opened))
             }
         }
     }
@@ -242,6 +233,14 @@ struct ArrivalTargetEditorView: View {
         activeComposer = nil
         if StayContactFollowUp.shouldOfferAwaitingReply(after: result) {
             awaitingReplyPrompt = true
+        }
+    }
+
+    private func apply(_ effect: WhatsAppHandoffEffect) {
+        switch effect {
+        case .none: break
+        case .showUnavailable: unavailableNotice = true
+        case .offerAwaitingReply: awaitingReplyPrompt = true
         }
     }
 

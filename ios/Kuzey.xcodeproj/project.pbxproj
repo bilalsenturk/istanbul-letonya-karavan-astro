@@ -39,6 +39,7 @@
 		5E53245056848A3490306843 /* MemberInviteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B67A9E000EDEBACEDA383C0 /* MemberInviteView.swift */; };
 		62D8D612FD80BF4C6EDD2B4B /* StopEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8673B61A33C58C650B05B56 /* StopEditorView.swift */; };
 		63250E33AB66EC4D9F9CC7BA /* JournalEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EAFE219BA8402205F2B4D91 /* JournalEntry.swift */; };
+		63887955FE65F76B9635446B /* StayContactComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4128827CE9CD4E8B042A1C /* StayContactComposer.swift */; };
 		6642C214B22A4BEFC8510FC3 /* TripWorkspaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE5D628F94AB556FE9D36ECD /* TripWorkspaceStore.swift */; };
 		68B14299CB90DBF724E88AA2 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC44A961C70396158E35B2A1 /* Models.swift */; };
 		5B490ACD26DF99EB4BFB5647 /* TravelProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3638EB3FFB78BC53DDEDF21 /* TravelProfileView.swift */; };
@@ -219,6 +220,7 @@
 		86097054B82CA8512E4AA874 /* MapScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapScreen.swift; sourceTree = "<group>"; };
 		8A527A4E704CE076BEDB5E68 /* ArrivalTarget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrivalTarget.swift; sourceTree = "<group>"; };
 		8B055BA45F55F6532F6A8AC1 /* DayGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayGalleryView.swift; sourceTree = "<group>"; };
+		8B4128827CE9CD4E8B042A1C /* StayContactComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StayContactComposer.swift; sourceTree = "<group>"; };
 		8C443FE724E722869D208BAC /* LiveLocationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveLocationCard.swift; sourceTree = "<group>"; };
 		8C8F0E6CEEAC0341ADC58DCE /* AccountStopsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountStopsView.swift; sourceTree = "<group>"; };
 		8ED9A015C9972CDA01D41F9A /* LatvianLearningModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianLearningModels.swift; sourceTree = "<group>"; };
@@ -377,6 +379,7 @@
 				86097054B82CA8512E4AA874 /* MapScreen.swift */,
 				4CC66F61F5A93C2097EF6381 /* PlanScreen.swift */,
 				BC2167794D2466CE9840E18E /* RoadFeedCard.swift */,
+				8B4128827CE9CD4E8B042A1C /* StayContactComposer.swift */,
 				25CA028A20B4BE8F4D0ED411 /* StopExploreView.swift */,
 				EC538794F9ED1EDBD743061F /* TripSettingsView.swift */,
 				8451A31269172C807F118FD5 /* Accounts */,
@@ -704,6 +707,7 @@
 				A9E4066FE143338D37E04117 /* SharedSnapshot.swift in Sources */,
 				693934A74992D1B4067B8F14 /* SignInView.swift in Sources */,
 				18778F449FCB6B3ECAD42DF8 /* SpeechRecorder.swift in Sources */,
+				63887955FE65F76B9635446B /* StayContactComposer.swift in Sources */,
 				6DB49F6FDA63B6E497513F8E /* StayContactProfileStore.swift in Sources */,
 				62D8D612FD80BF4C6EDD2B4B /* StopEditorView.swift in Sources */,
 				9D65F8215A7804576B305FB9 /* StopExploreView.swift in Sources */,
