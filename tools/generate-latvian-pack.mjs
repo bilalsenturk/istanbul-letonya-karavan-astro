@@ -53,6 +53,7 @@ if (!apiKey && !dryRun) {
 
 const ranks = parseFrequencyList(await fs.readFile(frequencyPath, 'utf8'));
 const draft = await readDraft();
+let emptySceneCount = 0;
 
 for (const scene of SCENE_PLAN) {
   if (onlyScene && scene.id !== onlyScene) continue;
@@ -98,14 +99,27 @@ for (const scene of SCENE_PLAN) {
     }))
     .filter(sentence => sentence.usesWords.length > 0);
 
-  draft.scenes[scene.id] = {
+  const sceneResult = {
     words: wordFilter.kept.map(word => ({ ...word, audioId: audioIdFor(word.lv) })),
     sentences: sentences.map(sentence => ({ ...sentence, audioId: audioIdFor(sentence.lv) })),
   };
+
+  if (sceneResult.words.length === 0 || sceneResult.sentences.length === 0) {
+    emptySceneCount += 1;
+    console.log(
+      `  ⚠ UYARI: ${scene.title} boş döndü (${sceneResult.words.length} kelime, ${sceneResult.sentences.length} cümle) — kaydedilmedi, sonraki çalıştırmada tekrar denenecek`,
+    );
+    continue;
+  }
+
+  draft.scenes[scene.id] = sceneResult;
   await writeDraft(draft);
   console.log(`  ✓ kaydedildi: ${draft.scenes[scene.id].words.length} kelime, ${draft.scenes[scene.id].sentences.length} cümle`);
 }
 
+if (emptySceneCount > 0) {
+  console.log(`\n${emptySceneCount} sahne boş döndü, sonraki çalıştırmada tekrar denenecek`);
+}
 console.log('\nMetin aşaması tamam.');
 
 async function chat(request) {
@@ -130,14 +144,45 @@ async function chat(request) {
 }
 
 async function readDraft() {
+  let raw;
   try {
-    return JSON.parse(await fs.readFile(draftPath, 'utf8'));
-  } catch {
-    return { scenes: {} };
+    raw = await fs.readFile(draftPath, 'utf8');
+  } catch (err) {
+    if (err.code === 'ENOENT') return { scenes: {} };
+    throw err;
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    const corruptPath = await findAvailableCorruptPath();
+    await fs.rename(draftPath, corruptPath);
+    console.error(
+      `Taslak dosyası bozuk: ${draftPath}\n` +
+        `JSON ayrıştırılamadı (${err.message}).\n` +
+        `Bozuk dosya şuraya taşındı: ${corruptPath}\n` +
+        `Elle inceleyip gerekirse geri yükleyin; script bu durumda otomatik olarak sıfırdan üretmeyecek.`,
+    );
+    process.exit(1);
+  }
+}
+
+async function findAvailableCorruptPath() {
+  const dir = path.dirname(draftPath);
+  const base = path.basename(draftPath, '.json');
+  for (let n = 1; ; n += 1) {
+    const candidate = path.join(dir, `${base}.corrupt-${n}.json`);
+    try {
+      await fs.access(candidate);
+    } catch {
+      return candidate;
+    }
   }
 }
 
 async function writeDraft(value) {
   await fs.mkdir(path.dirname(draftPath), { recursive: true });
-  await fs.writeFile(draftPath, `${JSON.stringify(value, null, 2)}\n`);
+  const tmpPath = path.join(path.dirname(draftPath), `.${path.basename(draftPath)}.tmp-${process.pid}`);
+  await fs.writeFile(tmpPath, `${JSON.stringify(value, null, 2)}\n`);
+  await fs.rename(tmpPath, draftPath);
 }
