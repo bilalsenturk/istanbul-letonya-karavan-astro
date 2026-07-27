@@ -192,7 +192,7 @@ export const normalizeTravelProfile = (
   };
   const integer = (value: unknown, minimum: number, maximum: number, defaultValue: number): number => {
     const resolved = value === undefined ? defaultValue : value;
-    if (!Number.isInteger(resolved) || resolved < minimum || resolved > maximum) return invalid();
+    if (typeof resolved !== 'number' || !Number.isInteger(resolved) || resolved < minimum || resolved > maximum) return invalid();
     return resolved;
   };
   const boolean = (value: unknown, defaultValue: boolean): boolean => {
