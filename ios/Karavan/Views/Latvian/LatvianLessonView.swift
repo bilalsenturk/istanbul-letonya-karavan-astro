@@ -8,11 +8,16 @@ import SwiftUI
 /// ders başına bir kez öder). Bu ekran yalnızca çiziyor ve `LatvianLessonModel`
 /// üzerinden tek kapıdan soruyor.
 ///
-/// ## Tek çıkış
+/// ## İki çıkış, tek sonuç
 ///
-/// `onFinish` yalnızca cevap panelinin düğmesinden, `advance()` sonuç döndüğü
-/// için çağrılıyor ve model onu bir kez döndürüyor. Paneli kapatan başka bir yol
-/// yok.
+/// `onFinish` ya cevap panelinin düğmesinden (`advance()`) ya da üst şeritteki
+/// çarpıdan (`abandon()`) çağrılıyor. İkisi de sonucu `LatvianLessonModel`'den
+/// alıyor ve model `isOver` sayesinde onu **toplamda bir kez** veriyor;
+/// dolayısıyla iki kapı da olsa çağıran hiçbir dersi iki kez işlemiyor.
+///
+/// Kapak `fullScreenCover`, `sheet` değil: soru alanı zaten bir `ScrollView`,
+/// yaprakta aşağı doğru bir kaydırma dersi soru ortasında kapatırdı. Çıkış
+/// bilerek yalnızca çarpıdan ve bilerek onaylı.
 struct LatvianLessonView: View {
     @ObservedObject var audio: LatvianAudioStore
     @ObservedObject var feedback: LatvianFeedback
@@ -23,6 +28,8 @@ struct LatvianLessonView: View {
 
     @State private var pendingAnswer: LatvianAnswer?
     @State private var questionStartedAt = Date()
+    /// Çıkış onayı ekranda mı.
+    @State private var isQuitAsked = false
 
     init(
         exercises: [LatvianExercise],
@@ -38,7 +45,12 @@ struct LatvianLessonView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            LatvianLessonHeader(mood: mood, progress: model.progress, heartsLeft: model.heartsLeft)
+            LatvianLessonHeader(
+                mood: mood,
+                progress: model.progress,
+                heartsLeft: model.heartsLeft,
+                onQuit: askQuit
+            )
             questionArea
             footer
         }
@@ -51,6 +63,19 @@ struct LatvianLessonView: View {
             // Yeni soru: bekleyen cevap ve süre ölçümü kesinlikle sıfırdan.
             pendingAnswer = nil
             questionStartedAt = Date()
+        }
+        // Muhasebe **soruda** yazıyor, sonucunda değil: "canların geri gelmez"
+        // öğrencinin çıkmadan önce bilmesi gereken şey, çıktıktan sonra öğrenmesi
+        // gereken şey değil.
+        .confirmationDialog(
+            "Dersten çıkılsın mı?",
+            isPresented: $isQuitAsked,
+            titleVisibility: .visible
+        ) {
+            Button("Çık", role: .destructive, action: quit)
+            Button("Vazgeç", role: .cancel) {}
+        } message: {
+            Text("Verdiğin cevaplar kaydedilir, kaybettiğin canlar geri gelmez.")
         }
     }
 
@@ -200,6 +225,18 @@ struct LatvianLessonView: View {
     private func advance() {
         let outcome = withAnimation(motion(LatvianMotion.slide)) { model.advance() }
         if let outcome { onFinish(outcome) }
+    }
+
+    private func askQuit() {
+        feedback.tap()
+        isQuitAsked = true
+    }
+
+    /// Onaydan sonra. Model sonucu yalnızca ilk çağrıda döndürüyor; ikinci
+    /// dokunuş `nil` alıyor ve hiçbir şey olmuyor.
+    private func quit() {
+        guard let outcome = model.abandon() else { return }
+        onFinish(outcome)
     }
 
     // MARK: - Türetilenler

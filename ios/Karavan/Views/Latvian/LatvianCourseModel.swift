@@ -180,6 +180,20 @@ final class LatvianCourseModel: ObservableObject {
     /// Dersin sonucunu hafızaya, XP'ye, seriye ve canlara işler; **kutlamadan
     /// önce** diske yazar. Uygulama kutlama ekranında öldürülse bile ders
     /// kaybolmuyor. İkinci çağrı hiçbir şey yapmıyor: `lesson` ilk turda düşüyor.
+    ///
+    /// ## Yarıda bırakılan ders (`wasAbandoned`)
+    ///
+    /// Muhasebenin tamamı yine işliyor: verilen her cevap FSRS'e yazılıyor, XP
+    /// veriliyor, kaybedilen canlar düşüyor, sonuç diske yazılıyor. Yalnızca iki
+    /// şey değişiyor — seri defteri (`registerLessonCompleted`, `recordLessonHour`)
+    /// ilerlemiyor ve kutlama açılmıyor.
+    ///
+    /// Çıkışın bedavaya alınmaması bilinçli: yarıda bırakmak canları geri
+    /// verseydi ya da cevapları çöpe atsaydı, can ekonomisinin tamamı isteğe
+    /// bağlı hâle gelirdi — sıkışan öğrenci hiçbir maliyet ödemeden çıkıp
+    /// yeniden girerdi. Kutlamanın açılmaması da aynı derde bakıyor ama ters
+    /// yönden: üç soruda çıkan öğrenciye "Ders tamam!" ve konfeti göstermek,
+    /// yapılmamış bir işi kutlamak olurdu.
     func finish(_ outcome: LatvianLessonOutcome) {
         guard let run = lesson else { return }
         let now = clock()
@@ -207,7 +221,9 @@ final class LatvianCourseModel: ObservableObject {
         progress.awardXP(max(0, outcome.xp - base))
 
         let previousDay = progress.lastLessonDay
-        if !outcome.isFailed {
+        // Seri defteri yalnızca gerçekten bitirilen derste ilerliyor: canı biten
+        // de yarıda bırakan da günlük hedefi doldurmuş sayılmıyor.
+        if !outcome.isFailed, !outcome.wasAbandoned {
             progress.registerLessonCompleted(now: now)
             // Alışkanlık saati buradan öğreniliyor: gerçekten ders yapılan saat,
             // cihazın o andaki YEREL takvimiyle (bkz. LatvianNotificationRules).
@@ -232,6 +248,10 @@ final class LatvianCourseModel: ObservableObject {
         syncNotifications(force: false, requestPermission: true)
 
         lesson = nil
+        // Yarıda bırakılanda kutlama kurulmuyor; `lesson` ve `celebration`'ın
+        // ikisi de boş kalınca `isLessonFlowPresented` düşüyor ve tam ekran kapak
+        // kendiliğinden kapanıyor — öğrenci doğrudan haritada buluyor kendini.
+        guard !outcome.wasAbandoned else { return }
         celebration = LatvianCelebration(
             id: run.id,
             xp: outcome.xp,

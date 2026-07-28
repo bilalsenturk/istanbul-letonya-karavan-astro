@@ -15,6 +15,14 @@ struct LatvianLessonOutcome {
     let accuracy: Double
     let isFailed: Bool
 
+    /// Öğrenci dersi yarıda bıraktı (üst şeritteki çarpı → onay).
+    ///
+    /// `isFailed`'den ayrı bir alan, çünkü ikisi aynı şey değil: can bitmesi
+    /// dersin **sonucu**, yarıda bırakmak dersin **hiç sonuçlanmaması**. Verilen
+    /// cevaplar yine hafızaya yazılıyor (bkz. `LatvianCourseModel.finish`), ama
+    /// ne seri ilerliyor ne de kutlama açılıyor.
+    let wasAbandoned: Bool
+
     /// Gönderim sırasıyla. Yanlış cevaplanan soru burada **iki kez** geçer
     /// (önce `again`, sonra doğrusu); `LatvianProgress.registerAnswer` sırayla
     /// çağrılmalı ki planlayıcı ikisini de görsün.
@@ -89,7 +97,22 @@ final class LatvianLessonModel: ObservableObject {
     func finishIfEmpty() -> LatvianLessonOutcome? {
         guard !isOver, review == nil, session.current == nil else { return nil }
         isOver = true
-        return makeOutcome()
+        return makeOutcome(wasAbandoned: false)
+    }
+
+    /// Öğrenci dersi yarıda bıraktı. Sonuç **o ana kadarki** defterle dönüyor:
+    /// verilen cevaplar duruyor, kaybedilen canlar geri gelmiyor.
+    ///
+    /// Bilerek `review == nil` koşulu **yok**: cevap paneli açıkken de çıkılabilir
+    /// ve o cevap zaten `submit`'te deftere yazıldı. Panel açıkken çıkışı
+    /// engellemek, kullanıcının sıkıştığı yerlerden birini olduğu gibi bırakırdı.
+    ///
+    /// - Returns: Çağıranın işlemesi gereken sonuç; ders zaten bitmişse `nil`
+    ///   (ikinci dokunuş sonucu bir daha döndürmez).
+    func abandon() -> LatvianLessonOutcome? {
+        guard !isOver else { return nil }
+        isOver = true
+        return makeOutcome(wasAbandoned: true)
     }
 
     /// Cevabı notlatır.
@@ -118,8 +141,9 @@ final class LatvianLessonModel: ObservableObject {
         return value
     }
 
-    /// Cevap paneli kapandığında. Bu, dersin **tek** çıkışı: sonuç yalnızca
-    /// buradan dönüyor ve yalnızca bir kez.
+    /// Cevap paneli kapandığında: dersin normal çıkışı. `isOver` bayrağı
+    /// sayesinde sonuç buradan da, `abandon()`'dan da **toplamda bir kez**
+    /// dönüyor.
     ///
     /// - Returns: Ders bittiyse sonuç, bitmediyse `nil`.
     func advance() -> LatvianLessonOutcome? {
@@ -130,7 +154,7 @@ final class LatvianLessonModel: ObservableObject {
 
         if session.isFinished || session.isFailed {
             isOver = true
-            return makeOutcome()
+            return makeOutcome(wasAbandoned: false)
         }
 
         review = nil
@@ -139,11 +163,14 @@ final class LatvianLessonModel: ObservableObject {
         return nil
     }
 
-    private func makeOutcome() -> LatvianLessonOutcome {
+    /// `LatvianLessonOutcome`'ın tek kurulduğu yer; `wasAbandoned` bilerek
+    /// varsayılansız, çünkü hangi çıkıştan gelindiği her çağrı yerinde okunmalı.
+    private func makeOutcome(wasAbandoned: Bool) -> LatvianLessonOutcome {
         LatvianLessonOutcome(
             xp: session.xpEarned,
             accuracy: session.accuracy,
             isFailed: session.isFailed,
+            wasAbandoned: wasAbandoned,
             answers: answers
         )
     }
