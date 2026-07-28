@@ -1375,6 +1375,114 @@ struct LatvianEngineCheck {
         )
         expect(otherSeed.map(\.id) != firstLesson.map(\.id), "farklı tohum farklı ders veriyor")
 
+        print("\n=== Telaffuz sorusu olmayan cihaz ===")
+
+        // Apple'ın konuşma tanıması Letoncayı hiç içermiyor: `SFSpeechRecognizer(locale: "lv-LV")`
+        // her cihazda `nil`. Uygulama bu yüzden dersi `.speak` dışlanmış olarak kuruyor
+        // (bkz. `LatvianSpeechAvailability`). Sınanan dört şey var: soru gerçekten düşüyor mu,
+        // ders kısalıyor mu, hakimiyet kapısı hâlâ kapanabiliyor mu, ve dışlama listesi
+        // boşken hiçbir şey değişmiyor mu.
+        let noSpeak: Set<LatvianExerciseKind> = [.speak]
+
+        // Takılmış kart da denenmeli: kurtarma merdiveni tipleri ayrı bir yerde sıralıyor,
+        // süzgeç oradan geçen dersi de kesmeli.
+        var stressed = LatvianProgress.new()
+        for (index, word) in realWords.enumerated() where index % 3 == 0 {
+            stressed.registerAnswer(
+                wordId: word.id, modality: index % 2 == 0 ? .recognition : .production,
+                rating: index % 5 == 0 ? .again : .good, scheduler: scheduler, now: epoch
+            )
+        }
+        for (index, word) in realWords.enumerated() where index % 7 == 0 {
+            for round in 0..<5 {
+                stressed.registerAnswer(
+                    wordId: word.id, modality: .recognition, rating: .again,
+                    scheduler: scheduler, now: epoch.addingTimeInterval(Double(round) * 3600)
+                )
+            }
+        }
+
+        var speakLeaks: [String] = []
+        var shortenedLessons: [String] = []
+        var emptyExclusionDrift: [String] = []
+        var speakInUnfiltered = 0
+        let excludedMoment = epoch.addingTimeInterval(86_400 * 10)
+        for scene in realPack.scenes {
+            for (label, state) in [("boş", LatvianProgress.new()), ("takılmış", stressed)] {
+                let seed = UInt64(scene.index) &* 97 &+ (label == "boş" ? 0 : 1)
+                let full = LatvianLessonBuilder.build(
+                    scene: scene, pack: realPack, progress: state, factory: realFactory,
+                    availableAudio: realAudio, seed: seed, now: excludedMoment
+                )
+                let muted = LatvianLessonBuilder.build(
+                    scene: scene, pack: realPack, progress: state, factory: realFactory,
+                    availableAudio: realAudio, seed: seed, now: excludedMoment,
+                    excludedKinds: noSpeak
+                )
+                let untouched = LatvianLessonBuilder.build(
+                    scene: scene, pack: realPack, progress: state, factory: realFactory,
+                    availableAudio: realAudio, seed: seed, now: excludedMoment,
+                    excludedKinds: []
+                )
+                speakInUnfiltered += full.filter { $0.kind == .speak }.count
+                if muted.contains(where: { $0.kind == .speak }) {
+                    speakLeaks.append("\(scene.id)/\(label)")
+                }
+                if muted.count != full.count {
+                    shortenedLessons.append("\(scene.id)/\(label): \(muted.count)/\(full.count)")
+                }
+                if untouched != full { emptyExclusionDrift.append("\(scene.id)/\(label)") }
+            }
+        }
+
+        // Süzgeç sınanmadan geçmesin: dışlama olmadan kurulan derslerde telaffuz sorusu
+        // gerçekten çıkıyor olmalı, yoksa "hiç yok" iddiası boş bir iddia olurdu.
+        expect(speakInUnfiltered > 0,
+               "dışlama olmadan telaffuz sorusu gerçekten çıkıyor (\(speakInUnfiltered) soru)")
+        expect(speakLeaks.isEmpty,
+               "`.speak` dışlanınca hiçbir derste telaffuz sorusu kalmıyor"
+               + (speakLeaks.isEmpty ? "" : " — \(speakLeaks.joined(separator: ", "))"))
+        expect(shortenedLessons.isEmpty,
+               "telaffuz düşünce ders kısalmıyor, yerini başka soru alıyor"
+               + (shortenedLessons.isEmpty ? "" : " — \(shortenedLessons.joined(separator: ", "))"))
+        expect(emptyExclusionDrift.isEmpty,
+               "boş dışlama listesi dersi birebir aynı bırakıyor"
+               + (emptyExclusionDrift.isEmpty ? "" : " — \(emptyExclusionDrift.joined(separator: ", "))"))
+        expect(LatvianLessonBuilder.build(
+            scene: firstScene, pack: realPack, progress: LatvianProgress.new(),
+            factory: realFactory, availableAudio: realAudio, seed: 11, now: epoch,
+            excludedKinds: []
+        ) == firstLesson, "boş dışlama listesi, argümansız çağrıyla aynı dersi veriyor")
+
+        // Asıl mesele bu: telaffuz düşünce hakimiyet kapısı hâlâ kapanıyor mu? Sahne kilidi
+        // her kelimeden hem tanıma hem üretim istiyor; bir kelimenin **tek** üretim sorusu
+        // telaffuz olsaydı o kelimenin üretim kartı hiç açılamaz ve sahne sonsuza dek kilitli
+        // kalırdı. Fikstür üzerinde değil, sevk edilen paketin 259 kelimesinin tamamında.
+        var speechlessWithoutSpeak: [String] = []
+        var productionlessWithoutSpeak: [String] = []
+        for word in realWords {
+            let kinds = realFactory
+                .supportedKinds(forWordId: word.id, availableAudio: realAudio)
+                .filter { !noSpeak.contains($0) }
+            if kinds.isEmpty { speechlessWithoutSpeak.append(word.id) }
+            if !kinds.contains(where: { $0.modality == .production }) {
+                productionlessWithoutSpeak.append(word.id)
+            }
+        }
+        expect(speechlessWithoutSpeak.isEmpty,
+               "telaffuz düşünce hiçbir kelime tüm soru tiplerini kaybetmiyor"
+               + (speechlessWithoutSpeak.isEmpty
+                  ? " (\(realWords.count) kelime)"
+                  : " — \(speechlessWithoutSpeak.count) eksik: "
+                    + speechlessWithoutSpeak.prefix(5).joined(separator: ", ")))
+        expect(productionlessWithoutSpeak.isEmpty,
+               "telaffuz düşünce her kelimenin hâlâ en az bir üretim sorusu var —"
+               + " hakimiyet kapısı kapanmaya devam ediyor"
+               + (productionlessWithoutSpeak.isEmpty
+                  ? " (\(realWords.count) kelime)"
+                  : " — \(productionlessWithoutSpeak.count) eksik: "
+                    + productionlessWithoutSpeak.prefix(5).joined(separator: ", ")))
+
         // Kotalar: üç havuz da doluyken 8 yeni / 5 tekrar / 3 hata.
         expect(LatvianLessonBuilder.newQuota == 8, "yeni kotası 8 (%50)")
         expect(LatvianLessonBuilder.reviewQuota == 5, "tekrar kotası 5 (%30)")

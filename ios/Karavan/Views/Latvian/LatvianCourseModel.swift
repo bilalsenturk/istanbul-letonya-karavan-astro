@@ -164,7 +164,11 @@ final class LatvianCourseModel: ObservableObject {
             // "Duyduğun kelimeyi seç" sorusu sessiz bir düğmeyle cevapsız kalırdı.
             availableAudio: audio.availableAudioIds,
             seed: LatvianCourseRules.seed(now: now, counter: runCounter),
-            now: now
+            now: now,
+            // Apple'ın konuşma tanıması Letoncayı içermiyor, dolayısıyla bu bugün her
+            // cihazda `[.speak]`. Kapalı bir mikrofonla soru sormak yerine soruyu hiç
+            // sormuyoruz; hakimiyet kapısı yine kapanıyor, bkz. `LatvianSpeechAvailability`.
+            excludedKinds: LatvianSpeechAvailability.hasLatvian ? [] : [.speak]
         )
         guard !exercises.isEmpty else {
             actionNotice = "Bu durak için şu an soru hazırlanamadı."

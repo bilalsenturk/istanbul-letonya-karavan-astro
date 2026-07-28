@@ -2,11 +2,12 @@ import SwiftUI
 
 /// `speak` için telaffuz görünümü.
 ///
-/// Motor, sesi olmayan kelimeye telaffuz sorusu üretmiyor; ama **tanımanın**
-/// hazır olması ayrı bir şey. Cihazda `lv-LV` tanıyıcısı olmayabilir, izin
-/// kapalı olabilir, tanıma ders ortasında düşebilir. Üçünde de aynı şey oluyor:
-/// hata Türkçe olarak görünüyor ve altında yazarak gönderme alanı açılıyor —
-/// öğrenci cevaplayamadığı bir soruda kilitli kalmıyor.
+/// Ders kurucusu Letonca tanıma yokken bu soruyu artık hiç üretmiyor
+/// (bkz. `LatvianSpeechAvailability`), dolayısıyla görünüm normalde yalnızca
+/// tanımanın çalıştığı bir cihazda açılıyor. Yine de her kapalı yol karşılanıyor:
+/// izin kapalı olabilir, tanıma ders ortasında düşebilir, mikrofon başkasında
+/// olabilir. Hepsinde aynı şey oluyor — sebep Türkçe olarak görünüyor ve altında
+/// yazarak gönderme alanı açılıyor, öğrenci cevaplayamadığı soruda kilitli kalmıyor.
 struct LatvianSpeakExerciseView: View {
     let exercise: LatvianExercise
     @ObservedObject var audio: LatvianAudioStore
@@ -41,10 +42,15 @@ struct LatvianSpeakExerciseView: View {
     }
 
     /// Kapalı bir mikrofon düğmesi tek başına sebebini söylemiyordu.
+    ///
+    /// Eski metin "bu cihazda konuşma tanıma yok" diyordu ve suçu telefona atıyordu;
+    /// öğrenci de haklı olarak telefonunun ayarlarında çare aradı. Eksik olan cihaz
+    /// değil: Apple'ın konuşma tanıması Letoncayı hiç içermiyor.
     private var noticeText: String? {
         if let errorText = recognizer.errorText { return errorText }
         guard !recognizer.isSupported else { return nil }
-        return "Bu cihazda Letonca konuşma tanıma yok. Söyleyeceğini yazarak gönderebilirsin."
+        return "Apple'ın konuşma tanıması Letoncayı desteklemiyor — telefonunda bir sorun yok."
+            + " Söyleyeceğini yazarak gönderebilirsin."
     }
 
     var body: some View {
@@ -116,7 +122,7 @@ struct LatvianSpeakExerciseView: View {
     }
 
     private var micTitle: String {
-        if !recognizer.isSupported { return "Konuşma tanıma yok" }
+        if !recognizer.isSupported { return "Letonca konuşma tanıma yok" }
         return recognizer.isRecording ? "Dinliyorum… durdurmak için dokun" : "Konuş"
     }
 

@@ -446,6 +446,13 @@ enum LatvianLessonBuilder {
 
     // MARK: - Ders
 
+    /// - Parameter excludedKinds: Bu derste hiç sorulmayacak soru tipleri. Cihazın
+    ///   yapamadığı bir soruyu sormamak için var: Apple'ın konuşma tanıması Letoncayı
+    ///   içermediğinden `speak` her cihazda dışlanıyor (bkz. `LatvianSpeechAvailability`).
+    ///   Motor `Speech`'i tanımıyor, bilgiyi dışarıdan alıyor.
+    ///
+    ///   Varsayılan boş, ve boşken hiçbir şey değişmiyor: ders birebir eskisi gibi
+    ///   kuruluyor (parmak izi testi tam olarak bunu bekliyor).
     static func build(
         scene: LatvianScene,
         pack: LatvianPack,
@@ -453,7 +460,8 @@ enum LatvianLessonBuilder {
         factory: LatvianExerciseFactory,
         availableAudio: Set<String>,
         seed: UInt64,
-        now: Date
+        now: Date,
+        excludedKinds: Set<LatvianExerciseKind> = []
     ) -> [LatvianExercise] {
         let targets = plan(scene: scene, pack: pack, progress: progress, now: now)
         guard !targets.isEmpty else { return [] }
@@ -462,10 +470,21 @@ enum LatvianLessonBuilder {
         var slots: [Slot] = []
         slots.reserveCapacity(targets.count)
         for target in targets {
-            let kinds = orderedKinds(
+            var kinds = orderedKinds(
                 for: target, factory: factory, availableAudio: availableAudio,
                 progress: progress, using: &generator
             )
+            // Süzgeç iki nedenle burada, `supportedKinds`'in içinde değil.
+            //
+            // Biri ölçüm: `supportedKinds` performans bütçesinin altında (259 kelime
+            // 10 ms'nin altında) ve ders başına yüzlerce kez geziliyor; her çağrıya bir
+            // küme testi eklemenin karşılığı yok.
+            //
+            // Diğeri belirlenimcilik: `orderedKinds` listeyi tohumlu üreteçle karıştırıyor
+            // ve karıştırma tüketimi eleman sayısına bağlı. Eleme karıştırmadan önce
+            // yapılsaydı, hiçbir tip dışlanmasa bile tüketim kayar ve dersin tamamı
+            // değişirdi. Karıştırmadan sonra elemek, boş kümede çıktıyı bozulmadan bırakıyor.
+            if !excludedKinds.isEmpty { kinds.removeAll { excludedKinds.contains($0) } }
             if !kinds.isEmpty { slots.append(Slot(target: target, kinds: kinds)) }
         }
 

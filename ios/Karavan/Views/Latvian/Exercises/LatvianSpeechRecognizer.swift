@@ -10,7 +10,9 @@ import Speech
 ///
 /// Sessizce ölmemek bu sınıfın tek işi. Dört ayrı yerde yolun kapanabildiği
 /// biliniyor ve dördü de kullanıcıya görünür bir Türkçe cümleye çevriliyor:
-/// cihazda `lv-LV` tanıyıcısı yok, konuşma tanıma izni yok, mikrofon izni yok,
+/// `lv-LV` tanıyıcısı yok (Apple Letoncayı hiç içermiyor, bkz.
+/// `LatvianSpeechAvailability` — bu yüzden ders artık telaffuz sorusu üretmiyor ve
+/// bu yol pratikte açılmıyor), konuşma tanıma izni yok, mikrofon izni yok,
 /// ses hattı açılmıyor. Brifingdeki taslak `try?` ile yutuyor ve `isRecording`'i
 /// yine de `true` yapıyordu: mikrofon hiç açılmamışken ekranda "Dinliyorum…"
 /// yazıyor, hiçbir zaman da bir şey duymuyordu.
@@ -23,7 +25,7 @@ final class LatvianSpeechRecognizer: ObservableObject {
     /// Kullanıcıya gösterilecek Türkçe hata. `nil` ise sorun yok.
     @Published private(set) var errorText: String?
 
-    /// Cihaz Letonca dikteyi hiç tanımıyorsa düğme baştan kapalı olmalı.
+    /// Letonca dikte tanınmıyorsa düğme baştan kapalı olmalı.
     let isSupported: Bool
 
     private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "lv-LV"))
@@ -39,7 +41,9 @@ final class LatvianSpeechRecognizer: ObservableObject {
     private var previousOptions: AVAudioSession.CategoryOptions = []
 
     init() {
-        isSupported = SFSpeechRecognizer(locale: Locale(identifier: "lv-LV")) != nil
+        // Ders kurucusunun `speak`'i düşürürken baktığı bayrağın aynısı: iki taraf
+        // aynı soruya farklı cevap veremesin.
+        isSupported = LatvianSpeechAvailability.hasLatvian
     }
 
     // MARK: - Akış
@@ -47,7 +51,8 @@ final class LatvianSpeechRecognizer: ObservableObject {
     func start() {
         guard !isRecording else { return }
         guard let recognizer, recognizer.isAvailable else {
-            fail("Bu cihazda Letonca konuşma tanıma yok. Yazarak gönderebilirsin.")
+            fail("Apple'ın konuşma tanıması Letoncayı desteklemiyor — telefonunda bir sorun yok."
+                 + " Yazarak gönderebilirsin.")
             return
         }
         errorText = nil
@@ -108,7 +113,8 @@ final class LatvianSpeechRecognizer: ObservableObject {
 
     private func beginCapture() {
         guard let recognizer, recognizer.isAvailable else {
-            fail("Bu cihazda Letonca konuşma tanıma yok. Yazarak gönderebilirsin.")
+            fail("Apple'ın konuşma tanıması Letoncayı desteklemiyor — telefonunda bir sorun yok."
+                 + " Yazarak gönderebilirsin.")
             return
         }
         stop()
