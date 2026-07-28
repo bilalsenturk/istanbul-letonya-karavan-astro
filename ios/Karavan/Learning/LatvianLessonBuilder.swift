@@ -29,6 +29,23 @@ struct LatvianLessonTarget: Hashable, Sendable {
     fileprivate var pairKey: String { "\(wordId)#\(modality.rawValue)" }
 }
 
+/// Bir sahnenin **şu anki** iş durumu: neyin beklediği, ne zaman geri geleceği.
+///
+/// Hakimiyet ölçütü zamandan bağımsız (bkz. `LatvianLessonBuilder`), ama "öğrenci
+/// şimdi ne yapabilir" sorusu tamamen zamana bağlı: kalıcılık ancak tekrarlar
+/// arasına gün girdiğinde büyüyor. Bu tip o farkı ekrana taşınabilir hale getiriyor —
+/// halka duruyorsa **neden** durduğunu söyleyebilmek için.
+struct LatvianSceneRest: Equatable, Sendable {
+    /// Öğrenilmiş ama henüz kalıcı sayılmayan ve şu an tekrar edilemeyen kelime sayısı.
+    /// "Demleniyor": iki tarafı da tanıtılmış, ikisi de vadesi gelmemiş, kelime hâlâ hakim değil.
+    let restingWordCount: Int
+    /// Demlenen kelimelerden en erken sorulabilecek olanın vadesi; hiçbiri yoksa `nil`.
+    let readyAt: Date?
+    /// Sahnede şu an gerçekten yapılacak iş var mı: hiç tanışılmamış bir taraf
+    /// ya da vadesi gelmiş bir kart. `false` ise ders yalnızca aynı soruları tekrar eder.
+    let hasWorkNow: Bool
+}
+
 /// Ders kurgusu ve sahne kilidi.
 ///
 /// Sahne kilidi tek bir cümleyle: bir sahne, kelimelerinin en az `masteryCoverage`
@@ -129,9 +146,14 @@ enum LatvianLessonBuilder {
         now: Date
     ) -> Bool {
         guard let key = LatvianMemoryKey(wordId: wordId, modality: modality),
-              let card = progress.card(for: key),
-              card.reviewCount >= minimumReviews else { return false }
-        return card.stability >= masteryStabilityDays
+              let card = progress.card(for: key) else { return false }
+        return isMastered(card: card)
+    }
+
+    /// Kapının tek ve tam tanımı. Kelime/sahne sorgusu da, ilerleme göstergesi de
+    /// buradan okuyor: ikisi ayrı ayrı yazılsaydı zamanla ayrışırlardı.
+    static func isMastered(card: LatvianMemoryCard) -> Bool {
+        card.reviewCount >= minimumReviews && card.stability >= masteryStabilityDays
     }
 
     /// Kelimenin **iki** tarafı da kalıcı olarak öğrenildi mi.
@@ -142,6 +164,10 @@ enum LatvianLessonBuilder {
     }
 
     /// Sahnedeki kelimelerin kaçının hem tanıma hem üretim tarafında kalıcı olarak öğrenildiği.
+    ///
+    /// **Bu KAPI.** Sahnenin açılıp açılmadığını yalnızca bu sayı belirliyor ve tam/tam
+    /// sayıyor: eşiği bir saç teliyle kaçıran kelime sıfır ediyor. Ekranda gösterilen sayı
+    /// bu değil — onun için `masteryProgress(scene:progress:now:)`.
     static func masteryRatio(scene: LatvianScene, progress: LatvianProgress, now: Date) -> Double {
         let words = distinctWordIds(in: scene)
         guard !words.isEmpty else { return 1 }
@@ -151,6 +177,141 @@ enum LatvianLessonBuilder {
 
     static func isSceneMastered(scene: LatvianScene, progress: LatvianProgress, now: Date) -> Bool {
         masteryRatio(scene: scene, progress: progress, now: now) >= masteryCoverage
+    }
+
+    // MARK: - İlerleme göstergesi
+
+    /// Kapıya olan uzaklığın kısmi puanlı ölçüsü; **gösterge**, kapı değil.
+    ///
+    /// İkisi bilerek ayrı duruyor ve karıştırılmamalı:
+    ///
+    /// | | `masteryRatio` | `masteryProgress` |
+    /// | --- | --- | --- |
+    /// | ne sayıyor | çizgiyi geçen kelimeleri | çizgiye olan mesafeyi |
+    /// | ne işe yarıyor | kilidi açar | halkayı doldurur |
+    /// | 5.9/7 gündeki kart | 0 | ~0.84 |
+    ///
+    /// Neden gerekti: `masteryRatio` ilk kelime çizgiyi geçene kadar **tam olarak sıfır**.
+    /// Kalıcılık yalnızca tekrarlar arasına gün girdiğinde büyüdüğü için (tek oturumda
+    /// ulaşılabilen en yüksek kararlılık 5.9 gün) bir akşamda altı kusursuz ders yapan
+    /// öğrenci 96 doğru cevaptan sonra halkayı hâlâ "%0" görüyordu — kural doğru, ekran
+    /// bozuk görünüyordu (ölçüm: `.superpowers/sdd/p3-task-7-report.md`).
+    ///
+    /// Kapı bu yüzden **gevşetilmedi**: `masteryStabilityDays`, `minimumReviews` ve
+    /// `masteryCoverage` olduğu gibi duruyor. Değişen yalnızca gösterilen sayı.
+    ///
+    /// Kartın kapıya yaklaşması iki koşulun **küçüğü**: ortalaması alınsaydı bir koşulu
+    /// fazlasıyla karşılayan kart öbürünün eksiğini kapatır, gösterge kapı açılmadan
+    /// dolardı. Böylece `masteryProgress(card:) == 1` ile `isMastered(card:)` birebir
+    /// aynı kartlarda doğru.
+    static func masteryProgress(card: LatvianMemoryCard?) -> Double {
+        guard let card else { return 0 }
+        // `max(0, ...)` NaN'ı da sıfıra çekiyor: Swift'in `max`'ı NaN karşılaştırmasında
+        // ilk değeri döndürüyor, dolayısıyla bozuk bir kayıt göstergeyi bozamıyor.
+        let byStability = max(0, card.stability) / masteryStabilityDays
+        let byReviews = Double(max(0, card.reviewCount)) / Double(max(1, minimumReviews))
+        return min(1, min(byStability, byReviews))
+    }
+
+    /// Kelimenin kapıya yaklaşması: **iki kartın ortalaması**.
+    ///
+    /// Kelime iki tarafından birden isteniyor (bkz. `isWordMastered`), dolayısıyla yalnızca
+    /// tanıma tarafını çalışmış öğrenci yolun yarısında. Ortalama tam olarak bunu söylüyor.
+    static func masteryProgress(wordId: String, progress: LatvianProgress, now: Date) -> Double {
+        let total = modalities.reduce(0.0) { sum, modality in
+            let card = LatvianMemoryKey(wordId: wordId, modality: modality)
+                .flatMap { progress.card(for: $0) }
+            return sum + masteryProgress(card: card)
+        }
+        return total / Double(modalities.count)
+    }
+
+    /// Sahnenin kapıya yaklaşması, 0-1. Halkanın gösterdiği sayı.
+    ///
+    /// **Kapının açıldığı anda tam olarak 1, öncesinde kesinlikle 1'den küçük.** Sahnenin
+    /// tüm kelimelerinin ortalaması alınsaydı bu tutmazdı: kapı kelimelerin `masteryCoverage`
+    /// kadarını istiyor, hepsini değil — ortalama kapı açıldığında hâlâ ~0.8'de kalır,
+    /// öğrenci geçtiği durakta dolmamış bir halka görürdü. Kapıyı `masteryCoverage`
+    /// bölmesiyle ölçeklemek ise ters yönde bozardı: kelimelerin **hepsi** 0.8'de olan bir
+    /// sahne hiç kelime geçirmeden "%100" yazardı.
+    ///
+    /// Bunun yerine kapıyı açmaya yetecek kelime sayısı (`masteredWordsNeeded`) alınıp
+    /// **en ilerideki o kadar kelimenin** ortalaması veriliyor: gösterge 1 olur ancak ve
+    /// ancak o kelimelerin hepsi çizgiyi geçmişse, yani kapı gerçekten açıksa. Sıralama
+    /// yalnızca değerlerin çokkümesini seçtiğinden eşitliklerin sırası sonuca sızmıyor.
+    static func masteryProgress(scene: LatvianScene, progress: LatvianProgress, now: Date) -> Double {
+        let words = distinctWordIds(in: scene)
+        guard !words.isEmpty else { return 1 }
+        let needed = masteredWordsNeeded(in: words.count)
+        guard needed > 0 else { return 1 }
+        let leading = words
+            .map { masteryProgress(wordId: $0, progress: progress, now: now) }
+            .sorted(by: >)
+            .prefix(needed)
+        return min(1, leading.reduce(0, +) / Double(needed))
+    }
+
+    /// Kapının açılması için hakim olması gereken en az kelime sayısı.
+    ///
+    /// `masteryRatio >= masteryCoverage` ile **birebir aynı aritmetik** kullanılıyor —
+    /// yuvarlamayla ayrı bir eşik hesaplansaydı iki sayı sahne büyüklüğüne göre bir
+    /// kelimelik ayrışabilir, gösterge kapıdan önce ya da sonra dolardı.
+    static func masteredWordsNeeded(in wordCount: Int) -> Int {
+        guard wordCount > 0 else { return 0 }
+        for needed in 0...wordCount
+        where Double(needed) / Double(wordCount) >= masteryCoverage {
+            return needed
+        }
+        return wordCount
+    }
+
+    // MARK: - Demlenme
+
+    /// Sahnenin şu anki iş durumu: kaç kelime demleniyor, en erken ne zaman geri gelecek,
+    /// şimdi yapılacak bir şey var mı.
+    ///
+    /// "Demleniyor" = iki tarafı da tanıtılmış, ikisinin de vadesi ileride, kelime hâlâ
+    /// hakim değil. Yani öğrenci elinden geleni yapmış; eksik olan tek şey **zaman**.
+    /// Ekran bunu söyleyebilsin diye var: kural doğru olduğu hâlde sessiz kaldığında
+    /// halkanın durması arıza gibi okunuyor.
+    ///
+    /// Saati kendisi okumuyor, `now`'ı alıyor — motorun geri kalanıyla aynı sözleşme.
+    static func rest(scene: LatvianScene, progress: LatvianProgress, now: Date) -> LatvianSceneRest {
+        var restingWordCount = 0
+        var readyAt: Date?
+        var hasWorkNow = false
+
+        for wordId in distinctWordIds(in: scene) {
+            var isResting = true
+            var isFullyMastered = true
+            var earliest: Date?
+
+            for modality in modalities {
+                guard let key = LatvianMemoryKey(wordId: wordId, modality: modality),
+                      let card = progress.card(for: key) else {
+                    // Hiç tanışılmamış taraf: bu ders gerçekten yeni bir şey öğretecek.
+                    hasWorkNow = true
+                    isResting = false
+                    isFullyMastered = false
+                    continue
+                }
+                if !isMastered(card: card) { isFullyMastered = false }
+                if card.isDue(at: now) {
+                    hasWorkNow = true
+                    isResting = false
+                } else {
+                    earliest = earliest.map { min($0, card.dueAt) } ?? card.dueAt
+                }
+            }
+
+            guard isResting, !isFullyMastered else { continue }
+            restingWordCount += 1
+            if let earliest { readyAt = readyAt.map { min($0, earliest) } ?? earliest }
+        }
+
+        return LatvianSceneRest(
+            restingWordCount: restingWordCount, readyAt: readyAt, hasWorkNow: hasWorkNow
+        )
     }
 
     // MARK: - Takılan kelime

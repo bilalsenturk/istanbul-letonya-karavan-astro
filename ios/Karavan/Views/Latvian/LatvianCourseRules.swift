@@ -55,7 +55,9 @@ enum LatvianCourseRules {
                     index: scene.index,
                     isUnlocked: previousCleared,
                     isCleared: cleared,
-                    masteryRatio: LatvianLessonBuilder.masteryRatio(
+                    // Halka kapıyı değil kapıya olan mesafeyi gösteriyor; kilit
+                    // yukarıdaki `cleared`'ten geliyor (bkz. `LatvianRouteStop`).
+                    masteryProgress: LatvianLessonBuilder.masteryProgress(
                         scene: scene, progress: progress, now: now
                     )
                 )
@@ -83,6 +85,56 @@ enum LatvianCourseRules {
     static func outOfHeartsNotice(at moment: Date?) -> String {
         guard let moment else { return "Canların bitti." }
         return "Canların bitti. Sonraki can \(moment.formatted(date: .omitted, time: .shortened)) civarında geliyor."
+    }
+
+    /// "Öğrendin ama daha oturmadı" durumunun tek satırlık karşılığı; söylenecek bir şey
+    /// yoksa `nil`.
+    ///
+    /// Kalıcılık ancak tekrarların arasına zaman girdiğinde büyüyor: bir akşamda altı
+    /// kusursuz ders yapan öğrenci 96 doğru cevap verir ve durak yine açılmaz. Kural doğru,
+    /// ama söylenmediğinde uygulama bozuk görünüyor (ölçüm:
+    /// `.superpowers/sdd/p3-task-7-report.md`). Cümle bu yüzden var.
+    ///
+    /// **Sabit metin değil, durumdan türetiliyor:** kaç kelimenin beklediği ve en erken
+    /// hangi an geri geleceği `LatvianSceneRest`'ten okunuyor. Sabit bir cümle ya hep
+    /// yalan söylerdi ya hiç görünmezdi.
+    ///
+    /// İki hâli var, çünkü iki durum farklı: sahnede hâlâ yapılacak iş varken öğrenciyi
+    /// eve göndermek yanlış olurdu; iş kalmadığında ise aynı dersi bir kez daha veren
+    /// bir düğmeyle baş başa bırakmak yanlış olur.
+    static func restNotice(
+        _ rest: LatvianSceneRest,
+        now: Date,
+        calendar: Calendar = .current
+    ) -> String? {
+        let when = rest.readyAt.map { " " + readyPhrase($0, now: now, calendar: calendar) } ?? ""
+
+        if rest.hasWorkNow {
+            guard rest.restingWordCount > 0 else { return nil }
+            return "\(rest.restingWordCount) kelime demleniyor: kalıcı sayılmaları için "
+                + "araya zaman girmeli. En erken\(when) geri gelecekler; sen kalanıyla devam et."
+        }
+        guard rest.restingWordCount > 0 else {
+            return "Bu durakta şimdilik yapacak yeni bir şey yok. Biraz sonra yeniden bak."
+        }
+        return "Bugünlük tamam. \(rest.restingWordCount) kelime demleniyor: kalıcı "
+            + "sayılmaları için araya zaman girmeli. En erken\(when) geri gelecekler."
+    }
+
+    /// "yarın 09:12 civarında" gibi bir zaman ifadesi.
+    ///
+    /// Gün farkı iki gece yarısı arasında ölçülüyor, saat farkıyla değil: akşam 23:50'de
+    /// bakan öğrenciye 00:10'daki vade için "bugün" demek yanlış olurdu.
+    private static func readyPhrase(_ moment: Date, now: Date, calendar: Calendar) -> String {
+        let time = moment.formatted(date: .omitted, time: .shortened)
+        let days = calendar.dateComponents(
+            [.day], from: calendar.startOfDay(for: now), to: calendar.startOfDay(for: moment)
+        ).day ?? 0
+        switch days {
+        case ..<1: return "bugün \(time) civarında"
+        case 1: return "yarın \(time) civarında"
+        default: return "\(moment.formatted(date: .abbreviated, time: .shortened)) civarında"
+        }
     }
 
     /// Ders tohumu. `Int64(exactly:)` kullanılıyor: bozuk bir saatten gelen uçuk

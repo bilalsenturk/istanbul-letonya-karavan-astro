@@ -2,20 +2,25 @@ import SwiftUI
 
 /// Rota üzerindeki tek bir durak — bir sahnenin ekrandaki karşılığı.
 ///
-/// Alanların hepsi **önceden hesaplanmış**: `LatvianLessonBuilder.masteryRatio`
-/// sahne başına bütün kelimeleri geziyor ve gövde değerlendirmesi başına on iki
-/// kez çağrılamaz. Hesap `LatvianCourseModel.refreshDerived` içinde bir kez
-/// yapılıp buraya taşınıyor.
+/// Alanların hepsi **önceden hesaplanmış**: hakimiyet hesabı sahne başına bütün
+/// kelimeleri geziyor ve gövde değerlendirmesi başına on iki kez çağrılamaz.
+/// Hesap `LatvianCourseModel.refreshDerived` içinde bir kez yapılıp buraya taşınıyor.
+///
+/// **Halka ile kilit ayrı iki sayıdan geliyor.** `isCleared` kapı
+/// (`LatvianLessonBuilder.masteryRatio` → `masteryCoverage`), `masteryProgress` ise
+/// kapıya olan mesafenin kısmi puanlı ölçüsü. İkincisi yalnızca çizim için var; hiçbir
+/// kilit ondan okunmuyor. Kapı açıldığı anda tam olarak 1 olduğu için halkanın dolması
+/// ile tikin belirmesi hep aynı karede oluyor.
 struct LatvianRouteStop: Identifiable, Equatable {
     let id: String
     let title: String
     /// Pakete göre 1'den başlayan sıra.
     let index: Int
     let isUnlocked: Bool
-    /// Sahne bir kez geçildi mi (hakim olundu ya da daha önce tamamlandı).
+    /// Sahne bir kez geçildi mi (hakim olundu ya da daha önce tamamlandı). **Kapı budur.**
     let isCleared: Bool
-    /// 0-1: kelimelerinin kaçı hem tanıma hem üretim tarafında kalıcı öğrenildi.
-    let masteryRatio: Double
+    /// 0-1: kelimeleri kalıcılık çizgisine ne kadar yaklaştı. Kısmi puanlı, gösterge.
+    let masteryProgress: Double
 }
 
 /// İstanbul'dan Riga'ya uzanan yol üzerinde duraklar.
@@ -121,11 +126,11 @@ struct LatvianRouteMap: View {
                 .stroke(Theme.line, lineWidth: 3.5)
                 .frame(width: Self.ringSize, height: Self.ringSize)
             Circle()
-                .trim(from: 0, to: min(max(stop.masteryRatio, 0), 1))
+                .trim(from: 0, to: min(max(stop.masteryProgress, 0), 1))
                 .stroke(Theme.ok, style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .frame(width: Self.ringSize, height: Self.ringSize)
-                .animation(motion(LatvianMotion.slide), value: stop.masteryRatio)
+                .animation(motion(LatvianMotion.slide), value: stop.masteryProgress)
 
             emblem(stop)
         }
@@ -156,7 +161,18 @@ struct LatvianRouteMap: View {
 
     private func caption(_ stop: LatvianRouteStop) -> String {
         guard stop.isUnlocked else { return "Kilitli" }
-        return "%\(Int((min(max(stop.masteryRatio, 0), 1) * 100).rounded())) öğrenildi"
+        return "%\(percent(stop.masteryProgress)) öğrenildi"
+    }
+
+    /// Halkanın doluluğunun tam sayıya çevrilmiş hâli.
+    ///
+    /// %100 yalnızca gerçekten 1 olduğunda yazılıyor; aradaki her değer 99'a kırpılıyor.
+    /// Yuvarlama olmasaydı 0.998 "%100 öğrenildi" derdi ve öğrenci geçmediği bir durakta
+    /// tamamlandı yazısı görürdü — kapının açık olup olmadığı `isCleared`'ten okunuyor,
+    /// yazının onunla çelişmesi arıza olurdu.
+    private func percent(_ value: Double) -> Int {
+        let clamped = min(max(value, 0), 1)
+        return clamped >= 1 ? 100 : min(99, Int((clamped * 100).rounded()))
     }
 
     private func accessibilityLabel(_ stop: LatvianRouteStop) -> String {
@@ -220,7 +236,7 @@ struct LatvianRouteMap: View {
                     index: index,
                     isUnlocked: index <= 4,
                     isCleared: index <= 2,
-                    masteryRatio: index <= 2 ? 1 : (index == 3 ? 0.45 : 0)
+                    masteryProgress: index <= 2 ? 1 : (index == 3 ? 0.45 : 0)
                 )
             },
             currentStopId: "s3",

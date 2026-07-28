@@ -23,6 +23,9 @@ final class LatvianCourseModel: ObservableObject {
     @Published private(set) var loadError: String?
     /// Bir dokunuşa verilen geçici Türkçe cevap (kilitli durak, can bitti…).
     @Published private(set) var actionNotice: String?
+    /// Şu anki durakta "öğrenildi ama daha oturmadı" durumunun cümlesi; yoksa `nil`.
+    /// Halkanın neden beklediğini söyleyen tek yer (bkz. `LatvianCourseRules.restNotice`).
+    @Published private(set) var restNotice: String?
     /// Letonca hatırlatmaları açık mı — tek anahtar, dört bildirimi birden yönetiyor.
     @Published private(set) var notificationsEnabled: Bool
 
@@ -368,12 +371,26 @@ final class LatvianCourseModel: ObservableObject {
         guard let pack else {
             if !stops.isEmpty { stops = [] }
             if currentStopId != nil { currentStopId = nil }
+            if restNotice != nil { restNotice = nil }
             return
         }
         let computed = LatvianCourseRules.stops(pack: pack, progress: progress, now: now)
         if computed != stops { stops = computed }
         let current = LatvianCourseRules.currentStopId(in: computed)
         if current != currentStopId { currentStopId = current }
+
+        // Yalnızca öğrencinin üstünde durduğu, henüz geçilmemiş durak için: geçilmiş
+        // durakta "demleniyor" demenin bir karşılığı yok, kilitli durağa da öğrenci
+        // giremiyor.
+        let notice = computed.first { $0.id == current && !$0.isCleared }
+            .flatMap { pack.scene(id: $0.id) }
+            .flatMap { scene in
+                LatvianCourseRules.restNotice(
+                    LatvianLessonBuilder.rest(scene: scene, progress: progress, now: now),
+                    now: now
+                )
+            }
+        if notice != restNotice { restNotice = notice }
     }
 
     private func persist() {

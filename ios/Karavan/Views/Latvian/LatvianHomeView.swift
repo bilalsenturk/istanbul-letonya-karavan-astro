@@ -69,7 +69,8 @@ struct LatvianHomeView: View {
         let audioError = audio.lastError
 
         if storage != nil || audioError != nil || audio.isDownloading
-            || model.actionNotice != nil || model.nextHeartAt != nil {
+            || model.actionNotice != nil || model.nextHeartAt != nil
+            || model.restNotice != nil {
             VStack(spacing: 8) {
                 if let storage {
                     LatvianNoticeBanner(
@@ -88,6 +89,9 @@ struct LatvianHomeView: View {
                         tone: Theme.warn,
                         onDismiss: audio.dismissError
                     )
+                }
+                if let rest = model.restNotice {
+                    LatvianRestBanner(message: rest)
                 }
                 if let notice = model.actionNotice {
                     LatvianNoticeBanner(

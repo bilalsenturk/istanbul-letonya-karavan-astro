@@ -1033,6 +1033,208 @@ struct LatvianEngineCheck {
         expect(LatvianLessonBuilder.masteryRatio(scene: pack.scenes[0], progress: recognitionOnly, now: epoch) == 0,
                "yalnızca tanıma tarafı bilinen sahnede hakimiyet oranı sıfır")
 
+        print("\n=== İlerleme göstergesi ===")
+
+        // Gösterge ile kapı iki ayrı sayı: kapı tam/tam sayıyor, gösterge mesafe ölçüyor.
+        // Aşağıdaki kontroller ikisinin bağını tek tek bağlıyor.
+        let scene = pack.scenes[0]
+        let sceneWordCount = Set(scene.words.map(\.id)).count
+        let neededWords = LatvianLessonBuilder.masteredWordsNeeded(in: sceneWordCount)
+        expect(neededWords > 0 && neededWords <= sceneWordCount
+               && Double(neededWords) / Double(sceneWordCount) >= LatvianLessonBuilder.masteryCoverage
+               && Double(neededWords - 1) / Double(sceneWordCount) < LatvianLessonBuilder.masteryCoverage,
+               "kapıyı açan en az kelime sayısı kapsama eşiğiyle birebir aynı aritmetikten çıkıyor "
+               + "(\(neededWords)/\(sceneWordCount))")
+
+        expect(LatvianLessonBuilder.masteryProgress(
+                scene: scene, progress: LatvianProgress.new(), now: epoch) == 0,
+               "hiç dokunulmamış ilerlemede gösterge sıfır")
+        expect(LatvianLessonBuilder.masteryProgress(card: nil) == 0, "kartsız modalitede gösterge sıfır")
+
+        // Kart düzeyi: iki koşul da tek tek bağlayıcı, gösterge ikisinin küçüğü.
+        var halfway = LatvianMemoryCard.new()
+        halfway.stability = LatvianLessonBuilder.masteryStabilityDays / 2
+        halfway.reviewCount = LatvianLessonBuilder.minimumReviews
+        expect(abs(LatvianLessonBuilder.masteryProgress(card: halfway) - 0.5) < 1e-9,
+               "kararlılığın yarısındaki kart göstergede yarı yolda")
+        var stableButUnproven = halfway
+        stableButUnproven.stability = LatvianLessonBuilder.masteryStabilityDays * 3
+        stableButUnproven.reviewCount = 1
+        expect(LatvianLessonBuilder.masteryProgress(card: stableButUnproven) < 1
+               && !LatvianLessonBuilder.isMastered(card: stableButUnproven),
+               "kararlılığı fazlasıyla yeten ama tek tekrarlı kart göstergeyi doldurmuyor")
+        var provenButShaky = halfway
+        provenButShaky.reviewCount = 20
+        expect(LatvianLessonBuilder.masteryProgress(card: provenButShaky) < 1,
+               "yirmi tekrar eksik kararlılığı kapatmıyor")
+        var atGate = halfway
+        atGate.stability = LatvianLessonBuilder.masteryStabilityDays
+        expect(LatvianLessonBuilder.masteryProgress(card: atGate) == 1
+               && LatvianLessonBuilder.isMastered(card: atGate),
+               "kapıyı tam karşılayan kartta gösterge tam dolu")
+        var farPast = atGate
+        farPast.stability = LatvianLessonBuilder.masteryStabilityDays * 10
+        farPast.reviewCount = 50
+        expect(LatvianLessonBuilder.masteryProgress(card: farPast) == 1,
+               "kapıyı fazlasıyla geçen kart göstergeyi 1'in üstüne çıkarmıyor")
+        var brokenCard = atGate
+        brokenCard.stability = .nan
+        expect(LatvianLessonBuilder.masteryProgress(card: brokenCard) == 0,
+               "bozuk kayıttan gelen NaN kararlılık göstergeyi bozmuyor")
+
+        // Kelime düzeyi: iki taraf da isteniyor, dolayısıyla tek taraf tam yolun yarısı.
+        expect(abs(LatvianLessonBuilder.masteryProgress(
+                    wordId: pack.scenes[0].words[0].id, progress: recognitionOnly, now: epoch) - 0.5) < 1e-9,
+               "yalnızca tanıma tarafı hakim olan kelime göstergede tam yarıda")
+
+        // Monoton yükseliş: kartlar kararlılık kazandıkça gösterge hiç düşmüyor ve
+        // gerçekten kıpırdıyor. Kapıya varmadan 1 olmuyor, vardığı anda 1 oluyor.
+        var climbing = LatvianProgress.new()
+        var previousProgress = LatvianLessonBuilder.masteryProgress(
+            scene: scene, progress: climbing, now: epoch
+        )
+        var sawRise = false
+        var brokeMonotonicity = false
+        var claimedEarly = false
+        var openedAt: (step: Int, progress: Double)?
+        var step = 0
+        for word in scene.words {
+            for stability in stride(from: 1.0, through: LatvianLessonBuilder.masteryStabilityDays, by: 2.0) {
+                var card = LatvianMemoryCard.new()
+                card.stability = stability
+                card.reviewCount = LatvianLessonBuilder.minimumReviews
+                for modality in [LatvianModality.recognition, .production] {
+                    climbing.setCard(card, for: memoryKey(word.id, modality))
+                }
+                step += 1
+                let value = LatvianLessonBuilder.masteryProgress(scene: scene, progress: climbing, now: epoch)
+                let isOpen = LatvianLessonBuilder.isSceneMastered(scene: scene, progress: climbing, now: epoch)
+                if value < previousProgress - 1e-9 { brokeMonotonicity = true }
+                if value > previousProgress + 1e-9 { sawRise = true }
+                if value >= 1, !isOpen { claimedEarly = true }
+                if isOpen, openedAt == nil { openedAt = (step, value) }
+                previousProgress = value
+            }
+        }
+        expect(!brokeMonotonicity, "kartlar kararlılık kazandıkça gösterge hiç geri gitmiyor")
+        expect(sawRise, "gösterge tek bir kelime bile çizgiyi geçmeden yükselmeye başlıyor")
+        expect(!claimedEarly, "gösterge kapı açılmadan hiçbir adımda 1'e ulaşmıyor")
+        expect(openedAt.map { abs($0.progress - 1) < 1e-9 } ?? false,
+               "kapı açıldığı adımda gösterge tam olarak 1 "
+               + String(format: "(%.4f)", openedAt?.progress ?? -1))
+
+        // Kapının hemen altı: kapsamayı bir kelimeyle kaçıran sahnede gösterge yüksek
+        // ama 1 DEĞİL — arayüz "tamamlandı" diyemesin diye.
+        func progressWithMasteredWords(_ count: Int) -> LatvianProgress {
+            var result = LatvianProgress.new()
+            var full = LatvianMemoryCard.new()
+            full.stability = LatvianLessonBuilder.masteryStabilityDays
+            full.reviewCount = LatvianLessonBuilder.minimumReviews
+            for word in scene.words.prefix(count) {
+                for modality in [LatvianModality.recognition, .production] {
+                    result.setCard(full, for: memoryKey(word.id, modality))
+                }
+            }
+            return result
+        }
+        for masteredCount in 0...sceneWordCount {
+            let state = progressWithMasteredWords(masteredCount)
+            let value = LatvianLessonBuilder.masteryProgress(scene: scene, progress: state, now: epoch)
+            let isOpen = LatvianLessonBuilder.isSceneMastered(scene: scene, progress: state, now: epoch)
+            expect((value >= 1) == isOpen,
+                   String(format: "%d/%d hakim kelimede gösterge (%.3f) ile kapı (%@) aynı şeyi söylüyor",
+                          masteredCount, sceneWordCount, value, isOpen ? "açık" : "kapalı"))
+            expect(value <= 1 + 1e-9, "gösterge hiçbir durumda 1'i aşmıyor")
+        }
+
+        // Kelimelerin HEPSİ kapsama eşiği kadar ilerlemişken gösterge dolmamalı: hiç
+        // kelime çizgiyi geçmedi, dolayısıyla kapı da kapalı.
+        var uniformlyClose = LatvianProgress.new()
+        var closeCard = LatvianMemoryCard.new()
+        closeCard.stability = LatvianLessonBuilder.masteryStabilityDays - 0.01
+        closeCard.reviewCount = LatvianLessonBuilder.minimumReviews
+        for word in scene.words {
+            for modality in [LatvianModality.recognition, .production] {
+                uniformlyClose.setCard(closeCard, for: memoryKey(word.id, modality))
+            }
+        }
+        let closeValue = LatvianLessonBuilder.masteryProgress(scene: scene, progress: uniformlyClose, now: epoch)
+        expect(closeValue < 1 && closeValue > 0.9
+               && LatvianLessonBuilder.masteryRatio(scene: scene, progress: uniformlyClose, now: epoch) == 0,
+               String(format: "hepsi çizginin bir tık altındaki sahnede gösterge yüksek ama dolu değil (%.4f)",
+                      closeValue))
+
+        // Gösterge de kapı gibi sorgu anını okumuyor.
+        expect(LatvianLessonBuilder.masteryProgress(scene: scene, progress: climbing, now: staleMoment)
+               == LatvianLessonBuilder.masteryProgress(scene: scene, progress: climbing, now: epoch),
+               "gösterge sorgu anına bağlı değil")
+        expect(LatvianLessonBuilder.masteryProgress(
+                scene: LatvianScene(id: "bos-gosterge", index: 98, title: "Boş", words: [], sentences: []),
+                progress: progress, now: epoch) == 1,
+               "kelimesiz sahnede gösterge de kapı gibi 1")
+        expect(LatvianLessonBuilder.masteredWordsNeeded(in: 0) == 0,
+               "kelimesiz sahne kapı hesabını bölmüyor")
+
+        print("\n=== Demlenme ===")
+
+        let untouchedRest = LatvianSceneRest(restingWordCount: 0, readyAt: nil, hasWorkNow: true)
+        expect(LatvianLessonBuilder.rest(scene: scene, progress: LatvianProgress.new(), now: epoch) == untouchedRest,
+               "hiç çalışılmamış sahnede demlenen kelime yok ama yapılacak iş var")
+
+        // Kusuru üreten durum: her kelimenin iki tarafı da çalışılmış, hiçbirinin vadesi
+        // gelmemiş, hiçbiri hâlâ hakim değil. Ders yeni bir şey öğretemez.
+        var soaking = LatvianProgress.new()
+        var soakingCard = LatvianMemoryCard.new()
+        soakingCard.stability = 5.9
+        soakingCard.reviewCount = 4
+        soakingCard.lastReviewedAt = epoch
+        soakingCard.dueAt = epoch.addingTimeInterval(86_400 * 5.9)
+        for word in scene.words {
+            for modality in [LatvianModality.recognition, .production] {
+                soaking.setCard(soakingCard, for: memoryKey(word.id, modality))
+            }
+        }
+        let soakingRest = LatvianLessonBuilder.rest(scene: scene, progress: soaking, now: epoch)
+        expect(soakingRest.restingWordCount == sceneWordCount && !soakingRest.hasWorkNow
+               && soakingRest.readyAt == soakingCard.dueAt,
+               "bir oturumda kusursuz çalışılmış sahnenin tamamı demleniyor, en erken vade bildiriliyor "
+               + "(\(soakingRest.restingWordCount) kelime)")
+        expect(LatvianLessonBuilder.masteryProgress(scene: scene, progress: soaking, now: epoch) > 0.8
+               && !LatvianLessonBuilder.isSceneMastered(scene: scene, progress: soaking, now: epoch),
+               String(format: "aynı durumda halka dolmaya yakın ama durak açılmıyor (%.3f)",
+                      LatvianLessonBuilder.masteryProgress(scene: scene, progress: soaking, now: epoch)))
+
+        // Vade geldiğinde iş geri geliyor ve kelime artık demlenmiyor.
+        let afterRest = LatvianLessonBuilder.rest(
+            scene: scene, progress: soaking, now: soakingCard.dueAt
+        )
+        expect(afterRest.hasWorkNow && afterRest.restingWordCount == 0,
+               "vade geldiğinde demlenme bitiyor, sahnede yapılacak iş oluyor")
+
+        // Hakim kelime demlenmiyor: bekleyecek bir şeyi kalmadı.
+        var settled = soaking
+        var settledCard = soakingCard
+        settledCard.stability = LatvianLessonBuilder.masteryStabilityDays
+        settledCard.dueAt = epoch.addingTimeInterval(86_400 * 30)
+        for modality in [LatvianModality.recognition, .production] {
+            settled.setCard(settledCard, for: memoryKey(scene.words[0].id, modality))
+        }
+        expect(LatvianLessonBuilder.rest(scene: scene, progress: settled, now: epoch).restingWordCount
+               == sceneWordCount - 1,
+               "çizgiyi geçen kelime demlenenler arasında sayılmıyor")
+
+        // Tek tarafı hiç tanıtılmamış kelime demlenmiyor: o taraf bugün öğretilebilir.
+        var halfIntroduced = soaking
+        halfIntroduced.setCard(.new(), for: memoryKey(scene.words[1].id, .production))
+        var stripped = LatvianProgress.new()
+        for entry in halfIntroduced.allCards()
+        where !(entry.key.wordId == scene.words[1].id && entry.key.modality == .production) {
+            stripped.setCard(entry.card, for: entry.key)
+        }
+        let strippedRest = LatvianLessonBuilder.rest(scene: scene, progress: stripped, now: epoch)
+        expect(strippedRest.hasWorkNow && strippedRest.restingWordCount == sceneWordCount - 1,
+               "bir tarafı hiç tanıtılmamış kelime demlenmiyor, sahnede iş sayılıyor")
+
         print("\n=== Ders kurgusu (örnek paket) ===")
 
         let lesson = LatvianLessonBuilder.build(

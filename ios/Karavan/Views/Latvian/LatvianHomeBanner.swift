@@ -79,9 +79,51 @@ struct LatvianDownloadBanner: View {
     }
 }
 
+/// "Öğrendin ama daha oturmadı" şeridi — yol arkadaşının ağzından.
+///
+/// Halka artık kısmi ilerlemeyi gösteriyor ama **neden** durduğunu söyleyemiyor:
+/// kalıcılık yalnızca tekrarların arasına zaman girdiğinde büyüyor, dolayısıyla bir
+/// akşamda altı kusursuz ders yapan öğrenci durağı yine açamıyor. Kural doğru; ekranın
+/// susması yanlıştı (ölçüm: `.superpowers/sdd/p3-task-7-report.md`).
+///
+/// Metin dışarıdan geliyor ve durumdan türetiliyor (`LatvianCourseRules.restNotice`);
+/// burada sabit bir cümle yok.
+///
+/// Kapatma düğmesi bilerek yok: uyarı değil durum bildirimi, ve durum ortadan kalktığı
+/// anda şerit kendiliğinden kayboluyor.
+struct LatvianRestBanner: View {
+    let message: String
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            // Maskotun kendi erişilebilirlik metni kapatıldı: şeridin tamamı tek bir
+            // öğe olarak okunuyor, yoksa VoiceOver aynı şeyi iki kez söylerdi.
+            LatvianMascot(mood: .idle, size: 40)
+                .accessibilityHidden(true)
+            Text(message)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Theme.dim)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(11)
+        .background(Theme.panel, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Theme.c4.opacity(0.35), lineWidth: 1)
+        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Yol arkadaşın diyor ki: \(message)")
+    }
+}
+
 #Preview("Şeritler") {
     VStack(spacing: 10) {
         LatvianDownloadBanner(progress: 0.42)
+        LatvianRestBanner(
+            message: "Bugünlük tamam. 23 kelime demleniyor: kalıcı sayılmaları için "
+                + "araya zaman girmeli. En erken yarın 09:12 civarında geri gelecekler."
+        )
         LatvianNoticeBanner(
             symbol: "exclamationmark.triangle.fill",
             message: "İlerleme dosyası okunamadı, yedekten devam ediliyor.",
