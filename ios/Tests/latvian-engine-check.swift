@@ -145,7 +145,11 @@ func canonicalDescription(_ exercise: LatvianExercise) -> String {
         exercise.prompt,
         exercise.audioId ?? "-",
         exercise.carrier ?? "-",
-        exercise.explanation ?? "-",
+        // Cevap panelinin gösterdiği iki alan da özete giriyor: içerikleri
+        // tohuma bağlı (hangi cümlenin seçildiği) ve inmiş ses kümesine bağlı,
+        // yani belirlenimcilikleri ayrıca sınanmalı.
+        exercise.answerGlossTr ?? "-",
+        exercise.answerAudioId ?? "-",
     ]
     switch exercise.content {
     case .choice(let options, let correctIndex):
@@ -292,6 +296,45 @@ func defects(in exercise: LatvianExercise, word: LatvianWord) -> [String] {
     }
 
     return problems
+}
+
+// MARK: - Cevabın Türkçesi
+
+/// `answerGlossTr` için beklenen değer. Soru tipine göre üç halden biri.
+enum LatvianGlossExpectation {
+    /// Türkçe bilerek yok: cevap zaten Türkçe (`lvToTr`) ya da Türkçeyi içeriyor (`match`).
+    case absent
+    /// Harfi harfine bu dize — paketten alınan `word.tr` (ya da hal tatbikatının bileşik metni).
+    case exactly(String)
+    /// Kelimeyi kullanan cümlelerden birinin `tr`'si; hangisinin seçildiği tohuma bağlı.
+    case anySentenceTr(Set<String>)
+}
+
+/// Tablonun testteki karşılığı. Beklenen değerler **pakete** bakılarak kuruluyor,
+/// üretilen soruya değil: soru kendi ürettiği metni kendisi doğrulayamaz.
+func glossExpectation(
+    kind: LatvianExerciseKind,
+    word: LatvianWord,
+    sentenceTrs: Set<String>
+) -> LatvianGlossExpectation {
+    switch kind {
+    case .lvToTr, .match:
+        return .absent
+    case .listenChoose, .iconChoose, .dictation, .speak:
+        return .exactly(word.tr)
+    case .caseDrill:
+        // Cevap çıplak bir ek; tek başına anlamı yok, çekimli biçimle birlikte veriliyor.
+        guard let caseForm = word.caseForm else { return .exactly(word.tr) }
+        return .exactly("\(caseForm.form) — \(word.tr)")
+    case .trToLv, .order, .fillBlank:
+        return .anySentenceTr(sentenceTrs)
+    }
+}
+
+/// Notlayıcının öğrenciye gösterdiği doğru cevap metni. Yanıt bilerek hiçbir
+/// içerik kipiyle eşleşmiyor; `grade` her durumda doğru cevabı döndürüyor.
+func correctAnswerText(_ exercise: LatvianExercise) -> String {
+    LatvianGrader.grade(exercise: exercise, answer: .text("\u{0}")).correctAnswer
 }
 
 /// Ölçümü en iyi turdan alır (zamanlayıcı gürültüsünü eler), turların hepsini rapor eder.
@@ -732,6 +775,150 @@ struct LatvianEngineCheck {
                "üretilen soruların hiçbiri bozuk değil"
                + (broken.isEmpty ? "" : " — \(broken.count) kusur, ilki: \(broken[0])"))
         expect(generated >= 1800, "tarama kapsamı korunuyor (\(generated) soru)")
+
+        print("\n=== Cevabın Türkçesi ve sesi ===")
+
+        // Kelime kimliği → o kelimeyi kullanan cümlelerin Türkçeleri. Cümleye
+        // dayanan tiplerde hangi cümlenin seçildiği tohuma bağlı olduğu için
+        // beklenen değer tek bir dize değil, bu kümenin bir üyesi.
+        var sentenceTrByWordId: [String: Set<String>] = [:]
+        for scene in realPack.scenes {
+            for sentence in scene.sentences {
+                for wordId in sentence.wordIds {
+                    sentenceTrByWordId[wordId, default: []].insert(sentence.tr)
+                }
+            }
+        }
+
+        var glossChecked = 0
+        var glossPerKind: [String: Int] = [:]
+        var nilGlossPerKind: [String: Int] = [:]
+        var glossProblems: [String] = []
+        var latvianEcho: [String] = []
+        var echoChecked = 0
+        var audioOffered = 0
+        var audioPerKind: [String: Int] = [:]
+        var audioProblems: [String] = []
+        var samples: [String: String] = [:]
+
+        for (wordIndex, word) in realWords.enumerated() {
+            let sentenceTrs = sentenceTrByWordId[word.id] ?? []
+            let supported = realFactory.supportedKinds(forWordId: word.id, availableAudio: realAudio)
+            for (kindIndex, kind) in supported.enumerated() {
+                let seed = UInt64(wordIndex &* 13 &+ kindIndex &* 7 &+ 1)
+                guard let exercise = realFactory.makeExercise(
+                    wordId: word.id, kind: kind, seed: seed, availableAudio: realAudio
+                ) else { continue }
+                glossChecked += 1
+
+                let gloss = exercise.answerGlossTr
+                let answerText = correctAnswerText(exercise)
+                switch glossExpectation(kind: kind, word: word, sentenceTrs: sentenceTrs) {
+                case .absent:
+                    if let gloss {
+                        glossProblems.append("\(word.id)/\(kind.rawValue): Türkçe beklenmiyordu, \"\(gloss)\" geldi")
+                    } else {
+                        nilGlossPerKind[kind.rawValue, default: 0] += 1
+                    }
+                case .exactly(let expected):
+                    if gloss == expected {
+                        glossPerKind[kind.rawValue, default: 0] += 1
+                    } else {
+                        glossProblems.append(
+                            "\(word.id)/\(kind.rawValue): \"\(expected)\" bekleniyordu, \"\(gloss ?? "nil")\" geldi"
+                        )
+                    }
+                case .anySentenceTr(let expected):
+                    if let gloss, expected.contains(gloss) {
+                        glossPerKind[kind.rawValue, default: 0] += 1
+                    } else {
+                        glossProblems.append(
+                            "\(word.id)/\(kind.rawValue): cümlenin Türkçesi bekleniyordu, \"\(gloss ?? "nil")\" geldi"
+                        )
+                    }
+                }
+
+                // Şikâyetin kaynağı: cevap Letoncayken altında yine Letonca
+                // yazıyordu. Bu iki tipte Türkçe, cevabın kendisinden farklı olmak
+                // zorunda — eski `explanation` burada 204/204 ve 175/175 kez
+                // cevabın harfi harfine aynısıydı.
+                if kind == .trToLv || kind == .order {
+                    echoChecked += 1
+                    if let gloss, LatvianGrader.normalize(gloss) == LatvianGrader.normalize(answerText) {
+                        latvianEcho.append("\(word.id)/\(kind.rawValue): \"\(gloss)\"")
+                    }
+                }
+
+                if let answerAudioId = exercise.answerAudioId {
+                    audioOffered += 1
+                    audioPerKind[kind.rawValue, default: 0] += 1
+                    if !realAudio.contains(answerAudioId) {
+                        audioProblems.append("\(word.id)/\(kind.rawValue) → \(answerAudioId)")
+                    }
+                }
+
+                if samples[kind.rawValue] == nil {
+                    samples[kind.rawValue] = "\(word.lv) → cevap \"\(answerText)\""
+                        + " | tr \"\(gloss ?? "—")\" | ses \(exercise.answerAudioId ?? "—")"
+                }
+            }
+        }
+
+        for kind in LatvianExerciseKind.allCases {
+            let glossCount = glossPerKind[kind.rawValue] ?? 0
+            let nilCount = nilGlossPerKind[kind.rawValue] ?? 0
+            print("    \(kind.rawValue): Türkçe \(glossCount), Türkçesiz \(nilCount),"
+                  + " ses \(audioPerKind[kind.rawValue] ?? 0)")
+            if let sample = samples[kind.rawValue] { print("      örnek: \(sample)") }
+        }
+
+        expect(glossChecked >= 1800, "cevap metni taraması tüm soruları geziyor (\(glossChecked))")
+        expect(glossProblems.isEmpty,
+               "her sorunun answerGlossTr'si paketteki Türkçenin harfi harfine aynısı"
+               + (glossProblems.isEmpty ? "" : " — \(glossProblems.count) sapma, ilki: \(glossProblems[0])"))
+        expect(echoChecked >= 300,
+               "Letonca yankısı kontrolü tr_to_lv ve order'ın tamamını kapsıyor (\(echoChecked))")
+        expect(latvianEcho.isEmpty,
+               "tr_to_lv ve order'da Türkçe, cevabın Letoncasını tekrarlamıyor"
+               + (latvianEcho.isEmpty ? "" : " — \(latvianEcho.count) yankı, ilki: \(latvianEcho[0])"))
+        expect(audioProblems.isEmpty,
+               "önerilen her cevap sesi inmiş kliplerin arasında"
+               + (audioProblems.isEmpty ? "" : " — \(audioProblems.count) kayıp, ilki: \(audioProblems[0])"))
+        expect(audioOffered > 0, "cevap sesi olan soru var (\(audioOffered))")
+
+        // Türkçesi olması gereken sekiz tipin hiçbiri boş kalmamalı: bir tip hiç
+        // üretilmezse yukarıdaki tarama onu sessizce atlardı.
+        for kind in [LatvianExerciseKind.listenChoose, .iconChoose, .trToLv, .order,
+                     .fillBlank, .caseDrill, .dictation, .speak] {
+            expect((glossPerKind[kind.rawValue] ?? 0) > 0,
+                   "\(kind.rawValue) sorularının Türkçesi var (\(glossPerKind[kind.rawValue] ?? 0))")
+        }
+        for kind in [LatvianExerciseKind.lvToTr, .match] {
+            expect((nilGlossPerKind[kind.rawValue] ?? 0) > 0,
+                   "\(kind.rawValue) sorularında Türkçe bilerek yok (\(nilGlossPerKind[kind.rawValue] ?? 0))")
+        }
+
+        // Ses inmemişken hiçbir düğme çıkmamalı: panel bu alanın varlığına bakıp
+        // düğmeyi koşulsuz çiziyor, dolayısıyla süzgeç motorda olmak zorunda.
+        var silentGenerated = 0
+        var audioWithoutDownloads: [String] = []
+        for (wordIndex, word) in realWords.enumerated() {
+            let supported = realFactory.supportedKinds(forWordId: word.id, availableAudio: [])
+            for (kindIndex, kind) in supported.enumerated() {
+                let seed = UInt64(wordIndex &* 13 &+ kindIndex &* 7 &+ 1)
+                guard let exercise = realFactory.makeExercise(
+                    wordId: word.id, kind: kind, seed: seed, availableAudio: []
+                ) else { continue }
+                silentGenerated += 1
+                if let answerAudioId = exercise.answerAudioId {
+                    audioWithoutDownloads.append("\(word.id)/\(kind.rawValue) → \(answerAudioId)")
+                }
+            }
+        }
+        expect(silentGenerated > 0, "ses inmemişken de soru üretiliyor (\(silentGenerated))")
+        expect(audioWithoutDownloads.isEmpty,
+               "ses inmemişken hiçbir soru cevap sesi önermiyor"
+               + (audioWithoutDownloads.isEmpty ? "" : " — \(audioWithoutDownloads.count) fazla, ilki: \(audioWithoutDownloads[0])"))
 
         print("\n=== Performans bütçeleri ===")
 

@@ -144,7 +144,12 @@ struct LatvianLessonView: View {
             LatvianAnswerPanel(
                 isCorrect: review.result.grade.isCorrect,
                 correctAnswer: review.result.grade.correctAnswer,
-                explanation: review.explanation,
+                glossTr: review.glossTr,
+                answerAudioId: review.answerAudioId,
+                // İkisi de bu ekranda zaten var; panel yukarıdan bir şey
+                // istemiyor, yalnızca elindekini aşağı geçiriyor.
+                audio: audio,
+                feedback: feedback,
                 comboMilestone: review.result.isComboMilestone ? review.result.comboCount : nil,
                 isLastQuestion: review.isFinal,
                 onContinue: advance

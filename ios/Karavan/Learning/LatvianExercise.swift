@@ -106,8 +106,27 @@ struct LatvianExercise: Identifiable, Hashable, Sendable {
     let content: LatvianExerciseContent
     /// Boşluk doldurma ve hal tatbikatında gösterilen, altı çizili cümle.
     var carrier: String?
-    /// Yanlış cevapta gösterilecek Türkçe açıklama.
-    var explanation: String?
+
+    /// **Cevabın** Türkçesi — cevap doğru da olsa yanlış da olsa panelde gösterilir.
+    ///
+    /// Eskiden burada `explanation` adlı tek bir alan vardı ve adı ne taşıdığını
+    /// söylemediği için `trToLv`/`order`'da Letonca cümlenin kendisi yazılmıştı:
+    /// öğrenci cevabı Letonca görüyor, altında yine Letonca okuyor, Türkçesini
+    /// hiç öğrenmiyordu. Ad artık içeriği taahhüt ediyor ve motor kontrolü bunu
+    /// gerçek paket üzerinde harfi harfine doğruluyor.
+    ///
+    /// `nil` olduğu iki yer var ve ikisi de bilerek: `lvToTr`'de cevabın kendisi
+    /// zaten Türkçe, `match`'te dört çiftin Türkçesi zaten cevabın içinde.
+    var answerGlossTr: String?
+
+    /// **Cevabı** seslendiren klip. Sorunun `audioId`'siyle aynı olmak zorunda
+    /// değil: `fillBlank`'te soru sessizdir ama cevap tek bir kelimedir ve o
+    /// kelimenin klibi vardır; `lvToTr`'de soru sessizdir ama okunan Letonca
+    /// cümlenin klibi vardır.
+    ///
+    /// Yalnızca inmiş klipler yazılır (bkz. `LatvianExerciseFactory`), yani
+    /// panel bu alanı gördüğünde düğmeyi koşulsuz çizebilir.
+    var answerAudioId: String?
 
     init(
         id: String,
@@ -117,7 +136,8 @@ struct LatvianExercise: Identifiable, Hashable, Sendable {
         audioId: String? = nil,
         content: LatvianExerciseContent,
         carrier: String? = nil,
-        explanation: String? = nil
+        answerGlossTr: String? = nil,
+        answerAudioId: String? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -126,7 +146,8 @@ struct LatvianExercise: Identifiable, Hashable, Sendable {
         self.audioId = audioId
         self.content = content
         self.carrier = carrier
-        self.explanation = explanation
+        self.answerGlossTr = answerGlossTr
+        self.answerAudioId = answerAudioId
     }
 
     var modality: LatvianModality { kind.modality }

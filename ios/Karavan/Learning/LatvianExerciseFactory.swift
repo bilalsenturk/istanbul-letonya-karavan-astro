@@ -141,7 +141,8 @@ struct LatvianExerciseFactory {
                 prompt: "Duyduğun kelimeyi seç.",
                 audioId: word.audioId,
                 content: .choice(options: options.values, correctIndex: options.correctIndex),
-                explanation: "\(word.lv) — \(word.tr)"
+                answerGlossTr: word.tr,
+                answerAudioId: playable(word.audioId, in: availableAudio)
             )
 
         case .iconChoose:
@@ -150,7 +151,8 @@ struct LatvianExerciseFactory {
                 id: id, kind: kind, targetWordId: wordId,
                 prompt: "\(word.icon ?? "") için doğru kelimeyi seç.",
                 content: .choice(options: options.values, correctIndex: options.correctIndex),
-                explanation: "\(word.lv) — \(word.tr)"
+                answerGlossTr: word.tr,
+                answerAudioId: playable(word.audioId, in: availableAudio)
             )
 
         case .lvToTr:
@@ -161,7 +163,10 @@ struct LatvianExerciseFactory {
                 prompt: "Türkçesini kur.",
                 content: .wordBank(bank: shuffledBank(answer, using: &generator), answer: answer),
                 carrier: sentence.lv,
-                explanation: sentence.tr
+                // Cevabın kendisi zaten Türkçe; altına bir kez daha yazmak
+                // aynı satırı iki kez göstermek olurdu.
+                answerGlossTr: nil,
+                answerAudioId: playable(sentence.audioId, in: availableAudio)
             )
 
         case .trToLv:
@@ -172,7 +177,8 @@ struct LatvianExerciseFactory {
                 prompt: "Letoncasını kur.",
                 content: .wordBank(bank: shuffledBank(answer, using: &generator), answer: answer),
                 carrier: sentence.tr,
-                explanation: sentence.lv
+                answerGlossTr: sentence.tr,
+                answerAudioId: playable(sentence.audioId, in: availableAudio)
             )
 
         case .order:
@@ -183,7 +189,8 @@ struct LatvianExerciseFactory {
                 prompt: "Kelimeleri doğru sıraya diz.",
                 content: .wordBank(bank: shuffledBank(answer, using: &generator), answer: answer),
                 carrier: sentence.tr,
-                explanation: sentence.lv
+                answerGlossTr: sentence.tr,
+                answerAudioId: playable(sentence.audioId, in: availableAudio)
             )
 
         case .fillBlank:
@@ -203,7 +210,10 @@ struct LatvianExerciseFactory {
                 prompt: "Boşluğa gelen kelimeyi seç.",
                 content: .choice(options: options.values, correctIndex: options.correctIndex),
                 carrier: blanked,
-                explanation: sentence.tr
+                answerGlossTr: sentence.tr,
+                // Cevap boşluğa giren **kelime**, cümlenin tamamı değil; okunması
+                // gereken de o kelime.
+                answerAudioId: playable(word.audioId, in: availableAudio)
             )
 
         case .caseDrill:
@@ -219,7 +229,12 @@ struct LatvianExerciseFactory {
                 prompt: "Doğru eki seç.",
                 content: .choice(options: suffixes, correctIndex: correctIndex),
                 carrier: "\(stem)___",
-                explanation: "\(caseForm.form) — \(word.tr)"
+                // Cevap çıplak bir ek ("u"); tek başına ne anlama geldiğini
+                // söylemiyor. Çekimli biçimin tamamı ve Türkçesi birlikte veriliyor.
+                answerGlossTr: "\(caseForm.form) — \(word.tr)",
+                // Klip kelimenin sözlük biçimini okuyor, çekimli biçimi değil:
+                // "kafija" çalıp "kafiju" öğretmek telaffuzu yanlış öğretirdi.
+                answerAudioId: nil
             )
 
         case .dictation:
@@ -228,7 +243,8 @@ struct LatvianExerciseFactory {
                 prompt: "Duyduğunu yaz.",
                 audioId: word.audioId,
                 content: .typing(accepted: [word.lv]),
-                explanation: "\(word.lv) — \(word.tr)"
+                answerGlossTr: word.tr,
+                answerAudioId: playable(word.audioId, in: availableAudio)
             )
 
         case .speak:
@@ -237,7 +253,8 @@ struct LatvianExerciseFactory {
                 prompt: "Dinle ve tekrar et.",
                 audioId: word.audioId,
                 content: .speaking(target: word.lv),
-                explanation: "\(word.lv) — \(word.tr)"
+                answerGlossTr: word.tr,
+                answerAudioId: playable(word.audioId, in: availableAudio)
             )
 
         case .match:
@@ -251,12 +268,30 @@ struct LatvianExerciseFactory {
             return LatvianExercise(
                 id: id, kind: kind, targetWordId: wordId,
                 prompt: "Letonca kelimeleri Türkçeleriyle eşleştir.",
-                content: .matching(pairs: pairs)
+                content: .matching(pairs: pairs),
+                // Dört çiftin Türkçesi zaten cevabın içinde ("lūdzu → lütfen, …");
+                // tek bir klip de dört kelimeyi birden okuyamaz.
+                answerGlossTr: nil,
+                answerAudioId: nil
             )
         }
     }
 
     // MARK: - Yardımcılar
+
+    /// Klip gerçekten indiyse kimliği, inmediyse `nil`.
+    ///
+    /// Cevap panelindeki "Dinle" düğmesi bu alanın varlığına bakıp çiziliyor,
+    /// dolayısıyla süzgeç burada: inmemiş bir klip için düğme çıkarsa öğrenci
+    /// basar ve karşılığında yalnızca bir hata mesajı alır. Soruyu **elemiyor** —
+    /// sesi olmayan bir `fillBlank` hâlâ geçerli bir soru, yalnızca dinlemesiz.
+    ///
+    /// Bilerek `supports(kind:…)` içinde kullanılmıyor: `supportedKinds` yolu
+    /// ölçülen performans bütçesini taşıyor ve bu alanların soru üretilebilirliğe
+    /// hiçbir etkisi yok.
+    private func playable(_ audioId: String, in availableAudio: Set<String>) -> String? {
+        availableAudio.contains(audioId) ? audioId : nil
+    }
 
     private func sentencesUsing(wordId: String) -> [LatvianSentence] {
         sentencesByWordId[wordId] ?? []

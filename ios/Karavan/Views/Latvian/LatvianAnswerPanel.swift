@@ -9,10 +9,32 @@ import SwiftUI
 ///
 /// Panel oturuma bakmıyor; gönderim anında dondurulmuş `LatvianAnswerReview`'ü
 /// çiziyor.
+///
+/// ## Neden doğru cevapta da doğru cevap yazıyor
+///
+/// Panel eskiden yalnızca **yanlış** cevapta metin gösteriyordu; doğru cevap
+/// veren öğrenci hiçbir şey öğrenmeden geçiyordu. Üç şikâyetin üçü de buradan
+/// geliyordu: (1) Letonca sorulan şeyin Türkçesi hiç görünmüyordu, (2) yazarak
+/// verilen cevabın telaffuzu duyulamıyordu, (3) `ludzu` yazıp doğru sayılan
+/// öğrenci `lūdzu`'yu hiç görmüyordu. Üçü de tek bir kararla kapanıyor: cevap
+/// bloğu her zaman çiziliyor.
+///
+/// ## Neden klip kendiliğinden çalmıyor
+///
+/// Panel açılırken `LatvianFeedback.correct()` zaten bir ses ve haptic
+/// tetikliyor; üstüne bir klip bindirmek ikisini de bozardı ve aynı cevap için
+/// iki kez çalmayı engelleyen bir kilit gerektirirdi. Düğme yeterli.
 struct LatvianAnswerPanel: View {
     let isCorrect: Bool
     let correctAnswer: String
-    let explanation: String?
+    /// Doğru cevabın Türkçesi. Cevabın kendisi zaten Türkçeyse (`lvToTr`) ya da
+    /// Türkçeyi içeriyorsa (`match`) `nil` gelir.
+    let glossTr: String?
+    /// Doğru cevabı seslendiren klip; yoksa (ya da inmemişse) `nil` gelir ve
+    /// düğme hiç çizilmez.
+    let answerAudioId: String?
+    @ObservedObject var audio: LatvianAudioStore
+    @ObservedObject var feedback: LatvianFeedback
     /// Kombo eşiği geçildiyse üst üste doğru sayısı.
     ///
     /// Rozet başta üst şeritte yüzüyordu ve orada sorunun ilk kartının üstüne
@@ -33,23 +55,8 @@ struct LatvianAnswerPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
-
-            if !isCorrect, !correctAnswer.isEmpty {
-                Text(correctAnswer)
-                    .font(.system(size: 19, weight: .bold, design: .rounded))
-                    .foregroundStyle(Theme.text)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            if let explanation, !explanation.isEmpty, !isCorrect {
-                Text(explanation)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.dim)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
+            answerBlock
+            listenButton
             continueButton
         }
         .padding(.horizontal, 20)
@@ -76,11 +83,59 @@ struct LatvianAnswerPanel: View {
                     .foregroundStyle(Theme.text)
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(isCorrect ? "Doğru cevap verdin" : "Yanlış. Doğrusu: \(correctAnswer)")
+            // Doğru cevap artık hemen altında kendi öğesi olarak duruyor ve
+            // kendi etiketiyle okunuyor; başlıkta tekrarlamak VoiceOver'da aynı
+            // metni iki kez söyletirdi.
+            .accessibilityLabel(isCorrect ? "Doğru cevap verdin" : "Yanlış cevap")
             .accessibilityAddTraits(.isHeader)
 
             Spacer(minLength: 0)
             comboBadge
+        }
+    }
+
+    /// Doğru cevap ve altında Türkçesi. **Cevabın doğruluğuna bakmıyor**: panelin
+    /// öğrettiği tek şey bu blok.
+    ///
+    /// Yükseklik ölçüsü (375 pt genişlik, 20 pt yan dolgu → 335 pt yazı alanı):
+    /// paketteki en uzun cevap 133 karakterlik bir `match` dizisi ("… → …" dört
+    /// çift), 19 pt yuvarlak kalınla ~5 satır, yani ~115 pt. En uzun `glossTr`
+    /// 45 karakter, 15 pt ile tek satır. Paneldeki en yüksek hâl (başlık + cevap
+    /// + Türkçe + iki düğme + dolgular) ~300 pt; 667 pt'lik ekranda üst şerit
+    /// 66 pt olduğuna göre soru alanına 300 pt'den fazlası kalıyor ve o alan
+    /// zaten kaydırılabilir. Yazı tipleri sabit punto olduğu için Dynamic Type
+    /// bu hesabı büyütmüyor. Bu yüzden satır sınırı **yok**: kırpmak, cevabın bir
+    /// kısmını gizlemek demek olurdu.
+    @ViewBuilder
+    private var answerBlock: some View {
+        if !correctAnswer.isEmpty {
+            Text(correctAnswer)
+                .font(.system(size: 19, weight: .bold, design: .rounded))
+                .foregroundStyle(Theme.text)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityLabel("Doğru cevap: \(correctAnswer)")
+        }
+
+        if let glossTr, !glossTr.isEmpty {
+            Text(glossTr)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Theme.dim)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityLabel("Türkçesi: \(glossTr)")
+        }
+    }
+
+    /// Cevabın telaffuzu. Ders ekranındaki soru düğmesiyle aynı bileşen:
+    /// öğrencinin sorunun üstünde bastığı düğmenin aynısı burada da çıkıyor.
+    @ViewBuilder
+    private var listenButton: some View {
+        if let answerAudioId {
+            LatvianListenButton(
+                audioId: answerAudioId, audio: audio, feedback: feedback,
+                title: "Cevabı dinle"
+            )
         }
     }
 
@@ -140,15 +195,18 @@ struct LatvianAnswerPanel: View {
 }
 
 #Preview("Cevap paneli") {
-    VStack(spacing: 0) {
+    let audio = LatvianAudioStore()
+    let feedback = LatvianFeedback()
+    return VStack(spacing: 0) {
         Spacer()
         LatvianAnswerPanel(
-            isCorrect: true, correctAnswer: "Labdien", explanation: nil,
+            isCorrect: true, correctAnswer: "lūdzu", glossTr: "lütfen",
+            answerAudioId: "lv-ludzu", audio: audio, feedback: feedback,
             comboMilestone: 5, isLastQuestion: false, onContinue: {}
         )
         LatvianAnswerPanel(
-            isCorrect: false, correctAnswer: "ātrā palīdzība",
-            explanation: "ātrā palīdzība — ambulans",
+            isCorrect: false, correctAnswer: "ātrā palīdzība", glossTr: "ambulans",
+            answerAudioId: nil, audio: audio, feedback: feedback,
             comboMilestone: nil, isLastQuestion: true, onContinue: {}
         )
     }

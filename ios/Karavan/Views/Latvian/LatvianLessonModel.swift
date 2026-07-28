@@ -36,7 +36,11 @@ struct LatvianLessonOutcome {
 /// aittir" garantisini tek bir yerde veriyor.
 struct LatvianAnswerReview: Equatable {
     let result: LatvianSubmissionResult
-    let explanation: String?
+    /// Doğru cevabın Türkçesi; cevap doğru da olsa gösteriliyor.
+    let glossTr: String?
+    /// Doğru cevabı seslendiren klip — panelin "Cevabı dinle" düğmesi.
+    /// Soruyu üreten motor yalnızca inmiş klipleri buraya yazıyor.
+    let answerAudioId: String?
     /// Bu cevap dersi bitiriyor mu — panelin düğmesi "Bitir" mi "Devam" mı diyecek.
     let isFinal: Bool
 }
@@ -133,8 +137,13 @@ final class LatvianLessonModel: ObservableObject {
         // Can bittiyse ders başarısız; doğru cevaplanan **son** soru kuyruğu
         // boşaltacak. İkisi de bu cevabın dersi bitirdiği anlamına geliyor.
         let isFinal = session.isFailed || (session.remainingCount == 1 && result.grade.isCorrect)
+        // Soru buradan dışarı sızmıyor: panel yalnızca bu dondurulmuş özeti
+        // görüyor, iki yeni alan da gönderim anında sorudan kopyalanıyor.
         let value = LatvianAnswerReview(
-            result: result, explanation: exercise.explanation, isFinal: isFinal
+            result: result,
+            glossTr: exercise.answerGlossTr,
+            answerAudioId: exercise.answerAudioId,
+            isFinal: isFinal
         )
         review = value
         sync()
