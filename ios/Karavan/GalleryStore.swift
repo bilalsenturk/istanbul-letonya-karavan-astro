@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 // Şehir görsel galerisi. Manifest uzak depodan (site ya da Cloudflare) okunur;
 // görseller ağdan yüklenir (app'e gömülmez) ve URLCache'te kalır.
@@ -19,15 +20,34 @@ final class GalleryStore: ObservableObject {
 
     private var loaded = false
 
+    init() {
+        // İlk yükleme başarısız kaldıysa (çevrimdışı açılış) app öne gelince
+        // tekrar dene — loaded hâlâ false olduğu sürece.
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.willEnterForegroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, !self.loaded else { return }
+                await self.load()
+            }
+        }
+    }
+
     /// Gün hedefinden şehir anahtarına ("Bükreş Güney" → "bucharest").
     private static let cityKeys: [(match: String, key: String)] = [
-        ("İstanbul", "istanbul"), ("Sofya", "sofia"), ("Bükreş", "bucharest"),
+        ("İstanbul", "istanbul"), ("Sofya", "sofia"), ("Novi Sad", "novi-sad"),
+        ("Krakow", "krakow"), ("Varşova", "warsaw"), ("Bükreş", "bucharest"),
         ("Deva", "deva"), ("Budapeşte", "budapest"), ("Katowice", "katowice"),
         ("Suwałki", "suwalki"), ("Riga", "riga"),
     ]
 
     static func cityKey(for name: String) -> String? {
-        cityKeys.first { name.contains($0.match) || $0.match.contains(name) }?.key
+        // Boş girdi her metnin "içinde" sayılır; korumasız bırakınca ilk
+        // şehre (İstanbul) eşleşirdi.
+        guard !name.isEmpty else { return nil }
+        return cityKeys.first { name.contains($0.match) || $0.match.contains(name) }?.key
     }
 
     func load() async {

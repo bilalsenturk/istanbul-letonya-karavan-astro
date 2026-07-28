@@ -14,8 +14,10 @@ pnpm-debug.log*
 
 
 # environment variables
+# NOT: dar kalıp yetmez — .env.local canlı API anahtarları taşıyor.
 .env
-.env.production
+.env.*
+!.env.example
 
 # macOS-specific files
 .DS_Store

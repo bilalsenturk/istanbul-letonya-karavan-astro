@@ -12,6 +12,7 @@ struct ScannerView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var recognized: [String] = []
+    @State private var scanFailed = false
 
     private var supported: Bool {
         DataScannerViewController.isSupported && DataScannerViewController.isAvailable
@@ -23,11 +24,26 @@ struct ScannerView: View {
                 Theme.bg.ignoresSafeArea()
                 if supported {
                     VStack(spacing: 0) {
-                        DataScannerRepresentable { texts in
-                            recognized = texts
+                        if scanFailed {
+                            // startScanning fırlattı (izin reddi vb.) — ölü panelde bırakma.
+                            VStack(spacing: 12) {
+                                Image(systemName: "camera.fill")
+                                    .font(.system(size: 40))
+                                    .foregroundStyle(Theme.muted)
+                                Text("Kamera başlatılamadı.\nAyarlar'dan kamera iznini açıp tekrar dene.")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(Theme.dim)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .padding(24)
+                        } else {
+                            DataScannerRepresentable(onFailure: { scanFailed = true }) { texts in
+                                recognized = texts
+                            }
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .padding(12)
                         }
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        .padding(12)
                         bottomPanel
                     }
                 } else {
@@ -67,6 +83,8 @@ struct ScannerView: View {
                         HStack(spacing: 8) {
                             ForEach(amounts, id: \.self) { value in
                                 Button {
+                                    // Önce tutarı ilet, sonra kapat — üst view
+                                    // sonraki sheet'i kapanış bitince açar (onDismiss).
                                     onAmount?(value, Self.fuelHint(in: recognized) ? "Yakıt (taramadan)" : "Taramadan")
                                     dismiss()
                                 } label: {
@@ -112,29 +130,55 @@ struct ScannerView: View {
     // MARK: - Ayrıştırma
 
     /// Metinden makul harcama tutarlarını çıkar (1–99.999, opsiyonel 2 hane kuruş).
+    /// Sınırlar: sayının öncesinde/sonrasında rakam ya da ., olamaz — "12.07.2026"
+    /// gibi tarihlerden "12.07" ve "2026" tutarı uydurulmasın.
+    /// Binlik ayracı: "1.234,56" (TR) / "1,234.56" — son ayraç 1–2 haneliyse
+    /// ondalık, tek ayraç + 3 hane ise binlik sayılır.
     static func parseAmounts(from texts: [String]) -> [Double] {
         let joined = texts.joined(separator: " ")
-        guard let regex = try? NSRegularExpression(pattern: #"(\d{1,5}(?:[.,]\d{1,2})?)"#) else { return [] }
+        guard let regex = try? NSRegularExpression(
+            pattern: #"(?<![\d.,])\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{1,2})?(?![\d.,])|(?<![\d.,])\d{1,5}(?:[.,]\d{1,2})?(?![\d.,])"#
+        ) else { return [] }
         let range = NSRange(joined.startIndex..., in: joined)
         var values = Set<Double>()
         for match in regex.matches(in: joined, range: range) {
-            guard let r = Range(match.range(at: 1), in: joined) else { continue }
-            let normalized = joined[r].replacingOccurrences(of: ",", with: ".")
-            if let v = Double(normalized), v >= 1, v < 100_000 { values.insert(v) }
+            guard let r = Range(match.range, in: joined) else { continue }
+            let raw = String(joined[r])
+            guard let v = parseNumber(raw), v >= 1, v < 100_000 else { continue }
+            // Fişteki tarih parçası gibi duran çıplak yıllar tutar değildir.
+            if raw.allSatisfy(\.isNumber), (1900 ... 2100).contains(Int(v)) { continue }
+            values.insert(v)
         }
         return values.sorted(by: >).prefix(6).map { $0 }
     }
 
+    /// "1.234,56" → 1234.56 · "1,234.56" → 1234.56 · "1.234" → 1234 (binlik) · "45,50" → 45.5
+    private static func parseNumber(_ raw: String) -> Double? {
+        let seps = raw.indices.filter { raw[$0] == "." || raw[$0] == "," }
+        guard let last = seps.last else { return Double(raw) }
+        let decimals = raw.distance(from: raw.index(after: last), to: raw.endIndex)
+        if seps.count == 1, decimals == 3 {
+            return Double(raw.filter(\.isNumber))   // tek ayraç + 3 hane = binlik
+        }
+        guard decimals >= 1, decimals <= 2 else { return nil }
+        let intPart = raw[..<last].filter(\.isNumber)
+        let decPart = raw[raw.index(after: last)...]
+        return Double("\(intPart).\(decPart)")
+    }
+
     static func fuelHint(in texts: [String]) -> Bool {
         let joined = texts.joined(separator: " ").lowercased()
-        return ["diesel", "dizel", "motorin", "benzin", "petrol", "lt", "litre", "l/100"]
-            .contains { joined.contains($0) }
+        if ["diesel", "dizel", "motorin", "benzin", "petrol", "l/100"].contains(where: { joined.contains($0) }) { return true }
+        // "lt/litre/liter" yalnız ayrık kelimeyken ipucu — kültür/filtre/bolt sayılmaz.
+        guard let re = try? NSRegularExpression(pattern: #"\b(?:lt|litre|liter)\b"#) else { return false }
+        return re.firstMatch(in: joined, range: NSRange(joined.startIndex..., in: joined)) != nil
     }
 }
 
 // MARK: - VisionKit sarmalayıcı
 
 private struct DataScannerRepresentable: UIViewControllerRepresentable {
+    let onFailure: () -> Void
     let onTexts: ([String]) -> Void
 
     func makeUIViewController(context: Context) -> DataScannerViewController {
@@ -149,13 +193,21 @@ private struct DataScannerRepresentable: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ vc: DataScannerViewController, context: Context) {
-        if !vc.isScanning { try? vc.startScanning() }
+        guard !vc.isScanning, !context.coordinator.failed else { return }
+        do {
+            try vc.startScanning()
+        } catch {
+            // İzin reddi / donanım hatası: yutma, panele bildir.
+            context.coordinator.failed = true
+            onFailure()
+        }
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(onTexts: onTexts) }
 
     final class Coordinator: NSObject, DataScannerViewControllerDelegate {
         let onTexts: ([String]) -> Void
+        var failed = false
         init(onTexts: @escaping ([String]) -> Void) { self.onTexts = onTexts }
 
         private func report(_ items: [RecognizedItem]) {

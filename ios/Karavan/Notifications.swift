@@ -10,10 +10,23 @@ final class NotificationManager: NSObject, ObservableObject {
 
     @Published var authorized = false
     private let center = UNUserNotificationCenter.current()
+    private var lastDeparture: Date?   // saat dilimi değişince hatırlatmaları yeniden kurmak için
 
     override init() {
         super.init()
         center.delegate = self
+        NotificationCenter.default.addObserver(self, selector: #selector(timeZoneChanged),
+                                               name: NSNotification.Name.NSSystemTimeZoneDidChange, object: nil)
+        Task { await self.refreshAuthorization() }
+    }
+
+    /// Saat dilimi geçişinde kalkış hatırlatmalarını yeni yerel takvimle yeniden kur.
+    @objc private nonisolated func timeZoneChanged() {
+        Task { @MainActor in
+            if let departure = self.lastDeparture {
+                self.scheduleDepartureReminders(departure: departure)
+            }
+        }
     }
 
     func requestAuthorization() async {
@@ -21,16 +34,33 @@ final class NotificationManager: NSObject, ObservableObject {
         authorized = granted
     }
 
-    func notify(title: String, body: String, id: String = UUID().uuidString) {
+    /// İzin durumunu sistemden tazeler — kullanıcı Ayarlar'dan kapatabilir;
+    /// `authorized` yalnızca istek anında güncellenirse bayat kalır.
+    func refreshAuthorization() async {
+        let settings = await center.notificationSettings()
+        authorized = settings.authorizationStatus == .authorized
+    }
+
+    /// Gönderim sonucu `completion` ile bildirilir (hata = planlama başarısız).
+    /// Bütçe (NotificationBudget) harcayan çağıranlar hata durumunda damgayı
+    /// release ile iade edebilsin diye.
+    func notify(title: String, body: String, id: String = UUID().uuidString,
+                completion: (@Sendable (Error?) -> Void)? = nil) {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
-        center.add(UNNotificationRequest(identifier: id, content: content, trigger: nil))
+        let request = UNNotificationRequest(identifier: id, content: content, trigger: nil)
+        if let completion {
+            center.add(request, withCompletionHandler: completion)
+        } else {
+            center.add(request)
+        }
     }
 
     /// Kalkışa göre hatırlatmalar. Kalkış değişince eskiler İPTAL edilip yeniden kurulur.
     func scheduleDepartureReminders(departure: Date) {
+        lastDeparture = departure
         let ids = (0 ..< 3).map { "departure-\($0)" }
         center.removePendingNotificationRequests(withIdentifiers: ids)
 
@@ -130,9 +160,47 @@ enum BackgroundWeather {
     @MainActor
     static func run() async {
         schedule() // bir sonrakini planla
+        await checkWeather()
+    }
+
+    /// SLOC/geofence uyanışından çağrılır (LocationManager): son kontrolün
+    /// üzerinden `maxAge` geçmediyse atla — sürüşte konum güncellemesi çok
+    /// sık gelir, ağ isteği kontrol başına değil eşik başına atılmalı.
+    @MainActor
+    static func refreshIfStale(maxAge: TimeInterval = 45 * 60) async {
+        let key = "bgWeatherLastCheck"
+        let last = UserDefaults.standard.double(forKey: key)
+        guard Date().timeIntervalSince1970 - last > maxAge else { return }
+        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: key)
+        await checkWeather()
+    }
+
+    @MainActor
+    private static func checkWeather() async {
         guard let stops = TripStore.bundledTrip()?.stops else { return }
         let weather = WeatherService()
         weather.notifier = NotificationManager.shared
-        await weather.refresh(stops: stops)
+        // Ön plan WeatherService'i ile aynı "weatherSnapshot" üzerinde
+        // oku-değiştir-yaz yapılıyor — kapıdan geçmezsek eşzamanlı iki
+        // yenilemede eski veri yeniyi ezer, yağmur başla/dur bildirimi
+        // yutulur ya da çift atılır.
+        await WeatherRefreshGate.run {
+            await weather.refresh(stops: stops)
+        }
+    }
+}
+
+/// Hava yenilemelerini (ön plan + arka plan) tek sıraya bağlar.
+/// WeatherService.refresh çağıran herkes bu kapıdan geçmeli; aksi halde
+/// iki eşzamanlı refresh aynı UserDefaults anlık görüntüsünü yarıştırır.
+@MainActor
+enum WeatherRefreshGate {
+    private static var current: Task<Void, Never>?
+
+    static func run(_ work: @MainActor @escaping () async -> Void) async {
+        await current?.value
+        let task = Task { @MainActor in await work() }
+        current = task
+        await task.value
     }
 }

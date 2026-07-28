@@ -27,20 +27,28 @@ enum WTheme {
 struct CountdownEntry: TimelineEntry {
     let date: Date
     let departure: Date?
+    let activeRouteStop: String?
 }
 
 struct CountdownProvider: TimelineProvider {
+    private func current() -> CountdownEntry {
+        CountdownEntry(
+            date: .now,
+            departure: SharedSnapshot.departureDate,
+            activeRouteStop: SharedSnapshot.defaults?.string(forKey: SharedSnapshot.Key.activeRouteStop)
+        )
+    }
+
     func placeholder(in context: Context) -> CountdownEntry {
-        CountdownEntry(date: .now, departure: .now.addingTimeInterval(14 * 86400))
+        CountdownEntry(date: .now, departure: .now.addingTimeInterval(14 * 86400), activeRouteStop: nil)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (CountdownEntry) -> Void) {
-        completion(CountdownEntry(date: .now, departure: SharedSnapshot.departureDate))
+        completion(current())
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<CountdownEntry>) -> Void) {
-        let entry = CountdownEntry(date: .now, departure: SharedSnapshot.departureDate)
-        completion(Timeline(entries: [entry], policy: .after(.now.addingTimeInterval(3600))))
+        completion(Timeline(entries: [current()], policy: .after(.now.addingTimeInterval(15 * 60))))
     }
 }
 
@@ -48,14 +56,20 @@ struct CountdownWidgetView: View {
     var entry: CountdownEntry
     @Environment(\.widgetFamily) private var family
 
+    private var hasStartedRoute: Bool {
+        entry.activeRouteStop?.isEmpty == false
+    }
+
     var body: some View {
         Group {
             switch family {
             case .accessoryInline:
                 if let d = entry.departure, d > .now {
                     Label { Text("Riga'ya çıkış: \(d, style: .relative)") } icon: { Image(systemName: "car.side.fill") }
+                } else if hasStartedRoute {
+                    Label(entry.activeRouteStop.map { "Rota aktif: \($0)" } ?? "Rota aktif", systemImage: "car.side.fill")
                 } else {
-                    Label("Kuzey yolda", systemImage: "car.side.fill")
+                    Label("Kuzey · rota bekliyor", systemImage: "map.fill")
                 }
             case .accessoryRectangular:
                 VStack(alignment: .leading, spacing: 2) {
@@ -63,8 +77,12 @@ struct CountdownWidgetView: View {
                     if let d = entry.departure, d > .now {
                         Text(d, style: .relative).font(.headline).bold()
                         Text("yola çıkmaya kalan").font(.caption2).opacity(0.7)
+                    } else if hasStartedRoute {
+                        Text("Rota aktif").font(.headline).bold()
+                        Text(entry.activeRouteStop ?? "seçili durak").font(.caption2).opacity(0.7)
                     } else {
-                        Text("Yoldayız!").font(.headline).bold()
+                        Text("Rota bekliyor").font(.headline).bold()
+                        Text("Rotalar'dan başlat").font(.caption2).opacity(0.7)
                     }
                 }
             default:
@@ -84,11 +102,18 @@ struct CountdownWidgetView: View {
                         Text("yola çıkmaya kalan")
                             .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(WTheme.muted)
-                    } else {
-                        Text("Yoldayız!")
+                    } else if hasStartedRoute {
+                        Text("Rota aktif")
                             .font(.system(size: 22, weight: .heavy, design: .rounded))
                             .foregroundStyle(WTheme.text)
-                        Text("İstanbul → Riga")
+                        Text(entry.activeRouteStop ?? "Seçili durak")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(WTheme.muted)
+                    } else {
+                        Text("Rota bekliyor")
+                            .font(.system(size: 22, weight: .heavy, design: .rounded))
+                            .foregroundStyle(WTheme.text)
+                        Text("Rotalar'dan başlat")
                             .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(WTheme.muted)
                     }
@@ -123,6 +148,7 @@ struct StatusEntry: TimelineEntry {
     let budgetMax: Double?
     let progress: Double
     let city: String?
+    let navFresh: Bool   // nav verisi 1 saatten eskiyse false → "eski" işareti
 }
 
 struct StatusProvider: TimelineProvider {
@@ -140,13 +166,14 @@ struct StatusProvider: TimelineProvider {
             remainingKm: km, remainingMin: min,
             spentEur: spent, budgetMax: budget,
             progress: prog,
-            city: d?.string(forKey: SharedSnapshot.Key.currentCity)
+            city: d?.string(forKey: SharedSnapshot.Key.currentCity),
+            navFresh: SharedSnapshot.isNavFresh
         )
     }
 
     func placeholder(in context: Context) -> StatusEntry {
         StatusEntry(date: .now, nextStop: "Sofya", nextCode: "BG", remainingKm: 480, remainingMin: 340,
-                    spentEur: 625, budgetMax: 1795, progress: 0.35, city: "İstanbul")
+                    spentEur: 625, budgetMax: 1795, progress: 0.35, city: "İstanbul", navFresh: true)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (StatusEntry) -> Void) { completion(current()) }
@@ -170,7 +197,8 @@ struct TripStatusWidgetView: View {
             switch family {
             case .accessoryInline:
                 if let s = entry.nextStop, let km = entry.remainingKm {
-                    Text("→ \(s) · \(km) km")
+                    // Eski nav verisini güncel gibi gösterme (intent'teki uyarıyla aynı).
+                    Text("→ \(s) · \(km) km" + (entry.navFresh ? "" : " · eski"))
                 } else {
                     Text("Kuzey · veri bekleniyor")
                 }
@@ -178,7 +206,11 @@ struct TripStatusWidgetView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("SIRADAKİ · \(entry.nextStop?.uppercased() ?? "—")").font(.caption2).opacity(0.7)
                     Text(entry.remainingKm.map { "\($0) km" } ?? "—").font(.headline).bold()
-                    if let t = timeText { Text(t).font(.caption2).opacity(0.7) }
+                    if let t = timeText {
+                        Text(entry.navFresh ? t : "\(t) · eski").font(.caption2).opacity(0.7)
+                    } else if !entry.navFresh {
+                        Text("eski veri").font(.caption2).opacity(0.7)
+                    }
                 }
             default:
                 VStack(alignment: .leading, spacing: 7) {
@@ -196,7 +228,7 @@ struct TripStatusWidgetView: View {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(entry.remainingKm.map { "\($0)" } ?? "—")
                             .font(.system(size: 30, weight: .heavy, design: .rounded))
-                        Text("km" + (timeText.map { " · \($0)" } ?? ""))
+                        Text("km" + (timeText.map { " · \($0)" } ?? "") + (entry.navFresh ? "" : " · eski"))
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(WTheme.muted)
                     }

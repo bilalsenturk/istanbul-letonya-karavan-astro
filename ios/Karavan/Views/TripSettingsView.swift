@@ -5,61 +5,20 @@ import SwiftUI
 struct TripSettingsView: View {
     @EnvironmentObject var store: TripStore
     @EnvironmentObject var plan: TripPlanStore
+    @EnvironmentObject var role: RoleStore
     @Environment(\.dismiss) private var dismiss
 
     @State private var departure = Date()
+    /// Sheet açılırken depodan okunan kalkış — Kaydet yalnızca BUNDAN
+    /// farklıysa yazar (yoksa aynı değer hayalet "Düzenlendi" üretirdi).
+    @State private var loadedDeparture: Date?
+    @State private var departureDirty = false
     @State private var showResetConfirm = false
 
+    /// Kalkış tarihi hem plan sahibine hem SÜRÜCÜYE ait: ikisi de şart.
+    private var canEditDeparture: Bool { plan.isOwner && role.isDriver }
+
     private var days: [EffectiveDay] { TripPlanner.days(trip: store.trip, edits: previewEdits) }
-
-    // Plan sahipliği: yalnızca BİR cihaz düzenlemeleri yayınlar, diğerleri onu izler.
-    @ViewBuilder private var planOwnerSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            MonoLabel(text: "Cihazlar arası plan", color: Theme.c2)
-            VStack(alignment: .leading, spacing: 10) {
-                Toggle(isOn: $plan.isOwner) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Planı bu cihaz yönetiyor")
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                            .foregroundStyle(Theme.text)
-                        Text(plan.isOwner
-                             ? "Değişikliklerin diğer telefonlara gider."
-                             : "Bu cihaz planı yalnızca okur; sahip cihaz ne derse o.")
-                            .font(.system(size: 12))
-                            .foregroundStyle(Theme.muted)
-                    }
-                }
-                .tint(Theme.c1)
-
-                if !plan.isOwner {
-                    HStack(spacing: 7) {
-                        Image(systemName: plan.syncing ? "arrow.triangle.2.circlepath" : "checkmark.circle.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(plan.syncing ? Theme.muted : Theme.ok)
-                        Text(syncText)
-                            .font(.system(size: 11.5))
-                            .foregroundStyle(Theme.muted)
-                        Spacer()
-                        Button("Şimdi güncelle") { Task { await plan.syncFromWeb() } }
-                            .font(.system(size: 11.5, weight: .bold))
-                            .tint(Theme.c1)
-                    }
-                }
-            }
-            .padding(13)
-            .background(Theme.panel, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Theme.line, lineWidth: 1))
-        }
-    }
-
-    private var syncText: String {
-        if plan.syncing { return "Güncelleniyor…" }
-        guard let t = plan.lastSyncedAt else { return "Henüz güncellenmedi" }
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm"
-        return "Son güncelleme \(f.string(from: t))"
-    }
 
     /// Seçilen tarihle canlı önizleme (kaydetmeden).
     private var previewEdits: TripEdits {
@@ -74,17 +33,27 @@ struct TripSettingsView: View {
                 Theme.bg.ignoresSafeArea()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
-                        planOwnerSection
-
                         VStack(alignment: .leading, spacing: 10) {
                             MonoLabel(text: "Kalkış", color: Theme.c1)
                             DatePicker("Kalkış tarihi ve saati", selection: $departure)
                                 .datePickerStyle(.graphical)
                                 .tint(Theme.c2)
-                                .disabled(!plan.isOwner)
-                                .opacity(plan.isOwner ? 1 : 0.45)
+                                .disabled(!canEditDeparture)
+                                .opacity(canEditDeparture ? 1 : 0.45)
                                 .padding(10)
                                 .background(Theme.panel, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .onChange(of: departure) { _, newValue in
+                                    if let loadedDeparture, newValue != loadedDeparture {
+                                        departureDirty = true
+                                    }
+                                }
+                            if !canEditDeparture {
+                                Text(plan.isOwner
+                                     ? "Kalkış tarihini yalnızca sürücü değiştirir."
+                                     : "Kalkış tarihini plan sahibi cihazın sürücüsü değiştirir.")
+                                    .font(.system(size: 11.5))
+                                    .foregroundStyle(Theme.muted)
+                            }
                         }
 
                         VStack(alignment: .leading, spacing: 10) {
@@ -126,7 +95,8 @@ struct TripSettingsView: View {
                         }
                         .card()
 
-                        if plan.hasEdits, plan.isOwner {
+                        // Sıfırlama kalkış tarihini de siler → sürücü + sahip şartı.
+                        if plan.hasEdits, canEditDeparture {
                             Button(role: .destructive) { showResetConfirm = true } label: {
                                 Label("Tüm düzenlemeleri sıfırla (\(plan.editedDayCount) gün)",
                                       systemImage: "arrow.uturn.backward")
@@ -155,17 +125,26 @@ struct TripSettingsView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Kaydet") {
-                        plan.setDeparture(departure)
+                        // Yalnızca değer gerçekten değiştiyse yaz — aynı değeri
+                        // yazmak hayalet "Düzenlendi" + gereksiz web yayınıydı.
+                        if departureDirty, let loaded = loadedDeparture, departure != loaded {
+                            plan.setDeparture(departure)
+                        }
                         dismiss()
                     }
                     .font(.system(size: 16, weight: .bold)).tint(Theme.c2)
-                    .disabled(!plan.isOwner)
+                    // Yolculuk yüklenmeden kalkış Date() tohumlanırdı; Kaydet
+                    // tüm takvimi bugüne çökerdi → yüklenene kadar kilitli.
+                    .disabled(!canEditDeparture || store.trip == nil)
                 }
             }
             .confirmationDialog("Tüm düzenlemeler silinsin mi?", isPresented: $showResetConfirm, titleVisibility: .visible) {
                 Button("Sıfırla", role: .destructive) {
                     plan.resetAll()
-                    departure = plan.departure(store.trip)
+                    let d = plan.departure(store.trip)
+                    departure = d
+                    loadedDeparture = d
+                    departureDirty = false
                 }
                 Button("Vazgeç", role: .cancel) {}
             } message: {
@@ -173,6 +152,23 @@ struct TripSettingsView: View {
             }
         }
         .preferredColorScheme(.dark)
-        .onAppear { departure = plan.departure(store.trip) }
+        .onAppear(perform: seedFromStore)
+        // Sheet yolculuktan önce açıldıysa veri gelince tohumla.
+        .onChange(of: store.trip != nil) { _, _ in seedFromStore() }
+        .onChange(of: plan.edits.departureAt) { _, _ in
+            guard !departureDirty else { return }
+            loadedDeparture = nil
+            seedFromStore()
+        }
+    }
+
+    /// Formu depodaki gerçek kalkışla doldur — yalnızca yolculuk YÜKLÜYKEN
+    /// (yoksa Date() tohumlanır ve Kaydet tüm takvimi bugüne çökerdi).
+    private func seedFromStore() {
+        guard store.trip != nil, loadedDeparture == nil else { return }
+        let d = plan.departure(store.trip)
+        departure = d
+        loadedDeparture = d
+        departureDirty = false
     }
 }

@@ -1,5 +1,10 @@
+import AVFoundation
 import CoreLocation
+import Speech
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 #if canImport(JournalingSuggestions)
 import JournalingSuggestions
 #endif
@@ -19,8 +24,25 @@ struct JournalComposeView: View {
     @State private var showPhotoPicker = false
     @State private var showCamera = false
     @State private var textBeforeDictation = ""
+    /// Dikteyle metne en son yazılan kısmi sonuç. Dikte sürerken kullanıcının
+    /// elle yaptığı düzenlemeleri bir sonraki kısmi sonuçtan ayırt etmek için
+    /// tutulur (bkz. onChange(of: text)).
+    @State private var lastTranscript = ""
+    /// Mikrofon/konuşma izni reddedildi ya da dikte başlatılamadı — sessiz
+    /// kalmak düğmeyi ölü gösterir, kullanıcıya söylenir.
+    @State private var speechDenied = false
+    /// "Kaydet" çift dokunuş koruması: sheet kapanana kadar ikinci bir
+    /// dokunuş aynı kaydı iki kez eklemesin.
+    @State private var saved = false
+    @FocusState private var editorFocused: Bool
 
     private let moods = ["keyifli", "yorgun", "heyecanlı", "sakin", "sinirli"]
+    private let starterPrompts = [
+        "Bugün aklımda kalan şey:",
+        "Leyla için not:",
+        "Yoldaki en iyi an:",
+        "Kampa vardığımızda:"
+    ]
 
     init(prefillText: String = "") {
         _text = State(initialValue: prefillText)
@@ -32,9 +54,15 @@ struct JournalComposeView: View {
                 Theme.bg.ignoresSafeArea()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        contextRow
+                        composeHeader
+                        promptRow
                         editor
                         dictateButton
+                        if speechDenied {
+                            Text("Sesli yazma başlatılamadı — mikrofon/konuşma iznini Ayarlar'dan açabilirsin.")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Theme.bad)
+                        }
                         moodRow
                         photoRow
                         suggestionsRow
@@ -52,7 +80,7 @@ struct JournalComposeView: View {
                     Button("Kaydet") { save() }
                         .font(.system(size: 16, weight: .bold))
                         .tint(Theme.c2)
-                        .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(saved || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
             .sheet(isPresented: $showPhotoPicker) {
@@ -65,14 +93,56 @@ struct JournalComposeView: View {
         }
         .preferredColorScheme(.dark)
         .onChange(of: speech.transcript) { _, new in
-            if !new.isEmpty {
-                // Dikte sırasında tanıma sonuçları güncellenirken, mevcut metne append et.
-                // Metin boşsa tanımayı doğrudan yaz, doluysa araya boşluk girsin.
-                if textBeforeDictation.isEmpty {
-                    text = new
-                } else {
-                    text = textBeforeDictation + " " + new
-                }
+            // Dikte BİTTİKTEN sonra gelebilecek gecikmiş bir sonuç,
+            // kullanıcının az önce elle yaptığı düzenlemeleri ezer — yalnızca
+            // kayıt sürerken uygula (SpeechRecorder tarafı da aynı kontrolü
+            // yapar; burası ikinci güvence).
+            guard speech.recording, !new.isEmpty else { return }
+            // Dikte sırasında tanıma sonuçları güncellenirken, mevcut metne append et.
+            // Metin boşsa tanımayı doğrudan yaz, doluysa araya boşluk girsin.
+            if textBeforeDictation.isEmpty {
+                text = new
+            } else {
+                text = textBeforeDictation + " " + new
+            }
+            lastTranscript = new
+        }
+        .onChange(of: text) { _, newValue in
+            // Dikte SÜRERKEN kullanıcı elle de yazabilir. Eskiden bir sonraki
+            // kısmi tanıma sonucu metni `textBeforeDictation + transcript`
+            // olarak baştan kurduğu için elle yazılanlar sessizce siliniyordu.
+            // Elle düzenleme algılanınca (metin, bizim son çıktımızdan
+            // farklıysa) dikte kısmını çıkarıp kalanı yeni taban yap — böylece
+            // kullanıcının yazdıkları bir sonraki kısmi sonuçta korunur.
+            //
+            // lastTranscript BOŞKEN de (dikte başladı, ilk kısmi sonuç henüz
+            // gelmedi) taban takip edilmeli: eskiden guard boş transcript'i
+            // reddettiği için bu aralıkta yazılanlar ilk kısmi sonuçta
+            // kayboluyordu.
+            guard speech.recording else { return }
+            let rendered = lastTranscript.isEmpty
+                ? textBeforeDictation
+                : (textBeforeDictation.isEmpty
+                    ? lastTranscript
+                    : textBeforeDictation + " " + lastTranscript)
+            guard newValue != rendered else { return }
+            // Sondan GERİYE ara: dikte edilen ifade kullanıcının kendi
+            // metninde de geçiyorsa ilk eşleşme (range(of:)) yanlışlıkla
+            // kullanıcının kendi kelimelerini silerdi; dikte kısmı her zaman
+            // SONA eklendiği için doğru eşleşme sondakidir.
+            if !lastTranscript.isEmpty,
+               let range = newValue.range(of: lastTranscript, options: .backwards) {
+                // Dikte kısmı hâlâ metinde — onu çıkar, kalan (kullanıcının
+                // elle yazdıkları) yeni taban olsun.
+                var base = newValue
+                base.removeSubrange(range)
+                textBeforeDictation = base.trimmingCharacters(in: .whitespaces)
+            } else {
+                // Kullanıcı dikte edilen kısmı silmiş/değiştirmiş ya da ilk
+                // kısmi sonuçtan önce elle yazmış — metnin tamamını taban yap
+                // ki yazdıkları bir sonraki kısmi sonuçta geri alınmasın
+                // (yeni kısmi sonuç yine sona eklenir).
+                textBeforeDictation = newValue
             }
         }
         .onDisappear {
@@ -83,28 +153,96 @@ struct JournalComposeView: View {
 
     // MARK: - Parçalar
 
-    private var contextRow: some View {
-        HStack(spacing: 8) {
-            if let city = nav.currentCity {
-                tag("mappin.and.ellipse", city)
+    private var composeHeader: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 5) {
+                    MonoLabel(text: "Yol günlüğü", color: Theme.c2)
+                    Text(Date.now.formatted(.dateTime.day().month(.wide).hour().minute()))
+                        .font(.system(size: 24, weight: .heavy, design: .rounded))
+                        .foregroundStyle(Theme.text)
+                }
+                Spacer()
+                Image(systemName: "square.and.pencil")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(Theme.c2)
+                    .frame(width: 38, height: 38)
+                    .background(Theme.c2.opacity(0.13), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
-            if let next = nav.nextStop, let km = nav.remainingKm {
-                tag("arrow.triangle.turn.up.right.circle", "\(next.name) \(km) km")
+
+            HStack(spacing: 8) {
+                if let city = nav.currentCity {
+                    tag("mappin.and.ellipse", city)
+                }
+                if let next = nav.nextStop {
+                    tag("arrow.triangle.turn.up.right.circle", next.name)
+                }
+                Spacer(minLength: 0)
             }
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(14)
+        .background(Theme.panel, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
+    }
+
+    private var promptRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            MonoLabel(text: "Başlangıç", color: Theme.c4)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 148), spacing: 8)], spacing: 8) {
+                ForEach(starterPrompts, id: \.self) { prompt in
+                    Button { insertPrompt(prompt) } label: {
+                        Text(prompt)
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Theme.text)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.78)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(Theme.panel, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
     }
 
     private var editor: some View {
-        TextEditor(text: $text)
-            .scrollContentBackground(.hidden)
-            .frame(minHeight: 180)
-            .font(.system(size: 16))
-            .foregroundStyle(Theme.text)
-            .padding(10)
-            .background(Theme.panel, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Theme.line, lineWidth: 1))
+        VStack(alignment: .leading, spacing: 10) {
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: $text)
+                    .focused($editorFocused)
+                    .scrollContentBackground(.hidden)
+                    .frame(minHeight: 240)
+                    .font(.system(size: 17, weight: .regular, design: .rounded))
+                    .foregroundStyle(Theme.text)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+
+                if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("Bugün yolda ne oldu?")
+                        .font(.system(size: 17, weight: .medium, design: .rounded))
+                        .foregroundStyle(Theme.muted.opacity(0.78))
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 10)
+                        .allowsHitTesting(false)
+                }
+            }
+
+            HStack {
+                Text("\(text.trimmingCharacters(in: .whitespacesAndNewlines).count) karakter")
+                Spacer()
+                Text(speech.recording ? "Dikte açık" : "Yazı kaydı")
+            }
+            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+            .foregroundStyle(Theme.dim)
+        }
+        .padding(12)
+        .background(Theme.panel, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .strokeBorder(editorFocused ? Theme.c2.opacity(0.75) : Theme.line, lineWidth: 1))
     }
 
     private var dictateButton: some View {
@@ -112,15 +250,13 @@ struct JournalComposeView: View {
             if speech.recording {
                 speech.stop()
             } else {
-                // Dikte başlamadan önce mevcut metni hatırla — tanıma sonucunu üzerine yazacağız.
-                textBeforeDictation = text
-                try? speech.start()
+                startDictation()
             }
         } label: {
             HStack(spacing: 9) {
                 Image(systemName: speech.recording ? "stop.circle.fill" : "mic.fill")
                     .font(.system(size: 18, weight: .bold))
-                Text(speech.recording ? "Dinliyorum — bitir" : "Sesli yaz")
+                Text(speech.recording ? "Dikteyi bitir" : "Sesli yaz")
                     .font(.system(size: 16, weight: .heavy, design: .rounded))
             }
             .foregroundStyle(.white)
@@ -132,18 +268,46 @@ struct JournalComposeView: View {
         .buttonStyle(.plain)
     }
 
+    /// Dikte ancak konuşma tanıma + mikrofon izni verildiyse başlar. Eskiden
+    /// izin hiç istenmiyor ve `try? speech.start()` hatayı yutuyordu — izinsiz
+    /// cihazda düğme ölü kalıyordu. VoiceExpenseView ile aynı izin akışı.
+    private func startDictation() {
+        SFSpeechRecognizer.requestAuthorization { status in
+            DispatchQueue.main.async {
+                guard status == .authorized else { speechDenied = true; return }
+                AVAudioApplication.requestRecordPermission { granted in
+                    DispatchQueue.main.async {
+                        guard granted else { speechDenied = true; return }
+                        speechDenied = false
+                        // Dikte başlamadan önce mevcut metni hatırla — tanıma sonucunu üzerine yazacağız.
+                        textBeforeDictation = text
+                        lastTranscript = ""
+                        do {
+                            try speech.start()
+                        } catch {
+                            // Ses oturumu/motor kurulamadı — yutulursa düğme
+                            // yine ölü kalır; kullanıcıya göster.
+                            speechDenied = true
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private var moodRow: some View {
         VStack(alignment: .leading, spacing: 8) {
             MonoLabel(text: "Nasıldın", color: Theme.c4)
-            HStack(spacing: 7) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: 8)], spacing: 8) {
                 ForEach(moods, id: \.self) { m in
                     Button { mood = (mood == m) ? nil : m } label: {
                         Text(m)
                             .font(.system(size: 13, weight: .semibold, design: .rounded))
                             .foregroundStyle(mood == m ? .white : Theme.muted)
-                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
                             .background(mood == m ? AnyShapeStyle(Theme.c1) : AnyShapeStyle(Theme.panel),
-                                        in: Capsule())
+                                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                     .buttonStyle(.plain)
                 }
@@ -178,6 +342,17 @@ struct JournalComposeView: View {
                     .background(Theme.panel, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
                 .buttonStyle(.plain)
+            }
+
+            if !photos.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 9) {
+                        ForEach(Array(photos.enumerated()), id: \.offset) { index, data in
+                            photoThumb(data: data, index: index)
+                        }
+                    }
+                    .padding(.top, 2)
+                }
             }
         }
     }
@@ -224,7 +399,19 @@ struct JournalComposeView: View {
                         // sağlayacaktır. Önerileri koruyan bu yaklaşım, tek elle kullanımdaki
                         // gerçek senaryoları karşılar.
                         if speech.recording {
-                            textBeforeDictation = text
+                            // `text`'i doğrudan taban YAPMA: dikte sürerken
+                            // text = taban + canlı transcript + öneri; canlı
+                            // transcript'i tabana pişirirsek bir sonraki kısmi
+                            // sonuç (aynı sözleri içerir) sona eklenince dikte
+                            // kelimeleri ÇİFTLENİR. Tabanı canlı transcript
+                            // hariç yeniden hesapla (sondan geriye arama —
+                            // dikte kısmı sondadır, bkz. onChange(of: text)).
+                            var base = text
+                            if !lastTranscript.isEmpty,
+                               let range = base.range(of: lastTranscript, options: .backwards) {
+                                base.removeSubrange(range)
+                            }
+                            textBeforeDictation = base.trimmingCharacters(in: .whitespacesAndNewlines)
                         }
                     }
                 }
@@ -244,7 +431,50 @@ struct JournalComposeView: View {
         .background(Theme.panel, in: Capsule())
     }
 
+    @ViewBuilder
+    private func photoThumb(data: Data, index: Int) -> some View {
+        #if canImport(UIKit)
+        if let image = UIImage(data: data) {
+            ZStack(alignment: .topTrailing) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 86, height: 86)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
+
+                Button {
+                    if photos.indices.contains(index) {
+                        photos.remove(at: index)
+                    }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18, weight: .bold))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(.white, Color.black.opacity(0.55))
+                        .padding(5)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        #endif
+    }
+
+    private func insertPrompt(_ prompt: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            text = prompt + "\n"
+        } else {
+            text += "\n\n" + prompt + "\n"
+        }
+        editorFocused = true
+    }
+
     private func save() {
+        // Çift dokunuş koruması — sheet kapanmadan gelen ikinci dokunuş
+        // aynı kaydın kopyasını eklemesin.
+        guard !saved else { return }
+        saved = true
         speech.stop()
         let entry = JournalEntry(
             text: text.trimmingCharacters(in: .whitespacesAndNewlines),

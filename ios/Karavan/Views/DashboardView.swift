@@ -10,8 +10,10 @@ struct DashboardView: View {
     @EnvironmentObject var altimeter: AltimeterService
     @EnvironmentObject var plan: TripPlanStore
     @EnvironmentObject var routeSession: RouteSession
+    @EnvironmentObject private var account: AccountSessionStore
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var showSettings = false
+    @State private var showJourneyMenu = false
     @StateObject private var updates = UpdateChecker.shared
 
     // Sürüş Focus filtresi (Ayarlar → Odak → Sürüş → Kuzey): sade panel.
@@ -22,7 +24,6 @@ struct DashboardView: View {
         NavigationStack {
             ZStack {
                 Theme.bg.ignoresSafeArea()
-                aurora
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
@@ -77,6 +78,19 @@ struct DashboardView: View {
                 }
             }
             .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showJourneyMenu = true } label: {
+                        if account.isRestoring {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Image(systemName: account.isSignedIn ? "person.crop.circle.fill" : "person.crop.circle")
+                        }
+                    }
+                    .accessibilityLabel(account.isSignedIn ? "Hesap ve yolculuk" : "Apple hesabıyla giriş yap")
+                }
+            }
         }
         .task {
             async let u: () = updates.checkIfNeeded()
@@ -95,6 +109,9 @@ struct DashboardView: View {
             updateAltimeterMotionGate()
         }
         .sheet(isPresented: $showSettings) { TripSettingsView() }
+        .sheet(isPresented: $showJourneyMenu) {
+            JourneyMenuView()
+        }
     }
 
     // MARK: - Parçalar
@@ -163,22 +180,6 @@ struct DashboardView: View {
     private func updateAltimeterMotionGate() {
         altimeter.motionSignalUnavailable = loc.status == .denied || loc.status == .restricted
         altimeter.updateMotion(speedKmh: loc.speedKmh)
-    }
-
-    private var aurora: some View {
-        GeometryReader { geo in
-            ZStack {
-                Circle().fill(Theme.c3.opacity(0.08))
-                    .frame(width: geo.size.width * 0.9)
-                    .blur(radius: 110)
-                    .offset(x: geo.size.width * 0.35, y: -geo.size.height * 0.32)
-                Circle().fill(Theme.c1.opacity(0.07))
-                    .frame(width: geo.size.width * 0.8)
-                    .blur(radius: 110)
-                    .offset(x: -geo.size.width * 0.3, y: geo.size.height * 0.34)
-            }
-        }
-        .ignoresSafeArea()
     }
 
     private var header: some View {

@@ -121,6 +121,7 @@ enum ArrivalTargetSelectionResolver {
         if persisted?.scope == scope { return persisted }
         return nil
     }
+
 }
 
 // Kullanıcının bir güne yaptığı düzenlemeler. Hepsi opsiyonel: nil = "web verisini kullan".
@@ -237,8 +238,8 @@ struct EffectiveDay: Identifiable {
     var campName: String { edit?.campName ?? base.camp.name }
     var campPlace: String { edit?.campPlace ?? base.camp.place }
     var arrivalTarget: ArrivalTarget? {
-        guard edit?.arrivalTargetScope == nil else { return nil }
-        return edit?.arrivalTarget
+        guard edit?.arrivalTargetScope == nil else { return base.arrivalTarget }
+        return edit?.arrivalTarget ?? base.arrivalTarget
     }
     var stayDetails: StayDetails {
         guard edit?.arrivalTargetScope == nil else { return StayDetails() }

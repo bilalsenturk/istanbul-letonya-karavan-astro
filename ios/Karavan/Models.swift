@@ -15,6 +15,9 @@ struct TripData: Codable {
     var departureDate: Date? {
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime]
+        if let d = iso.date(from: departureAt) { return d }
+        // Kesirli saniyeli biçim ("...T08:00:00.000Z") için yedek ayrıştırıcı.
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return iso.date(from: departureAt)
     }
 }
@@ -41,6 +44,7 @@ struct Stop: Codable, Identifiable {
         switch country {
         case "Türkiye": return "🇹🇷"
         case "Bulgaristan": return "🇧🇬"
+        case "Sırbistan": return "🇷🇸"
         case "Romanya": return "🇷🇴"
         case "Macaristan": return "🇭🇺"
         case "Polonya": return "🇵🇱"
@@ -56,6 +60,7 @@ struct Stop: Codable, Identifiable {
         switch country {
         case "Türkiye": return "TR"
         case "Bulgaristan": return "BG"
+        case "Sırbistan": return "RS"
         case "Romanya": return "RO"
         case "Macaristan": return "HU"
         case "Polonya": return "PL"
@@ -157,8 +162,12 @@ struct ChecklistItem: Codable, Identifiable {
 }
 
 extension TripData {
-    /// "Bükreş Güney" gibi gün adlarını durak koordinatına eşler
+    /// "Bükreş Güney" gibi gün adlarını durak koordinatına eşler.
+    /// Önce tam eşleşme, sonra önek, en son içerme denenir — bir durak adı diğerini
+    /// içeriyorsa ("Bükreş" / "Bükreş Güney") iki yönlü içerme yanlış durağı çözmesin.
     func stop(matching name: String) -> Stop? {
-        stops.first { name.contains($0.name) || $0.name.contains(name) }
+        stops.first { $0.name == name }
+            ?? stops.first { $0.name.hasPrefix(name) || name.hasPrefix($0.name) }
+            ?? stops.first { name.contains($0.name) || $0.name.contains(name) }
     }
 }

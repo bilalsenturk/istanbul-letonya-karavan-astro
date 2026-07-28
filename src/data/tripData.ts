@@ -35,6 +35,20 @@ type CampPlan = {
   alternatives?: CampAlternative[];
 };
 
+type ArrivalTarget = {
+  id: string;
+  name: string;
+  kind: 'campground' | 'hotel' | 'apartment' | 'caravanPark' | 'parking' | 'address' | 'other';
+  latitude: number;
+  longitude: number;
+  formattedAddress: string;
+  phone?: string | null;
+  whatsAppPhone?: string | null;
+  email?: string | null;
+  websiteURL?: string | null;
+  source?: 'appleMaps' | 'user' | 'migrated';
+};
+
 type DayStop = {
   type: 'Petrol' | 'Kahve' | 'Görülecek' | 'Tedarik';
   name: string;
@@ -114,6 +128,7 @@ export type DayPlan = {
   opportunities: string[];
   contingencies: string[];
   camp: CampPlan;
+  arrivalTarget?: ArrivalTarget;
   stops: DayStop[];
   route: string;
   routeEmbed: string;

@@ -38,6 +38,27 @@ struct JournalQueue: Codable, Equatable {
         items.removeAll { $0.entryId == entryId }
     }
 
+    /// Uygulama gönderim ortasında öldürülürse kayıt `.syncing` durumunda
+    /// kalır — `nextToSend()` yalnızca `.pending` seçtiği için bu kayıt bir
+    /// daha ASLA gönderilemezdi. Açılışta (load) çağrılıp takılı kalanlar
+    /// `.pending`'e döndürülür; deneme sayısına dokunulmaz ki varsa geri
+    /// çekilme süresi korunsun.
+    mutating func resetStuckSyncing() {
+        for i in items.indices where items[i].state == .syncing {
+            items[i].state = .pending
+        }
+    }
+
+    /// Gönderim, kayda özgü OLMAYAN genel bir nedenle (kota dolu, hesap
+    /// kapalı) hiç yapılamadı — bu bir deneme BAŞARISIZLIĞI sayılmaz: deneme
+    /// hakkı tüketilmez, kayıt geri çekilmesiz `.pending`'e döner ki sorun
+    /// çözülünce ilk tetiklemede tekrar denenebilsin. `markFailed` kota gibi
+    /// geçici/genel hatalarda kullanılsaydı kayıt haksız yere birkaç
+    /// tetiklemede kalıcı `.failed`'a düşerdi.
+    mutating func markDeferred(_ entryId: String) {
+        update(entryId) { if $0.state == .syncing { $0.state = .pending } }
+    }
+
     mutating func markFailed(_ entryId: String, now: Date) {
         update(entryId) {
             $0.attempts += 1

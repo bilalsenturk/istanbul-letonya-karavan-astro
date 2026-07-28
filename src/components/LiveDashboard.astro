@@ -25,17 +25,6 @@ const nextStops = tripData.stops.filter(stop =>
   stop.name !== currentOrigin && stop.name !== currentDestination
 ).slice(0, 5);
 
-const getWeatherEmoji = (condition: string) => {
-  if (!condition) return '🌤️';
-  const c = condition.toLowerCase();
-  if (c.includes('yağmur') || c.includes('rain') || c.includes('drizzle')) return '🌧️';
-  if (c.includes('bulut') || c.includes('cloud') || c.includes('overcast')) return '☁️';
-  if (c.includes('güneş') || c.includes('sun') || c.includes('clear')) return '☀️';
-  if (c.includes('sis') || c.includes('fog') || c.includes('mist')) return '🌫️';
-  if (c.includes('kar') || c.includes('snow')) return '❄️';
-  if (c.includes('fırtına') || c.includes('storm') || c.includes('thunder')) return '⛈️';
-  return '🌤️';
-};
 ---
 
 <section id="live-dashboard" class="shell" aria-label="Canlı Dashboard">
@@ -122,12 +111,12 @@ const getWeatherEmoji = (condition: string) => {
 
           <h4 style="margin-top: 16px;">⚠️ Riskler</h4>
           <ul class="risk-list">
-            {currentDay.risks.map((risk, i) => <li key={i}>{risk}</li>)}
+            {currentDay.risks.map((risk) => <li>{risk}</li>)}
           </ul>
 
           <h4 style="margin-top: 12px;">🎯 Fırsatlar</h4>
           <ul class="opportunity-list">
-            {currentDay.opportunities.map((opp, i) => <li key={i}>{opp}</li>)}
+            {currentDay.opportunities.map((opp) => <li>{opp}</li>)}
           </ul>
 
           <h4 style="margin-top: 12px;">🏕️ Kamp</h4>
@@ -151,7 +140,7 @@ const getWeatherEmoji = (condition: string) => {
           <p class="subline">Günlere göre gruplandırıldı. Resimleri yenilemek için üzerine tıklayın.</p>
         </div>
         {tripData.days.map((day, dayIdx) => (
-          <div key={day.slug} class="camera-day-group" style="grid-column: 1 / -1;">
+          <div class="camera-day-group" style="grid-column: 1 / -1;">
             <h4 style="margin: 12px 0 8px; padding-bottom: 8px; border-bottom: 1px solid var(--line); color: var(--accent);">
               {dayIdx + 1}. Gün — {day.date} — {day.origin} → {day.destination}
             </h4>
@@ -175,7 +164,7 @@ const getWeatherEmoji = (condition: string) => {
       <h3>🛑 Sonraki Önemli Duraklar</h3>
     </div>
     {nextStops.map((stop, i) => (
-      <article key={stop.id} class="card col-4">
+      <article class="card col-4">
         <h4>{i + 1}. {stop.name}</h4>
         <p class="muted">{stop.country}</p>
         <p class="tag-row">
@@ -316,11 +305,9 @@ const getWeatherEmoji = (condition: string) => {
   routeStops: JSON.stringify(mapStops),
   currentOrigin,
   currentDestination,
-  departureAt: tripData.departureAt,
   allCameras: JSON.stringify(allCameras.map(c => ({ title: c.title, url: c.url, source: c.source })))
 }}>
   (() => {
-    const departure = new Date(departureAt);
     const haversine = (a, b) => {
       const toRad = (d) => (d * Math.PI) / 180;
       const R = 6371;
@@ -393,7 +380,7 @@ const getWeatherEmoji = (condition: string) => {
         { type: 'info', text: '🇷🇴 Ruse - Varna arası E85 yolunda TIR yoğunluğu, sağ şerit yavaş.' },
         { type: 'warning', text: '🇭🇺 Budapeşte M0 havaalanı bağlantısında gecikmeli akış.' },
         { type: 'info', text: '🇵🇱 Varşova S8 kuzey batı geçişinde yol bakımı, tek şerit.' },
-        { type: 'danger', text: '🇱🇹 Kaunas - Suwałki arası S61'de gece saatlerinde aydınlatma eksikliği dikkat.' },
+        { type: 'danger', text: "🇵🇱 Varşova - Litvanya hattında gece sürüşünde uzun ve karanlık kesimlere dikkat." },
       ];
       return alerts;
     };

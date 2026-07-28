@@ -39,6 +39,19 @@ src/
 | `npm run format` | Prettier ile formatlama |
 | `npm run check` | TypeScript tip kontrolü |
 
+## Hesap ve rota altyapısı
+
+iOS uygulaması Apple ile giriş yapar. Astro `/api/v2` uçları oturumu doğrular; hesaplar, rotalar, duraklar ve üyelikler Vercel Private Blob'da saklanır.
+
+| Ortam değişkeni | Amaç |
+|---|---|
+| `AUTH_SESSION_SECRET` | Kuzey erişim ve yenileme tokenlarını imzalar; en az 32 bayt rastgele değer olmalı |
+| `BLOB_READ_WRITE_TOKEN` | Özel `kuzey-accounts` Blob deposu; Vercel bağlantısı otomatik ekler |
+| `LIVE_BLOB_READ_WRITE_TOKEN` | Mevcut herkese açık konum, plan, günlük ve harcama deposu |
+| `LIVE_POST_SECRET` | iOS uygulamasından gelen canlı konum yazma isteğini doğrular |
+
+Üretimde özel Blob tokenı yoksa hesap API'si veri yazmaz. Yerel geliştirmede hesap deposu yalnızca süreç belleğine düşer ve sunucu yeniden başlayınca temizlenir.
+
 ## Yapılan İyileştirmeler
 
 - Veri (JSON) ve tipler (TS) ayrıştırıldı

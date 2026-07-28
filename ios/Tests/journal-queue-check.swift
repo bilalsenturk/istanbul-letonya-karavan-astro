@@ -57,6 +57,39 @@ let encoded = try! JSONEncoder().encode(q2)
 let decoded = try! JSONDecoder().decode(JournalQueue.self, from: encoded)
 check("gidiş-dönüş bozulmuyor", decoded == q2)
 
+print("\n=== 7b) Öldürülme sonrası .syncing'de takılı kalan kayıt kurtarılır ===")
+// Gönderim ortasında uygulama öldürülürse kayıt .syncing kalır; diskte bu
+// hâliyle durur. Açılışta resetStuckSyncing() çağrılmazsa nextToSend()
+// (yalnızca .pending seçer) bu kaydı bir daha asla döndürmez.
+var q3 = JournalQueue()
+q3.enqueue("d")
+q3.markSyncing("d", now: t0)
+check("takılı kayıt gönderime seçilmez", q3.nextToSend(now: t0) == nil,
+      q3.nextToSend(now: t0) ?? "nil")
+let stuckData = try! JSONEncoder().encode(q3)
+var relaunched = try! JSONDecoder().decode(JournalQueue.self, from: stuckData)
+relaunched.resetStuckSyncing()   // JournalStore.load() açılışta bunu çağırır
+check("kurtarılan kayıt yeniden gönderilebilir", relaunched.nextToSend(now: t0) == "d",
+      relaunched.nextToSend(now: t0) ?? "nil")
+check("bekleyen sayısına geri girer", relaunched.pendingCount == 1,
+      "\(relaunched.pendingCount)")
+check("deneme sayısı korunur", relaunched.items.first?.attempts == 0,
+      "\(relaunched.items.first?.attempts ?? -1)")
+// Geri çekilme bekleyen bir kayıt takılırsa backoff'u korunmalı:
+// hemen değil, süresi dolunca seçilmeli.
+var q4 = JournalQueue()
+q4.enqueue("e")
+q4.markSyncing("e", now: t0)
+q4.markFailed("e", now: t0)      // attempts=1, .pending, backoff başladı
+q4.markSyncing("e", now: t0.addingTimeInterval(JournalQueue.backoff(attempts: 1) + 1))
+q4.resetStuckSyncing()
+let duringBackoff = t0.addingTimeInterval(JournalQueue.backoff(attempts: 1) + 2)
+check("backoff korumalı kayıt hemen seçilmez", q4.nextToSend(now: duringBackoff) == nil,
+      q4.nextToSend(now: duringBackoff) ?? "nil")
+let backoffOver = duringBackoff.addingTimeInterval(JournalQueue.backoff(attempts: 1) + 1)
+check("backoff dolunca seçilir", q4.nextToSend(now: backoffOver) == "e",
+      q4.nextToSend(now: backoffOver) ?? "nil")
+
 print("\n=== 8) Kayıt modeli gidiş-dönüş ===")
 let entry = JournalEntry(
     id: "e1", text: "Sofya'da yağmur başladı", createdAt: t0,
@@ -67,6 +100,33 @@ let ed = try! JSONEncoder().encode(entry)
 let dd = try! JSONDecoder().decode(JournalEntry.self, from: ed)
 check("kayıt gidiş-dönüş bozulmuyor", dd == entry)
 check("varsayılan gizli", entry.isShared == false)
+
+print("\n=== 9) Genel/geçici hata (kota, hesap) deneme hakkı TÜKETMEZ ===")
+// JournalStore drainQueue, quotaExceeded/accountUnavailable gibi kayda özgü
+// OLMAYAN hatalarda markFailed yerine markDeferred çağırır: markFailed
+// attempts'i artırır ve maxAttempts sonrası kaydı kalıcı .failed'a düşürür;
+// kota açıldığında kayıt yine de gitmezdi. markDeferred kaydı geri
+// çekilmesiz .pending'e döndürür.
+var q5 = JournalQueue()
+q5.enqueue("f")
+q5.markSyncing("f", now: t0)
+q5.markDeferred("f")   // kota dolu — gönderim hiç yapılamadı
+check("kota denemesi sayılmaz", q5.items.first?.attempts == 0,
+      "\(q5.items.first?.attempts ?? -1)")
+check("kayıt failed'a düşmez", q5.items.first?.state == .pending,
+      q5.items.first?.state.rawValue ?? "nil")
+check("hemen yeniden denenebilir", q5.nextToSend(now: t0) == "f",
+      q5.nextToSend(now: t0) ?? "nil")
+// Ard arda kota hataları da birikip .failed üretmemeli:
+for i in 1 ... JournalQueue.maxAttempts + 2 {
+    q5.markSyncing("f", now: t0)
+    q5.markDeferred("f")
+    _ = i
+}
+check("tekrarlı kota sonrası hâlâ pending", q5.items.first?.state == .pending,
+      q5.items.first?.state.rawValue ?? "nil")
+check("tekrarlı kota sonrası attempts sıfır", q5.items.first?.attempts == 0,
+      "\(q5.items.first?.attempts ?? -1)")
 
 print(failures == 0 ? "\n✅ hepsi geçti\n" : "\n❌ \(failures) başarısız\n")
 exit(failures == 0 ? 0 : 1)

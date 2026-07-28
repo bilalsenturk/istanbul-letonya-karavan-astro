@@ -36,8 +36,11 @@ struct AddExpenseIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        guard amount > 0, amount < 100_000 else {
+        guard amount > 0 else {
             return .result(dialog: "Tutar 0'dan büyük olmalı.")
+        }
+        guard amount < 100_000 else {
+            return .result(dialog: "Tutar 100.000 €'dan küçük olmalı.")
         }
         ExpenseStore.appendDirect(Expense(amountEur: amount, category: category.model, note: note ?? ""))
         let shown = amount.truncatingRemainder(dividingBy: 1) == 0
@@ -62,6 +65,10 @@ struct NextStopIntent: AppIntent {
         }
         if let m = d?.object(forKey: SharedSnapshot.Key.remainingMin) as? Int {
             text += m >= 60 ? ", yaklaşık \(m / 60) saat \(m % 60) dakika" : ", yaklaşık \(m) dakika"
+        }
+        // Saatler önceki veriyi güncel gibi söyleme.
+        if !SharedSnapshot.isFresh {
+            text += ". Bu bilgi güncel olmayabilir — uygulamayı açınca tazelenir"
         }
         return .result(dialog: "\(text).")
     }

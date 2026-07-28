@@ -65,6 +65,24 @@ final class TripPlanStore: ObservableObject {
             arrivalTargetOverrides = decoded
         }
         migrateScopedArrivalTargetEdits()
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-ui-preview-subplans") {
+            var edit = edits.days["istanbul-sofya"] ?? DayEdit()
+            edit.subplans = [
+                DaySubplan(
+                    id: "preview-sofia-museum",
+                    title: "Ulusal Tarih Müzesi",
+                    placeName: "National History Museum, Sofia",
+                    latitude: 42.6557,
+                    longitude: 23.2716,
+                    startMinute: 16 * 60,
+                    durationMinutes: 90,
+                    note: nil
+                )
+            ]
+            edits.days["istanbul-sofya"] = edit
+        }
+#endif
     }
 
     // MARK: - Cihazlar arası senkron

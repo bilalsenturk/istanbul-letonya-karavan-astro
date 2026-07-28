@@ -7,6 +7,8 @@ struct LiveLocationCard: View {
     @EnvironmentObject var loc: LocationManager
     @EnvironmentObject var routeStore: RouteStore
     @EnvironmentObject var nav: NavProgressStore
+    @EnvironmentObject var appNavigation: AppNavigation
+    @EnvironmentObject var routeSession: RouteSession
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -29,9 +31,29 @@ struct LiveLocationCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                 HStack(spacing: 10) {
-                    carPlayButton(trip: trip)
                     Button {
-                        AnnouncementService.shared.announceDeparture(nextStop: nav.nextStop?.name)
+                        appNavigation.selectedTab = .plan
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "point.topleft.down.curvedto.point.bottomright.up")
+                            Text("Rotalar")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                        }
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .background(Theme.gradCool, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    Button {
+                        let nextRequiredStop = routeSession.nextStartableStopId(stops: trip.stops)
+                            .flatMap { id in trip.stops.first { $0.id == id } }
+                        AnnouncementService.shared.announceRouteReady(
+                            nextStop: nextRequiredStop?.name,
+                            triggeredByUserAction: true
+                        )
                     } label: {
                         Image(systemName: "megaphone.fill")
                             .font(.system(size: 15, weight: .bold))
@@ -71,7 +93,9 @@ struct LiveLocationCard: View {
         .card()
         .task { await updateNav() }
         .onChange(of: loc.location?.timestamp) { _, _ in Task { await updateNav() } }
-        .onChange(of: routeStore.legs.count) { _, _ in Task { await updateNav() } }
+        // legs dizisi baştan son sayısıyla atanır (hepsi nil) — count hiç
+        // değişmez. Anlamlı sinyal DOLAN etap sayısı: rota geldikçe nav tazelenir.
+        .onChange(of: routeStore.legs.filter { $0 != nil }.count) { _, _ in Task { await updateNav() } }
     }
 
     private func updateNav() async {
@@ -82,12 +106,25 @@ struct LiveLocationCard: View {
     // Sıradaki hedefe kalan km + SÜRE + gidilen + anlık şehir (kullanıcı isteği).
     @ViewBuilder
     private func nextDestinationPanel(trip: TripData) -> some View {
+        let routeStarted = routeSession.isActive
+        let nextRequiredStop = routeSession.nextStartableStopId(stops: trip.stops)
+            .flatMap { id in trip.stops.first { $0.id == id } }
+        let displayedLegProgress = routeStarted ? nav.legProgress : 0
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                if let next = nav.nextStop {
+                if routeStarted, let active = routeSession.activeStopName {
+                    HStack(spacing: 6) {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Theme.ok)
+                        Text("Aktif rota: \(active)")
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .foregroundStyle(Theme.ok)
+                    }
+                } else if let next = nextRequiredStop {
                     HStack(spacing: 6) {
                         CountryBadge(code: next.code, size: 10)
-                        Text("Sıradaki: \(next.name)")
+                        Text("Sıradaki etap: \(next.name)")
                             .font(.system(size: 13, weight: .bold, design: .rounded))
                             .foregroundStyle(Theme.c1)
                     }
@@ -105,62 +142,40 @@ struct LiveLocationCard: View {
             }
 
             HStack(spacing: 0) {
-                stat(value: nav.remainingKm.map { "\($0) km" } ?? "—", label: "Kalan yol")
+                stat(value: routeStarted ? (nav.remainingKm.map { "\($0) km" } ?? "—") : "—", label: "Kalan yol")
                 Divider().background(Theme.line).padding(.vertical, 4)
-                stat(value: nav.remainingMinutes != nil ? nav.remainingTimeText : "—", label: "Kalan süre")
-                Divider().background(Theme.line).padding(.vertical, 4)
-                stat(value: loc.speedKmh.map { "\($0) km/s" } ?? "0 km/s", label: "Hız")
+                stat(value: routeStarted && nav.remainingMinutes != nil ? nav.remainingTimeText : "—", label: "Kalan süre")
+                // Hız bilinmiyorsa (geçersiz GPS) "0 km/s" sahte durma gösterirdi
+                // — MapScreen'deki gibi hız istatistiğini gizle.
+                if routeStarted, let speed = loc.speedKmh {
+                    Divider().background(Theme.line).padding(.vertical, 4)
+                    stat(value: "\(speed) km/s", label: "Hız")
+                }
             }
 
             // Etap ilerlemesi: gidilen / kalan
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.white.opacity(0.08))
-                    Capsule().fill(Theme.gradCool).frame(width: geo.size.width * nav.legProgress)
+                    Capsule().fill(Theme.gradCool).frame(width: geo.size.width * displayedLegProgress)
                 }
             }
             .frame(height: 8)
 
             HStack {
-                Text("Gidilen \(nav.traveledKm.map { "\($0) km" } ?? "—") · %\(Int((nav.legProgress * 100).rounded()))")
+                Text(routeStarted
+                     ? "Gidilen \(nav.traveledKm.map { "\($0) km" } ?? "—") · %\(Int((nav.legProgress * 100).rounded()))"
+                     : "Rota başlamadı · gidilen 0 km")
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .foregroundStyle(Theme.muted)
                 Spacer()
-                if let km = nav.remainingToFinalKm {
+                if routeStarted, let km = nav.remainingToFinalKm {
                     Text("Riga'ya \(km) km")
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
                         .foregroundStyle(Theme.muted)
                 }
             }
         }
-    }
-
-    // Tek tıkla Apple Maps sürüş → iPhone Passat'a CarPlay ile bağlıysa araç ekranında açılır.
-    // (VW'nin gömülü navigasyonuna doğrudan aktarım 3. parti app'lere kapalı — CarPlay tek yol.)
-    @ViewBuilder
-    private func carPlayButton(trip: TripData) -> some View {
-        if let target = carPlayTarget(trip: trip) {
-            Button {
-                NavApp.openAppleMaps(to: target)
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "car.fill")
-                    Text("Arabada aç · \(target.name)")
-                    Spacer()
-                    Image(systemName: "arrow.up.forward.app.fill")
-                }
-                .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .background(Theme.gradCool, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-            }
-        }
-    }
-
-    private func carPlayTarget(trip: TripData) -> Stop? {
-        // Segment-bazlı sıradaki hedef (geriye rota açma hatasını önler); yoksa Riga.
-        nav.nextStop ?? trip.stops.last
     }
 
     @ViewBuilder
@@ -170,10 +185,28 @@ struct LiveLocationCard: View {
             // Gerçek yol (Apple Haritalar); gelene kadar ince kesikli taslak (kırmızı değil).
             if routeStore.displayCoords.isEmpty {
                 MapPolyline(coordinates: trip.stops.map(\.coordinate))
-                    .stroke(Theme.c4.opacity(0.4), style: StrokeStyle(lineWidth: 2.5, dash: [5, 5]))
+                    .stroke(.white.opacity(0.34), style: StrokeStyle(lineWidth: 2.5, dash: [5, 5]))
             } else {
                 ForEach(Array(routeStore.displayCoords.enumerated()), id: \.offset) { _, coords in
-                    MapPolyline(coordinates: coords).stroke(Theme.c4, lineWidth: 3)
+                    MapPolyline(coordinates: coords).stroke(.white.opacity(0.42), lineWidth: 3)
+                }
+            }
+            ForEach(Array(routeStore.traveledDisplayCoords(
+                stops: trip.stops,
+                routeStarted: routeSession.isActive,
+                activeStopId: routeSession.activeStopId,
+                currentLegIndex: nav.currentLegIndex,
+                legProgress: nav.legProgress
+            ).enumerated()), id: \.offset) { _, coords in
+                MapPolyline(coordinates: coords)
+                    .stroke(Theme.ok, style: StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round))
+            }
+            if let location = loc.location {
+                Annotation("", coordinate: location.coordinate, anchor: .center) {
+                    MiniRigMarker(
+                        heading: location.course >= 0 ? location.course : 0,
+                        moving: routeSession.isActive && (loc.speedKmh ?? 0) > 2
+                    )
                 }
             }
             ForEach(trip.stops) { stop in
@@ -186,7 +219,6 @@ struct LiveLocationCard: View {
                         .overlay(Circle().strokeBorder(Theme.c4.opacity(0.8), lineWidth: 1))
                 }
             }
-            UserAnnotation()
         }
         .mapStyle(.standard(elevation: .flat))
     }

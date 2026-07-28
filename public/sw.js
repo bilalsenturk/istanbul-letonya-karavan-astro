@@ -1,4 +1,4 @@
-const CACHE = 'trip-cache-v3';
+const CACHE = 'trip-cache-v8';
 const ASSETS = [
   '/favicon.ico',
   '/favicon.svg',

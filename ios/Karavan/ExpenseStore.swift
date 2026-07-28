@@ -24,11 +24,16 @@ final class ExpenseStore: ObservableObject {
         }
         let total = list.reduce(0) { $0 + $1.amountEur }
         SharedSnapshot.write([SharedSnapshot.Key.spentEur: (total * 100).rounded() / 100])
+        // Intent sürecinden de web'e yayınla: outbox diske yazar, sonra dener.
+        Task { @MainActor in enqueuePublish(expenses: list) }
     }
 
     init() {
+        loadKnownIDs()
         load()
-        publishTotal()
+        // Bozuk dosyayla açıldıysa €0 toplamını web'e BASMA: sitedeki gerçek
+        // toplam (ve snapshot'taki son bilinen değer) korunsun.
+        if !loadFailed { publishTotal() }
     }
 
     // MARK: - Hesaplamalar
@@ -106,19 +111,73 @@ final class ExpenseStore: ObservableObject {
     // MARK: - Kalıcılık
 
     private func load() {
-        guard let data = try? Data(contentsOf: fileURL),
-              let decoded = try? JSONDecoder().decode([Expense].self, from: data)
-        else { return }
+        guard let data = try? Data(contentsOf: fileURL) else { return }   // dosya yok: yeni kurulum
+        guard let decoded = try? JSONDecoder().decode([Expense].self, from: data) else {
+            // Bozuk dosya: karantinaya al ve boş toplamı web'e BASMA (init kontrolü).
+            loadFailed = true
+            try? FileManager.default.moveItem(
+                at: fileURL,
+                to: fileURL.appendingPathExtension("corrupt")
+            )
+            return
+        }
         expenses = decoded.sorted { $0.date > $1.date }
+        knownIDs.formUnion(expenses.map(\.id))
+        persistKnownIDs()
     }
 
     private func persist() {
+        mergeIntentAdds()
         if let data = try? JSONEncoder().encode(expenses) {
             try? data.write(to: fileURL, options: .atomic)
         }
         publishTotal()
         SharedSnapshot.write([SharedSnapshot.Key.spentEur: (total * 100).rounded() / 100])
         LiveActivityManager.shared.reloadWidgetsThrottled()
+    }
+
+    /// Açılışta expenses.json bozuk çıktıysa true: €0 toplamı web'e basılmaz.
+    private var loadFailed = false
+
+    /// Şimdiye dek görülmüş kalem kimlikleri. Silinenler burada KALIR: diske
+    /// bakınca "yeni" sanılıp geri eklenmesinler diye (mezar taşı). Oturumla
+    /// sınırlı değil — diske yazılır; yeniden başlatmada silme↔intent
+    /// yarışı silineni diriltmez.
+    private var knownIDs: Set<UUID> = []
+
+    nonisolated private static var knownIDsURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("expenses-known-ids.json")
+    }
+
+    private var knownIDsURL: URL { Self.knownIDsURL }
+
+    private func loadKnownIDs() {
+        guard let data = try? Data(contentsOf: knownIDsURL),
+              let decoded = try? JSONDecoder().decode(Set<UUID>.self, from: data)
+        else { return }
+        knownIDs.formUnion(decoded)
+    }
+
+    private func persistKnownIDs() {
+        if let data = try? JSONEncoder().encode(knownIDs) {
+            try? data.write(to: knownIDsURL, options: .atomic)
+        }
+    }
+
+    /// Siri/App Intent dosyaya doğrudan yazmış olabilir; ezmeden önce diskteki
+    /// bilinmeyen kalemleri belleğe kat.
+    private func mergeIntentAdds() {
+        guard let data = try? Data(contentsOf: fileURL),
+              let onDisk = try? JSONDecoder().decode([Expense].self, from: data)
+        else { return }
+        let extras = onDisk.filter { !knownIDs.contains($0.id) }
+        if !extras.isEmpty {
+            expenses.append(contentsOf: extras)
+            expenses.sort { $0.date > $1.date }
+        }
+        knownIDs.formUnion(expenses.map(\.id))
+        persistKnownIDs()
     }
 
     /// Diskten yeniden yükle (Siri/App Intent arka planda eklemiş olabilir).
@@ -130,25 +189,34 @@ final class ExpenseStore: ObservableObject {
     // MARK: - Web'e yalnızca toplamı yayınla
 
     private func publishTotal() {
+        Self.enqueuePublish(expenses: expenses)
+    }
+
+    /// Toplam yükünü outbox'a bırakır (sıralı + en yeni kazanır + yeniden
+    /// denemeli). Siri/App Intent sürecinden de çağrılabilir.
+    static func enqueuePublish(expenses list: [Expense]) {
         guard let url = Config.expensesPostURL else { return }
+        let total = list.reduce(0) { $0 + $1.amountEur }
         let rounded = (total * 100).rounded() / 100
-        let categories = byCategory.reduce(into: [String: Double]()) { acc, pair in
-            acc[pair.key.rawValue] = (pair.value * 100).rounded() / 100
-        }
+        let categories = Dictionary(grouping: list, by: \.category)
+            .mapValues { $0.reduce(0) { $0 + $1.amountEur } }
+            .reduce(into: [String: Double]()) { acc, pair in
+                acc[pair.key.rawValue] = (pair.value * 100).rounded() / 100
+            }
         let payload: [String: Any] = [
             "totalEur": rounded,
-            "count": expenses.count,
+            "count": list.count,
             "byCategory": categories,
             "ts": ISO8601DateFormatter().string(from: Date()),
         ]
+        guard let body = try? JSONSerialization.data(withJSONObject: payload) else { return }
 
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.setValue(Config.livePostSecret, forHTTPHeaderField: "x-live-secret")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: payload)
-        req.timeoutInterval = 10
-
-        Task { _ = try? await URLSession.shared.data(for: req) }
+        // İmza, zaman damgası hariç içerikten türetilir: açılışta değişiklik
+        // yoksa POST atlanır; gönderimler outbox ile sıralı + en yeni kazanır.
+        let signature = "\(rounded)|\(list.count)|" + categories
+            .sorted { $0.key < $1.key }
+            .map { "\($0.key)=\($0.value)" }
+            .joined(separator: ",")
+        PublishOutbox.shared.enqueue(key: "expenses", url: url, body: body, signature: signature)
     }
 }

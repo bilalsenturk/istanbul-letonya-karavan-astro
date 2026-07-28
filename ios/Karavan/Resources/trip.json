@@ -6,12 +6,12 @@
     "description": "Nette çalışan çekici setup: beyaz Passat + çekili karavan",
     "towing": "Çekme: Düzgün ve stabilize edilmiş; stop-start testleri sonrası onay."
   },
-  "totalKm": 3150,
+  "totalKm": 2825,
   "totalBudget": {
-    "min": 1345,
-    "max": 1795,
-    "fuel": "€520–590",
-    "total": "€1.500 – €1.600 (pratik hedef)"
+    "min": 1250,
+    "max": 1750,
+    "fuel": "€480–560",
+    "total": "€1.400 – €1.550 (pratik hedef)"
   },
   "checklist": [
     {
@@ -67,7 +67,7 @@
   ],
   "postArrival": [
     {
-      "when": "10 Ağustos",
+      "when": "8 Ağustos",
       "title": "Varış ve kurulum",
       "text": "Elektrik, su, internet ve kısa günlük kullanım akışı kurulur. Ağır eşyalar sabitlenmiş kalır."
     },
@@ -149,31 +149,30 @@
       "roadNote": "Plovdiv sonrası rota planında sürüş ritmini bozmamak için küçük şehir içi sapmalar en aza indirilir."
     },
     {
-      "slug": "romanya",
-      "country": "Romanya",
-      "population": "Nüfus: Yaklaşık 19 milyon",
-      "language": "Resmî dil: Romence",
-      "currency": "Para birimi: Rumen leyi",
+      "slug": "sirbistan",
+      "country": "Sırbistan",
+      "population": "Nüfus: Yaklaşık 6,6 milyon",
+      "language": "Resmî dil: Sırpça",
+      "currency": "Para birimi: Sırp dinarı",
       "religion": "Baskın dinî yapı: Ortodoks Hristiyanlık",
       "traffic": "Trafik: Sağdan akar",
-      "profile": "Romanya kısmında Bükreş, Pitești, Olt Vadisi, Sibiu ve Deva hattı kullanılır.",
+      "profile": "Rota Kalotina–Niš–Belgrad–Kovilj hattını izler. Campuccino, E75 çıkışına yaklaşık 1 km mesafededir.",
       "highlights": [
-        "Bükreş",
-        "Pitești",
-        "Râmnicu Vâlcea",
-        "Olt Vadisi",
-        "Sibiu",
-        "Deva Kalesi çevresi"
+        "Niš",
+        "Belgrad çevresi",
+        "Tuna Nehri",
+        "Novi Sad",
+        "Kovilj"
       ],
-      "highlightsAdvice": "Büyük şehir turu yerine güvenli sürüş odaklı ilerleme korunur; Korvin Kalesi ve Sibiu plan dışı olmakla birlikte zaman uygunsa eklenebilir.",
+      "highlightsAdvice": "Bu etapta şehir turu yerine sınır ve Belgrad trafiğini kontrollü geçmek önceliklidir.",
       "importantStops": [
-        "Râmnicu Vâlcea veya Sibiu çevresi iyi mola noktaları.",
-        "Deva’ya yaklaşırken vadi geçişinde hız stabilitesi kritik."
+        "Niš çevresinde sürücü molası",
+        "Belgrad öncesi canlı trafik kontrolü"
       ],
-      "shopping": "AFI Cotroceni",
-      "shoppingAdvice": "Çok büyük bir araç girişi ve geniş hizmet gereksinimi olduğu günlerde tercih edilir; şehir içi yoğunluk nedeniyle hızlı geçiş planlaması korunur.",
-      "coffeeFood": "Olt Vadisi boyunca rastgele küçük tesislerden kaçınılır; Râmnicu Vâlcea veya Sibiu çevresi en güvenli alternatifler.",
-      "roadNote": "DN7/Olt Vadisi ana zorlukları: dar kesimler, tır trafiği, dalgalı hız değişimi ve yokuş profilidir."
+      "shopping": "Zorunlu ihtiyaçlar E75 üzerindeki büyük tesislerden alınır.",
+      "shoppingAdvice": "Çekme karavanla Belgrad merkezine girilmez.",
+      "coffeeFood": "Niš ve E75 tesisleri güvenli mola seçenekleridir.",
+      "roadNote": "Sınır ve Belgrad çevresindeki gecikmeler için en az 90 dakika tampon bırakılır."
     },
     {
       "slug": "macaristan",
@@ -209,44 +208,20 @@
       "currency": "Para birimi: Euro",
       "religion": "Baskın dinî yapı: Katolik Hristiyanlık",
       "traffic": "Trafik: Sağdan akar",
-      "profile": "Rotada büyük ölçüde transit geçiş yapılır, Bratislava kısa süreli geçiş noktasıdır.",
+      "profile": "Budapeşte–Krakow etabında Slovakya güneyden kuzeye transit geçilir; dağlık kesimlerde hız ve hava koşulları yakından izlenir.",
       "highlights": [
-        "Bratislava",
-        "Tuna kıyısı",
-        "Bratislava Kalesi",
-        "Eski şehir"
+        "Banská Bystrica çevresi",
+        "Alçak Tatra geçişi",
+        "Donovaly çevresi"
       ],
-      "highlightsAdvice": "Tek günde transit hedefi korunur; şehir içi sapma yalnız güvenlik/şerit ve dinlenme zorunluluğu varsa değerlendirilir.",
+      "highlightsAdvice": "Tek günde transit hedefi korunur; dağ geçişinde yalnız güvenli ve geniş yol tesislerinde mola verilir.",
       "importantStops": [
-        "Ekstra gecikme planlanıyorsa Bratislava dışı otoyol dinlenme tesisleriyle geçiş."
+        "Banská Bystrica öncesi yakıt ve hava kontrolü"
       ],
       "shopping": "Belirgin bir zorunlu öneri yok.",
       "shoppingAdvice": "Transit gününde AVM odaklı sapma yapılmaması önerilir; yalnız zorunlu ihtiyaçlar halinde yakın çevre seçenekleri düşünülür.",
       "coffeeFood": "Karavan odaklı duraklama için otoyol çevresinde güvenli ve aydınlık tesisler tercih edilir.",
-      "roadNote": "Bratislava çevresinde yalnızca planlı süreyle geçiş yapılır; gereksiz sapmalar çıkarılır."
-    },
-    {
-      "slug": "cekeya",
-      "country": "Çekya",
-      "population": "Nüfus: Yaklaşık 10,9 milyon",
-      "language": "Resmî dil: Çekçe",
-      "currency": "Para birimi: Çek korunası",
-      "religion": "Baskın dinî yapı: Seküler toplum",
-      "traffic": "Trafik: Sağdan akar",
-      "profile": "Rota Brno ve Ostrava çevresinden geçer. Brno’da şehir içine derin sapma önerilmez.",
-      "highlights": [
-        "Brno",
-        "Špilberk Kalesi",
-        "Olympia Brno"
-      ],
-      "highlightsAdvice": "Brno’da Olympia Brno, kahve/tuvalet/yiyecek ve araç parkını tek noktada toplamak için öncelikli durağı temsil eder.",
-      "importantStops": [
-        "Olympia Brno, yaz döneminde şerit daralması ihtimaline karşı ana mola önerisidir."
-      ],
-      "shopping": "Olympia Brno",
-      "shoppingAdvice": "Otoyola yakınlığı, büyük otoparkı ve menü çeşitliliğiyle yol üstü mola için en pratik seçenektir.",
-      "coffeeFood": "Kafe ve yemek için bu noktada tek seferde tamamlanacak bir mola düzeni uygundur.",
-      "roadNote": "Brno çevresinde yaz döneminde yol çalışması ve şerit daralmalarına karşı dikkat artırılır."
+      "roadNote": "Çekme karavanla inişlerde hız düşürülür; yağış ve kuvvetli rüzgârda geçiş süresi uzatılır."
     },
     {
       "slug": "polonya",
@@ -256,23 +231,22 @@
       "currency": "Para birimi: Polonya zlotisi",
       "religion": "Baskın dinî yapı: Katolik Hristiyanlık",
       "traffic": "Trafik: Sağdan akar",
-      "profile": "Polonya hattı Katowice, Varşova çevresi ve Suwałki hattını içerir; uzun etaplarda yoğunluk değişkenliği vardır.",
+      "profile": "Polonya hattında Krakow ve Varşova iki ana geceleme durağıdır; son etap Varşova'dan Litvanya üzerinden Riga'ya uzanır.",
       "highlights": [
-        "Katowice",
-        "Nikiszowiec",
+        "Krakow",
+        "Wawel çevresi",
         "Varşova",
-        "Łomża",
-        "Suwałki"
+        "Łomża"
       ],
-      "highlightsAdvice": "Varşova şehir merkezine girilmez; S8/S61 üzerindeki MOP hattı verimli geçiş sağlar.",
+      "highlightsAdvice": "Kamp girişleri şehir gezisinden önce tamamlanır; çekme karavan şehir merkezine sokulmaz.",
       "importantStops": [
         "S8 ve S61 dinlenme alanları",
         "Varşova çevresi hızlı geçiş noktaları"
       ],
-      "shopping": "Silesia City Center",
-      "shoppingAdvice": "Büyük bir durak arayan günlerde güçlü bir seçenek; market planlaması bir gün önceden yapılır.",
+      "shopping": "Krakow ve Varşova çevresindeki büyük marketler",
+      "shoppingAdvice": "Market alışverişi kamp yakınında ve karavan park edilebilen tesislerde tamamlanır.",
       "coffeeFood": "Polonya’da pazar günleri kapanmalar nedeniyle ön planlanmış molalar şarttır.",
-      "roadNote": "Varşova’nın kentsel çevresinde gereksiz sapma en büyük zaman kaybıdır."
+      "roadNote": "Varşova çıkışında S8 trafiği canlı izlenir; Riga gününde erken kalkış korunur."
     },
     {
       "slug": "litvanya",
@@ -333,91 +307,70 @@
       "to": "Sofya",
       "highlights": [
         "Edirne",
-        "Selimiye Camii",
+        "Kapıkule",
         "Plovdiv",
-        "Plovdiv Roma Tiyatrosu",
-        "Bulgaristan kırsal manzaraları"
+        "Elin Pelin"
       ],
-      "netComment": "İlk gün için sınır belirsizlikleri nedeniyle tur ekleme minimal tutulmalı; hızlı geçiş daha öncelikli."
+      "netComment": "Sınır belirsizliği nedeniyle ilk gün ek şehir turu yapılmaz."
     },
     {
-      "segment": "Sofya–Bükreş",
+      "segment": "Sofya–Novi Sad",
       "from": "Sofya",
-      "to": "Bükreş",
+      "to": "Novi Sad",
       "highlights": [
-        "Sofya kuzey çıkışı",
-        "Balkan dağ sıraları",
-        "Pleven",
-        "Ruse",
-        "Tuna Nehri",
-        "Giurgiu"
+        "Kalotina",
+        "Niš",
+        "Belgrad",
+        "Kovilj"
       ],
-      "netComment": "Amaç Bükreş’e zamanında ulaşmak; Ruse’de kısa durak, tarihî şehir gezisi değil."
+      "netComment": "Belgrad çevresinde canlı trafik takip edilir; hedef Campuccino’dur."
     },
     {
-      "segment": "Bükreş–Deva",
-      "from": "Bükreş Güney",
-      "to": "Deva",
-      "highlights": [
-        "Pitești",
-        "Râmnicu Vâlcea",
-        "Olt Nehri Vadisi",
-        "Sibiu",
-        "Transilvanya",
-        "Deva Kalesi çevresi"
-      ],
-      "netComment": "Görsel olarak güçlü ama dikkat isteyen etap; ağır yorgunluk varsa doğrudan kampa geçmek daha doğru."
-    },
-    {
-      "segment": "Deva–Budapeşte",
-      "from": "Deva",
+      "segment": "Novi Sad–Budapeşte",
+      "from": "Novi Sad",
       "to": "Budapeşte",
       "highlights": [
-        "Timișoara yakını",
-        "Arad",
+        "Subotica",
+        "Horgoš",
         "Szeged",
-        "Budapeşte yaklaşımı"
+        "Budapeşte"
       ],
-      "netComment": "Rahat seyirli etap. Kahveyi büyük tesislerle desteklemek gün sonrası dinlenmeye geçişi kolaylaştırır."
+      "netComment": "Sınır kuyruğu etap süresinin ana değişkenidir."
     },
     {
-      "segment": "Budapeşte–Katowice",
+      "segment": "Budapeşte–Krakow",
       "from": "Budapeşte",
-      "to": "Katowice",
+      "to": "Krakow",
       "highlights": [
-        "Tuna çevresi",
-        "Bratislava yaklaşımı",
-        "Brno",
-        "Ostrava",
-        "Silezya bölgesi"
+        "Banská Bystrica",
+        "Ružomberok",
+        "Tatra geçişi",
+        "Krakow"
       ],
-      "netComment": "Uzun ve güçlü etap; Brno’daki büyük tesis tek durakta ihtiyaçların çoğunu çözer."
+      "netComment": "Dağ geçişlerinde çekme karavan hızı ve fren sıcaklığı izlenir."
     },
     {
-      "segment": "Katowice–Suwałki",
-      "from": "Katowice",
-      "to": "Suwałki",
+      "segment": "Krakow–Varşova",
+      "from": "Krakow",
+      "to": "Varşova",
       "highlights": [
-        "Orta Polonya",
-        "Varşova çevresi",
-        "Mazovya ovaları",
-        "Łomża",
-        "Kuzeydoğu gölleri"
+        "Kielce",
+        "S7",
+        "Mazovya"
       ],
-      "netComment": "Varşova şehir merkezine girme, hız/tempo kaybını büyütür; S8/S61 MOP hattı önerilir."
+      "netComment": "Kısa etap; WOK uzunluk sınırı önceden teyit edilir."
     },
     {
-      "segment": "Suwałki–Riga",
-      "from": "Suwałki",
+      "segment": "Varşova–Riga",
+      "from": "Varşova",
       "to": "Riga",
       "highlights": [
-        "Polonya–Litvanya sınırı",
+        "Łomża",
         "Kaunas",
         "Panevėžys",
-        "Bauska",
-        "Letonya kırsalı"
+        "Bauska"
       ],
-      "netComment": "Kaunas MEGA, en mantıklı ana mola; Riga’ya kalan kısımda ek sapmalar minimumda tutulur."
+      "netComment": "En uzun etap; Kaunas zorunlu uzun mola ve gerektiğinde geceleme yedeğidir."
     }
   ],
   "coffeeStrategy": {
@@ -449,56 +402,49 @@
     ]
   },
   "campLogic": {
-    "title": "Kamp seçimi: ana tercih + yedek",
+    "title": "Kesin kamp hedefleri",
     "items": [
       {
         "city": "Sofya",
-        "primary": "Şehre yakın güvenli girişli kamp",
-        "alternative": "Şehir dışı daha yeşil ama ana yola yakın alternatif",
-        "advantages": "İlk gün sonunda ulaşım kolaylığı sağlar, gece yorgunluğu daha kontrollü geçer.",
-        "disadvantages": "Kamp konforu, ana şehir kamplarına kıyasla daha sınırlı olabilir."
+        "primary": "Sunset Garden Camping",
+        "alternative": "Varış öncesi Apple Maps ile yakın yedek ara",
+        "advantages": "Sofya merkezinin doğusunda, ertesi gün Sırbistan yönüne çıkış için sakin konum.",
+        "disadvantages": "Sınır gecikirse kampı yoldan ara ve geç giriş bilgisini teyit et"
       },
       {
-        "city": "Bükreş Güney",
-        "primary": "Transit odaklı güvenli park ve temel hizmetli tesis",
-        "alternative": "Bükreş’in batısında/ güneyinde şehir dışı tam tesis",
-        "advantages": "Şehir merkezine girmeden kalarak dinlenme ve araç parkını kolaylaştırır.",
-        "disadvantages": "Bazı tesislerde yalnızca karavan parkı vardır; kamp konforu her zaman garanti değil."
-      },
-      {
-        "city": "Deva",
-        "primary": "Ana yola yakın geniş parsellerli kamp",
-        "alternative": "Sibiu sonrası ara kamp alternatifi",
-        "advantages": "Olt Vadisi sonrası yorgunluk düşürmek için akıcı bir geçiş sağlar.",
-        "disadvantages": "Bazı giriş yolları dar olabilir; geçiş saatlerini iyi zamanlamak gerekir."
+        "city": "Novi Sad",
+        "primary": "Camping Campuccino",
+        "alternative": "Varış öncesi Apple Maps ile yakın yedek ara",
+        "advantages": "Kovilj’de, Novi Sad’a yaklaşık 15 km; E75 transit hattında güvenli ve yüksek puanlı kamp.",
+        "disadvantages": "Geç giriş için +381 63 222 783 numarasını ara"
       },
       {
         "city": "Budapeşte",
-        "primary": "Toplu taşımaya yakın, yüksek yorumlu şehir kampı",
-        "alternative": "Şehir dışındaki daha geniş ve sessiz kamp alternatifi",
-        "advantages": "Şehir gezisi ile entegre olur, altyapı açısından güçlüdür.",
-        "disadvantages": "Yaz yoğunluğunda gürültü ve yer bulma riski artar."
+        "primary": "Aréna Camping Budapest",
+        "alternative": "Varış öncesi Apple Maps ile yakın yedek ara",
+        "advantages": "Pilisi utca 7; şehir merkezine toplu taşıma erişimi güçlü.",
+        "disadvantages": "Horgoš yoğun ise alternatif sınır kapısını canlı haritadan değerlendir"
       },
       {
-        "city": "Katowice",
-        "primary": "Denetimli ve şehir merkezine erişimli camp",
-        "alternative": "Şehir dışındaki daha sakin kamp alanı",
-        "advantages": "Temizlik ve güvenlik öngörülebilir; uzun yol sonrasına uygun.",
-        "disadvantages": "Yoğun bölgelerde şehir sesi veya araç trafiği rahatsız edebilir."
+        "city": "Krakow",
+        "primary": "Camping Adam",
+        "alternative": "Camping Smok",
+        "advantages": "Vistül kıyısında, çevrili ve kameralı; çekme karavan için su/elektrik bağlantılı 20 parsel.",
+        "disadvantages": "Rezervasyon formunu önceden gönder ve e-posta teyidi olmadan kesin sayma"
       },
       {
-        "city": "Suwałki",
-        "primary": "Göl kenarına yakın düzenli ve görece sessiz kamp",
-        "alternative": "Wigry çevresi doğa kampı",
-        "advantages": "Riga yaklaşıma enerjini toparlamak için ideal dinlenme noktasıdır.",
-        "disadvantages": "Yaz mevsiminde yer bulma rekabeti artabilir."
+        "city": "Varşova",
+        "primary": "Camping Motel WOK",
+        "alternative": "Varış öncesi Apple Maps ile yakın yedek ara",
+        "advantages": "Polonya Kamp ve Karavan Federasyonu tarafından Varşova’nın en iyi seçeneklerinden biri olarak öneriliyor.",
+        "disadvantages": "Passat + karavan toplam uzunluğunu rezervasyondan önce bildir"
       },
       {
         "city": "Riga",
-        "primary": "Şehir merkezine yakın, iş süreçlerine erişimi güçlü kamp",
-        "alternative": "Şehir çevresinde daha sessiz doğal kampı alternatif",
-        "advantages": "PMLP, okul ve şehir görevlerine hızla geçiş imkânı sunar.",
-        "disadvantages": "Doğal alan kampına göre şehir içi ritim daha yoğundur."
+        "primary": "Camping Yachts",
+        "alternative": "Varış öncesi Apple Maps ile yakın yedek ara",
+        "advantages": "Riga’da su ve elektrik kurulumuna hızlı geçiş için kesin hedef.",
+        "disadvantages": "Sürücü yorgunluğu artarsa Kaunas’ta planlı geceleme ekle"
       }
     ]
   },
@@ -514,50 +460,43 @@
       "id": "sofia",
       "name": "Sofya",
       "country": "Bulgaristan",
-      "lat": 42.6977,
-      "lng": 23.3219
+      "lat": 42.63252,
+      "lng": 23.57471
     },
     {
-      "id": "bucharest",
-      "name": "Bükreş",
-      "country": "Romanya",
-      "lat": 44.4268,
-      "lng": 26.1025
-    },
-    {
-      "id": "deva",
-      "name": "Deva",
-      "country": "Romanya",
-      "lat": 45.8833,
-      "lng": 22.9
+      "id": "novi-sad",
+      "name": "Novi Sad",
+      "country": "Sırbistan",
+      "lat": 45.2410861,
+      "lng": 20.0255373
     },
     {
       "id": "budapest",
       "name": "Budapeşte",
       "country": "Macaristan",
-      "lat": 47.4979,
-      "lng": 19.0402
+      "lat": 47.504162,
+      "lng": 19.1561948
     },
     {
-      "id": "katowice",
-      "name": "Katowice",
+      "id": "krakow",
+      "name": "Krakow",
       "country": "Polonya",
-      "lat": 50.2649,
-      "lng": 19.0238
+      "lat": 50.0467778,
+      "lng": 19.9031667
     },
     {
-      "id": "suwalki",
-      "name": "Suwałki",
+      "id": "warsaw",
+      "name": "Varşova",
       "country": "Polonya",
-      "lat": 54.111,
-      "lng": 22.93
+      "lat": 52.17798,
+      "lng": 21.14727
     },
     {
       "id": "riga",
       "name": "Riga",
       "country": "Letonya",
-      "lat": 56.9496,
-      "lng": 24.1052
+      "lat": 56.96117,
+      "lng": 24.09431
     }
   ],
   "routeGuide": [
@@ -565,57 +504,43 @@
       "city": "İstanbul",
       "from": "İstanbul",
       "to": "Sofya",
-      "distance": "540–560 km",
-      "reason": "Tek günde sınır geçişine uygun, dinlenme dengeli."
+      "distance": "520–540 km",
+      "reason": "Gün doğumunda çıkış"
     },
     {
       "city": "Sofya",
       "from": "Sofya",
-      "to": "Bükreş",
-      "distance": "440–470 km",
-      "reason": "Gecikme riskini düşürmek için kısa mola planı."
+      "to": "Novi Sad",
+      "distance": "490–510 km",
+      "reason": "Campuccino E75’e yaklaşık 1 km"
     },
     {
-      "city": "Bükreş Güney",
-      "from": "Bükreş",
-      "to": "Deva",
-      "distance": "430–450 km",
-      "reason": "Olt Vadisi ve dağ geçişleri nedeniyle dikkatli hız."
-    },
-    {
-      "city": "Deva",
-      "from": "Deva",
+      "city": "Novi Sad",
+      "from": "Novi Sad",
       "to": "Budapeşte",
-      "distance": "280–320 km",
-      "reason": "Daha kısa bir gün ile yorgunluğu kır."
+      "distance": "300–320 km",
+      "reason": "Kısa etap"
     },
     {
       "city": "Budapeşte",
       "from": "Budapeşte",
-      "to": "Budapeşte",
-      "distance": "Sürüş yok",
-      "reason": "Sahada dinlenme ve sistem kontrolü için ayrılmış tampon gün."
+      "to": "Krakow",
+      "distance": "510–535 km",
+      "reason": "Vistül kıyısında sakin kamp"
     },
     {
-      "city": "Budapeşte",
-      "from": "Budapeşte",
-      "to": "Katowice",
-      "distance": "570–600 km",
-      "reason": "Uzun gün; iki güvenli mola ve iki kez yakıt kontrolü şart."
+      "city": "Krakow",
+      "from": "Krakow",
+      "to": "Varşova",
+      "distance": "290–305 km",
+      "reason": "Kısa etap"
     },
     {
-      "city": "Katowice",
-      "from": "Katowice",
-      "to": "Suwałki",
-      "distance": "550–580 km",
-      "reason": "Doğu Avrupa aksında akışa göre hız planı."
-    },
-    {
-      "city": "Suwałki",
-      "from": "Suwałki",
+      "city": "Varşova",
+      "from": "Varşova",
       "to": "Riga",
-      "distance": "360–390 km",
-      "reason": "Son 2 günde düşük stresle varış."
+      "distance": "655–680 km",
+      "reason": "Tek günde Riga’ya varış"
     }
   ],
   "days": [
@@ -625,728 +550,406 @@
       "date": "3 Ağustos · Pazartesi",
       "origin": "İstanbul",
       "destination": "Sofya",
-      "distanceKm": "540–560 km",
+      "distanceKm": "520–540 km",
       "duration": "8–10 saat + sınır",
-      "fuel": "65–75 L · €95–115",
+      "fuel": "63–70 L · €90–110",
       "risks": [
-        "Kapıkule yoğunluğu ve uzun bekleme olasılığı",
-        "Yağmurda otoban hızını düşürmek ve tek parça güvenli sürüş",
-        "Sürücü değişimi olmadan 10 saat üstü sürüşten kaçınılmalı"
+        "Kapıkule yoğunluğu ve sınır beklemesi",
+        "İlk gün yorgunluğu",
+        "Kampa geç varışta resepsiyon teyidi eksikliği"
       ],
       "opportunities": [
-        "Gün doğumu saatinde çıkış ile sıcaklıktan avantaj",
-        "Rahat bir geçiş için 6:30 sonrası şehir içi yoldan uzak durma"
+        "Gün doğumunda çıkış",
+        "Elin Pelin konumu sayesinde Sofya merkez trafiğine girmeden geceleme"
       ],
       "contingencies": [
-        "Sınırda en az 1 saat bekleme olursa, Sofya yerine Dragalevtsi dışında 30 dk'lık bekleme molası",
-        "Yakıtı %70'in altına düşmeden önce temin et"
+        "Sınır gecikirse kampı yoldan ara ve geç giriş bilgisini teyit et",
+        "Yakıtı Edirne çevresinde tamamla"
       ],
       "camp": {
-        "name": "Camperisimo Caravan & Camper Park",
-        "place": "Dragalevtsi, Sofya",
-        "contact": "Kapasiteyi telefon ve mail ile teyit et",
-        "phone": "+359 888 677 676",
-        "email": "info@camperisimo.com",
-        "link": "https://www.google.com/maps/search/?api=1&query=Camperisimo+Caravan+Camper+Park+Sofia",
-        "reservationTemplate": "Bugün 1 gece, elektrikli kamp yeri, duş ve temizlik mümkün mü? 18:00–20:00 varış var.",
-        "note": "Şehir kenarında kalmak, bir sonraki günü yüksek tempo olmadan geçirmeye yardım eder.",
+        "name": "Sunset Garden Camping",
+        "place": "33 1-vi May, 2109 Elin Pelin, Sofia, Bulgaristan",
+        "contact": "Doğrulanmış telefon/e-posta bulunamadı; çıkmadan Apple Maps üzerinden teyit et.",
+        "phone": null,
+        "email": "",
+        "link": "https://www.google.com/maps/search/?api=1&query=Sunset%20Garden%20Camping",
+        "reservationTemplate": "Hello, do you have a caravan pitch with electricity for one night? We expect to arrive this evening.",
+        "note": "Sofya merkezinin doğusunda, ertesi gün Sırbistan yönüne çıkış için sakin konum.",
         "image": "/assets/camps/sofia.webp",
-        "alternatives": [
-          {
-            "name": "Camping Ribkata",
-            "place": "Sofya’ya ~23 km",
-            "link": "https://www.google.com/maps/search/?api=1&query=Camping%20Ribkata%20Sofia%20Bulgaria",
-            "note": "Dağ manzaralı, sakin; şehir dışı alternatif."
-          }
-        ]
+        "alternatives": []
+      },
+      "arrivalTarget": {
+        "id": "sunset-garden-camping",
+        "name": "Sunset Garden Camping",
+        "kind": "campground",
+        "latitude": 42.63252,
+        "longitude": 23.57471,
+        "formattedAddress": "33 1-vi May, 2109 Elin Pelin, Sofia, Bulgaristan",
+        "source": "migrated"
       },
       "stops": [
         {
           "type": "Petrol",
-          "name": "Shell Kapıkule çevresi",
-          "note": "Sınır öncesi tam depo, tuvalet, su/atıştırmalık.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=Shell+Kapikule",
+          "name": "Kapıkule öncesi yakıt",
+          "note": "Tam depo, su ve tuvalet.",
+          "mapUrl": "https://www.google.com/maps/search/?api=1&query=fuel%20Kapikule%20Turkey",
           "estimatedMinutes": 25
         },
         {
           "type": "Kahve",
-          "name": "Haskovo istasyonu",
-          "note": "Ruhsal molada 20 dakika. Kısa mola, yüz ifadesi kontrolü.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=coffee+station+Haskovo",
+          "name": "Plovdiv çevresi mola",
+          "note": "Sınır sonrası 20 dakikalık sürücü molası.",
+          "mapUrl": "https://www.google.com/maps/search/?api=1&query=coffee%20Plovdiv%20highway",
           "estimatedMinutes": 20
-        },
-        {
-          "type": "Görülecek",
-          "name": "Vitosha manzarası",
-          "note": "İç mekanda kısa nefeslenme için kısa bir anlık tur.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=Vitosha+Sofia",
-          "estimatedMinutes": 15
         }
       ],
-      "route": "https://www.google.com/maps/dir/?api=1&origin=Istanbul%2CTurkey&destination=Sofia%2CBulgaria",
-      "routeEmbed": "https://www.google.com/maps/?output=embed&f=d&daddr=Sofia,+Bulgaria&saddr=Istanbul,+Turkey",
-      "trafficEmbed": "https://www.google.com/maps?output=embed&mode=driving&ttype=dep&f=d&daddr=Sofia,+Bulgaria&saddr=Istanbul,+Turkey",
-      "trafficLabel": "Sınır trafiği + otoyol akışı",
-      "cityCameras": [
-        {
-          "title": "İstanbul otoyolu",
-          "url": "https://images-webcams.windy.com/16/1645636616/current/preview/1645636616.jpg",
-          "source": "İstanbul",
-          "kind": "image",
-          "openUrl": "https://opencctv.org/cameras/turkiye/istanbul/alipasa-mahallesi/alipasa-mahallesi-305870",
-          "refreshSeconds": 120,
-          "note": "Sarıyer-Avcılar aksında yoğunluk için hızlı kontrol."
-        },
-        {
-          "title": "Sofya otoyolu",
-          "url": "https://cdn.uab.org/images/cctv/images/cctv/cctv_107/cctv.jpg",
-          "source": "Sofya",
-          "kind": "image",
-          "openUrl": "https://opencctv.org/cameras/bulgaria/sofia/sofia/bulgaria-highway-camera-107-132279",
-          "refreshSeconds": 100,
-          "note": "Sınır girişindeki akışı ve kamera açısını test et."
-        }
-      ]
+      "route": "https://www.google.com/maps/dir/?api=1&origin=%C4%B0stanbul&destination=33%201-vi%20May%2C%202109%20Elin%20Pelin%2C%20Sofia%2C%20Bulgaristan",
+      "routeEmbed": "https://www.google.com/maps?output=embed&f=d&saddr=%C4%B0stanbul&daddr=33%201-vi%20May%2C%202109%20Elin%20Pelin%2C%20Sofia%2C%20Bulgaristan",
+      "trafficEmbed": "https://www.google.com/maps?output=embed&f=d&saddr=%C4%B0stanbul&daddr=33%201-vi%20May%2C%202109%20Elin%20Pelin%2C%20Sofia%2C%20Bulgaristan",
+      "trafficLabel": "Kapıkule sınırı + Trakya ve A1 akışı",
+      "cityCameras": []
     },
     {
       "id": "02",
-      "slug": "sofya-bukres",
+      "slug": "sofya-novi-sad",
       "date": "4 Ağustos · Salı",
       "origin": "Sofya",
-      "destination": "Bükreş Güney",
-      "distanceKm": "440–470 km",
-      "duration": "7–8 saat",
-      "fuel": "55–65 L · €80–100",
+      "destination": "Novi Sad",
+      "distanceKm": "490–510 km",
+      "duration": "7–8 saat + sınır",
+      "fuel": "60–68 L · €90–110",
       "risks": [
-        "Ruse–Varna aksında tır trafiği nedeniyle dalgalı hız",
-        "Gece görüş açısında yorgunluk artışı"
+        "Bulgaristan–Sırbistan sınırında bekleme",
+        "Belgrad çevresinde yoğun trafik",
+        "Kovilj çıkışını kaçırma riski"
       ],
       "opportunities": [
-        "Pleven ve Ruse arasında dinlenme noktaları düzenli",
-        "Trafik akışı 17:00 sonrası kötüleşirse varış penceresi esnetilebilir"
+        "Campuccino E75’e yaklaşık 1 km",
+        "Düz parseller ve modern tesislerle güçlü transit geceleme"
       ],
       "contingencies": [
-        "Bükreş çevresinde kamp teyidi gecikirse alternatif olarak Giurgiu bandını kullan",
-        "Öğleden sonra yağmurda sürüş yavaşıtılabilir"
+        "Geç giriş için +381 63 222 783 numarasını ara",
+        "Belgrad yoğunluğunu canlı trafikle kontrol et"
       ],
       "camp": {
-        "name": "Belvedere Camping",
-        "place": "Băneasa, Bükreş (göller çevresi)",
-        "contact": "Kapasite ve elektrik bağlantısı teyidi tek gün önceden yapılmalı",
-        "phone": null,
-        "email": "kamp@bucamp.ro",
-        "link": "https://www.google.com/maps/search/?api=1&query=Belvedere%20Camping%20Bucharest",
-        "reservationTemplate": "Bugün geceleme ve araç park alanı (karavan için) var mı? Kapalı depo ve duş imkanı var mı?",
-        "note": "Merkeze ~20 dk; üç göl arasında tam donanımlı tesis. İlk şehir molası için rahat.",
-        "image": "/assets/camps/bucharest.webp",
-        "alternatives": [
-          {
-            "name": "Camping Snagov (Marina)",
-            "place": "Snagov gölü ormanı, ~40 km",
-            "link": "https://www.google.com/maps/search/?api=1&query=Camping%20Snagov%20lake%20Romania",
-            "note": "Göl kenarı, karavan + çadır; sakin orman ortamı."
-          },
-          {
-            "name": "Clinceni motokaravan alanı",
-            "place": "Carierei 58, Clinceni (Ilfov)",
-            "link": "https://www.google.com/maps/search/?api=1&query=camping%20Clinceni%20Ilfov%20Romania",
-            "note": "Şehir dışı, motokaravan için pratik gece durağı."
-          }
-        ]
+        "name": "Camping Campuccino",
+        "place": "Branka Bajića 60, 21243 Kovilj, Sırbistan",
+        "contact": "Resepsiyon 07:00–22:00; geç giriş ve acil durum telefonu 24 saat açık.",
+        "phone": "+381 63 222 783",
+        "email": "info@campuccino.org",
+        "link": "https://campuccino.org/",
+        "reservationTemplate": "Hello, we are travelling with a car and caravan. Is one pitch with electricity available tonight? Our estimated arrival is between 18:00 and 20:00.",
+        "note": "Kovilj’de, Novi Sad’a yaklaşık 15 km; E75 transit hattında güvenli ve yüksek puanlı kamp.",
+        "alternatives": []
+      },
+      "arrivalTarget": {
+        "id": "camping-campuccino",
+        "name": "Camping Campuccino",
+        "kind": "campground",
+        "latitude": 45.2410861,
+        "longitude": 20.0255373,
+        "formattedAddress": "Branka Bajića 60, 21243 Kovilj, Sırbistan",
+        "phone": "+381 63 222 783",
+        "whatsAppPhone": "+381 63 222 783",
+        "email": "info@campuccino.org",
+        "websiteURL": "https://campuccino.org/",
+        "source": "migrated"
       },
       "stops": [
         {
           "type": "Petrol",
-          "name": "OMV Sofya çıkışı",
-          "note": "Romanya geçişinden önce güvenli tank.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=OMV+Sofia",
+          "name": "Sofya batı çıkışı",
+          "note": "Sınır öncesi yakıt ve vignette kontrolü.",
+          "mapUrl": "https://www.google.com/maps/search/?api=1&query=fuel%20Sofia%20west%20Serbia%20route",
           "estimatedMinutes": 20
         },
         {
           "type": "Kahve",
-          "name": "Pleven dinlenme alanı",
-          "note": "Sürücü odaklanma dönüşü için molaya 20 dk.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=coffee+Pleven+rest+area",
-          "estimatedMinutes": 20
-        },
-        {
-          "type": "Görülecek",
-          "name": "Ruse Tuna kıyısı",
-          "note": "Fotoğraf molası (hızlı geçiş).",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=Danube+Ruse",
-          "estimatedMinutes": 15
+          "name": "Niš çevresi mola",
+          "note": "En az 25 dakika sürüş molası.",
+          "mapUrl": "https://www.google.com/maps/search/?api=1&query=rest%20area%20Nis%20Serbia",
+          "estimatedMinutes": 25
         }
       ],
-      "route": "https://www.google.com/maps/dir/?api=1&origin=Sofia%2CBulgaria&destination=Bucharest%2CRomania",
-      "routeEmbed": "https://www.google.com/maps/?output=embed&f=d&daddr=South+Bucharest,+Romania&saddr=Sofia,+Bulgaria",
-      "trafficEmbed": "https://www.google.com/maps?output=embed&mode=driving&f=d&daddr=South+Bucharest,+Romania&saddr=Sofia,+Bulgaria",
-      "trafficLabel": "Sofya–Bükreş aksında anlık trafik",
-      "cityCameras": [
-        {
-          "title": "Sofya ana giriş",
-          "url": "https://cdn.uab.org/images/cctv/images/cctv/cctv_102/cctv.jpg",
-          "source": "Sofya",
-          "kind": "image",
-          "openUrl": "https://opencctv.org/cameras/bulgaria/sofia/sofia/bulgaria-highway-camera-102-132275",
-          "refreshSeconds": 120,
-          "note": "Ruse hattına yakın yoğunluk kontrolü."
-        },
-        {
-          "title": "Bükreş güney rota",
-          "url": "https://imgproxy.windy.com/_/full/plain/current/1793902097/original.jpg",
-          "source": "Bükreş",
-          "kind": "image",
-          "openUrl": "https://opencctv.org/cameras/romania/bucharest/bucharest/bucharest-south-east-baratia-church-bd-i-c-bratianu-321390",
-          "refreshSeconds": 110,
-          "note": "Bükreş güneyi için gerçek zamanlı trafik izi."
-        }
-      ]
+      "route": "https://www.google.com/maps/dir/?api=1&origin=Sofya&destination=Branka%20Baji%C4%87a%2060%2C%2021243%20Kovilj%2C%20S%C4%B1rbistan",
+      "routeEmbed": "https://www.google.com/maps?output=embed&f=d&saddr=Sofya&daddr=Branka%20Baji%C4%87a%2060%2C%2021243%20Kovilj%2C%20S%C4%B1rbistan",
+      "trafficEmbed": "https://www.google.com/maps?output=embed&f=d&saddr=Sofya&daddr=Branka%20Baji%C4%87a%2060%2C%2021243%20Kovilj%2C%20S%C4%B1rbistan",
+      "trafficLabel": "Kalotina sınırı + E80/E75 akışı",
+      "cityCameras": []
     },
     {
       "id": "03",
-      "slug": "bukres-deva",
+      "slug": "novi-sad-budapest",
       "date": "5 Ağustos · Çarşamba",
-      "origin": "Bükreş Güney",
-      "destination": "Deva",
-      "distanceKm": "430–450 km",
-      "duration": "7–8 saat",
-      "fuel": "55–65 L · €80–100",
+      "origin": "Novi Sad",
+      "destination": "Budapeşte",
+      "distanceKm": "300–320 km",
+      "duration": "4,5–5,5 saat + sınır",
+      "fuel": "38–45 L · €60–75",
       "risks": [
-        "Olt Vadisi virajlarında ağır yük etkisi artar",
-        "Yağmurda yol işaretleri daha hızlı kaybolur"
+        "Sırbistan–Macaristan sınır kuyruğu",
+        "Budapeşte giriş trafiği"
       ],
       "opportunities": [
-        "Deva öncesi küçük mola alanları düzenli",
-        "Motosiklet trafiği dalgalı; takip mesafesi artırılmalı"
+        "Kısa etap",
+        "Aréna Camping’den metroya yürüyerek şehir erişimi"
       ],
       "contingencies": [
-        "Kamp kapasitesi dolu ise Deva merkez dışı alternatif kamp alanları aktif.",
-        "Yol kenarı arıza ihtimaline karşı karavan elektrik bağlantısı kontrol listesi tekrar."
+        "Horgoš yoğun ise alternatif sınır kapısını canlı haritadan değerlendir",
+        "Kampa 20:00 sonrası varışı telefonla bildir"
       ],
       "camp": {
-        "name": "Camping Tranzit Deva",
-        "place": "Șoseaua Națională 117, Deva (A1 yakını)",
-        "contact": "Aynı gün rezerve edilmesi önerilir",
-        "phone": null,
-        "email": "rezervare@deva-camp.ro",
-        "link": "https://www.google.com/maps/search/?api=1&query=Camping%20Tranzit%20Deva%20Romania",
-        "reservationTemplate": "Deva'da 1 gece karavan dolabı ve elektrikli park uygun mu? Rezervasyon teyidi rica edilir.",
-        "note": "A1 otoyoluna yakın transit kampı; Hunedoara Kalesi için uygun.",
-        "image": "/assets/camps/deva.webp",
-        "alternatives": [
-          {
-            "name": "La Cetate",
-            "place": "Deva çevresi",
-            "link": "https://www.google.com/maps/search/?api=1&query=La%20Cetate%20camping%20Deva%20Romania",
-            "note": "Küçük, sessiz; İngilizce konuşan işletmeci, elektrik dahil."
-          },
-          {
-            "name": "Camping Șoimuș",
-            "place": "Șoimuș, A1 çıkışı",
-            "link": "https://www.google.com/maps/search/?api=1&query=Camping%20Soimus%20Deva%20Romania",
-            "note": "15 karavan yeri; su, elektrik, duş, çamaşır."
-          }
-        ]
+        "name": "Aréna Camping Budapest",
+        "place": "Pilisi utca 7, 1106 Budapest, Macaristan",
+        "contact": "Tüm yıl açık; elektrik, Wi-Fi ve çamaşır kullanımı fiyata dahil.",
+        "phone": "+36 30 296 9129",
+        "email": "info@budapestcamping.hu",
+        "link": "https://arenacamping.eu/en",
+        "reservationTemplate": "Hello, is a pitch available for one car and caravan tonight? We need electricity and expect to arrive around 17:00.",
+        "note": "Pilisi utca 7; şehir merkezine toplu taşıma erişimi güçlü.",
+        "image": "/assets/camps/budapest.webp",
+        "alternatives": []
+      },
+      "arrivalTarget": {
+        "id": "arena-camping-budapest",
+        "name": "Aréna Camping Budapest",
+        "kind": "campground",
+        "latitude": 47.504162,
+        "longitude": 19.1561948,
+        "formattedAddress": "Pilisi utca 7, 1106 Budapest, Macaristan",
+        "phone": "+36 30 296 9129",
+        "whatsAppPhone": "+36 30 296 9129",
+        "email": "info@budapestcamping.hu",
+        "websiteURL": "https://arenacamping.eu/en",
+        "source": "migrated"
       },
       "stops": [
         {
-          "type": "Petrol",
-          "name": "Pitești geçişi",
-          "note": "Yolun kritik eğimini geçmeden önce yakıt kontrolü.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=petrol+station+Pitesti",
-          "estimatedMinutes": 20
-        },
-        {
           "type": "Kahve",
-          "name": "Călimănești",
-          "note": "Düşük ritimden sonra kısa mola.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=C%C4%83lim%C4%83ne%C8%99ti+coffee",
+          "name": "Szeged mola",
+          "note": "Sınır sonrası kısa dinlenme.",
+          "mapUrl": "https://www.google.com/maps/search/?api=1&query=rest%20area%20Szeged%20Hungary",
           "estimatedMinutes": 20
-        },
-        {
-          "type": "Görülecek",
-          "name": "Corvin Kalesi",
-          "note": "Zaman varsa kısa fotoğraf molası.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=Corvin+Castle",
-          "estimatedMinutes": 15
         }
       ],
-      "route": "https://www.google.com/maps/dir/?api=1&origin=Bucharest%2CRomania&destination=Deva%2CRomania",
-      "routeEmbed": "https://www.google.com/maps/?output=embed&f=d&daddr=Deva,+Romania&saddr=South+Bucharest,+Romania",
-      "trafficEmbed": "https://www.google.com/maps?output=embed&mode=driving&f=d&daddr=Deva,+Romania&saddr=South+Bucharest,+Romania",
-      "trafficLabel": "Olt Vadisi arazi ve trafik durumu",
-      "cityCameras": [
-        {
-          "title": "Deva yaklaşım",
-          "url": "https://images-webcams.windy.com/68/1741034568/current/preview/1741034568.jpg",
-          "source": "Deva",
-          "kind": "image",
-          "openUrl": "https://opencctv.org/cameras/romania/hunedoara/aeroclubul-constantin-manolache-deva-131747",
-          "refreshSeconds": 130,
-          "note": "Deva vadisinin virajına girmeden önce görüş kontrolü."
-        },
-        {
-          "title": "Bükreş güney çıkışı",
-          "url": "https://imgproxy.windy.com/_/full/plain/current/1793891268/original.jpg",
-          "source": "Bükreş",
-          "kind": "image",
-          "openUrl": "https://opencctv.org/cameras/romania/bucharest/bucharest/bucharest-south-east-baratia-church-bd-i-c-bratianu-321390",
-          "refreshSeconds": 140,
-          "note": "Bükreş çıkış trafiği için karşılaştırma."
-        }
-      ]
+      "route": "https://www.google.com/maps/dir/?api=1&origin=Novi%20Sad&destination=Pilisi%20utca%207%2C%201106%20Budapest%2C%20Macaristan",
+      "routeEmbed": "https://www.google.com/maps?output=embed&f=d&saddr=Novi%20Sad&daddr=Pilisi%20utca%207%2C%201106%20Budapest%2C%20Macaristan",
+      "trafficEmbed": "https://www.google.com/maps?output=embed&f=d&saddr=Novi%20Sad&daddr=Pilisi%20utca%207%2C%201106%20Budapest%2C%20Macaristan",
+      "trafficLabel": "Horgoš/Röszke sınırı + M5 ve Budapeşte girişi",
+      "cityCameras": []
     },
     {
       "id": "04",
-      "slug": "deva-budapest",
+      "slug": "budapest-krakow",
       "date": "6 Ağustos · Perşembe",
-      "origin": "Deva",
-      "destination": "Budapeşte",
-      "distanceKm": "280–320 km",
-      "duration": "5–6 saat",
-      "fuel": "38–48 L · €60–75",
+      "origin": "Budapeşte",
+      "destination": "Krakow",
+      "distanceKm": "510–535 km",
+      "duration": "7,5–8,5 saat",
+      "fuel": "62–72 L · €95–115",
       "risks": [
-        "Ara geçişlerde yük dengesi değişimine bağlı rüzgâr etkisi",
-        "Sınır dışı kısa şehir girişi sırasında yavaşlama"
+        "Slovakya dağ geçişlerinde yavaşlama",
+        "Krakow girişinde akşam trafiği",
+        "Camping Adam yalnız 20 parsele sahip"
       ],
       "opportunities": [
-        "Daha kısa gün, kamp giriş belgeleri ve elektrik kontrolünü rahatça yapmak için ideal",
-        "Tuna hattında 20 dakikalık bir mola, yorgunluğu keser"
+        "Vistül kıyısında sakin kamp",
+        "Her parselde ayrı su ve elektrik",
+        "Krakow merkezine yaklaşık 3 km"
       ],
       "contingencies": [
-        "Kamp teklifi geçikirse Budapeşte içinde geceleme planı yedeklenir.",
-        "Zorunlu ikincil plan: Arad çevresinde erken konaklama."
+        "Rezervasyon formunu önceden gönder ve e-posta teyidi olmadan kesin sayma",
+        "Dolulukta Camping Smok’u yedek kullan"
       ],
       "camp": {
-        "name": "Camping Budapest Arena",
-        "place": "Budapeşte",
-        "contact": "Önceden teyit edilmeden geceleme planını kilitleme.",
-        "phone": "+36 30 296 9129",
-        "email": "info@budapestcamping.hu",
-        "link": "https://www.google.com/maps/search/?api=1&query=Camping+Budapest+Arena",
-        "reservationTemplate": "Günümüz, elektrik, duş, atık su yönetimi ve giriş saati teyidi rica edilir.",
-        "note": "Kısa gün nedeniyle dinlenme ve vites ayarı için en temiz seçenek.",
-        "image": "/assets/camps/budapest.webp",
+        "name": "Camping Adam",
+        "place": "Wioślarska 19, 30-206 Kraków, Polonya",
+        "contact": "Rezervasyon talebi işletme onayıyla kesinleşir; önceden form gönder.",
+        "phone": "+48 519 15 98 64",
+        "email": "info@campingadam.pl",
+        "link": "https://campingadam.pl/",
+        "reservationTemplate": "Hello, we would like to reserve one pitch for a car and caravan with electricity and water. We expect to arrive on 6 August in the evening.",
+        "note": "Vistül kıyısında, çevrili ve kameralı; çekme karavan için su/elektrik bağlantılı 20 parsel.",
         "alternatives": [
           {
-            "name": "Haller Camping",
-            "place": "Budapeşte (M3 metro)",
-            "link": "https://www.google.com/maps/search/?api=1&query=Haller%20Camping%20Budapest",
-            "note": "Merkeze 5 durak; tüm yıl açık, elektrik hookup."
-          },
-          {
-            "name": "Római Camping",
-            "place": "Óbuda, Tuna kıyısı",
-            "link": "https://www.google.com/maps/search/?api=1&query=Romai%20Camping%20Budapest",
-            "note": "Geniş yeşil alan, nehir kenarı; klasik Budapeşte kampı."
+            "name": "Camping Smok",
+            "place": "Kamedulska 18, Kraków",
+            "link": "https://en.smok.krakow.pl/",
+            "note": "50 karavan yeri; bireysel rezervasyon almıyor, müsaitlik sırasına göre."
           }
         ]
+      },
+      "arrivalTarget": {
+        "id": "camping-adam-krakow",
+        "name": "Camping Adam",
+        "kind": "campground",
+        "latitude": 50.0467778,
+        "longitude": 19.9031667,
+        "formattedAddress": "Wioślarska 19, 30-206 Kraków, Polonya",
+        "phone": "+48 519 15 98 64",
+        "whatsAppPhone": "+48 519 15 98 64",
+        "email": "info@campingadam.pl",
+        "websiteURL": "https://campingadam.pl/",
+        "source": "migrated"
       },
       "stops": [
         {
           "type": "Petrol",
-          "name": "Arad çevresi",
-          "note": "Macaristan geçişinden önce tam depoya yaklaş.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=petrol+station+Arad",
-          "estimatedMinutes": 20
+          "name": "Banská Bystrica çevresi",
+          "note": "Dağ geçişi öncesi yakıt ve fren molası.",
+          "mapUrl": "https://www.google.com/maps/search/?api=1&query=fuel%20Banska%20Bystrica%20Slovakia",
+          "estimatedMinutes": 25
         },
         {
           "type": "Kahve",
-          "name": "Szeged",
-          "note": "10–15 dakikalık mola.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=coffee+Szeged",
-          "estimatedMinutes": 15
-        },
-        {
-          "type": "Görülecek",
-          "name": "Tisza kıyısı",
-          "note": "Geceye geçmeden kısa manzara molası.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=Tisza+Szeged",
-          "estimatedMinutes": 15
+          "name": "Slovakya kuzey mola",
+          "note": "En az 25 dakika sürücü dinlenmesi.",
+          "mapUrl": "https://www.google.com/maps/search/?api=1&query=rest%20area%20Ruzomberok%20Slovakia",
+          "estimatedMinutes": 25
         }
       ],
-      "route": "https://www.google.com/maps/dir/?api=1&origin=Deva%2CRomania&destination=Budapest%2CHungary",
-      "routeEmbed": "https://www.google.com/maps/?output=embed&f=d&daddr=Budapest,+Hungary&saddr=Deva,+Romania",
-      "trafficEmbed": "https://www.google.com/maps?output=embed&mode=driving&f=d&daddr=Budapest,+Hungary&saddr=Deva,+Romania",
-      "trafficLabel": "Deva–Budapeşte girişi ve otoyol akışı",
-      "cityCameras": [
-        {
-          "title": "Budapeşte ana rota",
-          "url": "https://images.opentopia.com/cams/18703/big.jpg",
-          "source": "Budapeşte",
-          "kind": "image",
-          "openUrl": "https://opencctv.org/cameras/hungary/budapest/budapest/security-gate-332517",
-          "refreshSeconds": 90,
-          "note": "Şehir giriş hattını görerek yoğunluğu kontrol et."
-        },
-        {
-          "title": "Deva çıkış hattı",
-          "url": "https://imgproxy.windy.com/_/full/plain/current/1555784910/original.jpg",
-          "source": "Deva",
-          "kind": "image",
-          "openUrl": "https://opencctv.org/cameras/romania/hunedoara/aeroclubul-constantin-manolache-deva-131747",
-          "refreshSeconds": 150,
-          "note": "Çıkışta takip ve geçiş kalitesi kontrolü."
-        }
-      ]
+      "route": "https://www.google.com/maps/dir/?api=1&origin=Budape%C5%9Fte&destination=Wio%C5%9Blarska%2019%2C%2030-206%20Krak%C3%B3w%2C%20Polonya",
+      "routeEmbed": "https://www.google.com/maps?output=embed&f=d&saddr=Budape%C5%9Fte&daddr=Wio%C5%9Blarska%2019%2C%2030-206%20Krak%C3%B3w%2C%20Polonya",
+      "trafficEmbed": "https://www.google.com/maps?output=embed&f=d&saddr=Budape%C5%9Fte&daddr=Wio%C5%9Blarska%2019%2C%2030-206%20Krak%C3%B3w%2C%20Polonya",
+      "trafficLabel": "M2 + Slovakya dağ geçişleri + Krakow girişi",
+      "cityCameras": []
     },
     {
       "id": "05",
-      "slug": "budapest-dinlenme",
+      "slug": "krakow-varsova",
       "date": "7 Ağustos · Cuma",
-      "origin": "Budapeşte",
-      "destination": "Budapeşte",
-      "distanceKm": "Sürüş yok",
-      "duration": "Dinlenme ve sistem güncelleme",
-      "fuel": "Yakıt alma gerekmiyor",
+      "origin": "Krakow",
+      "destination": "Varşova",
+      "distanceKm": "290–305 km",
+      "duration": "4,5–5,5 saat",
+      "fuel": "36–43 L · €55–70",
       "risks": [
-        "Yüksek hızdayken kısa mesafe planlama yapılmaması",
-        "Şehir içinde parklama zorluğu"
+        "S7 yol çalışmaları ve Varşova giriş yoğunluğu",
+        "WOK 8 metreden uzun araç kombinasyonlarını kabul etmiyor"
       ],
       "opportunities": [
-        "Sistem kontrolleri için zaman avantajı",
-        "Ertesi uzun gün için sürücü ritmini optimize etme"
+        "Kısa etap",
+        "WOK yıl boyu açık ve ormanlık sakin konumda",
+        "Toplu taşımayla şehir erişimi"
       ],
       "contingencies": [
-        "Sadece acil ihtiyaç olursa kısa yerel tur; uzun yolculuk değil"
+        "Passat + karavan toplam uzunluğunu rezervasyondan önce bildir",
+        "8 metre sınırı sorun olursa alternatif kampı teyit et"
       ],
       "camp": {
-        "name": "Camping Budapest Arena",
-        "place": "Budapeşte",
-        "contact": "Dönüş planı için konukhane teyidi yapılabilir",
-        "phone": "+36 30 296 9129",
-        "email": "info@budapestcamping.hu",
-        "link": "https://www.google.com/maps/search/?api=1&query=Camping+Budapest+Arena",
-        "reservationTemplate": "Bugün sadece konaklama onayı ve kamp elektrik şalterleri kontrol edilmeli.",
-        "note": "Aynı kampın korunması yükü ve yorgunluğu düşürür.",
-        "image": "/assets/camps/budapest.webp",
-        "alternatives": [
-          {
-            "name": "Haller Camping",
-            "place": "Budapeşte (M3 metro)",
-            "link": "https://www.google.com/maps/search/?api=1&query=Haller%20Camping%20Budapest",
-            "note": "Merkeze 5 durak; tüm yıl açık, elektrik hookup."
-          },
-          {
-            "name": "Római Camping",
-            "place": "Óbuda, Tuna kıyısı",
-            "link": "https://www.google.com/maps/search/?api=1&query=Romai%20Camping%20Budapest",
-            "note": "Geniş yeşil alan, nehir kenarı; klasik Budapeşte kampı."
-          }
-        ]
+        "name": "Camping Motel WOK",
+        "place": "Odrębna 16, 04-867 Warszawa, Polonya",
+        "contact": "Yıl boyu açık. 8 metreden uzun araç/kombinasyon için önceden yazılı teyit şart.",
+        "phone": "+48 22 612 79 51",
+        "email": "wok@campingwok.warszawa.pl",
+        "link": "https://campingwok.warszawa.pl/",
+        "reservationTemplate": "Hello, we travel with a VW Passat towing a caravan. Our total combination length is approximately [LENGTH] metres. Can you confirm one pitch with electricity for 7 August?",
+        "note": "Polonya Kamp ve Karavan Federasyonu tarafından Varşova’nın en iyi seçeneklerinden biri olarak öneriliyor.",
+        "alternatives": []
+      },
+      "arrivalTarget": {
+        "id": "camping-motel-wok",
+        "name": "Camping Motel WOK",
+        "kind": "campground",
+        "latitude": 52.17798,
+        "longitude": 21.14727,
+        "formattedAddress": "Odrębna 16, 04-867 Warszawa, Polonya",
+        "phone": "+48 22 612 79 51",
+        "whatsAppPhone": "+48 22 612 79 51",
+        "email": "wok@campingwok.warszawa.pl",
+        "websiteURL": "https://campingwok.warszawa.pl/",
+        "source": "migrated"
       },
       "stops": [
         {
-          "type": "Tedarik",
-          "name": "Büyük market",
-          "note": "Su, filtreli içecek, çocuk atıştırmalıkları.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=hypermarket+Budapest",
-          "estimatedMinutes": 25
-        },
-        {
           "type": "Kahve",
-          "name": "Budapeşte şehir merkezi",
-          "note": "Kısa yürüyüş + dinlenme.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=coffee+Budapest",
+          "name": "Kielce çevresi mola",
+          "note": "Kısa etapta tek planlı mola.",
+          "mapUrl": "https://www.google.com/maps/search/?api=1&query=rest%20area%20Kielce%20S7",
           "estimatedMinutes": 20
-        },
-        {
-          "type": "Görülecek",
-          "name": "Parlamento çevresi",
-          "note": "Tuna kıyısı gezisi ve stres yönetimi.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=Hungarian+Parliament+Building",
-          "estimatedMinutes": 30
         }
       ],
-      "route": "https://www.google.com/maps/search/?api=1&query=Budapest",
-      "routeEmbed": "https://www.google.com/maps/?output=embed&q=Budapest",
-      "trafficEmbed": "https://www.google.com/maps/embed?pb=!1m0!3m2!1str!2s!4v1710000000000!6m8!1m7!1s0x0%3A0x0!2m2!1d47.4979!2d19.0402",
-      "trafficLabel": "Şehir içi trafik",
-      "cityCameras": [
-        {
-          "title": "Budapeşte şehir trafiği",
-          "url": "https://images.opentopia.com/cams/18703/big.jpg",
-          "source": "Budapeşte",
-          "kind": "image",
-          "openUrl": "https://opencctv.org/cameras/hungary/budapest/budapest/security-gate-332517",
-          "refreshSeconds": 120,
-          "note": "Şehir içi yoğunluk ve mola saatlerine göre rota uyumu."
-        }
-      ]
+      "route": "https://www.google.com/maps/dir/?api=1&origin=Krakow&destination=Odr%C4%99bna%2016%2C%2004-867%20Warszawa%2C%20Polonya",
+      "routeEmbed": "https://www.google.com/maps?output=embed&f=d&saddr=Krakow&daddr=Odr%C4%99bna%2016%2C%2004-867%20Warszawa%2C%20Polonya",
+      "trafficEmbed": "https://www.google.com/maps?output=embed&f=d&saddr=Krakow&daddr=Odr%C4%99bna%2016%2C%2004-867%20Warszawa%2C%20Polonya",
+      "trafficLabel": "S7 + Varşova güneydoğu girişi",
+      "cityCameras": []
     },
     {
       "id": "06",
-      "slug": "budapest-katowice",
+      "slug": "varsova-riga",
       "date": "8 Ağustos · Cumartesi",
-      "origin": "Budapeşte",
-      "destination": "Katowice",
-      "distanceKm": "570–600 km",
-      "duration": "9–10 saat",
-      "fuel": "72–84 L · €110–130",
-      "risks": [
-        "Uzun ve yoğun bir gün, dikkat dağıtıcı hava koşullarına dikkat",
-        "Pencere sislenmesi/klima yönetimi yorgunluk yaratabilir"
-      ],
-      "opportunities": [
-        "Günün ana avantajı: Polonya girişindeki ilk kamp hedefini erken alabilirsin",
-        "Olomouc, Brno ve Zlín çevresi dinlenmeye uygun geçiş noktaları sağlar"
-      ],
-      "contingencies": [
-        "Seyrüseferde alternatif rota: Varşova doğusuna kaydırarak trafikten kaçınma",
-        "Aşırı hava dalgalanmasında Katowice gününü en geç 2 saat geciktirme planı"
-      ],
-      "camp": {
-        "name": "Camping 215 MOSiR",
-        "place": "Trzech Stawów 23, Katowice",
-        "contact": "Rezervasyon ve elektrik + temizlik durumu teyit edilmeli",
-        "phone": "+48 32 256 59 39",
-        "email": "camping@mosir.katowice.pl",
-        "link": "https://www.google.com/maps/search/?api=1&query=Camping+215+Katowice",
-        "reservationTemplate": "Bugün geçiş sonrası 1 gece, göl kenarı kamp yeri ve duş durumu teyidi rica edilir.",
-        "note": "Şehrin içinde olsa da erişimi güçlü; planlı inmek iyi olur.",
-        "image": "/assets/camps/katowice.webp",
-        "alternatives": [
-          {
-            "name": "Camping Park Śląski",
-            "place": "Chorzów, Park Śląski",
-            "link": "https://www.google.com/maps/search/?api=1&query=Camping%20Park%20Slaski%20Chorzow",
-            "note": "25 motokaravan yeri, restoran + SPA; parkın içinde."
-          }
-        ]
-      },
-      "stops": [
-        {
-          "type": "Petrol",
-          "name": "Brno çevresi",
-          "note": "Yarım depo kontrolü, hızlı mola.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=petrol+station+Brno",
-          "estimatedMinutes": 20
-        },
-        {
-          "type": "Kahve",
-          "name": "Olomouc dinlenme alanı",
-          "note": "Ara mola ile sürücü odaklanmayı koru.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=rest+area+Olomouc",
-          "estimatedMinutes": 20
-        },
-        {
-          "type": "Görülecek",
-          "name": "Katowice göl hattı",
-          "note": "Akşam öncesi kısa yürüyüş",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=Dolina+Trzech+Stawow",
-          "estimatedMinutes": 25
-        }
-      ],
-      "route": "https://www.google.com/maps/dir/?api=1&origin=Budapest%2CHungary&destination=Katowice%2CPoland",
-      "routeEmbed": "https://www.google.com/maps/?output=embed&f=d&daddr=Katowice,+Poland&saddr=Budapest,+Hungary",
-      "trafficEmbed": "https://www.google.com/maps?output=embed&mode=driving&f=d&daddr=Katowice,+Poland&saddr=Budapest,+Hungary",
-      "trafficLabel": "Uzun yol segmenti anlık akış",
-      "cityCameras": [
-        {
-          "title": "Katowice yaklaşım",
-          "url": "https://images-webcams.windy.com/01/1621006401/current/preview/1621006401.jpg",
-          "source": "Katowice",
-          "kind": "image",
-          "openUrl": "https://opencctv.org/cameras/poland/silesian-voivodeship/myslowice/myslowice-centrum-katowicka-krakowska-305332",
-          "refreshSeconds": 110,
-          "note": "Polonya girişinde uzun segment akışını gör."
-        },
-        {
-          "title": "Bielsko-Biała kuzeyi",
-          "url": "https://imgproxy.windy.com/_/full/plain/current/1793891268/original.jpg",
-          "source": "Bielsko",
-          "kind": "image",
-          "openUrl": "https://opencctv.org/cameras/poland/silesian-voivodeship/bielsko-biala/bielsko-biala-south-east-plac-wolnosci-321389",
-          "refreshSeconds": 130,
-          "note": "Yol alternatifi için kıyaslama kamerası."
-        }
-      ]
-    },
-    {
-      "id": "07",
-      "slug": "katowice-suwalki",
-      "date": "9 Ağustos · Pazar",
-      "origin": "Katowice",
-      "destination": "Suwałki",
-      "distanceKm": "550–580 km",
-      "duration": "8–9 saat",
-      "fuel": "70–82 L · €105–125",
-      "risks": [
-        "Varşova aksında yoğunluk; trafik saatinde rüzgar etkili park",
-        "Hava açıldığında uzun doğrusal sürüş dikkatini düşürebilir"
-      ],
-      "opportunities": [
-        "Polonya–Litvanya hattında dinlenme alanları makul",
-        "Gece geçişi gerektirmeyecek şekilde rota planlanabilir"
-      ],
-      "contingencies": [
-        "Gece sürüşü kaçınılmalı; gerekiyorsa ikinci güvenli durak eklenir"
-      ],
-      "camp": {
-        "name": "Eurocamping Suwałki",
-        "place": "ul. Zarzecze 26, Suwałki",
-        "contact": "Günün içinde teyit edilmesi kritik",
-        "phone": null,
-        "email": "reservations@suwalki-camp.pl",
-        "link": "https://www.google.com/maps/search/?api=1&query=Eurocamping%20Suwalki%20Poland",
-        "reservationTemplate": "Riga'dan önceki stratejik güvenlik molası için 1 gece mümkün mü? Elektrik ve temizlik durumu isterim.",
-        "note": "Şehir içi ACSI kampı, 42 parsel; Riga öncesi son toparlanma.",
-        "image": "/assets/camps/suwalki.webp",
-        "alternatives": [
-          {
-            "name": "Camping Wigry",
-            "place": "Wigry Milli Parkı, göl kenarı",
-            "link": "https://www.google.com/maps/search/?api=1&query=Camping%20Wigry%20Poland",
-            "note": "Doğa içinde, yıllardır karavan ağırlayan tesis."
-          },
-          {
-            "name": "Osada na Cyplu",
-            "place": "Wigry gölü",
-            "link": "https://www.google.com/maps/search/?api=1&query=Osada%20na%20Cyplu%20Wigry%20Poland",
-            "note": "Ağaçlar arasında sessiz; ücretsiz ateş ve tuvalet."
-          }
-        ]
-      },
-      "stops": [
-        {
-          "type": "Petrol",
-          "name": "Łódź çevresi",
-          "note": "Varşova öncesi güvenli yakıt aralığı.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=petrol+station+Lodz",
-          "estimatedMinutes": 20
-        },
-        {
-          "type": "Kahve",
-          "name": "Varşova kuzeyi",
-          "note": "Trafik kararından önce kısa dinlenme.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=coffee+Warsaw+north",
-          "estimatedMinutes": 20
-        },
-        {
-          "type": "Görülecek",
-          "name": "Masurya Gölleri",
-          "note": "Kısa fotoğraf molası için düşük zaman kaybı.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=Masurian+Lakes",
-          "estimatedMinutes": 15
-        }
-      ],
-      "route": "https://www.google.com/maps/dir/?api=1&origin=Katowice%2CPoland&destination=Suwalki%2CPoland",
-      "routeEmbed": "https://www.google.com/maps/?output=embed&f=d&daddr=Suwalki,+Poland&saddr=Katowice,+Poland",
-      "trafficEmbed": "https://www.google.com/maps?output=embed&mode=driving&f=d&daddr=Suwalki,+Poland&saddr=Katowice,+Poland",
-      "trafficLabel": "Varşova çevresi ve kuzey hattı trafiği",
-      "cityCameras": [
-        {
-          "title": "Suwałki yaklaşım",
-          "url": "https://images-webcams.windy.com/25/1581464125/current/preview/1581464125.jpg",
-          "source": "Suwałki",
-          "kind": "image",
-          "openUrl": "https://opencctv.org/cameras/poland/podlaskie-voivodeship/suwalki/suwalki-airport-podlaskie-301021",
-          "refreshSeconds": 100,
-          "note": "Kuzeye yaklaşırken hız yönetimini görsel teyit et."
-        },
-        {
-          "title": "Białystok alternatif",
-          "url": "https://images-webcams.windy.com/36/1701605336/current/preview/1701605336.jpg",
-          "source": "Białystok",
-          "kind": "image",
-          "openUrl": "https://opencctv.org/cameras/poland/podlaskie-voivodeship/bialystok/bialystok-north-east-313495",
-          "refreshSeconds": 120,
-          "note": "Suwalki girişini beklenen yoğunlukta karşılaştır."
-        }
-      ]
-    },
-    {
-      "id": "08",
-      "slug": "suwalki-riga",
-      "date": "10 Ağustos · Pazartesi",
-      "origin": "Suwałki",
+      "origin": "Varşova",
       "destination": "Riga",
-      "distanceKm": "360–390 km",
-      "duration": "5–6 saat",
-      "fuel": "45–55 L · €70–85",
+      "distanceKm": "655–680 km",
+      "duration": "9–10,5 saat",
+      "fuel": "80–92 L · €120–145",
       "risks": [
-        "Baltık rotasında son bölümde hızlı ritim baskısı",
-        "Son 90 km içinde yorgunluk nedeniyle 'bitmişiz' hissi"
+        "Rotanın en uzun günü",
+        "S8/S61 üzerinde yoğun kamyon trafiği",
+        "Litvanya ve Letonya bölümünde sürücü yorgunluğu"
       ],
       "opportunities": [
-        "Riga'ya varışta doğrudan planların uygulanabilirliği yüksek",
-        "Matrožu civarı doğrudan kamp erişimi"
+        "Tek günde Riga’ya varış",
+        "Kaunas çevresinde güçlü uzun mola altyapısı"
       ],
       "contingencies": [
-        "Geceye yakınsa Kaunas/eyalet parkı alternatiflerinde kısa gecikmeye izin ver"
+        "Sürücü yorgunluğu artarsa Kaunas’ta planlı geceleme ekle",
+        "İki uzun mola ve ikinci yakıt kontrolünü atlama"
       ],
       "camp": {
         "name": "Camping Yachts",
-        "place": "Matrožu iela 7a, Riga",
-        "contact": "+371 29205543 · info@campingyachts.lv",
-        "phone": "+371 29205543",
+        "place": "Matrožu iela 7A, Riga, Letonya",
+        "contact": "Riga varış saatini telefon veya e-posta ile önceden teyit et.",
+        "phone": "+371 29 205 543",
         "email": "info@campingyachts.lv",
-        "link": "https://www.google.com/maps/search/?api=1&query=Camping+Yachts+Riga",
-        "reservationTemplate": "Riga varışı için 1 gece, elektrikli kamp ve atık su bağlantısı teyidi rica edilir.",
-        "note": "Varış sonrası kurulum basit, su ve elektrik hızlıca devreye alınır.",
+        "link": "https://campingyachts.lv/",
+        "reservationTemplate": "Hello, we are arriving in Riga with a car and caravan. Is an electric pitch available tonight? Our estimated arrival is between 19:00 and 21:00.",
+        "note": "Riga’da su ve elektrik kurulumuna hızlı geçiş için kesin hedef.",
         "image": "/assets/camps/riga.webp",
-        "alternatives": [
-          {
-            "name": "Riga City Camping",
-            "place": "Ķīpsala (Kipsalas 8)",
-            "link": "https://www.google.com/maps/search/?api=1&query=Riga%20City%20Camping%20Latvia",
-            "note": "Eski Şehir’e yürüme mesafesi; havuz + market yakın."
-          },
-          {
-            "name": "Riverside Camping",
-            "place": "Daugava kıyısı, Riga",
-            "link": "https://www.google.com/maps/search/?api=1&query=Riverside%20Camping%20Riga",
-            "note": "Nehir kenarı, şehir merkezine yakın alternatif."
-          }
-        ]
+        "alternatives": []
+      },
+      "arrivalTarget": {
+        "id": "camping-yachts-riga",
+        "name": "Camping Yachts",
+        "kind": "campground",
+        "latitude": 56.96117,
+        "longitude": 24.09431,
+        "formattedAddress": "Matrožu iela 7A, Riga, Letonya",
+        "phone": "+371 29 205 543",
+        "whatsAppPhone": "+371 29 205 543",
+        "email": "info@campingyachts.lv",
+        "websiteURL": "https://campingyachts.lv/",
+        "source": "migrated"
       },
       "stops": [
         {
           "type": "Petrol",
-          "name": "Kaunas çevresi",
-          "note": "Letonya'dan önce acil yakıt tamponu.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=petrol+station+Kaunas",
-          "estimatedMinutes": 20
+          "name": "Łomża / S61 yakıt",
+          "note": "Tam depo ve 25 dakika mola.",
+          "mapUrl": "https://www.google.com/maps/search/?api=1&query=fuel%20Lomza%20S61%20Poland",
+          "estimatedMinutes": 25
         },
         {
           "type": "Kahve",
-          "name": "Panevėžys",
-          "note": "Son sakin mola.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=coffee+Panevezys",
-          "estimatedMinutes": 20
+          "name": "Kaunas uzun mola",
+          "note": "En az 40 dakika yemek ve sürücü dinlenmesi.",
+          "mapUrl": "https://www.google.com/maps/search/?api=1&query=Kaunas%20MEGA%20Lithuania",
+          "estimatedMinutes": 40
         },
         {
-          "type": "Görülecek",
-          "name": "Riga A7 yaklaşımı",
-          "note": "Rutin geçiş ve varış ritmini test et.",
-          "mapUrl": "https://www.google.com/maps/search/?api=1&query=Riga+A7",
+          "type": "Kahve",
+          "name": "Panevėžys kısa mola",
+          "note": "Son etap öncesi 20 dakika.",
+          "mapUrl": "https://www.google.com/maps/search/?api=1&query=rest%20area%20Panevezys%20Lithuania",
           "estimatedMinutes": 20
         }
       ],
-      "route": "https://www.google.com/maps/dir/?api=1&origin=Suwalki%2CPoland&destination=Riga%2CLatvia",
-      "routeEmbed": "https://www.google.com/maps/?output=embed&f=d&daddr=Riga,+Latvia&saddr=Suwalki,+Poland",
-      "trafficEmbed": "https://www.google.com/maps?output=embed&mode=driving&f=d&daddr=Riga,+Latvia&saddr=Suwalki,+Poland",
-      "trafficLabel": "Riga yaklaşımı ve Baltık koridoru",
-      "cityCameras": [
-        {
-          "title": "Riga merkez yaklaşım",
-          "url": "https://images-webcams.windy.com/70/1716213770/current/preview/1716213770.jpg",
-          "source": "Riga",
-          "kind": "image",
-          "openUrl": "https://opencctv.org/cameras/latvia/vidzeme/riga/riga-riga-radio-and-tv-tower-306703",
-          "refreshSeconds": 90,
-          "note": "Riga girişindeki son şehir manzarası için canlı izleme."
-        },
-        {
-          "title": "Riga kuzey yaklaşım",
-          "url": "https://imgproxy.windy.com/_/full/plain/current/1555784910/original.jpg",
-          "source": "Riga",
-          "kind": "image",
-          "openUrl": "https://opencctv.org/cameras/latvia/vidzeme/riga/riga-riga-radio-and-tv-tower-306703",
-          "refreshSeconds": 130,
-          "note": "Alternatif açıda varış öncesi kontrol."
-        }
-      ]
+      "route": "https://www.google.com/maps/dir/?api=1&origin=Var%C5%9Fova&destination=Matro%C5%BEu%20iela%207A%2C%20Riga%2C%20Letonya",
+      "routeEmbed": "https://www.google.com/maps?output=embed&f=d&saddr=Var%C5%9Fova&daddr=Matro%C5%BEu%20iela%207A%2C%20Riga%2C%20Letonya",
+      "trafficEmbed": "https://www.google.com/maps?output=embed&f=d&saddr=Var%C5%9Fova&daddr=Matro%C5%BEu%20iela%207A%2C%20Riga%2C%20Letonya",
+      "trafficLabel": "S8/S61 + Via Baltica + A7 Riga yaklaşımı",
+      "cityCameras": []
     }
   ]
 }

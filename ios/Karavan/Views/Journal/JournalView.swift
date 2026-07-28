@@ -19,11 +19,13 @@ struct JournalView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottomTrailing) {
+            ZStack {
                 Theme.bg.ignoresSafeArea()
 
                 if journal.entries.isEmpty {
                     emptyState
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.horizontal, 28)
                 } else {
                     ScrollView {
                         // LazyVStack: yalnızca ekranda görünen kartlar (ve
@@ -52,20 +54,17 @@ struct JournalView: View {
                     }
                 }
 
-                Button { showCompose = true } label: {
-                    ZStack {
-                        Circle().fill(Theme.gradWarm).frame(width: 60, height: 60)
-                        Image(systemName: "square.and.pencil")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(.white)
-                    }
-                    .shadow(color: .black.opacity(0.4), radius: 8, y: 3)
-                }
-                .buttonStyle(.plain)
-                .padding(20)
             }
             .navigationTitle("Günlük")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button { showCompose = true } label: {
+                        Image(systemName: "square.and.pencil")
+                    }
+                    .accessibilityLabel("Günlük kaydı yaz")
+                }
+            }
         }
         .sheet(isPresented: $showCompose) { JournalComposeView() }
         // TripSettingsView'daki "tüm düzenlemeleri sıfırla" kalıbıyla aynı:
@@ -107,14 +106,15 @@ struct JournalView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 12) {
             Image(systemName: "book.closed")
-                .font(.system(size: 38)).foregroundStyle(Theme.muted)
-            Text("Henüz kayıt yok.\nSağ alttaki kalemle başla — istersen sesli yaz.")
-                .font(.system(size: 14)).foregroundStyle(Theme.dim)
+                .font(.system(size: 38))
+                .foregroundStyle(Theme.muted)
+            Text("Henüz kayıt yok")
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .foregroundStyle(Theme.dim)
                 .multilineTextAlignment(.center)
         }
-        .padding(30)
     }
 
     // `photoWarning` doluysa göster: fotoğrafı kaydedilememiş bir kayıt
@@ -251,32 +251,59 @@ private let journalPhotoCache = NSCache<NSString, UIImage>()
 private struct JournalPhotoThumb: View {
     let url: URL
     @State private var image: UIImage?
+    /// Dosya bu cihazda yok/okunamıyor (ör. başka cihazdan gelen kaydın
+    /// fotoğrafı henüz inmedi ya da indirilemedi) — ProgressView sonsuza dek
+    /// dönmesin diye yer tutucu gösterilir. KİLİTLİ DEĞİL: merge'in arka plan
+    /// indirmesi dosyayı getirince `photoArrivedNotification` ile yeniden
+    /// denenir (eskiden failed=true bir kez yazılır, inen fotoğraf uygulama
+    /// yeniden açılana dek görünmezdi).
+    @State private var failed = false
 
     var body: some View {
         ZStack {
             if let image {
                 Image(uiImage: image).resizable().scaledToFill()
+            } else if failed {
+                Theme.panel
+                Image(systemName: "photo")
+                    .font(.system(size: 20))
+                    .foregroundStyle(Theme.dim)
             } else {
                 Theme.panel
                 ProgressView().tint(Theme.muted).scaleEffect(0.7)
             }
         }
-        .onAppear {
-            guard image == nil else { return }
-            let key = url.path as NSString
-            if let cached = journalPhotoCache.object(forKey: key) {
-                image = cached
+        .onAppear { load() }
+        .onReceive(NotificationCenter.default.publisher(for: JournalStore.photoArrivedNotification)) { _ in
+            // Arka plan indirmesi yeni dosya yazdı — yer tutucuda takılı
+            // kalmışsak kilidi aç ve yeniden dene.
+            guard image == nil, failed else { return }
+            failed = false
+            load()
+        }
+    }
+
+    private func load() {
+        guard image == nil, !failed else { return }
+        let key = url.path as NSString
+        if let cached = journalPhotoCache.object(forKey: key) {
+            image = cached
+            return
+        }
+        // Okuma + çözme ana iş parçacığını kilitlemesin diye arka planda;
+        // sonucu küçük boyuta (kart 88pt @2x/@3x) indirip önbelleğe koy.
+        Task.detached(priority: .userInitiated) {
+            guard let original = UIImage(contentsOfFile: url.path) else {
+                // Dosya (henüz) yok — merge'in arka plan indirmesi bitince
+                // photoArrivedNotification ile yeniden denenecek; o zamana
+                // dek sonsuz ProgressView yerine yer tutucu göster.
+                await MainActor.run { self.failed = true }
                 return
             }
-            // Okuma + çözme ana iş parçacığını kilitlemesin diye arka planda;
-            // sonucu küçük boyuta (kart 88pt @2x/@3x) indirip önbelleğe koy.
-            Task.detached(priority: .userInitiated) {
-                guard let original = UIImage(contentsOfFile: url.path) else { return }
-                let thumb = await original.byPreparingThumbnail(ofSize: CGSize(width: 176, height: 176)) ?? original
-                journalPhotoCache.setObject(thumb, forKey: key)
-                await MainActor.run {
-                    self.image = thumb
-                }
+            let thumb = await original.byPreparingThumbnail(ofSize: CGSize(width: 176, height: 176)) ?? original
+            journalPhotoCache.setObject(thumb, forKey: key)
+            await MainActor.run {
+                self.image = thumb
             }
         }
     }

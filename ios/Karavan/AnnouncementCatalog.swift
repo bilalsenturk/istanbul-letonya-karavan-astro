@@ -14,7 +14,8 @@ enum AnnouncementCatalog {
     /// "Bükreş Güney" → "bukres" (announcements.json anahtarlarıyla uyumlu)
     static func citySlug(for stopName: String) -> String {
         let map: [(String, String)] = [
-            ("İstanbul", "istanbul"), ("Sofya", "sofya"), ("Bükreş", "bukres"),
+            ("İstanbul", "istanbul"), ("Sofya", "sofya"), ("Novi Sad", "novi-sad"),
+            ("Krakow", "krakow"), ("Varşova", "varsova"), ("Bükreş", "bukres"),
             ("Deva", "deva"), ("Budapeşte", "budapeste"), ("Katowice", "katowice"),
             ("Suwałki", "suwalki"), ("Riga", "riga"),
         ]

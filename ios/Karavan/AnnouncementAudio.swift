@@ -10,7 +10,7 @@ import Foundation
 // { "captain-01": ["captain-01-a.mp3", "captain-01-b.mp3"], "welcome-sofya": ["..."] }
 // Yollar manifest URL'ine görelidir; tam URL de yazılabilir.
 @MainActor
-final class AnnouncementAudio: NSObject, ObservableObject {
+final class AnnouncementAudio: NSObject, ObservableObject, AVAudioPlayerDelegate {
     static let shared = AnnouncementAudio()
 
     @Published private(set) var clipCount = 0
@@ -18,8 +18,43 @@ final class AnnouncementAudio: NSObject, ObservableObject {
     private var manifest: [String: [URL]] = [:]
     private var player: AVAudioPlayer?
     private var lastPicked: [String: URL] = [:]   // arka arkaya aynı kayıt çalmasın
+    private var finishContinuation: CheckedContinuation<Void, Never>?
+    private var decodeFailed = false              // bozuk kayıt → TTS'e düş
 
-    private override init() { super.init() }
+    private override init() {
+        super.init()
+        // Telefon/Siri kesintisinde delegate çağrılmayabilir; sıra kilitlenmesin.
+        NotificationCenter.default.addObserver(self, selector: #selector(interrupted(_:)),
+                                               name: AVAudioSession.interruptionNotification, object: nil)
+    }
+
+    @objc private nonisolated func interrupted(_ notification: Notification) {
+        guard let raw = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
+        Task { @MainActor in
+            switch type {
+            case .began:
+                // Kesinti boyunca DURAKLAT: stop() + continuation çözümü klibi
+                // bitmiş sayar ve sıra kesinti sürerken boşa akardı; üstelik
+                // .ended'de aynı işi yapmak, o ana kadar başlamış olan SONRAKİ
+                // klibi de durduruyordu.
+                self.player?.pause()
+            case .ended:
+                let options = (notification.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt)
+                    .map { AVAudioSession.InterruptionOptions(rawValue: $0) } ?? []
+                if options.contains(.shouldResume) {
+                    self.player?.play()
+                } else {
+                    // Devam edilmeyecekse klibi kapat ki sıra kilitlenmesin.
+                    self.player?.stop()
+                    self.finishContinuation?.resume()
+                    self.finishContinuation = nil
+                }
+            @unknown default:
+                break
+            }
+        }
+    }
 
     /// Uygulama açılışında bir kez çağır. Manifest yoksa sessizce TTS'e düşülür.
     func loadManifest() async {
@@ -42,7 +77,8 @@ final class AnnouncementAudio: NSObject, ObservableObject {
 
     func hasClip(_ key: String) -> Bool { !(manifest[key]?.isEmpty ?? true) }
 
-    /// Anahtar için rastgele bir kayıt çalar. Başarılıysa true (TTS gerekmez).
+    /// Anahtar için rastgele bir kayıt çalar ve bitene kadar bekler.
+    /// Başarılıysa true (TTS gerekmez). Bekleme sayesinde klipler üst üste binmez.
     func play(_ key: String) async -> Bool {
         guard var options = manifest[key], !options.isEmpty else { return false }
         // Birden fazla kayıt varsa, üst üste aynısını çalma
@@ -62,7 +98,37 @@ final class AnnouncementAudio: NSObject, ObservableObject {
 
         try? AVAudioSession.sharedInstance().setActive(true)
         player = audio
+        audio.delegate = self
         audio.prepareToPlay()
-        return audio.play()
+        guard audio.play() else {
+            player = nil
+            return false
+        }
+
+        // Çalma bitene kadar bekle (completion-based: müzik sesi ancak şimdi yükselir).
+        decodeFailed = false
+        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
+            finishContinuation = c
+        }
+        player = nil
+        // Bozuk kayıt "başarılı" sayılırsa TTS yedeği atlanır ve kullanıcı
+        // hiçbir şey duymaz — decode hatası başarısızlık sayılır.
+        return !decodeFailed
+    }
+
+    nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        Task { @MainActor in
+            if !flag { self.decodeFailed = true }
+            self.finishContinuation?.resume()
+            self.finishContinuation = nil
+        }
+    }
+
+    nonisolated func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
+        Task { @MainActor in
+            self.decodeFailed = true
+            self.finishContinuation?.resume()
+            self.finishContinuation = nil
+        }
     }
 }

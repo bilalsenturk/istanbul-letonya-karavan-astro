@@ -76,8 +76,10 @@ struct PhotoJournalView: View {
         status = s
         guard s == .authorized || s == .limited else { return }
 
-        // Pencere: kalkıştan 30 gün önce → bugün (kalkış yoksa son 60 gün)
-        let from = (store.trip?.departureDate ?? Date()).addingTimeInterval(-30 * 86400)
+        // Pencere: kalkıştan 30 gün önce → bugün (kalkış yoksa son 30 gün)
+        // Kalkış 30 günden uzaksa pencere gelecekte başlar ve galeri boş
+        // kalır — başlangıcı bugüne kısıtla.
+        let from = min((store.trip?.departureDate ?? Date()).addingTimeInterval(-30 * 86400), Date())
         let options = PHFetchOptions()
         options.predicate = NSPredicate(format: "creationDate >= %@", from as NSDate)
         options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
@@ -117,7 +119,10 @@ struct PhotoThumb: View {
                                       targetSize: CGSize(width: 240, height: 240),
                                       contentMode: .aspectFill,
                                       options: opts) { img, _ in
-                if let img { image = img }
+                // PHImageManager arka planda döner — @State'e ana kuyruktan yaz.
+                DispatchQueue.main.async {
+                    if let img { image = img }
+                }
             }
         }
     }

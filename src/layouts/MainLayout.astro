@@ -14,7 +14,7 @@ const { title, description } = Astro.props;
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta
       name="description"
-      content={description ?? 'İstanbul-Letonya karavan yolculuğu planı ve gerçek zamanlı takip paneli'}
+      content={description ?? "Leyla'nın Kuzey Yolculuğu"}
     />
     <title>{title}</title>
     <link rel="icon" href="/favicon.ico" />
@@ -24,7 +24,7 @@ const { title, description } = Astro.props;
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Karavan" />
+    <meta name="apple-mobile-web-app-title" content="KUZEY" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="preconnect" href="https://unpkg.com" />
     <link rel="preconnect" href="https://www.google.com" />
@@ -34,17 +34,6 @@ const { title, description } = Astro.props;
       href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700,500&f[]=general-sans@400,500,600,700&f[]=jetbrains-mono@500&display=swap"
       rel="stylesheet"
     />
-    <script is:inline>
-      // Tema seçimini FOUC olmadan uygula.
-      (() => {
-        try {
-          const saved = localStorage.getItem('trip-theme');
-          if (saved === 'light' || saved === 'dark') {
-            document.documentElement.setAttribute('data-theme', saved);
-          }
-        } catch (_) {}
-      })();
-    </script>
     <style is:global>
       :root {
         color-scheme: dark;
@@ -192,82 +181,168 @@ const { title, description } = Astro.props;
         animation: rise 0.62s cubic-bezier(0.2, 0.7, 0.2, 1) both;
       }
 
-      /* Üst bar: sticky, cam, hap şeklinde */
+      /* Üst bar: sakin, okunur uygulama navigasyonu */
       .topbar {
         position: sticky;
-        top: calc(12px + env(safe-area-inset-top, 0px));
-        z-index: 60;
+        top: calc(10px + env(safe-area-inset-top, 0px));
+        z-index: 80;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 16px;
-        margin-bottom: 22px;
-        padding: 8px 8px 8px 18px;
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        background: var(--panel);
-        backdrop-filter: blur(18px) saturate(1.3);
-        -webkit-backdrop-filter: blur(18px) saturate(1.3);
-        box-shadow: var(--shadow-sm);
+        gap: 14px;
+        min-height: 62px;
+        margin-bottom: 18px;
+        padding: 8px;
+        border: 1px solid var(--line-strong);
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--bg-2) 82%, transparent);
+        backdrop-filter: blur(24px) saturate(1.35);
+        -webkit-backdrop-filter: blur(24px) saturate(1.35);
+        box-shadow: 0 18px 46px -28px rgba(0, 0, 0, 0.88);
+        transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+      }
+
+      .topbar.is-scrolled,
+      .topbar.is-open {
+        background: color-mix(in srgb, var(--bg-2) 94%, transparent);
+        border-color: color-mix(in srgb, var(--text) 20%, transparent);
+        box-shadow: 0 16px 40px -22px rgba(0, 0, 0, 0.92);
       }
 
       .brand {
         display: inline-flex;
         align-items: center;
-        gap: 10px;
+        gap: 11px;
+        min-width: 0;
+        padding: 6px 9px 6px 7px;
+        border-radius: 10px;
         font-family: var(--font-display);
         font-weight: 600;
-        font-size: 0.98rem;
+        font-size: 1rem;
         letter-spacing: 0.005em;
         color: var(--text);
         white-space: nowrap;
+        transition: background 160ms ease;
+      }
+
+      .brand:hover {
+        background: var(--card-bg);
       }
 
       .brand__mark {
-        font-size: 1.25rem;
-        filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--c1) 60%, transparent));
+        display: inline-grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: var(--grad-warm);
+        color: #1a0e00;
+        font-size: 1.1rem;
+        box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--c1) 80%, transparent);
+      }
+
+      .brand__copy {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .brand__name {
+        line-height: 1;
+      }
+
+      .brand__route {
+        margin-top: 3px;
+        font-family: var(--font-mono);
+        font-size: 0.62rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        color: var(--muted);
       }
 
       /* Ana navigasyon */
       .nav {
         display: flex;
         align-items: center;
-        gap: 2px;
+        justify-content: center;
+        gap: 4px;
+        min-width: 0;
         margin: 0 auto;
+        padding: 4px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--text) 4%, transparent);
       }
 
       .nav a {
-        padding: 8px 14px;
-        border-radius: 999px;
+        position: relative;
+        padding: 8px 12px;
+        border-radius: 8px;
         font-size: 0.88rem;
-        font-weight: 500;
-        color: var(--muted);
-        transition: color 160ms ease, background 160ms ease;
+        font-weight: 650;
+        color: var(--text-dim);
+        white-space: nowrap;
+        transition: color 160ms ease, background 160ms ease, box-shadow 160ms ease;
       }
 
-      .nav a:hover {
+      .nav a:hover,
+      .nav a[aria-current="page"] {
         color: var(--text);
-        background: var(--card-bg);
+        background: color-mix(in srgb, var(--text) 8%, transparent);
+      }
+
+      .nav a[aria-current="page"] {
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
+      }
+
+      .nav__map {
+        display: none;
       }
 
       .topbar__actions {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 7px;
+        flex-shrink: 0;
+      }
+
+      .topbar__cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding: 0 14px;
+        border: 0;
+        border-radius: 10px;
+        background: var(--grad-cool);
+        color: #fff;
+        font-size: 0.86rem;
+        font-weight: 750;
+        box-shadow: 0 12px 28px -18px color-mix(in srgb, var(--c4) 70%, transparent);
+        transition: transform 160ms ease, filter 160ms ease;
+        white-space: nowrap;
+      }
+
+      .topbar__cta:hover {
+        color: #fff;
+        filter: brightness(1.08);
+        transform: translateY(-1px);
       }
 
       .theme-toggle {
         display: inline-flex;
         align-items: center;
-        gap: 7px;
-        border: 1px solid var(--line-strong);
+        justify-content: center;
+        gap: 6px;
+        min-height: 40px;
+        border: 1px solid var(--line);
         background: var(--card-bg);
         color: var(--text);
-        border-radius: 999px;
-        padding: 8px 15px;
+        border-radius: 10px;
+        padding: 0 12px;
         font-family: var(--font-body);
         font-size: 0.82rem;
-        font-weight: 600;
+        font-weight: 700;
         cursor: pointer;
         transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
       }
@@ -283,52 +358,104 @@ const { title, description } = Astro.props;
         justify-content: center;
         width: 40px;
         height: 40px;
-        font-size: 1.1rem;
-        line-height: 1;
-        border: 1px solid var(--line-strong);
+        border: 1px solid var(--line);
         background: var(--card-bg);
         color: var(--text);
-        border-radius: 999px;
+        border-radius: 10px;
         cursor: pointer;
-        transition: border-color 160ms ease;
+        transition: border-color 160ms ease, background 160ms ease;
       }
 
       .nav-toggle:hover {
         border-color: color-mix(in srgb, var(--accent) 60%, transparent);
       }
 
+      .nav-toggle__icon {
+        position: relative;
+        width: 17px;
+        height: 12px;
+      }
+
+      .nav-toggle__icon::before,
+      .nav-toggle__icon::after,
+      .nav-toggle__line {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 17px;
+        height: 2px;
+        border-radius: 999px;
+        background: currentColor;
+        transition: transform 180ms ease, opacity 180ms ease, top 180ms ease;
+      }
+
+      .nav-toggle__icon::before {
+        top: 0;
+      }
+
+      .nav-toggle__line {
+        top: 5px;
+      }
+
+      .nav-toggle__icon::after {
+        top: 10px;
+      }
+
+      .topbar.is-open .nav-toggle__icon::before {
+        top: 5px;
+        transform: rotate(45deg);
+      }
+
+      .topbar.is-open .nav-toggle__line {
+        opacity: 0;
+      }
+
+      .topbar.is-open .nav-toggle__icon::after {
+        top: 5px;
+        transform: rotate(-45deg);
+      }
+
       @media (max-width: 920px) {
+        .topbar {
+          min-height: 58px;
+          border-radius: 13px;
+        }
+
         .nav {
-          position: absolute;
-          top: calc(100% + 8px);
-          left: 0;
-          right: 0;
+          position: fixed;
+          top: calc(78px + env(safe-area-inset-top, 0px));
+          left: max(12px, env(safe-area-inset-left, 0px));
+          right: max(12px, env(safe-area-inset-right, 0px));
           margin: 0;
+          z-index: 79;
           flex-direction: column;
           align-items: stretch;
-          gap: 4px;
-          padding: 10px;
-          border: 1px solid var(--line);
-          border-radius: 22px;
-          background: var(--panel);
-          backdrop-filter: blur(20px) saturate(1.3);
-          -webkit-backdrop-filter: blur(20px) saturate(1.3);
-          box-shadow: var(--shadow);
+          gap: 6px;
+          padding: 8px;
+          border: 1px solid var(--line-strong);
+          border-radius: 14px;
+          background: var(--bg-2);
+          backdrop-filter: blur(24px) saturate(1.35);
+          -webkit-backdrop-filter: blur(24px) saturate(1.35);
+          box-shadow: 0 22px 60px -28px rgba(0, 0, 0, 0.95);
           opacity: 0;
-          transform: translateY(-8px);
+          transform: translateY(-10px) scale(0.985);
           pointer-events: none;
           transition: opacity 180ms ease, transform 180ms ease;
         }
 
         .nav.open {
           opacity: 1;
-          transform: translateY(0);
+          transform: translateY(0) scale(1);
           pointer-events: auto;
         }
 
         .nav a {
-          padding: 12px 15px;
-          border-radius: 13px;
+          display: flex;
+          align-items: center;
+          min-height: 46px;
+          padding: 0 13px;
+          border-radius: 10px;
           font-size: 0.95rem;
         }
 
@@ -336,8 +463,48 @@ const { title, description } = Astro.props;
           background: color-mix(in srgb, var(--accent) 12%, transparent);
         }
 
+        .nav__map {
+          display: flex;
+          background: color-mix(in srgb, var(--accent-2) 18%, transparent);
+          color: var(--text);
+        }
+
+        .topbar__cta {
+          display: none;
+        }
+
         .nav-toggle {
           display: inline-flex;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .topbar {
+          gap: 8px;
+          padding: 7px;
+        }
+
+        .brand {
+          padding-right: 6px;
+        }
+
+        .brand__mark {
+          width: 32px;
+          height: 32px;
+        }
+
+        .theme-toggle {
+          width: 40px;
+          padding: 0;
+        }
+
+        .theme-toggle span:last-child {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip: rect(0 0 0 0);
+          white-space: nowrap;
         }
       }
 
@@ -586,6 +753,10 @@ const { title, description } = Astro.props;
         font-weight: 700;
         font-size: 1.5rem;
         color: #fff;
+      }
+
+      .ct--waiting {
+        color: rgba(255, 255, 255, 0.82);
       }
 
       @media (max-width: 480px) {
@@ -1436,87 +1607,10 @@ const { title, description } = Astro.props;
   </head>
   <body>
     <main class="container">
-      <header class="topbar">
-        <a class="brand" href="/">
-          <span class="brand__mark">🧭</span>
-          <span class="brand__name">KUZEY</span>
-        </a>
-        <nav class="nav" id="nav">
-          <a href="/#hava">Hava</a>
-          <a href="/#ulkeler">Ülkeler</a>
-          <a href="/#plan">Günlük Plan</a>
-          <a href="/#harita">Harita</a>
-          <a href="/#check">Hazırlık</a>
-        </nav>
-        <div class="topbar__actions">
-          <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Tema değiştir">
-            <span id="theme-icon">🌙</span>
-            <span id="theme-text">Koyu</span>
-          </button>
-          <button class="nav-toggle" id="nav-toggle" type="button" aria-label="Menüyü aç/kapat" aria-expanded="false">☰</button>
-        </div>
-      </header>
       <slot />
       <p class="foot">
-        İstanbul → Riga karavan planı · Gerçek harita ve kamp planlaması modülü · Son güncelleme: 19 Temmuz 2026
+        KUZEY
       </p>
     </main>
-    <script is:inline>
-      (() => {
-        const root = document.documentElement;
-        const btn = document.getElementById('theme-toggle');
-        const icon = document.getElementById('theme-icon');
-        const text = document.getElementById('theme-text');
-        if (!btn) return;
-
-        // Varsayılan koyu tema (CSS'te data-theme yoksa koyu render edilir).
-        const effective = () => root.getAttribute('data-theme') || 'dark';
-
-        const paint = (mode) => {
-          const light = mode === 'light';
-          icon.textContent = light ? '☀️' : '🌙';
-          text.textContent = light ? 'Açık' : 'Koyu';
-        };
-
-        paint(effective());
-
-        btn.addEventListener('click', () => {
-          const next = effective() === 'light' ? 'dark' : 'light';
-          root.setAttribute('data-theme', next);
-          try {
-            localStorage.setItem('trip-theme', next);
-          } catch (_) {}
-          paint(next);
-        });
-      })();
-
-      // Mobil navigasyon aç/kapat
-      (() => {
-        const toggle = document.getElementById('nav-toggle');
-        const nav = document.getElementById('nav');
-        if (!toggle || !nav) return;
-
-        const setOpen = (open) => {
-          nav.classList.toggle('open', open);
-          toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-          toggle.textContent = open ? '✕' : '☰';
-        };
-
-        toggle.addEventListener('click', (e) => {
-          e.stopPropagation();
-          setOpen(!nav.classList.contains('open'));
-        });
-
-        // Bir bağlantıya tıklanınca veya dışarı tıklanınca kapat
-        nav.addEventListener('click', (e) => {
-          if (e.target.tagName === 'A') setOpen(false);
-        });
-        document.addEventListener('click', (e) => {
-          if (nav.classList.contains('open') && !nav.contains(e.target) && e.target !== toggle) {
-            setOpen(false);
-          }
-        });
-      })();
-    </script>
   </body>
 </html>

@@ -28,14 +28,13 @@ let baseDep = TripPlanner.departure(trip: trip, edits: edits)
 print("  kalkış: \(fmt.string(from: baseDep))")
 for d in days { print("    gün \(d.index + 1): \(d.dateText)  [\(d.origin) → \(d.destination)] leg=\(d.legIndex.map(String.init) ?? "—")") }
 
-check("8 gün türetildi", days.count == 8)
+check("6 sürüş günü türetildi", days.count == 6)
 check("1. gün = kalkış günü", cal.isDate(days[0].date, inSameDayAs: baseDep))
 check("günler ardışık", zip(days, days.dropFirst()).allSatisfy {
     cal.dateComponents([.day], from: $0.date, to: $1.date).day == 1
 })
-check("dinlenme günü etap tüketmiyor (gün5 leg=nil)", days[4].legIndex == nil, "\(String(describing: days[4].legIndex))")
-check("dinlenme sonrası etap devam ediyor (gün6 leg=4)", days[5].legIndex == 4, "\(String(describing: days[5].legIndex))")
-check("son gün leg=6 (7 etap)", days[7].legIndex == 6, "\(String(describing: days[7].legIndex))")
+check("tüm günler sürüş etabı", days.allSatisfy { $0.legIndex != nil })
+check("son gün leg=5 (6 etap)", days[5].legIndex == 5, "\(String(describing: days[5].legIndex))")
 check("JSON'daki sabit metinle uyumlu (gün1)", days[0].dateText.contains("3 Ağustos"), days[0].dateText)
 
 print("\n=== 2) KASKAT: kalkış 10 gün ileri alınınca tüm günler kayar ===")
@@ -57,7 +56,7 @@ check("varış da 10 gün kaydı", {
 
 print("\n=== 3) KASKAT: bir güne +2 gün eklenince SONRAKİ günler kayar, öncekiler kaymaz ===")
 edits = TripEdits()
-let budapestSlug = trip.days[3].slug          // 4. gün: Deva → Budapeşte
+let budapestSlug = trip.days[3].slug          // 4. gün: Budapeşte → Krakow
 edits.days[budapestSlug] = DayEdit(extraDays: 2)
 days = TripPlanner.days(trip: trip, edits: edits)
 let baseline = TripPlanner.days(trip: trip, edits: TripEdits())
@@ -66,12 +65,12 @@ check("önceki günler kaymadı (gün1-4)", (0...3).allSatisfy {
     cal.isDate(days[$0].date, inSameDayAs: baseline[$0].date)
 })
 check("düzenlenen gün 3 takvim günü sürüyor", days[3].dayCount == 3, "\(days[3].dayCount)")
-check("sonraki günler 2 gün kaydı", (4...7).allSatisfy {
+check("sonraki günler 2 gün kaydı", (4...5).allSatisfy {
     cal.dateComponents([.day], from: baseline[$0].date, to: days[$0].date).day == 2
 })
-check("toplam gün 8 → 10", TripPlanner.totalDays(trip: trip, edits: edits) == 10,
+check("toplam gün 6 → 8", TripPlanner.totalDays(trip: trip, edits: edits) == 8,
       "\(TripPlanner.totalDays(trip: trip, edits: edits))")
-check("etap eşlemesi bozulmadı", days[7].legIndex == 6)
+check("etap eşlemesi bozulmadı", days[5].legIndex == 5)
 
 print("\n=== 4) Dinlenme günü düzenlemesi etap eşlemesini BOZMUYOR ===")
 edits = TripEdits()
@@ -444,23 +443,27 @@ check("mutlak rakım varsa önceliklidir",
 print("\n=== 12) Rota sırası: yalnız sıradaki etap başlatılır ===")
 let stopIds = trip.stops.map(\.id)
 let sofia = trip.stops[1]
-let bucharest = trip.stops[2]
-let deva = trip.stops[3]
+let noviSad = trip.stops[2]
+let budapest = trip.stops[3]
 var completedStops = Set<String>()
 check("başta yalnız 1. etap (Sofya) başlatılabilir",
       RouteStepPolicy.state(for: sofia.id, orderedStopIds: stopIds, completedStopIds: completedStops, activeStopId: nil) == .available)
 check("Sofya tamamlanmadan 2. etap kilitlidir",
-      RouteStepPolicy.state(for: bucharest.id, orderedStopIds: stopIds, completedStopIds: completedStops, activeStopId: nil) == .locked)
+      RouteStepPolicy.state(for: noviSad.id, orderedStopIds: stopIds, completedStopIds: completedStops, activeStopId: nil) == .locked)
 completedStops.insert(sofia.id)
-check("Sofya tamamlanınca Bükreş sıradaki etap olur",
-      RouteStepPolicy.state(for: bucharest.id, orderedStopIds: stopIds, completedStopIds: completedStops, activeStopId: nil) == .available)
-check("Bükreş aktifken Deva başlatılamaz",
-      RouteStepPolicy.state(for: deva.id, orderedStopIds: stopIds, completedStopIds: completedStops, activeStopId: bucharest.id) == .locked)
+check("Sofya tamamlanınca Novi Sad sıradaki etap olur",
+      RouteStepPolicy.state(for: noviSad.id, orderedStopIds: stopIds, completedStopIds: completedStops, activeStopId: nil) == .available)
+check("Novi Sad aktifken Budapeşte başlatılamaz",
+      RouteStepPolicy.state(for: budapest.id, orderedStopIds: stopIds, completedStopIds: completedStops, activeStopId: noviSad.id) == .locked)
 check("aktif hedef kendi durumunu korur",
-      RouteStepPolicy.state(for: bucharest.id, orderedStopIds: stopIds, completedStopIds: completedStops, activeStopId: bucharest.id) == .active)
-completedStops.insert(bucharest.id)
+      RouteStepPolicy.state(for: noviSad.id, orderedStopIds: stopIds, completedStopIds: completedStops, activeStopId: noviSad.id) == .active)
+completedStops.insert(noviSad.id)
 check("tamamlanan durak tamamlandı görünür",
-      RouteStepPolicy.state(for: bucharest.id, orderedStopIds: stopIds, completedStopIds: completedStops, activeStopId: nil) == .completed)
+      RouteStepPolicy.state(for: noviSad.id, orderedStopIds: stopIds, completedStopIds: completedStops, activeStopId: nil) == .completed)
+
+check("tüm etaplarda kesin kamp hedefi var", trip.days.allSatisfy { $0.arrivalTarget != nil })
+check("Krakow hedefi Camping Adam", trip.days[3].arrivalTarget?.name == "Camping Adam")
+check("Varşova hedefi Camping Motel WOK", trip.days[4].arrivalTarget?.name == "Camping Motel WOK")
 
 let exactTarget = ArrivalTarget(
     id: "campuccino", name: "Camping Campuccino", kind: .campground,
@@ -503,6 +506,64 @@ check("varış tarihi de 1 gün kayar",
         from: TripPlanner.arrivalDate(trip: trip, edits: TripEdits())!,
         to: TripPlanner.arrivalDate(trip: trip, edits: edits)!
       ).day == 1)
+
+print("\n=== 15) Plan zaman çizelgesi: yol süresinden önce varışa izin verilmez ===")
+let impossibleMainLeg = PlanScheduleEntry(
+    id: "sofia-budapest",
+    requestedStartMinute: 12 * 60,
+    previousEndMinute: 6 * 60,
+    travelMinutes: 7 * 60,
+    durationMinutes: 60
+)
+check("06.00 çıkış ve 7 saatlik yolda 12.00 planı reddedilir",
+      PlanScheduleValidator.conflict(for: impossibleMainLeg)?.earliestStartMinute == 13 * 60)
+
+let impossibleMuseum = PlanScheduleEntry(
+    id: "sofia-museum",
+    requestedStartMinute: 16 * 60 + 10,
+    previousEndMinute: 16 * 60,
+    travelMinutes: 30,
+    durationMinutes: 90
+)
+check("önceki hedeften ulaşım bitmeden alt plan başlamaz",
+      PlanScheduleValidator.conflict(for: impossibleMuseum)?.earliestStartMinute == 16 * 60 + 30)
+
+let validMuseum = PlanScheduleEntry(
+    id: "sofia-museum-valid",
+    requestedStartMinute: 17 * 60,
+    previousEndMinute: 16 * 60,
+    travelMinutes: 30,
+    durationMinutes: 90
+)
+check("ulaşım payı olan alt plan kabul edilir",
+      PlanScheduleValidator.conflict(for: validMuseum) == nil)
+check("sonraki 06.00 kalkışına dönüş süresi sığıyorsa plan geçerlidir",
+      PlanScheduleValidator.fitsBeforeNextDeparture(
+        finishMinute: validMuseum.finishMinute,
+        travelMinutesToNext: 45,
+        nextDepartureMinute: 24 * 60 + 6 * 60
+      ))
+check("alt plan sonraki kalkışı geciktiriyorsa reddedilir",
+      !PlanScheduleValidator.fitsBeforeNextDeparture(
+        finishMinute: 24 * 60 + 5 * 60 + 30,
+        travelMinutesToNext: 60,
+        nextDepartureMinute: 24 * 60 + 6 * 60
+      ))
+
+let museum = DaySubplan(
+    id: "museum", title: "Müze", placeName: "Museum", latitude: 0, longitude: 0,
+    startMinute: 16 * 60, durationMinutes: 90, note: nil
+)
+let beforeMuseum = PlanScheduleValidator.neighbors(
+    for: 12 * 60, excludingID: nil, in: [museum]
+)
+check("erken alt plan mevcut planın önüne eklenebilir",
+      beforeMuseum.previousID == nil && beforeMuseum.nextID == "museum")
+let afterMuseum = PlanScheduleValidator.neighbors(
+    for: 18 * 60, excludingID: nil, in: [museum]
+)
+check("geç alt plan mevcut planın arkasına eklenebilir",
+      afterMuseum.previousID == "museum" && afterMuseum.nextID == nil)
 
 print("\n" + (failures == 0 ? "✅ TÜM KONTROLLER GEÇTİ" : "❌ \(failures) KONTROL BAŞARISIZ"))
 exit(failures == 0 ? 0 : 1)

@@ -3,7 +3,8 @@ import Foundation
 // Anons seçim motoru — kullanıcı kuralları:
 //  • Aynı METİN en az 12 saat tekrar etmez
 //  • Aynı KATEGORİ en az 45 dk tekrar etmez (kritik kategoriler muaf)
-//  • Ağırlıklı dağılım: %55 normal · %25 kişisel (Sezin/Leyla) · %15 güçlü kaptan · %5 nadir
+//  • Ağırlıklı seçim: normal ×55 · kişisel (Sezin/Leyla) ×25 · güçlü kaptan ×15
+//    (kategori içi ağırlık; nadir klipler ayrıca ~%4 ihtimalle araya girer)
 //  • Nadir sürpriz: ~%4 ihtimalle araya girer (yalnızca eğlence anonslarında)
 //  • Pırt esprisi: günde en fazla 1
 //  • Kritik uyarılar (yağmur/fırtına/rüzgâr/hız/dikkat): her zaman çalar, komedi
@@ -106,8 +107,13 @@ final class AnnouncementEngine: ObservableObject {
         }
     }
 
+    private func markPlayed(category: String) {
+        defaults.set(Date().timeIntervalSince1970, forKey: playedCatPrefix + category)
+    }
+
+    /// Yerel takvim günü (UTC gece yarısı değil; saat dilimi geçişinde doğru sayılır).
     private static var dayNumber: Int {
-        Int(Date().timeIntervalSince1970 / 86400)
+        Calendar.current.ordinality(of: .day, in: .era, for: Date()) ?? 0
     }
 
     private var fartUsedToday: Bool {
@@ -129,6 +135,7 @@ final class AnnouncementEngine: ObservableObject {
         // Eğlence anonslarında nadir sürpriz araya girebilir
         if !isCritical, category != "rare", Double.random(in: 0 ... 1) < Self.rareChance,
            let rare = candidates(in: "rare").randomElement() {
+            markPlayed(category: category)   // istenen kategori de bekleme alsın
             return makeClip(rare)
         }
 
@@ -160,7 +167,13 @@ final class AnnouncementEngine: ObservableObject {
 
     private func oldest(in category: String) -> String? {
         (byCategory[category] ?? [])
-            .filter { (clips[$0]?.count ?? .max) <= Self.maxChars }
+            .filter { key in
+                guard let text = clips[key], text.count <= Self.maxChars else { return false }
+                // Günlük pırt kotası yedek seçimde de geçerli — yoksa fallback
+                // kotayı baypas edip günün ikinci pırtını çalardı.
+                if isFart(text), fartUsedToday { return false }
+                return true
+            }
             .min { (lastPlayed(key: $0) ?? .distantPast) < (lastPlayed(key: $1) ?? .distantPast) }
     }
 
@@ -190,6 +203,18 @@ final class AnnouncementEngine: ObservableObject {
         if key.hasSuffix("-pl") { return "pl-PL" }
         if key.hasSuffix("-lv") { return "lv-LV" }
         return "tr-TR"
+    }
+
+    /// Yerel dildeki bir anahtarın Türkçe karşılığının metni (varsa).
+    /// Cihazda yerel TTS sesi yoksa AnnouncementService buna düşer — Türkçe
+    /// sesle Bulgarca/Rumence okumak anlaşılmaz olur.
+    func turkishText(for key: String) -> String? {
+        let base = Self.category(of: key)   // sondaki -NN varyant numarasını at
+        guard let range = base.range(of: #"-(bg|ro|hu|pl|lv)$"#, options: .regularExpression)
+        else { return nil }
+        let trBase = String(base[base.startIndex ..< range.lowerBound]) + "-tr"
+        if let direct = clips[trBase] { return direct }
+        return (byCategory[trBase] ?? []).sorted().compactMap { clips[$0] }.first
     }
 
     /// Varış: Türkçe varyant + (varsa) yerel dil karşılaması.

@@ -28,6 +28,12 @@ final class JournalStore: ObservableObject {
     /// uygulama kapanıp açılsa da deneme sürer — aksi halde kayıt
     /// CloudKit'te sonsuza dek öksüz kalır ve başka cihazda görünmeye devam eder.
     private var pendingDeleteIds: Set<String> = []
+    /// Son başarılı `fetchAll()`'de görülen mezar taşları (başka cihazda
+    /// silinmiş kayıtlar). `drainQueue` bir kaydı göndermeden önce buna da
+    /// bakar: silinmiş bir kaydın yeniden yüklenmesi onu tüm cihazlarda geri
+    /// diriltir. Kalıcı değil — her merge taze listeyle güncellenir; asıl
+    /// güvence `JournalCloud.save()`'in `.tombstoned` reddidir.
+    private var remoteTombstoneIds: Set<String> = []
 
     /// Bekleyen silmeler için geri çekilme durumu. `JournalQueue` kayıt başına
     /// deneme sayar; silmeler için bu kadar hassasiyete gerek yok — tüm
@@ -84,6 +90,18 @@ final class JournalStore: ObservableObject {
     private var pendingDeletesFile: URL { dir.appendingPathComponent("pending-deletes.json") }
     private var sharePublishFile: URL { dir.appendingPathComponent("share-publish.json") }
 
+    /// Arka plan fotoğraf indirmesi (merge) tamamlandığında gönderilir.
+    /// Küçük resimler (JournalPhotoThumb) dosya henüz yokken bir kez
+    /// başarısız olup yer tutucuda KİLİTLENİRDİ; bu bildirimle yeniden dener.
+    static let photoArrivedNotification = Notification.Name("JournalPhotoArrived")
+
+    /// drainQueue alt bölümleri için eşzamanlı-çalışma kilitleri: drainQueue
+    /// çok sık tetiklenir ve `await` noktalarında ikinci bir drainQueue
+    /// başlayabilir; aynı bölümün iki örneği aynı POST'u iki kez atar ya da
+    /// geri çekilme sayaçlarını çift artırırdı.
+    private var publishSharedInFlight = false
+    private var pendingDeletesInFlight = false
+
     /// `pendingDeletesFile`'ın disk üzerindeki şekli — id listesiyle birlikte
     /// geri çekilme durumu da kalıcı olsun ki uygulama kapanıp açılsa bile
     /// art arda başarısız silmeler yeniden hemen denenmesin.
@@ -114,12 +132,26 @@ final class JournalStore: ObservableObject {
         if let data = try? Data(contentsOf: queueFile),
            let decoded = try? JSONDecoder().decode(JournalQueue.self, from: data) {
             queue = decoded
+            // Önceki oturum gönderim ortasında öldürüldüyse `.syncing`'de
+            // takılı kalan kayıtlar bir daha hiç seçilemezdi — açılışta
+            // `.pending`'e döndür ki kuyruk onları yeniden deneyebilsin.
+            queue.resetStuckSyncing()
         }
         if let data = try? Data(contentsOf: pendingDeletesFile),
            let decoded = try? JSONDecoder().decode(PendingDeletesState.self, from: data) {
             pendingDeleteIds = decoded.ids
             pendingDeleteAttempts = decoded.attempts
             pendingDeleteLastAttemptAt = decoded.lastAttemptAt
+        } else if let data = try? Data(contentsOf: pendingDeletesFile),
+                  let decoded = try? JSONDecoder().decode(Set<String>.self, from: data) {
+            pendingDeleteIds = decoded
+            pendingDeleteAttempts = 0
+            pendingDeleteLastAttemptAt = nil
+        } else if let data = try? Data(contentsOf: pendingDeletesFile),
+                  let decoded = try? JSONDecoder().decode([String].self, from: data) {
+            pendingDeleteIds = Set(decoded)
+            pendingDeleteAttempts = 0
+            pendingDeleteLastAttemptAt = nil
         }
         if let data = try? Data(contentsOf: sharePublishFile),
            let decoded = try? JSONDecoder().decode(SharePublishState.self, from: data) {
@@ -245,9 +277,30 @@ final class JournalStore: ObservableObject {
         // unutulmuş bir paylaşım hiçbir zaman düzelmezdi.
         await attemptPublishShared()
 
-        cloudAvailable = await JournalCloud.shared.accountAvailable()
-        guard cloudAvailable else {
+        #if targetEnvironment(simulator)
+        // Simulator uygulaması geliştirme imzasında CloudKit entitlement'ı taşımaz.
+        // Yerel günlük çalışmaya devam eder; CKContainer oluşturmak açılışta SIGILL üretir.
+        cloudAvailable = false
+        cloudProblem = nil
+        return
+        #endif
+
+        // Hesap kapısı üç değerlidir: yalnızca GERÇEK hesap yokluğu
+        // (couldNotDetermine/noAccount/restricted) "oturum kapalı" sayılır.
+        // accountStatus() ağ hatasıyla da başarısız olabilir — eskiden bu
+        // ikili kontrol (accountAvailable) geçici çevrimdışılığı "iCloud
+        // oturumu kapalı" diye etiketleyip bekleyen-kayıt rozetini de
+        // eziyordu. Ağ hatasında kuyruğa DOKUNMA: kayıtlar pending kalır,
+        // rozet görünür kalır, bir sonraki tetiklemede tekrar denenir.
+        switch await JournalCloud.shared.accountState() {
+        case .available:
+            cloudAvailable = true
+        case .noAccount:
+            cloudAvailable = false
             cloudProblem = "iCloud oturumu kapalı — kayıtların yalnızca bu cihazda."
+            return
+        case .unknown:
+            cloudAvailable = false
             return
         }
 
@@ -255,6 +308,15 @@ final class JournalStore: ObservableObject {
 
         while let id = queue.nextToSend(now: Date()) {
             guard let snapshot = entries.first(where: { $0.id == id }) else {
+                queue.markSynced(id)
+                continue
+            }
+            // Mezar taşı dirilmesin: kayıt bu cihazda silinmeyi bekliyorsa
+            // (silme isteği henüz buluta ulaşmadı) ya da son merge'de başka
+            // cihazda silindiği görüldüyse, GÖNDERME — yeniden yüklemek
+            // silinmiş kaydı tüm cihazlarda geri getirir. Kuyruktan düşür;
+            // asıl son söz JournalCloud.save()'in .tombstoned reddidir.
+            guard !pendingDeleteIds.contains(id), !remoteTombstoneIds.contains(id) else {
                 queue.markSynced(id)
                 continue
             }
@@ -283,9 +345,27 @@ final class JournalStore: ObservableObject {
                 case .none:
                     break   // delete() zaten kuyruktan düşürmüştü, dokunma
                 }
+            } catch JournalCloudError.tombstoned {
+                // Kayıt başka cihazda silinmiş (mezar taşı) — diriltme:
+                // yerel kopyayı ve kuyruk girdisini düşür (mergeFromCloud'un
+                // mezar taşı işleyişiyle aynı: fotoğraf dosyaları da silinir).
+                // Bu bir gönderim başarısızlığı değil, senkronun amacına
+                // ulaşmış hâlidir.
+                remoteTombstoneIds.insert(id)
+                for name in snapshot.photoFilenames {
+                    try? FileManager.default.removeItem(at: photoURL(name))
+                }
+                entries.removeAll { $0.id == id }
+                queue.markSynced(id)
+                persist()
+                continue
             } catch JournalCloudError.quotaExceeded {
                 cloudProblem = "iCloud depolaman dolu — kayıtlar cihazda bekliyor."
-                queue.markFailed(id, now: Date())
+                // Kota GENEL ve GEÇİCİ bir durumdur: markFailed deneme hakkı
+                // tüketir ve birkaç tetiklemede kaydı kalıcı .failed'a
+                // düşürürdü — kota açılınca kayıt yine de gitmezdi. Deneme
+                // hakkı tüketmeden beklemeye geri döndür (markDeferred).
+                queue.markDeferred(id)
                 persist()
                 break
             } catch JournalCloudError.accountUnavailable {
@@ -295,16 +375,24 @@ final class JournalStore: ObservableObject {
                 // gönderemez.
                 cloudAvailable = false
                 cloudProblem = "iCloud oturumu kapalı — kayıtların yalnızca bu cihazda."
-                queue.markFailed(id, now: Date())
+                // Hesap durumu da kota gibi genel/geçici — kayda özgü bir
+                // başarısızlık değil; deneme hakkı tüketme (bkz. quotaExceeded).
+                queue.markDeferred(id)
                 persist()
                 break
             } catch {
                 // network / notFound / unexpected — hepsi geçici veya tek
                 // kayıtlık sorunlar sayılır; kuyrukta bekletip bir sonraki
                 // tetiklemede (uygulama öne gelince, ağ dönünce) tekrar denenir.
+                // Eskiden burada `break` vardı: sürekli başarısız olan TEK
+                // bir kayıt kuyruğun başını tıkıyor, arkasındaki SAĞLAM
+                // kayıtlar hiç denenmiyordu (head-of-line blocking). Şimdi
+                // hatalı kayıt geri çekilmeye alınıp sıradakiyle devam
+                // edilir — quota/accountUnavailable herkesi etkilediği için
+                // hâlâ döngüyü kırar, bu hata ise tek kayda özgüdür.
                 queue.markFailed(id, now: Date())
                 persist()
-                break
+                continue
             }
             persist()
         }
@@ -375,8 +463,9 @@ final class JournalStore: ObservableObject {
         }
 
         let remote: [JournalEntry]
+        let deletedIds: Set<String>
         do {
-            remote = try await JournalCloud.shared.fetchAll()
+            (remote, deletedIds) = try await JournalCloud.shared.fetchAll()
         } catch {
             return
         }
@@ -385,14 +474,72 @@ final class JournalStore: ObservableObject {
         // (öne gelme vb.) gereksiz yere `cloudMergeMinInterval` kadar
         // bekletirdi.
         lastCloudMergeAt = Date()
+        // drainQueue'nun gönderim öncesi kontrolü için taze mezar taşı listesi.
+        remoteTombstoneIds = deletedIds
+
+        // Mezar taşları: başka cihazda silinen kayıtlar burada da düşsün.
+        // Düzenleme çakışmasında "yerel kazanır" kuralı silmeye UYGULANMAZ —
+        // silme geri alınamaz bir niyettir ve taş yalnızca delete() üzerinden
+        // yazılır; yerelde tutmak, kullanıcının sildiğini sandığı kaydı
+        // başka cihazdan geri getirirdi. pendingDeleteIds'tekiler zaten
+        // yerelde yok; kuyrukta bekleyen bir gönderim varsa deşifre olmasın
+        // diye kuyruktan da düşürülür.
+        var changed = false
+        let removed = entries.filter { deletedIds.contains($0.id) }
+        if !removed.isEmpty {
+            entries.removeAll { deletedIds.contains($0.id) }
+            for entry in removed {
+                for name in entry.photoFilenames {
+                    try? FileManager.default.removeItem(at: photoURL(name))
+                }
+                queue.markSynced(entry.id)
+            }
+            changed = true
+        }
 
         let localIds = Set(entries.map(\.id))
-        let newFromRemote = remote.filter { !localIds.contains($0.id) && !pendingDeleteIds.contains($0.id) }
-        guard !newFromRemote.isEmpty else { return }
+        let newFromRemote = remote.filter {
+            !localIds.contains($0.id) && !pendingDeleteIds.contains($0.id) && !deletedIds.contains($0.id)
+        }
+        if !newFromRemote.isEmpty {
+            entries.append(contentsOf: newFromRemote)
+            entries.sort { $0.createdAt > $1.createdAt }
+            changed = true
+        }
+        if changed { persist() }
 
-        entries.append(contentsOf: newFromRemote)
-        entries.sort { $0.createdAt > $1.createdAt }
-        persist()
+        // Fotoğraflar: fetchAll yalnızca dosya ADLARINI getirir, CKAsset
+        // içeriklerini değil — başka cihazın fotoğrafları burada inmezse
+        // küçük resim sonsuza dek yükleniyor gösterir. UI'ı bekletmemek için
+        // arka planda indir; tek bir fotoğraf inmezse kayıt kalır, küçük
+        // resim yer tutucuya düşer (JournalPhotoThumb).
+        //
+        // Yalnızca YENİ kayıtlara değil, önceden eklenmiş ama dosyası eksik
+        // kayıtlara da bak: ilk indirme başarısız olduysa (ağ koptu ya da
+        // asset eşleşmedi — JournalCloud.downloadPhotos bunları loglar) hiçbir
+        // mekanizma tekrar denemiyor ve fotoğraf sonsuza dek eksik kalıyordu.
+        // Her başarılı merge'de dosyası diskte olmayan fotoğrafı yeniden indir.
+        let newIds = Set(newFromRemote.map(\.id))
+        let missingPhotoEntries = entries.filter { entry in
+            !newIds.contains(entry.id)
+                && entry.photoFilenames.contains { !FileManager.default.fileExists(atPath: photoURL($0).path) }
+        }
+        let targetDir = dir
+        for entry in (newFromRemote + missingPhotoEntries) where !entry.photoFilenames.isEmpty {
+            Task(priority: .utility) { [weak self, entry, targetDir] in
+                try? await JournalCloud.shared.downloadPhotos(entryId: entry.id, to: targetDir)
+                // Küçük resimler dosya yokken bir kez başarısız olup yer
+                // tutucuda kilitlenirdi — indirme bitince yeniden denesinler.
+                guard let self else { return }
+                guard self.entries.contains(where: { $0.id == entry.id }) else {
+                    for name in entry.photoFilenames {
+                        try? FileManager.default.removeItem(at: self.photoURL(name))
+                    }
+                    return
+                }
+                NotificationCenter.default.post(name: JournalStore.photoArrivedNotification, object: nil)
+            }
+        }
     }
 
     // MARK: - Paylaşılanları web'e yansıt
@@ -409,6 +556,12 @@ final class JournalStore: ObservableObject {
     func publishShared() {
         guard Config.journalPostURL != nil else { return }
         sharePublishPending = true
+        // YENİ bir yayın isteği eski geri çekilme sayacını miras almamalı:
+        // önceki başarısız denemelerin backoff'u (~2 saate kadar) dolmadan
+        // attemptPublishShared() erken döndüğü için taze bir paylaşım/
+        // paylaşımı kaldırma isteği sessizce saatlerce erteleniyordu.
+        sharePublishAttempts = 0
+        sharePublishLastAttemptAt = nil
         persist()
         Task { await attemptPublishShared() }
     }
@@ -426,6 +579,12 @@ final class JournalStore: ObservableObject {
     /// geri çekilme 12. denemede ~4 yıla çıkmıştı).
     private func attemptPublishShared() async {
         guard sharePublishPending, let url = Config.journalPostURL else { return }
+        // drainQueue her tetiklemede bunu çağırır; bir önceki çağrı hâlâ
+        // `await`'te beklerken ikincisi başlarsa aynı POST iki kez atılır ve
+        // geri çekilme sayacı tek denemede iki kez artardı.
+        guard !publishSharedInFlight else { return }
+        publishSharedInFlight = true
+        defer { publishSharedInFlight = false }
 
         if sharePublishAttempts > 0, let last = sharePublishLastAttemptAt,
            Date().timeIntervalSince(last) < JournalQueue.backoff(attempts: min(sharePublishAttempts, JournalQueue.maxAttempts)) {
@@ -511,6 +670,11 @@ final class JournalStore: ObservableObject {
     /// erteleniyor — JournalQueue'ya dokunmadan yeterli basitlikte bir çözüm.
     private func drainPendingDeletes() async {
         guard !pendingDeleteIds.isEmpty else { return }
+        // attemptPublishShared'daki gibi: önceki tur hâlâ `await`'teyken yeni
+        // bir drainQueue aynı silmeleri ikinci kez denemesin.
+        guard !pendingDeletesInFlight else { return }
+        pendingDeletesInFlight = true
+        defer { pendingDeletesInFlight = false }
         if pendingDeleteAttempts > 0, let last = pendingDeleteLastAttemptAt,
            // Geri çekilme süresi sınırlandırılmalı: üst sınır olmadan deneme sayısı
            // arttıkça süre günlere hatta yıllara çıkar (10. denemede ~91 gün,

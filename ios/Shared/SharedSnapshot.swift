@@ -18,13 +18,26 @@ enum SharedSnapshot {
         static let legProgress = "legProgress"       // 0…100
         static let currentCity = "currentCity"
         static let updatedAt = "updatedAt"           // epoch
+        static let navUpdatedAt = "navUpdatedAt"     // epoch — yalnız NAV yazımında
         static let simpleMode = "simpleMode"         // Sürüş Focus filtresi (sade mod)
+        static let activeRouteStop = "activeRouteStop"
+        static let activeRouteCode = "activeRouteCode"
+        static let activeRouteStartedAt = "activeRouteStartedAt"   // epoch
     }
+
+    /// Bu anahtarlardan biri yazıldığında nav verisi de tazelenmiş sayılır.
+    private static let navKeys: Set<String> = [Key.nextStop, Key.remainingKm, Key.remainingMin]
 
     static func write(_ values: [String: Any]) {
         guard let d = defaults else { return }
         for (k, v) in values { d.set(v, forKey: k) }
-        d.set(Date().timeIntervalSince1970, forKey: Key.updatedAt)
+        let now = Date().timeIntervalSince1970
+        d.set(now, forKey: Key.updatedAt)
+        // Nav tazeliği ayrı izlenir: harcama ekleme / odak filtresi gibi yazımlar
+        // saatler önceki durak-km verisini "taze" göstermesin.
+        if values.keys.contains(where: navKeys.contains) {
+            d.set(now, forKey: Key.navUpdatedAt)
+        }
     }
 
     static var departureDate: Date? {
@@ -34,6 +47,13 @@ enum SharedSnapshot {
 
     static var isFresh: Bool {
         guard let t = defaults?.double(forKey: Key.updatedAt), t > 0 else { return false }
+        return Date().timeIntervalSince1970 - t < 3600
+    }
+
+    /// Yalnız NAV verisinin (sıradaki durak / kalan km / süre) taze olup olmadığı.
+    /// isFresh'ten farkı: herhangi bir yazım değil, son NAV yazımı baz alınır.
+    static var isNavFresh: Bool {
+        guard let t = defaults?.double(forKey: Key.navUpdatedAt), t > 0 else { return false }
         return Date().timeIntervalSince1970 - t < 3600
     }
 }

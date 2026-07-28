@@ -55,15 +55,25 @@ final class VignetteStore: ObservableObject {
     }
 
     private func scheduleReminder(_ v: Vignette) {
-        guard let fireDate = Calendar.current.date(byAdding: .day, value: -1, to: v.expiry),
-              fireDate > Date() else { return }
-        var comps = Calendar.current.dateComponents([.year, .month, .day], from: fireDate)
-        comps.hour = 9
+        // Bitiş günü geçmiş vinyete hatırlatma kurma — 1 saatlik geri dönüş
+        // tetikleyicisi süresi çoktan dolmuş izin için anlamsız uyarı atardı.
+        // Gün SINIRLARI karşılaştırılır: bitiş gününde vinyet hâlâ geçerlidir.
+        let cal = Calendar.current
+        guard cal.startOfDay(for: v.expiry) >= cal.startOfDay(for: Date()) else { return }
+        let trigger: UNNotificationTrigger
+        if let fireDate = cal.date(byAdding: .day, value: -1, to: v.expiry), fireDate > Date() {
+            var comps = cal.dateComponents([.year, .month, .day], from: fireDate)
+            comps.hour = 9
+            trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+        } else {
+            // Bitime 1 günden az kaldıysa "bir gün önce" kaçmıştır — sessizce
+            // vazgeçme, 1 saat sonra hatırlat.
+            trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3600, repeats: false)
+        }
         let content = UNMutableNotificationContent()
-        content.title = "🛣️ \(v.country) vinyeti yarın bitiyor"
+        content.title = "🛣️ \(v.country) vinyeti bitiyor"
         content.body = v.note.isEmpty ? "Yenilemeyi unutma." : v.note
         content.sound = .default
-        let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
         UNUserNotificationCenter.current().add(
             UNNotificationRequest(identifier: "vignette-\(v.id.uuidString)", content: content, trigger: trigger)
         )
@@ -124,7 +134,11 @@ struct VignettesView: View {
     }
 
     private func daysLeftBadge(_ expiry: Date) -> some View {
-        let days = Calendar.current.dateComponents([.day], from: .now, to: expiry).day ?? 0
+        // Gün SINIRLARINI karşılaştır — bitiş gününde vinyet hâlâ geçerlidir (0 gün ≠ bitti).
+        let cal = Calendar.current
+        let days = cal.dateComponents([.day],
+                                      from: cal.startOfDay(for: .now),
+                                      to: cal.startOfDay(for: expiry)).day ?? 0
         let color: Color = days < 0 ? Theme.bad : (days <= 2 ? Theme.c1 : Theme.ok)
         return Text(days < 0 ? "bitti" : "\(days) gün")
             .font(.system(size: 12, weight: .bold, design: .rounded))

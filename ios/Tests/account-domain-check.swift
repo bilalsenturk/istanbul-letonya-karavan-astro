@@ -79,6 +79,16 @@ struct AccountDomainCheck {
         expect(userWithProfile.travelProfile.totalLengthMeters == 10.8, "seyahat profili API'den çözülür")
         expect(userWithProfile.travelProfile.preferredLanguage == .english, "profil mesaj dilini korur")
 
+        let kuzeyPayload = String(data: payload, encoding: .utf8)!
+            .replacingOccurrences(of: "\"trip-1\"", with: "\"kuzey-2026\"")
+            .replacingOccurrences(of: "\"Balkan Yazı\"", with: "\"Leyla'nın Kuzey Yolculuğu\"")
+            .replacingOccurrences(of: "\"standard\"", with: "\"kuzey2026\"")
+        let kuzey = try JSONDecoder().decode(AccountTrip.self, from: Data(kuzeyPayload.utf8))
+        expect(AccountTrip.preferred(in: [trip, kuzey], savedID: nil)?.id == kuzey.id,
+               "kayıtlı seçim yoksa Kuzey rotası otomatik açılır")
+        expect(AccountTrip.preferred(in: [trip, kuzey], savedID: trip.id)?.id == trip.id,
+               "kayıtlı rota seçimi korunur")
+
         print("\n=== Rota taslağı ===")
         var draft = RouteDraft(name: "Baltık Rotası")
         expect(draft.transportMode == .automobile, "yeni rota otomobille başlar")

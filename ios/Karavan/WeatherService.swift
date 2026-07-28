@@ -11,6 +11,9 @@ struct StopWeather: Identifiable {
     let symbol: String
     let desc: String
     let isRaining: Bool
+    /// Bu durağın verisinin gerçekten yenilendiği an — kısmi yanıtta eski
+    /// verisi korunan durak "az önce güncellendi" yalanı söylemesin diye.
+    var updatedAt: Date? = nil
 }
 
 @MainActor
@@ -41,6 +44,10 @@ final class WeatherService: ObservableObject {
 
     private struct OMResponse: Decodable {
         let current: OMCurrent
+        // Çok duraklı yanıtta her eleman kendi koordinatını döner — kısmi
+        // yanıtta durakları kaydırmadan eşleştirmek için kullanılır.
+        let latitude: Double?
+        let longitude: Double?
     }
 
     func refresh(stops: [Stop]) async {
@@ -65,9 +72,36 @@ final class WeatherService: ObservableObject {
             return
         }
 
+        let now = Date()
         var result: [StopWeather] = []
-        for (i, stop) in stops.enumerated() where i < responses.count {
-            let cur = responses[i].current
+        var anyFresh = false
+        // Yanıt elemanlarını duraklara koordinatla eşle (Open-Meteo istenen
+        // noktaya en yakın grid koordinatını döner; ~0.1° tolerans yeter).
+        // Koordinat yoksa konumsal eşleme ancak eleman sayısı durak sayısına
+        // eşitken güvenli — ortası eksik kısmi yanıtta hava yanlış durağa kayar.
+        let positional = responses.count == stops.count
+        var used = Set<Int>()
+        for (i, stop) in stops.enumerated() {
+            var match: OMResponse?
+            if let j = responses.indices.first(where: { j in
+                guard !used.contains(j),
+                      let la = responses[j].latitude, let lo = responses[j].longitude
+                else { return false }
+                return abs(la - stop.lat) < 0.1 && abs(lo - stop.lng) < 0.1
+            }) {
+                used.insert(j)
+                match = responses[j]
+            } else if positional, !used.contains(i) {
+                used.insert(i)
+                match = responses[i]
+            }
+            guard let cur = match?.current else {
+                // Kısmi yanıt: eksik durağın önceki verisini ESKİ updatedAt'iyle
+                // koru ki yağmur bildirimleri tekrar atılmasın ama tazelik
+                // zamanı da gerçeği söylesin.
+                if let old = items.first(where: { $0.id == stop.id }) { result.append(old) }
+                continue
+            }
             let (symbol, desc) = Self.wmo[cur.weather_code] ?? ("thermometer.medium", "—")
             result.append(
                 StopWeather(
@@ -78,12 +112,14 @@ final class WeatherService: ObservableObject {
                     temp: Int(cur.temperature_2m.rounded()),
                     symbol: symbol,
                     desc: desc,
-                    isRaining: cur.precipitation > 0
+                    isRaining: cur.precipitation > 0,
+                    updatedAt: now
                 )
             )
+            anyFresh = true
         }
         items = result
-        updatedAt = Date()
+        if anyFresh { updatedAt = now }   // hiç taze veri yoksa "az önce güncellendi" deme
         detectAndNotifyChanges(result)
     }
 

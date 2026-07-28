@@ -1,67 +1,47 @@
 import SwiftUI
 
-// Segmentli canlı geri sayım — web hero'sundaki tasarımın native karşılığı.
+// Departure state, intentionally kept typographic instead of card-based.
 struct CountdownView: View {
     let departure: Date
+    let routeStarted: Bool
+    let activeRouteName: String?
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
+        TimelineView(.periodic(from: .now, by: 60)) { context in
             let diff = departure.timeIntervalSince(context.date)
             if diff <= 0 {
-                HStack(spacing: 10) {
-                    Text("🚐")
-                    Text("Yoldayız!")
-                        .font(.system(size: 26, weight: .heavy, design: .rounded))
-                        .foregroundStyle(.white)
-                }
-                .padding(.horizontal, 22)
-                .padding(.vertical, 16)
-                .background(Theme.panel, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                statusPanel
             } else {
                 let days = Int(diff) / 86400
                 let hours = (Int(diff) % 86400) / 3600
-                let mins = (Int(diff) % 3600) / 60
-                let secs = Int(diff) % 60
+                let minutes = (Int(diff) % 3600) / 60
 
-                HStack(spacing: 8) {
-                    tile(String(days), "gün")
-                    sep
-                    tile(String(format: "%02d", hours), "saat")
-                    sep
-                    tile(String(format: "%02d", mins), "dk")
-                    sep
-                    tile(String(format: "%02d", secs), "sn")
-                }
+                Text("\(days) gün  \(hours) sa  \(minutes) dk")
+                    .font(.system(size: 34, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(.primary)
+                    .minimumScaleFactor(0.72)
+                    .lineLimit(1)
+                    .contentTransition(.numericText())
+                    .accessibilityLabel("Yola çıkmaya \(days) gün \(hours) saat \(minutes) dakika kaldı")
             }
         }
     }
 
-    private var sep: some View {
-        Text(":")
-            .font(.system(size: 26, weight: .heavy, design: .rounded))
-            .foregroundStyle(Theme.muted)
-            .padding(.bottom, 18)
-    }
-
-    private func tile(_ value: String, _ label: String) -> some View {
-        VStack(spacing: 5) {
-            Text(value)
-                .font(.system(size: 34, weight: .heavy, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(Theme.grad)
-                .contentTransition(.numericText())
-            Text(label.uppercased())
-                .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                .kerning(1.4)
-                .foregroundStyle(Theme.muted)
+    private var statusPanel: some View {
+        Label {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(routeStarted ? "Rota aktif" : "Rota bekliyor")
+                    .font(.headline)
+                Text(routeStarted ? (activeRouteName.map { "\($0) yönünde" } ?? "Canlı rota başladı")
+                     : "Plan'dan Buraya git ile başlat")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        } icon: {
+            Image(systemName: routeStarted ? "location.fill" : "clock")
+                .foregroundStyle(routeStarted ? Color.accentColor : .secondary)
         }
-        .frame(minWidth: 64)
-        .padding(.vertical, 12)
-        .padding(.horizontal, 8)
-        .background(Theme.panel, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Theme.line, lineWidth: 1)
-        )
     }
 }

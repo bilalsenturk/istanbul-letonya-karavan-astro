@@ -12,7 +12,6 @@ struct ArrivalTargetPickerView: View {
     @State private var category: ArrivalSearchCategory = .campground
     @State private var selected: ArrivalTarget?
     @State private var position: MapCameraPosition
-    @FocusState private var searchFocused: Bool
 
     init(
         cityName: String,
@@ -36,7 +35,6 @@ struct ArrivalTargetPickerView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 map
-                searchBar
                 categories
                 results
                 confirmation
@@ -44,6 +42,12 @@ struct ArrivalTargetPickerView: View {
             .background(Theme.bg)
             .navigationTitle("\(cityName) · varış yeri")
             .navigationBarTitleDisplayMode(.inline)
+            .searchable(
+                text: $search.query,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: "Kamp, otel veya tam adres"
+            )
+            .onSubmit(of: .search) { Task { await search.submit() } }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Vazgeç") { dismiss() }
@@ -73,55 +77,21 @@ struct ArrivalTargetPickerView: View {
         .mapControls { MapCompass(); MapScaleView() }
         .frame(height: 185)
         .onMapCameraChange(frequency: .onEnd) { search.update(region: $0.region) }
-        .overlay(alignment: .bottomLeading) {
-            Text("Apple Maps")
-                .font(.caption2.weight(.semibold))
-                .padding(.horizontal, 7).padding(.vertical, 4)
-                .background(.regularMaterial, in: Capsule())
-                .padding(8)
-        }
-    }
-
-    private var searchBar: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass").foregroundStyle(Theme.muted)
-            TextField("Kamp, otel veya tam adres", text: $search.query)
-                .focused($searchFocused)
-                .submitLabel(.search)
-                .onSubmit { Task { await search.submit() } }
-            if !search.query.isEmpty {
-                Button { search.clear() } label: { Image(systemName: "xmark.circle.fill") }
-                    .accessibilityLabel("Aramayı temizle")
-            }
-            if search.isLoading { ProgressView().controlSize(.small) }
-        }
-        .padding(.horizontal, 14)
-        .frame(height: 52)
-        .background(Theme.panel)
     }
 
     private var categories: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(ArrivalSearchCategory.allCases) { item in
-                    Button {
-                        category = item
-                        Task { await search.search(category: item) }
-                        if item == .address { searchFocused = true }
-                    } label: {
-                        Label(item.title, systemImage: item.symbol)
-                            .font(.system(size: 12, weight: .semibold))
-                            .padding(.horizontal, 11).frame(height: 34)
-                            .background(category == item ? Theme.c2 : Theme.panel,
-                                        in: RoundedRectangle(cornerRadius: 7))
-                            .foregroundStyle(category == item ? .white : Theme.text)
-                    }
-                    .buttonStyle(.plain)
-                }
+        Picker("Tür", selection: $category) {
+            ForEach(ArrivalSearchCategory.allCases) { item in
+                Label(item.title, systemImage: item.symbol).tag(item)
             }
-            .padding(.horizontal, 14).padding(.vertical, 10)
         }
-        .overlay(alignment: .bottom) { Divider().overlay(Theme.line) }
+        .pickerStyle(.menu)
+        .padding(.horizontal, 16)
+        .frame(height: 48)
+        .background(Theme.panel)
+        .onChange(of: category) { _, item in
+            Task { await search.search(category: item) }
+        }
     }
 
     private var results: some View {

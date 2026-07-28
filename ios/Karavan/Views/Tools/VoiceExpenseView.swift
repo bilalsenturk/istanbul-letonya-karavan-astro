@@ -9,6 +9,7 @@ struct VoiceExpenseView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var recorder = SpeechRecorder()
     @State private var denied = false
+    @State private var startFailed = false
 
     private var parsed: (amount: Double?, category: ExpenseCategory, note: String) {
         Self.parse(recorder.transcript)
@@ -41,6 +42,12 @@ struct VoiceExpenseView: View {
 
                     if denied {
                         Text("Mikrofon/konuşma izni verilmedi. Ayarlar'dan açabilirsin.")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Theme.bad)
+                    }
+
+                    if startFailed {
+                        Text("Ses motoru başlatılamadı. Kapatıp tekrar dene.")
                             .font(.system(size: 13))
                             .foregroundStyle(Theme.bad)
                     }
@@ -102,14 +109,20 @@ struct VoiceExpenseView: View {
                     DispatchQueue.main.async {
                         guard granted else { denied = true; return }
                         denied = false
-                        try? recorder.start()
+                        do {
+                            try recorder.start()
+                            startFailed = false
+                        } catch {
+                            startFailed = true   // motor hatasını yutma — ölü mikrofon düğmesi kalmasın
+                        }
                     }
                 }
             }
         }
     }
 
-    /// "45 euro yakıt Kapıkule" → (45, .yakit, "Kapıkule …")
+    /// "45 euro yakıt Kapıkule" → (45, .yakit, "Kapıkule")
+    /// Tutar + para birimi + kategori kelimesi nottan ayıklanır; geriye yer/ad kalır.
     static func parse(_ text: String) -> (Double?, ExpenseCategory, String) {
         let lower = text.lowercased()
         var amount: Double?
@@ -119,19 +132,37 @@ struct VoiceExpenseView: View {
             amount = Double(lower[r].replacingOccurrences(of: ",", with: "."))
         }
 
-        let category: ExpenseCategory
-        if ["yakıt", "benzin", "mazot", "motorin", "dizel", "depo"].contains(where: lower.contains) {
-            category = .yakit
-        } else if ["kamp", "konaklama", "gece"].contains(where: lower.contains) {
-            category = .kamp
-        } else if ["yemek", "restoran", "market", "kahvaltı", "atıştırmalık"].contains(where: lower.contains) {
-            category = .yemek
-        } else if ["geçiş", "otoyol", "vinyet", "köprü", "feribot"].contains(where: lower.contains) {
-            category = .gecis
-        } else {
-            category = .diger
+        var category: ExpenseCategory = .diger
+        var matchedKeyword: String?
+        for (cat, words) in [(ExpenseCategory.yakit, ["yakıt", "benzin", "mazot", "motorin", "dizel", "depo"]),
+                             (.kamp, ["kamp", "konaklama", "gece"]),
+                             (.yemek, ["yemek", "restoran", "market", "kahvaltı", "atıştırmalık"]),
+                             (.gecis, ["geçiş", "otoyol", "vinyet", "köprü", "feribot"])] {
+            if let hit = words.first(where: { lower.contains($0) }) {
+                category = cat
+                matchedKeyword = hit
+                break
+            }
         }
 
-        return (amount, category, text.trimmingCharacters(in: .whitespacesAndNewlines))
+        // Not: tutar, para birimi ("euro", "€", "tl") ve kategori kelimesi
+        // özgün metinden (büyük/küçük harf duyarsız) çıkarılır; geriye
+        // özgün yazımıyla yer/ad kalır ("Kapıkule").
+        var note = text
+        if let regex = try? NSRegularExpression(pattern: #"(\d{1,5}(?:[.,]\d{1,2})?)"#),
+           let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+           let r = Range(match.range(at: 1), in: text) {
+            note.removeSubrange(r)
+        }
+        for token in ["euro", "avro", "€", "tl"] {
+            note = note.replacingOccurrences(of: token, with: " ", options: .caseInsensitive)
+        }
+        if let matchedKeyword {
+            note = note.replacingOccurrences(of: matchedKeyword, with: " ", options: .caseInsensitive)
+        }
+        note = note.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return (amount, category, note)
     }
 }

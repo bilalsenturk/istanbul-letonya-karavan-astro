@@ -33,27 +33,32 @@ final class TripNotifier: ObservableObject {
     func onLocation(remainingKm: Int?, nextStopName: String?, speedKmh: Int?,
                     currentCountry: String? = nil, nextCountry: String? = nil,
                     currentCode: String? = nil, nextCountryCode: String? = nil,
+                    routeStarted: Bool = true,
                     now: Date = Date()) {
-        trackDriving(speedKmh: speedKmh, now: now)
+        if RouteAnnouncementPolicy.allowsDrivingReminder(routeStarted: routeStarted) {
+            trackDriving(speedKmh: speedKmh, now: now)
+        } else {
+            resetDriving()
+        }
 
         if let km = remainingKm, let name = nextStopName {
-            if NotificationRules.arrivalSoon(remainingKm: Double(km)),
-               budget.allow(.arrivalSoon, now: now) {
-                NotificationManager.shared.notify(
-                    title: "\(name)'a 50 km",
-                    body: "Kamp yerini şimdi aramaya başla — akşam yer bulmak zor."
-                )
+            // Gerçek kalan mesafe başlıkta; bütçe durak başına ayrı sayılır —
+            // aynı durağın 50 km çemberinde 45 dk'da bir tekrar atmaz.
+            if NotificationRules.arrivalSoon(remainingKm: Double(km)) {
+                deliver(.arrivalSoon, key: name, now: now,
+                        title: "\(name)'a \(km) km",
+                        body: "Kamp yerini şimdi aramaya başla — akşam yer bulmak zor.")
             }
         }
 
-        if let seconds = continuousDriveSeconds(now: now),
-           NotificationRules.driveBreak(continuousDriveSeconds: seconds),
-           budget.allow(.driveBreak, now: now) {
-            NotificationManager.shared.notify(
-                title: "İki saattir yoldasın",
-                body: "Mola ver: bacaklarını aç, su iç, gözlerini dinlendir."
-            )
-            driveStartedAt = now   // sayacı sıfırla
+        if RouteAnnouncementPolicy.allowsDrivingReminder(routeStarted: routeStarted),
+           let seconds = continuousDriveSeconds(now: now),
+           NotificationRules.driveBreak(continuousDriveSeconds: seconds) {
+            if deliver(.driveBreak, now: now,
+                       title: "İki saattir yoldasın",
+                       body: "Mola ver: bacaklarını aç, su iç, gözlerini dinlendir.") {
+                driveStartedAt = now   // sayacı sıfırla
+            }
         }
 
         // Sınır yaklaşımı — yaklaşık: sıradaki durak farklı ülkedeyse
@@ -81,37 +86,34 @@ final class TripNotifier: ObservableObject {
 
     /// Sınıra yaklaşım — çağıran taraf mesafeyi hesaplar.
     func onBorderDistance(_ km: Double, countryName: String, now: Date = Date()) {
-        guard NotificationRules.borderApproach(distanceKm: km),
-              budget.allow(.borderApproach, now: now) else { return }
-        NotificationManager.shared.notify(
-            title: "\(countryName) sınırı \(Int(km)) km",
-            body: "Pasaport, ruhsat, yeşil kart ve vinyet hazır mı?"
-        )
+        guard NotificationRules.borderApproach(distanceKm: km) else { return }
+        deliver(.borderApproach, now: now,
+                title: "\(countryName) sınırı \(Int(km)) km",
+                body: "Pasaport, ruhsat, yeşil kart ve vinyet hazır mı?")
     }
 
     // MARK: - Para
 
     func onCurrency(previous: Double, current: Double, code: String, now: Date = Date()) {
-        guard NotificationRules.currencyJump(previous: previous, current: current),
-              budget.allow(.currencyJump, now: now) else { return }
+        guard NotificationRules.currencyJump(previous: previous, current: current) else { return }
         let direction = current > previous ? "yükseldi" : "düştü"
-        NotificationManager.shared.notify(
-            title: "\(code) \(direction)",
-            body: String(format: "%.2f → %.2f. Bozdurma planını gözden geçir.", previous, current)
-        )
+        // Bütçe para birimi başına: TRY sıçraması RON/BGN hakkını yemez.
+        deliver(.currencyJump, key: code, now: now,
+                title: "\(code) \(direction)",
+                body: String(format: "%.2f → %.2f. Bozdurma planını gözden geçir.", previous, current))
     }
 
     func onFuel(here: Double, next: Double, hereCountry: String, nextCountry: String, now: Date = Date()) {
-        guard let pct = NotificationRules.fuelCheaper(here: here, next: next),
-              budget.allow(.fuelPrice, now: now) else { return }
-        NotificationManager.shared.notify(
-            title: "Burada dizel %\(pct) ucuz",
-            body: "\(hereCountry) · \(nextCountry)'dan ucuz. Depoyu burada doldur."
-        )
+        guard let pct = NotificationRules.fuelCheaper(here: here, next: next) else { return }
+        deliver(.fuelPrice, now: now,
+                title: "Burada dizel %\(pct) ucuz",
+                body: "\(hereCountry) · \(nextCountry)'dan ucuz. Depoyu burada doldur.")
     }
 
     func updateFuelPrices(_ prices: [FuelPrice]) {
-        fuelPrices = Dictionary(uniqueKeysWithValues: prices.map { ($0.country, $0.dieselEur) })
+        // Sunucu JSON'unda aynı ülke kodu iki kez gelebilir —
+        // uniqueKeysWithValues bu durumda çöker; son kaydı al, yutma.
+        fuelPrices = Dictionary(prices.map { ($0.country, $0.dieselEur) }) { _, yeni in yeni }
     }
 
     // MARK: - Pil
@@ -119,12 +121,28 @@ final class TripNotifier: ObservableObject {
     func checkBattery(navigating: Bool, now: Date = Date()) {
         let level = UIDevice.current.batteryLevel
         guard level >= 0,   // -1 = bilinmiyor
-              NotificationRules.lowBattery(level: level, navigating: navigating),
-              budget.allow(.lowBattery, now: now) else { return }
-        NotificationManager.shared.notify(
-            title: "Pil %\(Int(level * 100))",
-            body: "Navigasyon açık. Şarja tak — haritasız kalmak istemezsin."
-        )
+              NotificationRules.lowBattery(level: level, navigating: navigating) else { return }
+        deliver(.lowBattery, now: now,
+                title: "Pil %\(Int(level * 100))",
+                body: "Navigasyon açık. Şarja tak — haritasız kalmak istemezsin.")
+    }
+
+    // MARK: - Gönderim (izin + bütçe + iade)
+
+    /// Bütçeyi ancak bildirim gerçekten kurulabiliyorsa harcar:
+    /// izin yoksa allow() hiç çağrılmaz; planlama hatasında damga release
+    /// ile iade edilir (aksi halde bekleme hakkı boşa yanar).
+    /// Bütçe onaylandıysa true döner.
+    @discardableResult
+    private func deliver(_ kind: NotifKind, key: String? = nil, now: Date,
+                         title: String, body: String) -> Bool {
+        guard NotificationManager.shared.authorized else { return false }
+        guard budget.allow(kind, key: key, now: now) else { return false }
+        NotificationManager.shared.notify(title: title, body: body) { [weak self] error in
+            guard error != nil else { return }
+            Task { @MainActor in self?.budget.release(kind, key: key) }
+        }
+        return true
     }
 
     // MARK: - Sürüş süresi takibi
@@ -144,5 +162,10 @@ final class TripNotifier: ObservableObject {
     private func continuousDriveSeconds(now: Date) -> TimeInterval? {
         guard let start = driveStartedAt else { return nil }
         return now.timeIntervalSince(start)
+    }
+
+    private func resetDriving() {
+        driveStartedAt = nil
+        lastMovingAt = nil
     }
 }

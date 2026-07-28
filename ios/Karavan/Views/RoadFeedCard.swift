@@ -29,7 +29,7 @@ struct RoadFeedCard: View {
                 }
 
                 // Dizel — rota ülkeleri, en ucuz vurgulu
-                let prices = data.fuel.filter { routeCodes.contains($0.country) }
+                let prices = data.fuel.filter { routeCodes.contains($0.country) && $0.dieselEur > 0 }
                 if !prices.isEmpty {
                     let cheapest = prices.min { $0.dieselEur < $1.dieselEur }?.country
                     VStack(alignment: .leading, spacing: 6) {
@@ -94,8 +94,10 @@ struct RoadFeedCard: View {
                             .foregroundStyle(Theme.muted)
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
-                                ForEach(["TRY", "BGN", "RON", "HUF", "PLN"], id: \.self) { cur in
-                                    if let rate = data.rates[cur] {
+                                // EUR da listede: Letonya/Litvanya EUR kullanır,
+                                // yoksa rotanın sonunda "sıradaki para birimi" vurgusu çalışmaz.
+                                ForEach(["TRY", "BGN", "RON", "HUF", "PLN", "EUR"], id: \.self) { cur in
+                                    if let rate = data.rates[cur] ?? (cur == "EUR" ? 1 : nil) {
                                         let isNext = cur == nextCurrency
                                         HStack(spacing: 4) {
                                             Text(cur)

@@ -28,6 +28,9 @@ final class NavProgressStore: ObservableObject {
     private var lastComputeAt: Date = .distantPast
     private var lastCoord: CLLocationCoordinate2D?
     private let geocoder = CLGeocoder()
+    /// Nesil sayacı: yavaş ağda eski MKDirections yanıtı geç dönerse daha YENİ
+    /// hesaplamanın üzerine yazmasın — yalnızca en son sonuç uygulanır.
+    private var computeGeneration = 0
 
     private func meters(_ location: CLLocation, to stop: Stop) -> Double {
         location.distance(from: CLLocation(latitude: stop.lat, longitude: stop.lng))
@@ -58,6 +61,8 @@ final class NavProgressStore: ObservableObject {
         }
         lastCoord = location.coordinate
         lastComputeAt = now
+        computeGeneration += 1
+        let generation = computeGeneration
 
         // 1) Bulunduğun ETABI (segment) bul; sıradaki durak o etabın bitişidir.
         //    "En yakın durak" heuristiği etabın ilk yarısında ayrıldığın şehri
@@ -71,24 +76,48 @@ final class NavProgressStore: ObservableObject {
         let idx = bestLeg + 1
         let prevIdx = bestLeg
         let next = stops[idx]
-        nextStop = next
-        currentLegIndex = bestLeg
 
-        // 2) Kalan km + SÜRE — Apple Maps (MKDirections) ile gerçek sürüş.
+        // 2) Kuş uçuşu yedeğini ÖNCE uygula: MKDirections yavaşsa/başarısızsa bile
+        //    en son neslin nextStop + kalan km + ETA'sı birlikte yayınlanmış olur
+        //    (yavaş ağda eski nesil beklenirken "açlık" olmaz). Gerçek rota dönünce
+        //    aynı blok değerleri günceller.
+        let straight = meters(location, to: next)
+        commit(next: next, idx: idx, prevIdx: prevIdx, stops: stops, route: route,
+               remainingMeters: straight, travelTime: nil, generation: generation)
+
+        // 3) Kalan km + SÜRE — Apple Maps (MKDirections) ile gerçek sürüş.
         let request = MKDirections.Request()
         request.source = MKMapItem(placemark: MKPlacemark(coordinate: location.coordinate))
         request.destination = MKMapItem(placemark: MKPlacemark(coordinate: next.coordinate))
         request.transportType = .automobile
 
-        let remainingMeters: Double
-        if let response = try? await MKDirections(request: request).calculate(), let route = response.routes.first {
-            remainingMeters = route.distance
-            remainingKm = Int((route.distance / 1000).rounded())
-            remainingMinutes = Int((route.expectedTravelTime / 60).rounded())
+        if let driving = try? await MKDirections(request: request).calculate().routes.first {
+            commit(next: next, idx: idx, prevIdx: prevIdx, stops: stops, route: route,
+                   remainingMeters: driving.distance, travelTime: driving.expectedTravelTime,
+                   generation: generation)
+        }
+
+        // 5) Anlık şehir (ters coğrafi kodlama, best-effort).
+        if let placemark = try? await geocoder.reverseGeocodeLocation(location).first {
+            guard generation == computeGeneration else { return }
+            currentCity = placemark.locality ?? placemark.subAdministrativeArea ?? placemark.administrativeArea
+        }
+    }
+
+    /// İlerleme değerlerini TEK BLOKTA yayınla: nextStop, kalan km ve ETA her zaman
+    /// aynı nesilden gelir; eski neslin geç dönen sonucu hiçbir alanı ezmez.
+    private func commit(next: Stop, idx: Int, prevIdx: Int, stops: [Stop],
+                        route: RouteStore?, remainingMeters: Double,
+                        travelTime: TimeInterval?, generation: Int) {
+        guard generation == computeGeneration else { return }   // daha yeni hesaplama başladı
+        nextStop = next
+        currentLegIndex = prevIdx
+        remainingKm = Int((remainingMeters / 1000).rounded())
+        if let travelTime {
+            remainingMinutes = Int((travelTime / 60).rounded())
         } else {
-            remainingMeters = meters(location, to: next)
-            remainingKm = Int((remainingMeters / 1000).rounded())
-            remainingMinutes = Int((remainingMeters / 1000) / 80 * 60) // ~80 km/s tahmini
+            // ~80 km/s tahmini; kısa mesafede "0 dk" görünmesin → en az 1 dk.
+            remainingMinutes = max(1, Int((remainingMeters / 1000) / 80 * 60))
         }
 
         // 2b) Riga'ya kalan: sıradaki durağa sürüş + aradaki etapların rota mesafeleri.
@@ -137,11 +166,6 @@ final class NavProgressStore: ObservableObject {
             arr.append(StopArrival(id: s.id, name: s.name, code: s.code, eta: base.addingTimeInterval(cum)))
         }
         arrivals = arr
-
-        // 5) Anlık şehir (ters coğrafi kodlama, best-effort).
-        if let placemark = try? await geocoder.reverseGeocodeLocation(location).first {
-            currentCity = placemark.locality ?? placemark.subAdministrativeArea ?? placemark.administrativeArea
-        }
     }
 
     var remainingTimeText: String {

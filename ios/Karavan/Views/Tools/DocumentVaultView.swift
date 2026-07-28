@@ -23,10 +23,23 @@ final class VaultStore: ObservableObject {
             .sorted { $0.lastPathComponent > $1.lastPathComponent }
     }
 
-    func save(data: Data, name: String) {
-        let url = dir.appendingPathComponent(name)
-        try? data.write(to: url, options: [.atomic, .completeFileProtection])
-        refresh()
+    func save(data: Data, name: String) -> Bool {
+        var url = dir.appendingPathComponent(name)
+        // Aynı adlı dosya varsa (ör. aynı saniyede iki tarama) ezme — benzersiz ek koy.
+        if FileManager.default.fileExists(atPath: url.path) {
+            let base = url.deletingPathExtension().lastPathComponent
+            let ext = url.pathExtension
+            let unique = "\(base)-\(UUID().uuidString.prefix(4))"
+            url = url.deletingLastPathComponent()
+                .appendingPathComponent(ext.isEmpty ? unique : "\(unique).\(ext)")
+        }
+        do {
+            try data.write(to: url, options: [.atomic, .completeFileProtection])
+            refresh()
+            return true
+        } catch {
+            return false
+        }
     }
 
     func delete(at offsets: IndexSet) {
@@ -42,6 +55,8 @@ struct DocumentVaultView: View {
     @State private var showScanner = false
     @State private var showImporter = false
     @State private var previewURL: URL?
+    @State private var saveFailed = false
+    @State private var pendingSaveFailed = false   // tarama sheet'i kapanmadan alert isteme — arkada düşer
 
     var body: some View {
         ZStack {
@@ -69,9 +84,13 @@ struct DocumentVaultView: View {
                 }
             }
         }
-        .sheet(isPresented: $showScanner) {
+        .sheet(isPresented: $showScanner, onDismiss: {
+            // Hata uyarısını sheet TAM KAPANDIKTAN sonra göster — kapanış
+            // sürerken istenen alert sessizce düşer (masraf akışıyla aynı desen).
+            if pendingSaveFailed { pendingSaveFailed = false; saveFailed = true }
+        }) {
             DocScanRepresentable { pdfData in
-                store.save(data: pdfData, name: "Belge-\(Self.stamp()).pdf")
+                pendingSaveFailed = !store.save(data: pdfData, name: "Belge-\(Self.stamp()).pdf")
             }
             .ignoresSafeArea()
         }
@@ -82,8 +101,15 @@ struct DocumentVaultView: View {
             let access = src.startAccessingSecurityScopedResource()
             defer { if access { src.stopAccessingSecurityScopedResource() } }
             if let data = try? Data(contentsOf: src) {
-                store.save(data: data, name: src.lastPathComponent)
+                saveFailed = !store.save(data: data, name: src.lastPathComponent)
+            } else {
+                saveFailed = true   // dosya okunamadı — sessizce yutma
             }
+        }
+        .alert("Belge kaydedilemedi", isPresented: $saveFailed) {
+            Button("Tamam", role: .cancel) {}
+        } message: {
+            Text("Dosya kasaya yazılamadı. Tekrar dene.")
         }
         .quickLookPreview($previewURL)
         .preferredColorScheme(.dark)

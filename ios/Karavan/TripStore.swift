@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 @MainActor
 final class TripStore: ObservableObject {
@@ -9,9 +10,28 @@ final class TripStore: ObservableObject {
     // de tazelenir — app'i yeniden kurmak gerekmez. (Adres: Config.swift)
     static let remoteDataURL = Config.tripDataURL
 
+    /// Öne gelişte yeniden çekim için son DENEME zamanı (throttle).
+    private var lastRefreshAttempt: Date = .distantPast
+
     init() {
         loadBundled()
+        lastRefreshAttempt = Date()
         Task { await refreshFromRemote() }
+        // App öne gelince uzak veriyi tazele (willEnterForeground açılışta
+        // tetiklenmez; sık öne gelişlerde 60 sn sınırı).
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.willEnterForegroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self,
+                      Date().timeIntervalSince(self.lastRefreshAttempt) > 60
+                else { return }
+                self.lastRefreshAttempt = Date()
+                await self.refreshFromRemote()
+            }
+        }
     }
 
     /// Gömülü gezi verisi (çevrimdışı yedek + arka plan görevleri için).
@@ -29,7 +49,10 @@ final class TripStore: ObservableObject {
     }
 
     /// Kullanıcı düzenlemeleri kalkışı değiştirebildiği için snapshot dışarıdan beslenir.
-    var effectiveDeparture: (() -> Date?)?
+    /// Closure açılışta snapshot'tan SONRA kurulur; kurulunca widget verisini tazele.
+    var effectiveDeparture: (() -> Date?)? {
+        didSet { writeSnapshot() }
+    }
 
     /// Widget'ların ihtiyacı olan sabitleri App Group'a yaz.
     func writeSnapshot() {
@@ -40,7 +63,13 @@ final class TripStore: ObservableObject {
         var values: [String: Any] = [
             SharedSnapshot.Key.departureAt: departure.map { iso.string(from: $0) } ?? trip.departureAt
         ]
-        if let max = trip.totalBudget.max { values[SharedSnapshot.Key.budgetMax] = Double(max) }
+        if let max = trip.totalBudget.max {
+            values[SharedSnapshot.Key.budgetMax] = Double(max)
+        } else {
+            // Yeni snapshot'ta olmayan anahtar App Group'ta kalıp bayat
+            // değer göstermesin (SharedSnapshot.write yalnızca yazar, silmez).
+            SharedSnapshot.defaults?.removeObject(forKey: SharedSnapshot.Key.budgetMax)
+        }
         SharedSnapshot.write(values)
     }
 

@@ -201,13 +201,14 @@ struct MapScreen: View {
             .padding(.bottom, 12)
     }
 
+    @ViewBuilder
     private func routeControlPanel(trip: TripData) -> some View {
         let completed = routeSession.completedStopIds.intersection(Set(trip.stops.map(\.id))).count
         let total = max(0, trip.stops.count - 1)
         let target = displayedRouteStop(trip: trip)
         let ordinal = target.flatMap { routeOrdinal(for: $0, trip: trip) }
 
-        return VStack(alignment: .leading, spacing: 12) {
+        let content = VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Label(routeSession.isActive ? "Rota aktif" : "Rota başlamadı",
                       systemImage: routeSession.isActive ? "play.fill" : "pause.fill")
@@ -244,12 +245,14 @@ struct MapScreen: View {
             }
 
             HStack(spacing: 8) {
-                Button { fitWholeRoute() } label: { compactPill("map", "Tüm rota") }
-                    .buttonStyle(.plain)
-                Button { centerOnUser() } label: { compactPill("location.fill", "Konumum") }
-                    .buttonStyle(.plain)
+                Button { fitWholeRoute() } label: {
+                    Label("Tüm rota", systemImage: "map")
+                }
+                .buttonStyle(.bordered)
                 if routeSession.isActive, let next = nav.nextStop, let km = nav.remainingKm {
-                    compactPill("arrow.triangle.turn.up.right.circle.fill", "\(next.name) \(km) km")
+                    Label("\(next.name) \(km) km", systemImage: "arrow.triangle.turn.up.right.circle.fill")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Theme.text)
                 }
             }
 
@@ -259,7 +262,7 @@ struct MapScreen: View {
                 }
             } label: {
                 HStack(spacing: 8) {
-                    Text("Duraklar")
+                    Text("Plan")
                         .font(.system(size: 13, weight: .heavy, design: .rounded))
                     .foregroundStyle(.white)
                     Spacer()
@@ -282,8 +285,17 @@ struct MapScreen: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 12)
-        .background(.black.opacity(0.72), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(.white.opacity(0.14), lineWidth: 1))
+
+        if #available(iOS 26.0, *) {
+            content.glassEffect(.regular, in: .rect(cornerRadius: 20))
+        } else {
+            content
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .strokeBorder(.white.opacity(0.14))
+                }
+        }
     }
 
     private func routeActionButton(target: Stop, trip: TripData) -> some View {
@@ -294,22 +306,15 @@ struct MapScreen: View {
             guard canOpenPlan else { return }
             appNavigation.selectedTab = .plan
         } label: {
-            HStack(spacing: 7) {
-                Image(systemName: state == .active ? "play.fill" : "list.number")
-                    .font(.system(size: 13, weight: .bold))
-                Text(canOpenPlan ? "Planı aç" : routeActionTitle(state: state, canStart: false))
-                    .font(.system(size: 13, weight: .heavy, design: .rounded))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
-            }
-            .foregroundStyle(.white)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(canOpenPlan ? AnyShapeStyle(Theme.gradWarm) : AnyShapeStyle(Theme.panel),
-                        in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(routeStateTint(state).opacity(0.55), lineWidth: 1))
+            Label(
+                canOpenPlan ? "Planı aç" : routeActionTitle(state: state, canStart: false),
+                systemImage: state == .active ? "play.fill" : "list.number"
+            )
+            .font(.system(size: 13, weight: .semibold))
+            .lineLimit(1)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.borderedProminent)
+        .tint(canOpenPlan ? Theme.c2 : Theme.muted)
         .disabled(!canOpenPlan)
         .opacity(canOpenPlan || state == .active ? 1 : 0.58)
     }
@@ -395,22 +400,6 @@ struct MapScreen: View {
         }
     }
 
-    private func compactPill(_ symbol: String, _ text: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: symbol)
-                .font(.system(size: 12, weight: .bold))
-            Text(text)
-                .font(.system(size: 12, weight: .bold, design: .rounded))
-                .monospacedDigit()
-                .lineLimit(1)
-        }
-        .foregroundStyle(.white)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(.white.opacity(0.08), in: Capsule())
-        .overlay(Capsule().strokeBorder(.white.opacity(0.2), lineWidth: 1))
-    }
-
 }
 
 struct MiniRigMarker: View {
@@ -419,89 +408,20 @@ struct MiniRigMarker: View {
     @State private var pulse = false
 
     var body: some View {
-        ZStack {
-            Capsule()
-                .fill(.black.opacity(0.28))
-                .frame(width: 42, height: 8)
-                .blur(radius: 4)
-                .offset(y: 9)
-
-            HStack(spacing: 2) {
-                caravan
-                RoundedRectangle(cornerRadius: 1, style: .continuous)
-                    .fill(.white.opacity(0.86))
-                    .frame(width: 7, height: 2)
-                    .shadow(color: .black.opacity(0.28), radius: 1, y: 0.5)
-                car
-            }
+        Image("RigMapIcon")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 58, height: 34)
             .offset(x: moving ? (pulse ? 1.1 : -0.6) : 0,
                     y: moving ? (pulse ? -0.35 : 0.25) : 0)
-        }
-        .frame(width: 54, height: 32)
-        .rotationEffect(.degrees(heading - 90))
-        .shadow(color: .black.opacity(0.42), radius: 7, y: 4)
+            .rotationEffect(.degrees(heading + 90))
+            .shadow(color: .black.opacity(0.38), radius: 6, y: 3)
         .onAppear {
             withAnimation(.easeInOut(duration: 0.82).repeatForever(autoreverses: true)) {
                 pulse = true
             }
         }
         .accessibilityHidden(true)
-    }
-
-    private var car: some View {
-        ZStack(alignment: .bottom) {
-            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                .fill(LinearGradient(colors: [.white, Color(red: 0.78, green: 0.84, blue: 0.91)],
-                                     startPoint: .topLeading, endPoint: .bottomTrailing))
-                .frame(width: 23, height: 14)
-                .overlay(alignment: .topTrailing) {
-                    RoundedRectangle(cornerRadius: 2, style: .continuous)
-                        .fill(Color(red: 0.18, green: 0.27, blue: 0.39).opacity(0.72))
-                        .frame(width: 8, height: 4)
-                        .padding(.top, 2)
-                        .padding(.trailing, 5)
-                }
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .strokeBorder(.white.opacity(0.65), lineWidth: 0.8)
-                )
-            wheels(width: 17)
-                .offset(y: 2.5)
-        }
-        .frame(width: 23, height: 19)
-    }
-
-    private var caravan: some View {
-        ZStack(alignment: .bottom) {
-            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                .fill(LinearGradient(colors: [Color(red: 0.98, green: 0.99, blue: 1.0),
-                                              Color(red: 0.80, green: 0.86, blue: 0.91)],
-                                     startPoint: .topLeading, endPoint: .bottomTrailing))
-                .frame(width: 23, height: 16)
-                .overlay(alignment: .topLeading) {
-                    RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                        .fill(Color(red: 0.18, green: 0.27, blue: 0.39).opacity(0.55))
-                        .frame(width: 6, height: 5)
-                        .padding(.top, 3)
-                        .padding(.leading, 5)
-                }
-                .overlay(
-                    RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        .strokeBorder(.white.opacity(0.68), lineWidth: 0.8)
-                )
-            wheels(width: 18)
-                .offset(y: 2.5)
-        }
-        .frame(width: 23, height: 21)
-    }
-
-    private func wheels(width: CGFloat) -> some View {
-        HStack {
-            Circle().fill(Color(red: 0.03, green: 0.06, blue: 0.10)).frame(width: 4, height: 4)
-            Spacer()
-            Circle().fill(Color(red: 0.03, green: 0.06, blue: 0.10)).frame(width: 4, height: 4)
-        }
-        .frame(width: width)
     }
 }
 

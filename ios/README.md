@@ -28,6 +28,14 @@
 | `siteURL` | Deploy edilen site (veri + canlı konum hedefi) |
 | `livePostSecret` | Web'e konum gönderme anahtarı — Vercel'deki `LIVE_POST_SECRET` ile aynı olmalı |
 
+## Apple hesabı ve çoklu rotalar
+
+- Uygulama `Sign in with Apple` ile açılır; erişim ve yenileme tokenları Keychain'de tutulur.
+- Her kullanıcı yeni rota oluşturabilir. Harita araması, mevcut konum ve haritaya uzun basma ile durak eklenir.
+- Rota sahibi başka Apple hesaplarını `Üye` veya `Görüntüleyen` olarak davet eder.
+- `Üye` durakları düzenler; `Görüntüleyen` yalnızca okur. Son sahip kaldırılamaz.
+- Letonca kursu ve Kuzey müziği yalnızca `Leyla'nın Kuzey Yolculuğu` içinde görünür.
+
 ## Web tarafında canlı konum için (bir kere)
 
 Vercel projesinde:
@@ -35,6 +43,16 @@ Vercel projesinde:
 2. **Settings → Environment Variables** → `LIVE_POST_SECRET` = `Config.livePostSecret` ile aynı değer
 
 App konum iznini alınca 60 sn'de bir `POST /api/location` çağırır; site ana sayfadaki **"Karavan Nerede?"** kartı bunu okur.
+
+## Sürüm yayınlama (TestFlight)
+
+Uygulama açılışta (ve öne gelişte, en sık 6 saatte bir) sitedeki `/kuzey-version.json` manifest'ini okur; güncel `latestBuild` kurulu sürümden yüksekse Panel'in üstünde güncelleme banner'ı gösterir. Yeni TestFlight build'i yükleyince:
+
+1. `public/kuzey-version.json`'da **`latestBuild`**'i yeni `CURRENT_PROJECT_VERSION` (`project.yml`) değerine çek — site deploy olunca aktif olur
+2. **`testflightURL`**'deki `XXXXXX` yer tutucusunu App Store Connect → TestFlight → herkese açık davet linkiyle değiştir (bir kere; link her build için aynıdır)
+3. Eski sürümlerin güncellemesi **zorunluysa** `minBuild`'i de yeni numaraya çek — banner kapatılamaz hâle gelir
+
+Dürüst not: iOS, uygulamanın kendi kendini güncellemesine izin vermez — uygulama yalnızca **haber verir**, kurulumu TestFlight yapar. Her cihazda TestFlight → Kuzey → **Otomatik Güncelleme** açıksa yeni build zaten kendiliğinden kurulur; banner yedek güvencedir.
 
 ## Projeyi yeniden üretme
 
