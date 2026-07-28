@@ -1,4 +1,4 @@
 .env
 .env.*
-.superpowers/
-data/
+/.superpowers/
+/data/
