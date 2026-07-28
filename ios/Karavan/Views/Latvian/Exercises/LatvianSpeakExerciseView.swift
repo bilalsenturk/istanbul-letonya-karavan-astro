@@ -168,11 +168,16 @@ struct LatvianSpeakExerciseView: View {
 
     // MARK: - Yazarak gönderme
 
+    /// Hedef kelime yukarıda tam diakritikle duruyor (`LatvianCarrierCard`).
+    /// Alanın yanında bir açıklama olmayınca bunun birebir yazılması gerektiği
+    /// okunuyordu — oysa notlayıcı düz harfi de kabul ediyor. Not ve klavye
+    /// şeridi `LatvianDiacriticInput`'ten geliyor, yazma görünümüyle aynı yerden.
     private var fallbackField: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Söyleyeceğini yazabilirsin")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Theme.dim)
+            LatvianDiacriticInput(text: $typed, feedback: feedback)
             TextField("Letonca yaz", text: $typed)
                 .font(.system(size: 19, weight: .bold, design: .rounded))
                 .foregroundStyle(Theme.text)

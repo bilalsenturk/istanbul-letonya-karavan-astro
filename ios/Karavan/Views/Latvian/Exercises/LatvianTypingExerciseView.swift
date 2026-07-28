@@ -3,10 +3,10 @@ import SwiftUI
 /// `dictation` için yazma görünümü.
 ///
 /// Türkçe klavyede `ā ē ī ū č ģ ķ ļ ņ š ž` yok. Notlayıcı diakritikleri katladığı
-/// için `latviesu` yazan öğrenci ceza yemiyor; yine de klavyenin üstünde bir
-/// harf şeridi duruyor — doğru yazmak isteyen yazabilsin. Şerit metnin **sonuna**
-/// ekliyor: SwiftUI `TextField`'ı imleç konumunu dışarı vermiyor, soldan sağa
-/// yazarken imleç zaten sonda oluyor.
+/// için `latviesu` yazan öğrenci ceza yemiyor; bunu söyleyen not ve isteyenin
+/// doğru yazabilmesi için klavye üstündeki harf şeridi ortak bileşende
+/// (`LatvianDiacriticInput`). Not alanın **üstünde**: altındayken klavye açıkken
+/// kaydırılabilir alanın dışında kalıyordu.
 ///
 /// Cevap paneli açılınca klavye bilerek kapanıyor: açık kalsaydı ekranın alt
 /// yarısını kaplayıp panelin kendisini gizlerdi.
@@ -16,9 +16,6 @@ struct LatvianTypingExerciseView: View {
     @ObservedObject var feedback: LatvianFeedback
     let isLocked: Bool
     let onAnswerReady: (LatvianAnswer?) -> Void
-
-    /// Letoncanın Türkçe klavyede bulunmayan harfleri.
-    private static let diacritics = ["ā", "č", "ē", "ģ", "ī", "ķ", "ļ", "ņ", "š", "ū", "ž"]
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var text = ""
@@ -51,19 +48,14 @@ struct LatvianTypingExerciseView: View {
                 LatvianCarrierCard(text: carrier, size: 22)
             }
 
-            field
-
-            Text("Diakritikleri yazamazsan sorun değil: \"a\" da \"ā\" sayılıyor.")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Theme.muted)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .latvianShake(trigger: shakeTrigger)
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                diacriticBar
+            // Not ve alan tek bir öbek: aradaki 8 pt, notun alanın başlığı gibi
+            // okunmasını sağlıyor. 18 pt'lik gövde aralığı ikisini ayırırdı.
+            VStack(alignment: .leading, spacing: 8) {
+                LatvianDiacriticInput(text: $text, feedback: feedback)
+                field
             }
         }
+        .latvianShake(trigger: shakeTrigger)
         .task(id: exercise.id) { await focusAfterAppearing() }
         .onAppear(perform: syncExercise)
         .onChange(of: exercise.id) { _, _ in syncExercise() }
@@ -106,41 +98,6 @@ struct LatvianTypingExerciseView: View {
                 .stroke(fieldBorder, lineWidth: 2)
         )
         .animation(LatvianMotion.adaptive(LatvianMotion.snap, reduceMotion: reduceMotion), value: isLocked)
-    }
-
-    // MARK: - Harf şeridi
-
-    /// On bir harf, 375 pt'lik ekrana kaydırmadan sığacak ölçüde.
-    ///
-    /// İlk denemede tuşlar 34 pt genişti ve son üçü (š ū ž) ekran dışında
-    /// kalıyordu — kimse orada kaydırılacak bir şey olduğunu tahmin edemezdi.
-    /// `maxWidth: .infinity` ile eşit paylaştırmak ise klavye çubuğunda
-    /// çalışmıyor: `ToolbarItemGroup` genişlik teklif etmediği için şerit tek
-    /// bir yumruya çöküyordu. Sabit ölçü + kaydırma, ikisinin de olmadığı hâl.
-    private var diacriticBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 3) {
-                ForEach(Self.diacritics, id: \.self) { letter in
-                    Button {
-                        feedback.tap()
-                        text.append(letter)
-                    } label: {
-                        Text(letter)
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                            .foregroundStyle(Theme.text)
-                            .frame(width: 28, height: 40)
-                            .background(Theme.panel, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .stroke(Theme.line, lineWidth: 1)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("\(letter) harfini ekle")
-                }
-            }
-            .padding(.horizontal, 2)
-        }
     }
 
     // MARK: - Soru değişimi
