@@ -15,6 +15,30 @@ import Foundation
 /// istek başarısız olunca çalar tek kelime etmeden ölüyordu.
 @MainActor
 final class LatvianAudioStore: NSObject, ObservableObject, AVAudioPlayerDelegate {
+
+    static let speechEnabledKey = "letonca.telaffuzSesi"
+
+    /// Telaffuz sesi açık mı — ayar ekranındaki "Telaffuz sesi" anahtarı.
+    ///
+    /// İki yerde birden okunuyor ve **ikisi de şart**:
+    ///
+    /// 1. `play(audioId:)` kapalıyken çalmıyor.
+    /// 2. `availableAudioIds` kapalıyken boş dönüyor, dolayısıyla ders kurulurken
+    ///    sese bağlı soru tipleri (`listenChoose`, `dictation`, `speak`) hiç
+    ///    üretilmiyor. Yalnızca (1) yapılsaydı "Duyduğun kelimeyi seç" sorusu
+    ///    sessiz bir "Dinle" düğmesiyle çıkar ve **cevaplanamaz** olurdu.
+    ///
+    /// `@AppStorage` bilerek kullanılmadı: `DynamicProperty` olduğu için `View`
+    /// dışında `objectWillChange` yayınlamaz (aynı gerekçe: `LatvianFeedback`).
+    @Published var speechEnabled: Bool {
+        didSet {
+            guard speechEnabled != oldValue else { return }
+            defaults.set(speechEnabled, forKey: Self.speechEnabledKey)
+            // Ayar ders dışında değişiyor ama çalan bir klip varsa susmalı.
+            if !speechEnabled { stopPlayback() }
+        }
+    }
+
     /// Diskte tam ve doğrulanmış olarak duran klip kimlikleri.
     /// `LatvianExerciseFactory` bunu `availableAudio` olarak alır: eksik klip
     /// bozuk soru değil, o kelime için daha az soru türü demektir. Bu yüzden
@@ -37,6 +61,11 @@ final class LatvianAudioStore: NSObject, ObservableObject, AVAudioPlayerDelegate
     /// Şu an çalan klip — arayüz hoparlör simgesini canlandırabilsin diye.
     @Published private(set) var playingAudioId: String?
 
+    /// Son eşitlenen paketteki toplam klip sayısı. Ayar ekranı "412 klibin 380'i
+    /// indi" diyebilsin diye ayrıca yayımlanıyor; `manifestIds` iç durum.
+    /// İlk `syncMissing(pack:)` çağrısından önce 0.
+    @Published private(set) var expectedClipCount = 0
+
     // `nonisolated`: indirme işini yapan yardımcılar ana aktörün dışında çalışıyor.
     private nonisolated static let directoryName = "letonca-ses"
     private nonisolated static let fileExtension = "mp3"
@@ -49,6 +78,7 @@ final class LatvianAudioStore: NSObject, ObservableObject, AVAudioPlayerDelegate
 
     private let directory: URL
     private let session: URLSession
+    private let defaults: UserDefaults
 
     private var activeSync: Task<Void, Never>?
     /// Kimlik → dosyanın bayt sayısı. `downloadedAudioIds` ve `storedByteCount`
@@ -64,7 +94,10 @@ final class LatvianAudioStore: NSObject, ObservableObject, AVAudioPlayerDelegate
     private var player: AVAudioPlayer?
     private var sessionReady = false
 
-    override init() {
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        // Anahtar yoksa varsayılan açık; `bool(forKey:)` yokluğu `false` sayardı.
+        speechEnabled = defaults.object(forKey: Self.speechEnabledKey) as? Bool ?? true
         directory = Self.makeDirectory()
         session = Self.makeSession()
         super.init()
@@ -80,13 +113,37 @@ final class LatvianAudioStore: NSObject, ObservableObject, AVAudioPlayerDelegate
         return fileURL(for: audioId)
     }
 
+    /// Ders kurulurken `LatvianLessonBuilder`'a verilecek küme.
+    ///
+    /// `downloadedAudioIds`'ten farkı tek: telaffuz sesi kapalıyken boş dönüyor.
+    /// Soru üretimi bunu kullanmalı, `downloadedAudioIds`'i değil — bkz.
+    /// `speechEnabled` yorumu.
+    var availableAudioIds: Set<String> {
+        speechEnabled ? downloadedAudioIds : []
+    }
+
     /// "5,2 MB" gibi yerel biçimli boyut.
     var storedSizeText: String {
         ByteCountFormatter.string(fromByteCount: storedByteCount, countStyle: .file)
     }
 
+    /// Pakette olup diskte olmayan klip sayısı. Paket henüz bilinmiyorsa 0.
+    var missingClipCount: Int {
+        max(0, expectedClipCount - manifestIds.intersection(downloadedAudioIds).count)
+    }
+
     /// Arayüzdeki hata şeridini kapatmak için.
     func dismissError() { lastError = nil }
+
+    /// Ayar ekranındaki "Eksik sesleri indir" düğmesi.
+    ///
+    /// - Returns: tur başlatıldıysa `true`. Paket henüz bilinmiyorsa (ilk
+    ///   `syncMissing(pack:)` çağrısından önce) indirilecek bir şey de bilinmiyor.
+    @discardableResult
+    func retryMissingClips() -> Bool {
+        lastError = nil
+        return repairMissingClips()
+    }
 
     // MARK: - İndirme
 
@@ -117,6 +174,7 @@ final class LatvianAudioStore: NSObject, ObservableObject, AVAudioPlayerDelegate
         lastPack = pack
         let ordered = Self.orderedAudioIds(in: pack)
         manifestIds = Set(ordered)
+        if expectedClipCount != manifestIds.count { expectedClipCount = manifestIds.count }
         pruneUnreferenced()
         refreshProgress()
 
@@ -238,6 +296,12 @@ final class LatvianAudioStore: NSObject, ObservableObject, AVAudioPlayerDelegate
     /// Klibi çalar. Ses yoksa ya da çözümlenemiyorsa Türkçe bir hata bırakır:
     /// bu sınıfın var oluş sebebi, sessizce hiçbir şey yapmamayı önlemek.
     func play(audioId: String) {
+        // Sessizce dönmüyor: ayar kapalıyken bile bir "Dinle" düğmesi ekranda
+        // kaldıysa (ders başladıktan sonra kapatıldıysa) kullanıcı sebebini okusun.
+        guard speechEnabled else {
+            lastError = "Telaffuz sesi ayarlardan kapalı. Letonca ayarlarından açabilirsin."
+            return
+        }
         guard let url = localURL(for: audioId) else {
             lastError = "Bu sesin dosyası henüz inmedi. İnternete bağlandığında kendiliğinden inecek."
             return
@@ -268,6 +332,13 @@ final class LatvianAudioStore: NSObject, ObservableObject, AVAudioPlayerDelegate
     }
 
     private enum PlaybackError: Error { case refused }
+
+    /// Çalmakta olanı durdurur. Hata bırakmaz: kullanıcının kendi eylemi.
+    private func stopPlayback() {
+        player?.stop()
+        player = nil
+        playingAudioId = nil
+    }
 
     /// Ses oturumu bir kez kurulur — her çalışta yeniden kurmak gereksiz.
     /// Yine de kategori kontrol edilir: sesli günlük (`SpeechRecorder`) kategoriyi

@@ -156,7 +156,10 @@ final class LatvianCourseModel: ObservableObject {
             pack: pack,
             progress: progress,
             factory: factory,
-            availableAudio: audio.downloadedAudioIds,
+            // `downloadedAudioIds` değil: telaffuz sesi kapalıyken bu küme boş
+            // geliyor ve sese bağlı soru tipleri hiç üretilmiyor. Aksi halde
+            // "Duyduğun kelimeyi seç" sorusu sessiz bir düğmeyle cevapsız kalırdı.
+            availableAudio: audio.availableAudioIds,
             seed: LatvianCourseRules.seed(now: now, counter: runCounter),
             now: now
         )

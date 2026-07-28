@@ -60,6 +60,7 @@
 		68B14299CB90DBF724E88AA2 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC44A961C70396158E35B2A1 /* Models.swift */; };
 		693934A74992D1B4067B8F14 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7756E3E11615E135A656BFAB /* SignInView.swift */; };
 		6A8F57A39EEEB2A7FA64075F /* Expense.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB332D14823389349D9F9A9 /* Expense.swift */; };
+		6DB1E2705A7343B0CA5932CD /* LatvianSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD10E6D894009C071AABC494 /* LatvianSettingsView.swift */; };
 		6DB49F6FDA63B6E497513F8E /* StayContactProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F74EC0068F98CB8265C4B89 /* StayContactProfileStore.swift */; };
 		6EA5D3285D7A6FC7A3A7E3D3 /* AccountModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45EA2D2DAE7C357998901565 /* AccountModels.swift */; };
 		6FF4D6EBE93C8C9748205DB8 /* RouteBuilderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 152914230381950540AF3C38 /* RouteBuilderView.swift */; };
@@ -339,6 +340,7 @@
 		F6BF3B286DB9B16B42FE2661 /* SpeechRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecorder.swift; sourceTree = "<group>"; };
 		F6C3FE82A4D2A72C6C58B545 /* RouteAnnouncementPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteAnnouncementPolicy.swift; sourceTree = "<group>"; };
 		F7D97DFDF05438A70096EC2B /* Kuzey.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Kuzey.entitlements; sourceTree = "<group>"; };
+		FD10E6D894009C071AABC494 /* LatvianSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianSettingsView.swift; sourceTree = "<group>"; };
 		FD89E5E26EFF2B73661787B4 /* RoleStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoleStore.swift; sourceTree = "<group>"; };
 		FDC58840FC821D027D95D169 /* LatvianSpeakExerciseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianSpeakExerciseView.swift; sourceTree = "<group>"; };
 		FFCA663A470C8DD3B775062E /* DayEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayEditView.swift; sourceTree = "<group>"; };
@@ -493,6 +495,7 @@
 				F661AD72C9B1270B55288932 /* LatvianMascot.swift */,
 				D91E6EAF5244A2A02B41294D /* LatvianMotion.swift */,
 				846593C2410A9CA792A393E3 /* LatvianRouteMap.swift */,
+				FD10E6D894009C071AABC494 /* LatvianSettingsView.swift */,
 				B15637633FF014BEE0A7B96E /* LatvianTopBar.swift */,
 				66F7CA2A25D357ECC68C8F5D /* Exercises */,
 			);
@@ -866,6 +869,7 @@
 				59CCAE735CA928B1954CF331 /* LatvianPack.swift in Sources */,
 				D2944533B1415AF848D03C83 /* LatvianProgress.swift in Sources */,
 				AC6454BB3C24F3F607543AB7 /* LatvianRouteMap.swift in Sources */,
+				6DB1E2705A7343B0CA5932CD /* LatvianSettingsView.swift in Sources */,
 				D9952DEBABD7B79B6776C983 /* LatvianSpeakExerciseView.swift in Sources */,
 				B21DBA8A45FB386FAF109497 /* LatvianSpeechRecognizer.swift in Sources */,
 				8694946FAAD5F7F79D51DC60 /* LatvianTopBar.swift in Sources */,

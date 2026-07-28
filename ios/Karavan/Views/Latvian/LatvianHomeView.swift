@@ -12,6 +12,8 @@ struct LatvianHomeView: View {
 
     @Environment(\.scenePhase) private var scenePhase
 
+    @State private var isSettingsPresented = false
+
     /// Can dolumunun ekranda beklerken de görülmesi için tazeleme aralığı.
     private static let heartTick: Duration = .seconds(60)
 
@@ -33,6 +35,9 @@ struct LatvianHomeView: View {
         .fullScreenCover(isPresented: flowPresentation) {
             LatvianLessonFlowView(model: model, audio: audio, feedback: feedback)
         }
+        .sheet(isPresented: $isSettingsPresented) {
+            LatvianSettingsView(model: model, audio: audio, feedback: feedback)
+        }
     }
 
     // MARK: - İçerik
@@ -44,8 +49,7 @@ struct LatvianHomeView: View {
                 hearts: model.progress.hearts,
                 xp: model.progress.xp,
                 isDailyGoalDone: model.isDailyGoalDone,
-                notificationsEnabled: model.notificationsEnabled,
-                onToggleNotifications: toggleNotifications
+                onOpenSettings: openSettings
             )
             banners
             ScrollView {
@@ -144,9 +148,9 @@ struct LatvianHomeView: View {
         model.startLesson(sceneId: stop.id, audio: audio)
     }
 
-    private func toggleNotifications() {
+    private func openSettings() {
         feedback.tap()
-        model.setNotificationsEnabled(!model.notificationsEnabled)
+        isSettingsPresented = true
     }
 
     /// `.task` ekran kaybolunca iptal ediliyor, dolayısıyla döngü de duruyor.

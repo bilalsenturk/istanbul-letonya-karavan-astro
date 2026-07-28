@@ -16,10 +16,11 @@ struct LatvianTopBar: View {
     /// Bugün ders yapıldı mı. Halka dolu ya da boş — günlük hedef tek bir ders
     /// olduğu için ara değer yok ve olmayan bir kesirlilik uydurulmuyor.
     let isDailyGoalDone: Bool
-    /// Hatırlatmaların tek anahtarı. Ayrı bir ayar ekranı açmak yerine burada:
-    /// kursun tek ekranı var ve bildirim bu kursa ait tek ayar.
-    let notificationsEnabled: Bool
-    let onToggleNotifications: () -> Void
+    /// Ayar sayfasını açar. Hatırlatma anahtarı eskiden burada bir zil
+    /// düğmesiydi; ses, telaffuz ve titreşim anahtarları eklenince dördü de
+    /// `LatvianSettingsView`'e taşındı. Üst çubukta iki ayrı denetim tutmak
+    /// aynı tercihi iki yerde göstermek olurdu.
+    let onOpenSettings: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -39,7 +40,7 @@ struct LatvianTopBar: View {
                 label: "\(xp) XP"
             )
             Spacer(minLength: 0)
-            notificationToggle
+            settingsButton
             dailyGoalRing
         }
         .padding(.horizontal, 20)
@@ -68,20 +69,17 @@ struct LatvianTopBar: View {
             : "\(LatvianProgress.maxHearts) candan \(hearts) tanesi dolu"
     }
 
-    private var notificationToggle: some View {
-        Button(action: onToggleNotifications) {
-            Image(systemName: notificationsEnabled ? "bell.fill" : "bell.slash.fill")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(notificationsEnabled ? Theme.c4 : Theme.muted)
+    private var settingsButton: some View {
+        Button(action: onOpenSettings) {
+            Image(systemName: "gearshape.fill")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(Theme.muted)
                 .frame(width: 28, height: 28)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Letonca hatırlatmaları")
-        .accessibilityValue(notificationsEnabled ? "Açık" : "Kapalı")
-        .accessibilityHint(notificationsEnabled
-                           ? "Kapatmak için iki kez dokun. Kurulu hatırlatmalar da silinir."
-                           : "Açmak için iki kez dokun.")
+        .accessibilityLabel("Letonca ayarları")
+        .accessibilityHint("Ses, telaffuz, titreşim ve hatırlatma anahtarları.")
     }
 
     private var dailyGoalRing: some View {
@@ -130,9 +128,9 @@ struct LatvianTopBar: View {
 #Preview("Üst çubuk") {
     VStack(spacing: 0) {
         LatvianTopBar(streakDays: 7, hearts: 3, xp: 1240, isDailyGoalDone: true,
-                      notificationsEnabled: true, onToggleNotifications: {})
+                      onOpenSettings: {})
         LatvianTopBar(streakDays: 0, hearts: 0, xp: 0, isDailyGoalDone: false,
-                      notificationsEnabled: false, onToggleNotifications: {})
+                      onOpenSettings: {})
     }
     .frame(maxHeight: .infinity)
     .background(Theme.bg)
