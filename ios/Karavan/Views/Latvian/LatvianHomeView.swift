@@ -43,7 +43,9 @@ struct LatvianHomeView: View {
                 streakDays: model.progress.streakDays,
                 hearts: model.progress.hearts,
                 xp: model.progress.xp,
-                isDailyGoalDone: model.isDailyGoalDone
+                isDailyGoalDone: model.isDailyGoalDone,
+                notificationsEnabled: model.notificationsEnabled,
+                onToggleNotifications: toggleNotifications
             )
             banners
             ScrollView {
@@ -140,6 +142,11 @@ struct LatvianHomeView: View {
     private func select(_ stop: LatvianRouteStop) {
         feedback.tap()
         model.startLesson(sceneId: stop.id, audio: audio)
+    }
+
+    private func toggleNotifications() {
+        feedback.tap()
+        model.setNotificationsEnabled(!model.notificationsEnabled)
     }
 
     /// `.task` ekran kaybolunca iptal ediliyor, dolayısıyla döngü de duruyor.

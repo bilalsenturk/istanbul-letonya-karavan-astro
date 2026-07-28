@@ -6,6 +6,11 @@ enum NotifKind: String, CaseIterable {
     case borderApproach, driveBreak, arrivalSoon
     case currencyJump, fuelPrice
     case journalReminder, dailySummary, lowBattery
+    // Letonca kursu. Hiçbiri kritik DEĞİL: yolculuk uygulaması önce yolculuk
+    // uygulaması — dil hatırlatması sınır geçişinin önüne geçemez. Ayrı türler
+    // olmaları bütçede kendi şeritlerinde kalmalarını sağlıyor: bir Letonca
+    // hatırlatması borderApproach'un 10 dakikalık hakkını yiyemez.
+    case latvianDaily, latvianStreakRescue, latvianMilestone, latvianDecay
 
     var isCritical: Bool {
         switch self {

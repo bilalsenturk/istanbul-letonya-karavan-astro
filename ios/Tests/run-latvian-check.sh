@@ -13,7 +13,11 @@ swiftc -O -parse-as-library -o "$OUT/latviancheck" \
   "$SRC/LatvianExerciseFactory.swift" \
   "$SRC/LatvianProgress.swift" \
   "$SRC/LatvianLessonBuilder.swift" \
-  "$SRC/LatvianLessonSession.swift"
+  "$SRC/LatvianLessonSession.swift" \
+  "$SRC/LatvianNotificationRules.swift"
+# Bildirimin SİSTEM tarafı (LatvianNotificationScheduler) bilerek listede YOK:
+# UserNotifications ve NotificationBudget'a bağlı. `#if canImport(UserNotifications)`
+# bu ayrımı yapmaz — o çerçeve macOS'ta da var, koşul burada da doğru çıkardı.
 "$OUT/latviancheck"
 
 # Süreçler arası belirlenimcilik.

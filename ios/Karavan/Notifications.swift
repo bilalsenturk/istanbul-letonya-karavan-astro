@@ -105,7 +105,15 @@ extension NotificationManager: UNUserNotificationCenterDelegate {
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
+        // Tek istisna: ders ekranı açıkken Letonca hatırlatması. "Ders vakti"
+        // bildirimi tam dersin ortasında çalarsa sadece gürültü olur — üstelik
+        // banner soruyu kapatıyor. Yolculuk bildirimleri (sınır, mola, pil)
+        // burada BASTIRILMIYOR: ders çalışmak onları ertelemek için sebep değil.
+        if notification.request.identifier.hasPrefix(LatvianNotificationRules.idPrefix),
+           await LatvianNotificationScheduler.isLessonInProgress {
+            return []
+        }
+        return [.banner, .sound]
     }
 }
 

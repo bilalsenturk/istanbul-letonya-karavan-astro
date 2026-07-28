@@ -23,6 +23,8 @@ final class LatvianCourseModel: ObservableObject {
     @Published private(set) var loadError: String?
     /// Bir dokunuşa verilen geçici Türkçe cevap (kilitli durak, can bitti…).
     @Published private(set) var actionNotice: String?
+    /// Letonca hatırlatmaları açık mı — tek anahtar, dört bildirimi birden yönetiyor.
+    @Published private(set) var notificationsEnabled: Bool
 
     @Published private(set) var lesson: LatvianLessonRun?
     @Published private(set) var celebration: LatvianCelebration?
@@ -39,9 +41,27 @@ final class LatvianCourseModel: ObservableObject {
     private var didLoad = false
     /// Her ders koşusuna tekil kimlik ve tekil tohum veriyor.
     private var runCounter = 0
+    /// Son bildirim yenilemesi. Yenileri bunun arkasına diziliyor (bkz. `syncNotifications`).
+    private var notificationTask: Task<Void, Never>?
+
+    /// Bildirim tercihleri `UserDefaults`'ta: ilerleme dosyasının aksine küçük,
+    /// yedeklenmesi gerekmeyen ve ilerlemeden bağımsız değerler.
+    ///
+    /// `@AppStorage` kullanılmadı — `DynamicProperty` olduğu için görünüm dışında
+    /// güncellenmiyor (aynı gerekçe: `LatvianFeedback`).
+    private enum DefaultsKey {
+        static let enabled = "letonca.bildirimAcik"
+        static let lessonHours = "letonca.dersSaatleri"
+        static let reminderHour = "letonca.hatirlatmaSaati"
+        static let decayNoticeAt = "letonca.unutmaUyarisiAni"
+    }
 
     init(clock: @escaping () -> Date = { Date() }) {
         self.clock = clock
+        // Varsayılan AÇIK: hatırlatma bu kursun yarısı. Kapatması tek dokunuş,
+        // ve kapatınca kurulu olanlar da gerçekten siliniyor.
+        let defaults = UserDefaults.standard
+        notificationsEnabled = defaults.object(forKey: DefaultsKey.enabled) as? Bool ?? true
     }
 
     // MARK: - Yükleme
@@ -83,6 +103,11 @@ final class LatvianCourseModel: ObservableObject {
         // dönen öğrenci ekranı açtığı anda dolumu görüyor.
         refillHearts(now: now)
         refreshDerived(now: now)
+
+        // İzin BURADA istenmiyor: ilk ders bitmeden bildirim izni sormak, henüz
+        // hiçbir şey görmemiş öğrenciye sorulmuş olurdu. Kurulum yalnızca izin
+        // zaten varsa yapılıyor; yoksa ilk dersten sonra isteniyor (bkz. `finish`).
+        syncNotifications(force: false, requestPermission: false)
 
         guard let pack else { return }
         await audio.syncMissing(pack: pack)
@@ -142,6 +167,8 @@ final class LatvianCourseModel: ObservableObject {
 
         actionNotice = nil
         lesson = LatvianLessonRun(id: runCounter, sceneId: scene.id, exercises: exercises)
+        // Ders ekranı açıkken "ders vakti" bildirimi gürültü — bkz. NotificationManager.
+        LatvianNotificationScheduler.isLessonInProgress = true
     }
 
     /// Dersin sonucunu hafızaya, XP'ye, seriye ve canlara işler; **kutlamadan
@@ -174,12 +201,29 @@ final class LatvianCourseModel: ObservableObject {
         progress.awardXP(max(0, outcome.xp - base))
 
         let previousDay = progress.lastLessonDay
-        if !outcome.isFailed { progress.registerLessonCompleted(now: now) }
+        if !outcome.isFailed {
+            progress.registerLessonCompleted(now: now)
+            // Alışkanlık saati buradan öğreniliyor: gerçekten ders yapılan saat,
+            // cihazın o andaki YEREL takvimiyle (bkz. LatvianNotificationRules).
+            recordLessonHour(now)
+        }
         let streakExtended = progress.lastLessonDay != previousDay
 
         recordClearedScenes(now: now)
         persist()
         refreshDerived(now: now)
+
+        LatvianNotificationScheduler.isLessonInProgress = false
+        if streakExtended, LatvianNotificationRules.isMilestone(progress.streakDays) {
+            let streakDays = progress.streakDays
+            let enabled = notificationsEnabled
+            Task {
+                await LatvianNotificationScheduler.celebrateMilestone(
+                    streakDays: streakDays, enabled: enabled, now: now
+                )
+            }
+        }
+        syncNotifications(force: false, requestPermission: true)
 
         lesson = nil
         celebration = LatvianCelebration(
@@ -196,9 +240,101 @@ final class LatvianCourseModel: ObservableObject {
     func dismissFlow() {
         lesson = nil
         celebration = nil
+        LatvianNotificationScheduler.isLessonInProgress = false
     }
 
     func dismissActionNotice() { actionNotice = nil }
+
+    // MARK: - Bildirimler
+
+    /// Tek anahtar: dört bildirimi birden açıp kapatıyor. Kapatmak kurulu olanları
+    /// gerçekten siliyor — "bir daha kurma" değil, "şu an bekleyenleri de kaldır".
+    func setNotificationsEnabled(_ enabled: Bool) {
+        guard enabled != notificationsEnabled else { return }
+        notificationsEnabled = enabled
+        UserDefaults.standard.set(enabled, forKey: DefaultsKey.enabled)
+        // Kullanıcının doğrudan eylemi: bütçe soğuması atlanıyor, yoksa anahtarı
+        // kapatıp hemen açan kullanıcı 45 dakika bildirimsiz kalırdı.
+        syncNotifications(force: true, requestPermission: enabled)
+    }
+
+    /// Planı hesaplayıp sisteme uygular ve dönen sonucu kalıcı duruma yazar.
+    ///
+    /// Ders sonunda, ekran açıldığında ve anahtar değiştiğinde çağrılıyor. Kimlikler
+    /// sabit olduğu için tekrar çağrılması kopya üretmiyor; bütçe de aynı kutunun
+    /// 45 dakikada birden sık yeniden kurulmasını engelliyor.
+    /// İki kural birden geçerli:
+    ///
+    /// 1. **Sıraya giriyor.** Yeni çağrı öncekinin bitmesini bekliyor. Aksi halde iki
+    ///    yeniden kurma iç içe geçebiliyor ve planda olmayan kutuları temizleyen adım
+    ///    (bkz. `LatvianNotificationScheduler.reschedule`) daha yeni bir planı silebiliyor.
+    /// 2. **Durumu çalışma anında okuyor.** Çağrı anında fotoğraf çekilseydi sıradaki
+    ///    iş bayat bir ilerlemeyle koşardı: ekran açılışında kuyruğa giren yenileme,
+    ///    ders bitiminden SONRA çalışıp seriyi hiç görmemiş gibi davranırdı — gerçekten
+    ///    yaşandı, simülatörde seri kurtarma bildirimi bu yüzden kurulmuyordu.
+    private func syncNotifications(force: Bool, requestPermission: Bool) {
+        let previous = notificationTask
+        notificationTask = Task { @MainActor [weak self] in
+            await previous?.value
+            guard let self else { return }
+
+            let enabled = self.notificationsEnabled
+            if enabled, requestPermission, !NotificationManager.shared.authorized {
+                await NotificationManager.shared.requestAuthorization()
+            }
+            let calendar = Calendar.current
+            let outcome = await LatvianNotificationScheduler.reschedule(
+                enabled: enabled,
+                progress: self.progress,
+                pack: self.pack,
+                recentLessonHours: self.recentLessonHours,
+                currentReminderHour: self.storedReminderHour,
+                scheduledDecayAt: self.storedDecayNoticeAt,
+                force: force,
+                now: self.clock(),
+                calendar: calendar
+            )
+            self.absorb(outcome, calendar: calendar)
+            #if DEBUG
+            await LatvianNotificationScheduler.logPending(force ? "anahtar" : "yenileme")
+            #endif
+        }
+    }
+
+    /// Kurulan planın kalıcı izleri: öğrenilen saat (histerezisin dayanağı) ve kurulu
+    /// unutma uyarısının anı (soğumanın dayanağı). Yalnızca GERÇEKTEN kurulanlar
+    /// yazılıyor — bütçe reddettiyse eski değer duruyor, aksi halde kayıt sistemdeki
+    /// istekle uyumsuz kalırdı.
+    private func absorb(_ outcome: LatvianScheduleOutcome, calendar: Calendar) {
+        guard case .scheduled(let applied, let reminderHour) = outcome else { return }
+        UserDefaults.standard.set(reminderHour, forKey: DefaultsKey.reminderHour)
+        if let decay = applied.first(where: { $0.slot == .decay }),
+           let moment = LatvianNotificationRules.date(from: decay.timing, calendar: calendar) {
+            UserDefaults.standard.set(moment.timeIntervalSince1970, forKey: DefaultsKey.decayNoticeAt)
+        }
+    }
+
+    private var recentLessonHours: [Int] {
+        UserDefaults.standard.array(forKey: DefaultsKey.lessonHours) as? [Int] ?? []
+    }
+
+    private var storedReminderHour: Int? {
+        UserDefaults.standard.object(forKey: DefaultsKey.reminderHour) as? Int
+    }
+
+    private var storedDecayNoticeAt: Date? {
+        let stamp = UserDefaults.standard.double(forKey: DefaultsKey.decayNoticeAt)
+        return stamp > 0 ? Date(timeIntervalSince1970: stamp) : nil
+    }
+
+    private func recordLessonHour(_ date: Date) {
+        let calendar = Calendar.current
+        let updated = LatvianNotificationRules.appendLessonHour(
+            LatvianNotificationRules.lessonHour(date, calendar: calendar),
+            to: recentLessonHours
+        )
+        UserDefaults.standard.set(updated, forKey: DefaultsKey.lessonHours)
+    }
 
     // MARK: - Türetilenler
 

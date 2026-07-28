@@ -55,6 +55,7 @@
 		62D8D612FD80BF4C6EDD2B4B /* StopEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8673B61A33C58C650B05B56 /* StopEditorView.swift */; };
 		63250E33AB66EC4D9F9CC7BA /* JournalEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EAFE219BA8402205F2B4D91 /* JournalEntry.swift */; };
 		63887955FE65F76B9635446B /* StayContactComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4128827CE9CD4E8B042A1C /* StayContactComposer.swift */; };
+		64B536699E64464089144A4C /* LatvianNotificationRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27C8CECEF6952BC367A88E90 /* LatvianNotificationRules.swift */; };
 		6642C214B22A4BEFC8510FC3 /* TripWorkspaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE5D628F94AB556FE9D36ECD /* TripWorkspaceStore.swift */; };
 		68B14299CB90DBF724E88AA2 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC44A961C70396158E35B2A1 /* Models.swift */; };
 		693934A74992D1B4067B8F14 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7756E3E11615E135A656BFAB /* SignInView.swift */; };
@@ -75,6 +76,7 @@
 		7C79D592A14CF275B665F4C4 /* RoadFeedCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2167794D2466CE9840E18E /* RoadFeedCard.swift */; };
 		7E537C5724BCAD205276581C /* ToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D8C58A0890E58CEDB4C1744 /* ToolsView.swift */; };
 		80D069BE86856E1692DEFA19 /* RoleStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD89E5E26EFF2B73661787B4 /* RoleStore.swift */; };
+		813C5C0B2B489B626C632437 /* LatvianNotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68E58FB6900391963CD7A289 /* LatvianNotificationScheduler.swift */; };
 		819C7A10A5135905BECC845D /* PhotoJournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5A0D47F97A6BC761EC4A1D7 /* PhotoJournalView.swift */; };
 		824EE6AFA799BA7C35C68EDA /* TripSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC538794F9ED1EDBD743061F /* TripSettingsView.swift */; };
 		83113E5D1FBE09DAB2A20E48 /* PlanScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC66F61F5A93C2097EF6381 /* PlanScreen.swift */; };
@@ -206,6 +208,7 @@
 		21B82E5004A631A77716317D /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		25CA028A20B4BE8F4D0ED411 /* StopExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopExploreView.swift; sourceTree = "<group>"; };
 		26AC6D5D9A3E3BB448AFBF4B /* LatvianLessonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianLessonView.swift; sourceTree = "<group>"; };
+		27C8CECEF6952BC367A88E90 /* LatvianNotificationRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianNotificationRules.swift; sourceTree = "<group>"; };
 		28429416E3925FE7D2879869 /* KuzeyWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = KuzeyWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		28813A01A61F007F63AFB19A /* UpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChecker.swift; sourceTree = "<group>"; };
 		29ABE562CEC889DE4C44F20A /* VoiceExpenseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceExpenseView.swift; sourceTree = "<group>"; };
@@ -255,6 +258,7 @@
 		60D39C5F92694220AE03C259 /* AppIntentsSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntentsSupport.swift; sourceTree = "<group>"; };
 		6155790527A9073B31158F2E /* LatvianWordBankExerciseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianWordBankExerciseView.swift; sourceTree = "<group>"; };
 		67367AF55B30AAC1CE748427 /* LatvianGrader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianGrader.swift; sourceTree = "<group>"; };
+		68E58FB6900391963CD7A289 /* LatvianNotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianNotificationScheduler.swift; sourceTree = "<group>"; };
 		69D701532F19396FBF2875EA /* TripNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripNotifier.swift; sourceTree = "<group>"; };
 		6AB974EC178B45C5E8C2D43D /* SharedSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedSnapshot.swift; sourceTree = "<group>"; };
 		6C551F9949D04E5D65A424DB /* lv-heart.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "lv-heart.wav"; sourceTree = "<group>"; };
@@ -467,6 +471,7 @@
 				B0F9249755CA1CA1DB782BF9 /* LatvianLessonBuilder.swift */,
 				77C36D8DD357A8DE98B9154D /* LatvianLessonSession.swift */,
 				49A48AC8559B1B4926E30E5A /* LatvianMemory.swift */,
+				27C8CECEF6952BC367A88E90 /* LatvianNotificationRules.swift */,
 				7F985E8F1101B1BF5AACB057 /* LatvianPack.swift */,
 				38785537B9A807DF9707224B /* LatvianProgress.swift */,
 			);
@@ -592,6 +597,7 @@
 		8977B0638A5DD26187153900 /* Notifications */ = {
 			isa = PBXGroup;
 			children = (
+				68E58FB6900391963CD7A289 /* LatvianNotificationScheduler.swift */,
 				AA9EC5D3FE46DF622AC25DD1 /* NotificationBudget.swift */,
 				DB162821D5118BBCDA717991 /* NotificationRules.swift */,
 				69D701532F19396FBF2875EA /* TripNotifier.swift */,
@@ -855,6 +861,8 @@
 				7581EA5A8CD57EF6BADEA153 /* LatvianMatchExerciseView.swift in Sources */,
 				3531EECCF00A0139CC10380B /* LatvianMemory.swift in Sources */,
 				A6A5BE609BB235E23115F265 /* LatvianMotion.swift in Sources */,
+				64B536699E64464089144A4C /* LatvianNotificationRules.swift in Sources */,
+				813C5C0B2B489B626C632437 /* LatvianNotificationScheduler.swift in Sources */,
 				59CCAE735CA928B1954CF331 /* LatvianPack.swift in Sources */,
 				D2944533B1415AF848D03C83 /* LatvianProgress.swift in Sources */,
 				AC6454BB3C24F3F607543AB7 /* LatvianRouteMap.swift in Sources */,

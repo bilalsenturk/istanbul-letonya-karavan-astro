@@ -2231,6 +2231,293 @@ struct LatvianEngineCheck {
                && replay.milestones == mistakes.milestones,
                "aynı koşu iki kez oynandığında aynı sonucu veriyor")
 
+        // MARK: - Bildirim kuralları
+
+        print("\n=== Bildirim kuralları: sessiz saatler ===")
+
+        var notifIstanbul = Calendar(identifier: .gregorian)
+        notifIstanbul.timeZone = TimeZone(identifier: "Europe/Istanbul")!
+        var notifWarsaw = Calendar(identifier: .gregorian)
+        notifWarsaw.timeZone = TimeZone(identifier: "Europe/Warsaw")!
+
+        /// İstanbul yerel saatiyle bir an. Testlerin tamamı bu takvimle kuruluyor.
+        func notifMoment(_ hour: Int, _ minute: Int = 0, day: Int = 15) -> Date {
+            notifIstanbul.date(
+                from: DateComponents(year: 2026, month: 8, day: day, hour: hour, minute: minute)
+            )!
+        }
+
+        expect(LatvianNotificationRules.isQuietHour(notifMoment(2), calendar: notifIstanbul),
+               "gece 02:00 sessiz saatte")
+        expect(LatvianNotificationRules.isQuietHour(notifMoment(23), calendar: notifIstanbul),
+               "23:00 sessiz saatte")
+        expect(!LatvianNotificationRules.isQuietHour(notifMoment(8), calendar: notifIstanbul),
+               "08:00 sessizliğin dışında (pencere kapanışı hariç)")
+        expect(!LatvianNotificationRules.isQuietHour(notifMoment(22, 59), calendar: notifIstanbul),
+               "22:59 sessiz saatte değil")
+
+        // AYNI AN, iki dilim: sessizlik mutlak zamana değil YEREL saate bağlı.
+        // 23:30 İstanbul (UTC+3) = 22:30 Varşova (UTC+2).
+        let notifCrossing = notifMoment(23, 30)
+        expect(LatvianNotificationRules.isQuietHour(notifCrossing, calendar: notifIstanbul),
+               "aynı an İstanbul'da (23:30) sessiz saatte")
+        expect(!LatvianNotificationRules.isQuietHour(notifCrossing, calendar: notifWarsaw),
+               "aynı an Varşova'da (22:30) sessiz saatte DEĞİL")
+        let notifDawn = notifMoment(8, 30)
+        expect(!LatvianNotificationRules.isQuietHour(notifDawn, calendar: notifIstanbul),
+               "aynı an İstanbul'da (08:30) sessizliğin dışında")
+        expect(LatvianNotificationRules.isQuietHour(notifDawn, calendar: notifWarsaw),
+               "aynı an Varşova'da (07:30) hâlâ sessiz saatte")
+
+        print("\n=== Bildirim kuralları: alışkanlık saati ===")
+
+        expect(LatvianNotificationRules.preferredHour(recentLessonHours: [], current: nil) == 20,
+               "geçmiş yoksa varsayılan saat 20:00")
+        expect(LatvianNotificationRules.preferredHour(recentLessonHours: [9, 9], current: nil) == 20,
+               "iki veri noktası alışkanlık sayılmıyor, varsayılanda kalınıyor")
+        expect(LatvianNotificationRules.preferredHour(recentLessonHours: [9, 9, 9], current: nil) == 20,
+               "üç veri noktası da eşiğin altında")
+        expect(LatvianNotificationRules.preferredHour(recentLessonHours: [9, 9], current: 18) == 18,
+               "geçmiş yetersizken KURULU saat korunuyor, varsayılana geri dönülmüyor")
+        expect(LatvianNotificationRules.preferredHour(recentLessonHours: [9, 9, 9, 9], current: nil) == 9,
+               "dört ders aynı saatteyse alışkanlık öğreniliyor")
+        expect(LatvianNotificationRules.preferredHour(recentLessonHours: [19, 20, 20, 21], current: nil) == 20,
+               "komşu saatler tek tepe sayılıyor (19-20-21 kümesi 20'de topluyor)")
+        expect(LatvianNotificationRules.preferredHour(recentLessonHours: [2, 2, 2, 2, 2], current: nil) == 20,
+               "sessiz saate düşen alışkanlık varsayılana çekiliyor")
+        expect(LatvianNotificationRules.preferredHour(recentLessonHours: [99, 99, 99, 99], current: nil) == 20,
+               "geçersiz saatler eleniyor, geriye alışkanlık kalmıyor")
+        expect(LatvianNotificationRules.preferredHour(recentLessonHours: [8, 12, 16, 20], current: nil) == 20,
+               "dağınık geçmişte hiçbir küme eşiği geçmiyor, varsayılanda kalınıyor")
+
+        // Histerezis: kayan pencerenin saati her ders sonunda oynatmasını engelliyor.
+        expect(LatvianNotificationRules.preferredHour(recentLessonHours: [20, 20, 19, 9], current: 20) == 20,
+               "zayıf bir aday kurulu saati deviremiyor (histerezis)")
+        expect(LatvianNotificationRules.preferredHour(recentLessonHours: [9, 9, 9, 10], current: 20) == 9,
+               "belirgin bir aday kurulu saatin yerine geçiyor")
+        expect(LatvianNotificationRules.preferredHour(recentLessonHours: [9, 9, 9, 10], current: 2) == 9,
+               "kurulu saat sessiz saate düşmüşse aday koşulsuz kazanıyor")
+
+        // Pencere: yalnızca son `historyWindow` ders sayılıyor.
+        let notifOldHabit = [21, 21, 21, 21, 9, 9, 9, 9, 9]
+        expect(LatvianNotificationRules.preferredHour(recentLessonHours: notifOldHabit, current: nil) == 9,
+               "eski alışkanlık pencereden düşüyor, yenisi geçerli")
+        expect(LatvianNotificationRules.appendLessonHour(11, to: [1, 2, 3, 4, 5, 6, 7]) == [2, 3, 4, 5, 6, 7, 11],
+               "geçmiş yedi kayıtla sınırlı, en eskisi düşüyor")
+        expect(LatvianNotificationRules.appendLessonHour(99, to: [9, 9]) == [9, 9],
+               "geçersiz saat geçmişe yazılmıyor")
+
+        print("\n=== Bildirim kuralları: seri kurtarma ===")
+
+        /// 10-14 Ağustos arası her gün ders yapmış öğrenci: seri 5, son ders 14 Ağustos.
+        /// `streakDays`/`lastLessonDay` `private(set)` olduğu için durum ancak gerçek
+        /// motor çağrılarıyla kuruluyor.
+        var notifStreaking = LatvianProgress.new()
+        for day in 10...14 {
+            notifStreaking.registerLessonCompleted(now: notifMoment(20, day: day), calendar: notifIstanbul)
+        }
+        expect(notifStreaking.streakDays == 5, "beş günlük seri kuruldu (\(notifStreaking.streakDays))")
+        expect(notifStreaking.lastLessonDay == "2026-08-14", "son ders 14 Ağustos")
+
+        expect(LatvianNotificationRules.needsStreakRescue(
+                progress: notifStreaking, now: notifMoment(21), calendar: notifIstanbul),
+               "aktif seride, gün bitmeden ders yoksa kurtarma gerekiyor")
+        expect(!LatvianNotificationRules.needsStreakRescue(
+                progress: notifStreaking, now: notifMoment(14), calendar: notifIstanbul),
+               "günün erken saatinde kurtarma bildirimi yok")
+        expect(!LatvianNotificationRules.needsStreakRescue(
+                progress: notifStreaking, now: notifMoment(23, 10), calendar: notifIstanbul),
+               "sessiz saate girildiyse kurtarma bildirimi yok")
+
+        var notifDoneToday = notifStreaking
+        notifDoneToday.registerLessonCompleted(now: notifMoment(10), calendar: notifIstanbul)
+        expect(notifDoneToday.streakDays == 6, "bugün de ders yapılınca seri altıya çıkıyor")
+        expect(!LatvianNotificationRules.needsStreakRescue(
+                progress: notifDoneToday, now: notifMoment(21), calendar: notifIstanbul),
+               "bugün ders yapıldıysa kurtarma bildirimi yok")
+
+        expect(!LatvianNotificationRules.needsStreakRescue(
+                progress: LatvianProgress.new(), now: notifMoment(21), calendar: notifIstanbul),
+               "seri yoksa kurtarma bildirimi yok")
+
+        // Kopmuş seri: `streakDays` bir sonraki derse kadar sıfırlanmadığından hâlâ
+        // 3 görünüyor, ama son ders 12 Ağustos — kurtarılacak bir şey kalmamış.
+        var notifStale = LatvianProgress.new()
+        for day in 10...12 {
+            notifStale.registerLessonCompleted(now: notifMoment(20, day: day), calendar: notifIstanbul)
+        }
+        expect(notifStale.streakDays == 3, "kopmuş serinin sayacı hâlâ üç")
+        expect(!LatvianNotificationRules.needsStreakRescue(
+                progress: notifStale, now: notifMoment(21), calendar: notifIstanbul),
+               "üç gün önce kopmuş seri için kurtarma bildirimi YOK")
+        expect(!LatvianNotificationRules.isStreakAtRisk(
+                progress: notifStale, now: notifMoment(21), calendar: notifIstanbul),
+               "kopmuş seri 'tehlikede' sayılmıyor")
+
+        expect(LatvianNotificationRules.nextStreakRescueMoment(
+                progress: notifStreaking, now: notifMoment(10), calendar: notifIstanbul)
+               == notifMoment(21, 30),
+               "seri bugün tehlikedeyse kurtarma bugün 21:30'a kuruluyor")
+        expect(LatvianNotificationRules.nextStreakRescueMoment(
+                progress: notifDoneToday, now: notifMoment(10), calendar: notifIstanbul)
+               == notifMoment(21, 30, day: 16),
+               "bugün ders yapıldıysa kurtarma YARIN 21:30'a kuruluyor")
+        expect(LatvianNotificationRules.nextStreakRescueMoment(
+                progress: notifStreaking, now: notifMoment(22), calendar: notifIstanbul) == nil,
+               "kurtarma anı geçtiyse geçmişe bildirim kurulmuyor")
+        expect(LatvianNotificationRules.nextStreakRescueMoment(
+                progress: notifStale, now: notifMoment(10), calendar: notifIstanbul) == nil,
+               "kopmuş seri için kurtarma anı yok")
+        expect(LatvianNotificationRules.nextStreakRescueMoment(
+                progress: LatvianProgress.new(), now: notifMoment(10), calendar: notifIstanbul) == nil,
+               "hiç seri yokken kurtarma anı yok")
+
+        print("\n=== Bildirim kuralları: dönüm noktaları ===")
+
+        expect(LatvianNotificationRules.isMilestone(7), "7 gün dönüm noktası")
+        expect(LatvianNotificationRules.isMilestone(30), "30 gün dönüm noktası")
+        expect(LatvianNotificationRules.isMilestone(100), "100 gün dönüm noktası")
+        expect(!LatvianNotificationRules.isMilestone(8), "8 gün dönüm noktası değil")
+        expect(!LatvianNotificationRules.isMilestone(0), "0 gün dönüm noktası değil")
+        expect(!LatvianNotificationRules.isMilestone(1), "1 gün dönüm noktası değil")
+
+        expect(LatvianNotificationRules.milestoneMoment(
+                streakDays: 7, now: notifMoment(20), calendar: notifIstanbul)
+               == notifMoment(20, 30),
+               "dönüm noktası ders bittikten yarım saat sonra çalıyor")
+        expect(LatvianNotificationRules.milestoneMoment(
+                streakDays: 8, now: notifMoment(20), calendar: notifIstanbul) == nil,
+               "dönüm noktası olmayan seride bildirim yok")
+        expect(LatvianNotificationRules.milestoneMoment(
+                streakDays: 7, now: notifMoment(22, 50), calendar: notifIstanbul)
+               == notifMoment(22, 59),
+               "gecikme sessiz saate taşarsa an sessizliğin hemen öncesine çekiliyor")
+        expect(LatvianNotificationRules.milestoneMoment(
+                streakDays: 7, now: notifMoment(23, 30), calendar: notifIstanbul) == nil,
+               "sessiz saatte biten derste dönüm noktası bildirimi kurulmuyor")
+
+        print("\n=== Bildirim kuralları: unutma uyarısı ===")
+
+        expect(LatvianNotificationRules.decayingScene(
+                pack: pack, progress: LatvianProgress.new(), now: epoch) == nil,
+               "hiç öğrenilmemiş sahne için unutma uyarısı yok")
+
+        // Sahne bir kez geçilmiş ama hafızada tek kart yok: hakimiyet oranı sıfır.
+        var notifDecayed = LatvianProgress.new()
+        notifDecayed.registerSceneCompletion(sceneId: "lv-s01", now: notifMoment(20, day: 1))
+        expect(LatvianNotificationRules.decayingScene(
+                pack: pack, progress: notifDecayed, now: notifMoment(10))?.id == "lv-s01",
+               "geçilmiş ama hakimiyeti düşen sahne unutma uyarısına giriyor")
+
+        expect(LatvianNotificationRules.canSendDecayNotice(lastDecayNotice: nil, now: epoch),
+               "hiç uyarı gönderilmemişse gönderilebiliyor")
+        expect(!LatvianNotificationRules.canSendDecayNotice(
+                lastDecayNotice: epoch, now: epoch.addingTimeInterval(86_400 * 3)),
+               "unutma uyarısı üç günde bir gönderilmiyor")
+        expect(!LatvianNotificationRules.canSendDecayNotice(
+                lastDecayNotice: epoch, now: epoch.addingTimeInterval(86_400 * 7 - 1)),
+               "soğuma bir saniye eksikken hâlâ kapalı")
+        expect(LatvianNotificationRules.canSendDecayNotice(
+                lastDecayNotice: epoch, now: epoch.addingTimeInterval(86_400 * 7)),
+               "soğuma tam yedi günde açılıyor")
+        expect(LatvianNotificationRules.canSendDecayNotice(
+                lastDecayNotice: epoch, now: epoch.addingTimeInterval(86_400 * 8)),
+               "unutma uyarısı sekiz gün sonra gönderilebiliyor")
+
+        expect(LatvianNotificationRules.decayHour(reminderHour: 20) == 12,
+               "akşam hatırlatmasında unutma uyarısı öğlene kuruluyor")
+        expect(LatvianNotificationRules.decayHour(reminderHour: 9) == 17,
+               "sabah hatırlatmasında unutma uyarısı akşam üstüne kuruluyor")
+        expect(!LatvianNotificationRules.isQuietHour(LatvianNotificationRules.decayHour(reminderHour: 8)),
+               "unutma uyarısının saati hiçbir durumda sessiz saatte değil")
+
+        expect(LatvianNotificationRules.decayMoment(
+                scheduledAt: nil, rescueAt: nil, reminderHour: 20,
+                now: notifMoment(10), calendar: notifIstanbul)
+               == notifMoment(12, day: 17),
+               "taze uyarı iki gün sonrasına kuruluyor")
+        expect(LatvianNotificationRules.decayMoment(
+                scheduledAt: notifMoment(12, day: 17), rescueAt: nil, reminderHour: 20,
+                now: notifMoment(10, day: 16), calendar: notifIstanbul)
+               == notifMoment(12, day: 17),
+               "kurulu uyarı her ders sonunda ötelenmiyor, aynı anda kalıyor")
+        expect(LatvianNotificationRules.decayMoment(
+                scheduledAt: notifMoment(12, day: 17), rescueAt: notifMoment(21, 30, day: 17),
+                reminderHour: 20, now: notifMoment(10, day: 16), calendar: notifIstanbul)
+               == notifMoment(12, day: 18),
+               "kurulu uyarı seri kurtarmayla aynı güne düşerse bir gün öteleniyor")
+        expect(LatvianNotificationRules.decayMoment(
+                scheduledAt: notifMoment(12, day: 10), rescueAt: nil, reminderHour: 20,
+                now: notifMoment(10), calendar: notifIstanbul) == nil,
+               "önceki uyarının üstünden yedi gün geçmeden yenisi kurulmuyor")
+        expect(LatvianNotificationRules.decayMoment(
+                scheduledAt: notifMoment(12, day: 1), rescueAt: nil, reminderHour: 20,
+                now: notifMoment(10), calendar: notifIstanbul)
+               == notifMoment(12, day: 17),
+               "soğuma dolduktan sonra yeni uyarı kurulabiliyor")
+
+        print("\n=== Bildirim kuralları: plan ===")
+
+        let notifFreshPlan = LatvianNotificationRules.plan(
+            progress: LatvianProgress.new(), pack: pack, recentLessonHours: [],
+            currentReminderHour: nil, scheduledDecayAt: nil,
+            now: notifMoment(10), calendar: notifIstanbul
+        )
+        expect(notifFreshPlan.count == 1, "yeni öğrencide yalnızca günlük hatırlatma var")
+        expect(notifFreshPlan[0].id == "letonca.daily", "günlük hatırlatmanın kimliği sabit")
+        expect(notifFreshPlan[0].timing == .everyDay(hour: 20, minute: 0),
+               "günlük hatırlatma her gün 20:00'de tekrarlıyor")
+
+        var notifFullProgress = notifStreaking
+        notifFullProgress.registerSceneCompletion(sceneId: "lv-s01", now: notifMoment(20, day: 1))
+        let notifFullPlan = LatvianNotificationRules.plan(
+            progress: notifFullProgress, pack: pack, recentLessonHours: [],
+            currentReminderHour: nil, scheduledDecayAt: nil,
+            now: notifMoment(10), calendar: notifIstanbul
+        )
+        expect(notifFullPlan.map(\.slot) == [.daily, .streakRescue, .decay],
+               "seri tehlikede ve sahne soluyorsa üç kutu da planlanıyor")
+        expect(notifFullPlan.map(\.id) == ["letonca.daily", "letonca.streakRescue", "letonca.decay"],
+               "kimlikler sabit: yeniden kurmak kopya üretmiyor")
+        expect(notifFullPlan[1].timing == .once(year: 2026, month: 8, day: 15, hour: 21, minute: 30),
+               "kurtarma bugün 21:30'a planlanıyor")
+        expect(notifFullPlan[2].timing == .once(year: 2026, month: 8, day: 17, hour: 12, minute: 0),
+               "unutma uyarısı iki gün sonra 12:00'ye planlanıyor")
+        expect(notifFullPlan.allSatisfy { !LatvianNotificationRules.isQuietHour($0.hour) },
+               "planlanan hiçbir bildirim sessiz saate düşmüyor")
+        expect(LatvianNotificationRules.dailyLoad(notifFullPlan) == 2,
+               "dolu planda bile bir güne en fazla iki bildirim düşüyor"
+               + " (\(LatvianNotificationRules.dailyLoad(notifFullPlan)))")
+
+        let notifReplanned = LatvianNotificationRules.plan(
+            progress: notifFullProgress, pack: pack, recentLessonHours: [],
+            currentReminderHour: nil, scheduledDecayAt: nil,
+            now: notifMoment(10), calendar: notifIstanbul
+        )
+        expect(notifReplanned == notifFullPlan, "aynı girdi aynı planı veriyor (kayma yok)")
+
+        // Aynı an, farklı dilim: gün sınırı ve dolayısıyla planlanan tarihler yerel.
+        let notifWarsawPlan = LatvianNotificationRules.plan(
+            progress: notifFullProgress, pack: pack, recentLessonHours: [],
+            currentReminderHour: nil, scheduledDecayAt: nil,
+            now: notifMoment(0, 30), calendar: notifWarsaw
+        )
+        expect(notifWarsawPlan.allSatisfy { !LatvianNotificationRules.isQuietHour($0.hour) },
+               "dilim değişse de plan sessiz saate bildirim koymuyor")
+        expect(LatvianNotificationRules.dailyLoad(notifWarsawPlan) <= 2,
+               "dilim değişse de günde en fazla iki bildirim")
+
+        expect(LatvianNotificationRules.plannedIdentifiers.count == 3,
+               "plan üç kutu kuruyor")
+        expect(LatvianNotificationRules.managedIdentifiers.count == 6,
+               "kapatma altı kimliği birden siliyor (üç plan + üç dönüm noktası)")
+        expect(LatvianNotificationRules.managedIdentifiers
+                .allSatisfy { $0.hasPrefix(LatvianNotificationRules.idPrefix) },
+               "bütün Letonca kimlikleri ortak önekle başlıyor — başka bildirim silinmiyor")
+        expect(Set(LatvianNotificationRules.managedIdentifiers).count
+               == LatvianNotificationRules.managedIdentifiers.count,
+               "kimlikler tekil")
+
         if failures > 0 {
             fputs("\n\(failures) kontrol başarısız.\n", stderr)
             exit(1)
