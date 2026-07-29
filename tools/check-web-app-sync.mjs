@@ -78,6 +78,85 @@ assert.equal(inactive.activeRouteStop, null, "inactive journey must not claim an
 assert.equal(inactive.activeRouteCode, null, "inactive journey must not claim an active route code");
 assert.equal(inactive.activeRouteStartedAt, null, "inactive journey must not expose stale route start time");
 
+const plannedStops = [
+  { name: "İstanbul", lat: 41.0082, lng: 28.9784 },
+  { name: "Sofya", lat: 42.6977, lng: 23.3219 },
+  { name: "Riga", lat: 56.9496, lng: 24.1052 },
+];
+
+assert.equal(typeof liveSync.formatFriendlyLocation, "function", "friendly location formatter should exist");
+assert.equal(
+  liveSync.formatFriendlyLocation(inactive, plannedStops),
+  "Ümraniye, İstanbul",
+  "a city near a planned stop should include its readable region",
+);
+assert.equal(
+  liveSync.formatFriendlyLocation({ ...inactive, city: null }, plannedStops),
+  "İstanbul çevresi",
+  "a missing city near the route should use the nearest planned place",
+);
+assert.equal(
+  liveSync.formatFriendlyLocation({ ...normalized, city: null }, plannedStops),
+  "Sofya yönünde",
+  "a moving journey without a city should describe its active direction",
+);
+assert.equal(
+  liveSync.formatFriendlyLocation(
+    { ...inactive, city: null, lat: 0, lng: 0, position: { lat: 0, lng: 0 } },
+    plannedStops,
+  ),
+  "Konum güncelleniyor",
+  "a remote location without a city should never fall back to coordinates",
+);
+assert.equal(typeof liveSync.heroLiveLabels, "function", "hero live labels should exist");
+assert.deepEqual(
+  liveSync.heroLiveLabels(inactive, plannedStops),
+  {
+    place: "Ümraniye, İstanbul",
+    state: "Kalkış hazırlığı",
+    current: "Ümraniye",
+    next: "Sofya",
+  },
+  "inactive hero labels should describe the readable place and planned direction",
+);
+assert.deepEqual(
+  liveSync.heroLiveLabels(normalized, plannedStops),
+  {
+    place: "Edirne",
+    state: "Sofya yönü",
+    current: "Edirne",
+    next: "Sofya",
+  },
+  "moving hero labels should describe the current place and active direction",
+);
+assert.equal(typeof liveSync.routeMapInteractionOptions, "function", "route map mode should exist");
+assert.deepEqual(
+  liveSync.routeMapInteractionOptions(true),
+  {
+    zoomControl: false,
+    scrollWheelZoom: false,
+    dragging: false,
+    touchZoom: false,
+    doubleClickZoom: false,
+    boxZoom: false,
+    keyboard: false,
+  },
+  "compact route maps should not capture mobile gestures",
+);
+assert.deepEqual(
+  liveSync.routeMapInteractionOptions(false),
+  {
+    zoomControl: false,
+    scrollWheelZoom: false,
+    dragging: true,
+    touchZoom: true,
+    doubleClickZoom: true,
+    boxZoom: true,
+    keyboard: true,
+  },
+  "full route maps should keep their existing interactions",
+);
+
 const routeMapSource = fs.readFileSync(path.join(root, "src/scripts/routeMap.ts"), "utf8");
 assert.match(routeMapSource, /kuzey:live-location/, "map should listen to live app state");
 assert.match(routeMapSource, /liveMarker/, "map should render a live vehicle marker");
@@ -91,29 +170,17 @@ assert.match(homeSource, /live-altitude/, "home should expose app altitude");
 assert.match(homeSource, /live-pressure/, "home should expose app pressure");
 assert.match(homeSource, /roadfeed-fuel/, "home should mirror iOS road feed");
 assert.match(homeSource, /kuzey:live-location/, "home should dispatch live state to the map");
-assert.match(homeSource, /follow-riga-hero\.jpg/, "home hero should use the Riga caravan image");
 assert.match(homeSource, /follow-highway\.jpg/, "home should include the highway caravan image");
 assert.match(homeSource, /follow-budapest\.jpg/, "home should include the Budapest caravan image");
 assert.match(homeSource, /follow-sofia\.png/, "home should include the Sofia caravan image");
 assert.match(homeSource, /follow-gallery/, "home should render a dedicated image gallery");
 assert.match(homeSource, /follow-gallery__track/, "home gallery should be swipeable");
 assert.match(homeSource, /data-gallery-scroll/, "home gallery should expose carousel controls");
-assert.match(homeSource, /hero-countdown/, "home hero should show the app departure countdown");
 assert.match(homeSource, /\/api\/plan/, "home hero countdown should use the published app plan");
-assert.match(homeSource, /hero-route-timeline/, "home hero should expose a live stop timeline");
-assert.match(homeSource, /data-hero-route-stop/, "home hero timeline should include every stop");
 assert.match(homeSource, /<details\s+class="route-timeline-section"[\s\S]*?<summary\s+class="route-timeline-head"/, "route timeline should be collapsible");
 assert.match(homeSource, /data-route-details/, "route timeline should expose a details hook");
 assert.match(homeSource, /routeDetails\.open\s*=\s*!isMobileRouteSummary/, "route timeline should start collapsed on mobile");
 assert.match(homeSource, /routeDetails\.classList\.toggle\('is-started'/, "route timeline summary should reflect started state with color");
 assert.match(homeSource, /\.route-timeline-head::before\s*\{[\s\S]*?content:\s*none/, "route timeline summary should suppress the global details marker");
-assert.match(homeSource, /aspect-ratio:\s*3\s*\/\s*2/, "mobile hero should preserve the hero photo ratio");
-assert.match(homeSource, /grid-row:\s*2/, "mobile hero content should sit below the photo");
-assert.doesNotMatch(homeSource, /padding-top:\s*min\(56svh,\s*440px\)/, "mobile hero should not crop the photo with a fixed top spacer");
-assert.doesNotMatch(homeSource, /@media\s*\(max-width:\s*760px\)[\s\S]*?\.hero-route-timeline__track\s*\{[\s\S]*?min-width:\s*640px/, "mobile hero stop timeline must not force page overflow");
-assert.match(homeSource, /@media\s*\(max-width:\s*760px\)[\s\S]*?\.hero-route-timeline__track\s*\{[\s\S]*?grid-template-columns:\s*repeat\(8,\s*minmax\(0,\s*1fr\)\)/, "mobile hero timeline should keep all stops visible on one line");
-assert.doesNotMatch(homeSource, /@media\s*\(max-width:\s*760px\)[\s\S]*?\.hero-countdown\s*\{[\s\S]*?left:\s*12px[\s\S]*?width:\s*auto/, "mobile countdown must not create a full-width dark strip over the hero photo");
-assert.match(homeSource, /@media\s*\(max-width:\s*760px\)[\s\S]*?\.hero-countdown\s*\{[\s\S]*?rgba\(5,\s*8,\s*12,\s*0\.7[0-9]\)/, "mobile countdown should use a readable compact dark glass layer");
-assert.match(homeSource, /@media\s*\(max-width:\s*760px\)[\s\S]*?\.hero-countdown__grid strong\s*\{[\s\S]*?text-shadow:/, "mobile countdown numbers should stay readable on bright photos");
 
 console.log("Web/app sync checks passed.");

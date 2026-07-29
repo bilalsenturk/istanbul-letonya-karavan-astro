@@ -1,5 +1,6 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { routeMapInteractionOptions } from './liveSync';
 
 type Stop = { name: string; lat: number; lng: number };
 type Leg = { from: string; to: string; distance: number; duration: number; coords: [number, number][] };
@@ -248,8 +249,9 @@ export function initRouteMap(containerId: string): void {
   if (valid.length === 0) return;
   ensureRigStyles();
 
-  const map = L.map(container, { zoomControl: false, scrollWheelZoom: false });
-  L.control.zoom({ position: 'bottomright' }).addTo(map);
+  const compact = container.dataset.compact === 'true';
+  const map = L.map(container, routeMapInteractionOptions(compact));
+  if (!compact) L.control.zoom({ position: 'bottomright' }).addTo(map);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -358,7 +360,10 @@ export function initRouteMap(containerId: string): void {
     if (!activeLayer) return false;
     const bounds = activeLayer.getBounds().extend(latlng);
     if (!bounds.isValid()) return false;
-    map.fitBounds(bounds, { padding: [34, 34], maxZoom: 10 });
+    map.fitBounds(bounds, {
+      padding: compact ? [14, 14] : [34, 34],
+      maxZoom: compact ? 8 : 10,
+    });
     return true;
   };
 
@@ -413,7 +418,12 @@ export function initRouteMap(containerId: string): void {
 
   const refit = () => {
     map.invalidateSize({ animate: false });
-    if (fitTarget.isValid()) map.fitBounds(fitTarget, { padding: [24, 24] });
+    if (fitTarget.isValid()) {
+      map.fitBounds(fitTarget, {
+        padding: compact ? [12, 12] : [24, 24],
+        ...(compact ? { maxZoom: 8 } : {}),
+      });
+    }
   };
 
   loadGeometry().then((geo) => {
