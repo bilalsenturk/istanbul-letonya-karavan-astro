@@ -21,6 +21,7 @@ final class PublishOutbox {
 
     private var state = OutboxFile()
     private var sending: Set<String> = []
+    private var acknowledgements: [String: () -> Void] = [:]
     private var scope: PublishedTripScope?
     private let fileURL: URL
     private let sender: PublishedTripSending
@@ -54,10 +55,15 @@ final class PublishOutbox {
         if scope != nil { retryPending() }
     }
 
-    func enqueue(resource: PublishedTripResource, body: Data) {
+    func enqueue(
+        resource: PublishedTripResource,
+        body: Data,
+        onSuccess: (() -> Void)? = nil
+    ) {
         guard let scope else { return }
         let key = "\(scope.tripID):\(resource.rawValue)"
         state.pending[key] = PendingPost(tripID: scope.tripID, resourcePath: resource.rawValue, body: body)
+        acknowledgements[key] = onSuccess
         persist()
         Task { await drain(key: key) }
     }
@@ -85,6 +91,7 @@ final class PublishOutbox {
               post.tripID == activeScope.tripID {
             guard let resource = PublishedTripResource(rawValue: post.resourcePath) else {
                 state.pending.removeValue(forKey: key)
+                acknowledgements.removeValue(forKey: key)
                 persist()
                 continue
             }
@@ -95,7 +102,9 @@ final class PublishOutbox {
             }
             guard state.pending[key] == post else { continue }
             state.pending.removeValue(forKey: key)
+            let acknowledge = acknowledgements.removeValue(forKey: key)
             persist()
+            acknowledge?()
         }
     }
 

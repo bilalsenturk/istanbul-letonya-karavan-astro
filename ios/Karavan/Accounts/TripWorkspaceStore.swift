@@ -23,6 +23,11 @@ final class TripWorkspaceStore: ObservableObject {
         errorMessage = nil
     }
 
+    func reconcile(trips refreshedTrips: [AccountTrip]) {
+        trips = refreshedTrips.sorted { $0.updatedAt > $1.updatedAt }
+        selectedTrip = PublishedTripScope.reconciledTrip(selected: selectedTrip, in: refreshedTrips)
+    }
+
     func select(_ trip: AccountTrip) {
         selectedTrip = trip
         if let activeUserId { UserDefaults.standard.set(trip.id, forKey: selectionKey(activeUserId)) }

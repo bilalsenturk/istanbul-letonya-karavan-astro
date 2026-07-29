@@ -14,6 +14,13 @@ struct PublishedTripScope: Equatable {
         guard let trip, trip.kind == .kuzey2026, trip.features.publicTracking else { return nil }
         tripID = trip.id
     }
+
+    /// Resolve the selected ID against the latest account payload so revoked
+    /// feature flags and removed trips cannot keep an eligible stale copy alive.
+    static func reconciledTrip(selected: AccountTrip?, in trips: [AccountTrip]) -> AccountTrip? {
+        guard let selected else { return nil }
+        return trips.first { $0.id == selected.id }
+    }
 }
 
 @MainActor

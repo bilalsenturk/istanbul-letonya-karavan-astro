@@ -408,7 +408,8 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
             payload["altitudeSource"] = "gps"
         }
         guard let body = try? JSONSerialization.data(withJSONObject: payload) else { return }
-        PublishOutbox.shared.enqueue(resource: .liveLocation, body: body)
-        lastPublished = Date()
+        PublishOutbox.shared.enqueue(resource: .liveLocation, body: body) { [weak self] in
+            self?.lastPublished = Date()
+        }
     }
 }

@@ -85,6 +85,8 @@ struct KaravanApp: App {
                     applyPublishedTripScope()
                 }
                 .onChange(of: account.initialTrips) { _, _ in
+                    workspace.reconcile(trips: account.initialTrips)
+                    applyAccountRole()
                     applyPublishedTripScope()
                 }
                 .task {
