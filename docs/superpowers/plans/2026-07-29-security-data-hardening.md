@@ -22,6 +22,7 @@
 - Blob ETags never enter HTTP request or response bodies.
 - `plan-edits` is optimistic: authenticated GET returns `{revision,departureAt,days,updatedAt}` and PUT accepts `{baseRevision,departureAt,days}`.
 - The other authenticated PUTs use three server-side CAS attempts and return `{ok:true,revision,updatedAt}`.
+- Tests must prove observable behavior through real repositories, handlers, or executable scripts. Source scans are secondary regression guards only for forbidden secrets and retired URLs; they must not substitute for behavior assertions.
 
 ## File Structure
 

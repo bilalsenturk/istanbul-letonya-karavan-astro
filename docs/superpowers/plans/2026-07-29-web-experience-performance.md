@@ -16,6 +16,7 @@
 - Public tracking remains limited to Kuzey; never show raw coordinates as location copy.
 - Public reads use `/api/v2/public/trips/kuzey-2026/{live-location,expense-summary,published-plan,shared-journal}`; change URLs only, not response parsers.
 - Do not take unrelated major dependency upgrades.
+- Prefer executable policy/module tests and built-output assertions. Exact source-string checks in task examples are only hints for locating contracts; they must not replace observable behavior tests.
 
 ## File Map
 

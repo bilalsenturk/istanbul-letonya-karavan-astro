@@ -18,6 +18,7 @@
 - Offline and `5xx` failures retain tokens and work; rejected refresh or retry `401` clears the session.
 - Do not perform broad SwiftUI environment-object refactors without trace evidence.
 - Do not deploy from a dirty or partially verified tree.
+- Tests must compile or execute the production behavior they protect. Static source scans may supplement security/wiring checks, but they must not be the sole evidence for session refresh, publishing, permissions, navigation, or release mutation behavior.
 
 ---
 
