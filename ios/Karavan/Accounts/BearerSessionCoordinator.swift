@@ -15,7 +15,11 @@ final class BearerSessionCoordinator: AuthenticatedRequestSending {
     private let session: URLSession
     private let tokenStore: AccountTokenStoring
     private var tokens: AccountTokens?
+    private var sessionGeneration: UInt64 = 0
     private var refreshTask: Task<AccountTokens, Error>?
+    private var refreshTaskID: UInt64?
+    private var refreshTaskGeneration: UInt64?
+    private var nextRefreshTaskID: UInt64 = 0
 
     init(session: URLSession = .shared, tokenStore: AccountTokenStoring = KeychainTokenStore()) {
         self.session = session
@@ -26,60 +30,113 @@ final class BearerSessionCoordinator: AuthenticatedRequestSending {
 
     func install(_ tokens: AccountTokens) throws {
         try tokenStore.save(tokens)
+        sessionGeneration &+= 1
+        refreshTask = nil
+        refreshTaskID = nil
+        refreshTaskGeneration = nil
         self.tokens = tokens
     }
 
     @discardableResult
     func restore() -> Bool {
+        sessionGeneration &+= 1
+        refreshTask = nil
+        refreshTaskID = nil
+        refreshTaskGeneration = nil
         tokens = tokenStore.load()
         return tokens != nil
     }
 
     func clear() {
-        refreshTask?.cancel()
+        let task = refreshTask
+        sessionGeneration &+= 1
         refreshTask = nil
+        refreshTaskID = nil
+        refreshTaskGeneration = nil
         tokens = nil
         tokenStore.clear()
+        task?.cancel()
     }
 
     func data(path: String, method: String, body: Data?) async throws -> (Data, HTTPURLResponse) {
-        guard let rejectedTokens = tokens else { throw URLError(.userAuthenticationRequired) }
+        guard let rejectedTokens = currentSession else { throw URLError(.userAuthenticationRequired) }
 
-        let initial = try await send(path: path, method: method, body: body, accessToken: rejectedTokens.accessToken)
+        let initial = try await send(path: path, method: method, body: body, accessToken: rejectedTokens.tokens.accessToken)
         guard initial.1.statusCode == 401 else { return initial }
 
-        let currentTokens = try await refreshedTokens(afterRejecting: rejectedTokens.accessToken)
-        let retried = try await send(path: path, method: method, body: body, accessToken: currentTokens.accessToken)
+        let retrySession = try await refreshedTokens(afterRejecting: rejectedTokens)
+        let retried = try await send(path: path, method: method, body: body, accessToken: retrySession.tokens.accessToken)
         if retried.1.statusCode == 401 {
-            revoke()
+            revokeRetry(ifCurrent: retrySession)
             throw BearerSessionError.unauthorized
         }
         return retried
     }
 
-    private func refreshedTokens(afterRejecting rejectedAccessToken: String) async throws -> AccountTokens {
-        guard let currentTokens = tokens else { throw URLError(.userAuthenticationRequired) }
-        if currentTokens.accessToken != rejectedAccessToken { return currentTokens }
+    private var currentSession: BearerSession? {
+        guard let tokens else { return nil }
+        return BearerSession(tokens: tokens, generation: sessionGeneration)
+    }
 
-        if let refreshTask { return try await refreshTask.value }
+    private func refreshedTokens(afterRejecting rejectedSession: BearerSession) async throws -> BearerSession {
+        guard let currentSession else { throw URLError(.userAuthenticationRequired) }
+        if currentSession.generation != rejectedSession.generation
+            || currentSession.tokens.accessToken != rejectedSession.tokens.accessToken {
+            return currentSession
+        }
 
-        let refreshToken = currentTokens.refreshToken
+        if let refreshTask,
+           let refreshTaskID,
+           refreshTaskGeneration == currentSession.generation {
+            return try await awaitRefresh(
+                refreshTask,
+                id: refreshTaskID,
+                generation: currentSession.generation
+            )
+        }
+
+        let refreshToken = currentSession.tokens.refreshToken
+        let refreshGeneration = currentSession.generation
+        nextRefreshTaskID &+= 1
+        let taskID = nextRefreshTaskID
         let task = Task { [weak self, session] () throws -> AccountTokens in
             do {
                 let rotatedTokens = try await Self.refresh(using: session, refreshToken: refreshToken)
                 guard let self else { return rotatedTokens }
-                guard self.tokens?.refreshToken == refreshToken else { throw CancellationError() }
+                guard self.sessionGeneration == refreshGeneration,
+                      self.tokens?.refreshToken == refreshToken
+                else { throw CancellationError() }
                 try self.tokenStore.save(rotatedTokens)
                 self.tokens = rotatedTokens
                 return rotatedTokens
             } catch BearerSessionError.unauthorized {
-                self?.revoke()
+                self?.revokeRefresh(
+                    expectedGeneration: refreshGeneration,
+                    expectedRefreshToken: refreshToken
+                )
                 throw BearerSessionError.unauthorized
             }
         }
         refreshTask = task
-        defer { refreshTask = nil }
-        return try await task.value
+        refreshTaskID = taskID
+        refreshTaskGeneration = refreshGeneration
+        return try await awaitRefresh(task, id: taskID, generation: refreshGeneration)
+    }
+
+    private func awaitRefresh(
+        _ task: Task<AccountTokens, Error>,
+        id: UInt64,
+        generation: UInt64
+    ) async throws -> BearerSession {
+        defer { clearRefreshTask(ifMatching: id) }
+        return BearerSession(tokens: try await task.value, generation: generation)
+    }
+
+    private func clearRefreshTask(ifMatching id: UInt64) {
+        guard refreshTaskID == id else { return }
+        refreshTask = nil
+        refreshTaskID = nil
+        refreshTaskGeneration = nil
     }
 
     private func send(
@@ -115,18 +172,41 @@ final class BearerSessionCoordinator: AuthenticatedRequestSending {
             if httpResponse.statusCode == 401 { throw BearerSessionError.unauthorized }
             throw BearerSessionError.refreshFailed(status: httpResponse.statusCode)
         }
-        return try JSONDecoder().decode(AccountTokens.self, from: data)
+        let refreshed = try JSONDecoder().decode(RefreshResponse.self, from: data)
+        return AccountTokens(accessToken: refreshed.accessToken, refreshToken: refreshed.refreshToken)
     }
 
-    private func revoke() {
-        guard tokens != nil else { return }
+    private func revokeRetry(ifCurrent session: BearerSession) {
+        guard sessionGeneration == session.generation,
+              tokens?.accessToken == session.tokens.accessToken
+        else { return }
+        clear()
+        onRevoked?()
+    }
+
+    private func revokeRefresh(expectedGeneration: UInt64, expectedRefreshToken: String) {
+        guard sessionGeneration == expectedGeneration,
+              tokens?.refreshToken == expectedRefreshToken
+        else { return }
         clear()
         onRevoked?()
     }
 }
 
+private struct BearerSession {
+    let tokens: AccountTokens
+    let generation: UInt64
+}
+
 private struct RefreshRequest: Encodable {
     let refreshToken: String
+}
+
+private struct RefreshResponse: Decodable {
+    let accessToken: String
+    let refreshToken: String
+    let sessionId: String
+    let accessExpiresAt: String
 }
 
 private enum BearerSessionError: Error {
