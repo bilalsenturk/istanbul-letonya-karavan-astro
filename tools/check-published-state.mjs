@@ -1,12 +1,36 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'vite';
+import {
+  getPlanEdits,
+  getPublicPublishedResource,
+  putPlanEdits,
+  putPublishedResource,
+} from '../src/accounts/publishedStateRepository.ts';
+import { TripStorageConflictError } from '../src/accounts/tripRepository.ts';
 
 class MemoryPublishedStateStorage {
   entries = new Map();
   writeCalls = [];
+  conflictCount = 0;
+  readBarriers = new Map();
+
+  synchronizeReads(resource, count) {
+    this.readBarriers.set(resource, { count, waiting: 0, releases: [] });
+  }
 
   async read(tripId, resource) {
-    return this.entries.get(`${tripId}:${resource}`) ?? null;
+    const snapshot = structuredClone(this.entries.get(`${tripId}:${resource}`) ?? null);
+    const barrier = this.readBarriers.get(resource);
+    if (barrier && barrier.waiting < barrier.count) {
+      barrier.waiting += 1;
+      if (barrier.waiting === barrier.count) {
+        for (const release of barrier.releases) release();
+        this.readBarriers.delete(resource);
+      } else {
+        await new Promise((resolve) => barrier.releases.push(resolve));
+      }
+    }
+    return snapshot;
   }
 
   async write(tripId, resource, state, expectedEtag) {
@@ -14,11 +38,64 @@ class MemoryPublishedStateStorage {
     const key = `${tripId}:${resource}`;
     const current = this.entries.get(key);
     if ((current && current.etag !== expectedEtag) || (!current && expectedEtag !== null)) {
+      this.conflictCount += 1;
       throw new Error('private_blob_conflict');
     }
     const next = { state: structuredClone(state), etag: `memory-${this.entries.size + this.writeCalls.length}` };
     this.entries.set(key, next);
     return next;
+  }
+}
+
+class MemoryTripEventStorage {
+  events = new Map();
+
+  async listTripIds() {
+    return [...this.events.keys()];
+  }
+
+  async list(tripId) {
+    return structuredClone(this.events.get(tripId) ?? []);
+  }
+
+  async append(event, expectedRevision) {
+    const events = this.events.get(event.tripId) ?? [];
+    if (events.length !== expectedRevision) throw new TripStorageConflictError();
+    events.push(structuredClone(event));
+    this.events.set(event.tripId, events);
+  }
+
+  addTrip(id, kind, members) {
+    this.events.set(id, [{
+      id: `${id}-created`,
+      tripId: id,
+      revision: 1,
+      occurredAt: '2026-07-29T12:00:00.000Z',
+      actorUserId: members[0].userId,
+      type: 'tripCreated',
+      payload: {
+        name: id,
+        kind,
+        transportMode: 'automobile',
+        ownerUserId: members[0].userId,
+        stops: [],
+      },
+    }, ...members.slice(1).map((member, index) => ({
+      id: `${id}-member-${index}`,
+      tripId: id,
+      revision: index + 2,
+      occurredAt: `2026-07-29T12:00:0${index + 1}.000Z`,
+      actorUserId: members[0].userId,
+      type: 'memberAdded',
+      payload: member,
+    }))]);
+  }
+}
+
+class AlwaysConflictingPublishedStateStorage extends MemoryPublishedStateStorage {
+  async write() {
+    this.writeCalls.push('forced-conflict');
+    throw new Error('private_blob_conflict');
   }
 }
 
@@ -49,6 +126,238 @@ const replacement = await memoryStorage.write(
 );
 assert.equal(replacement.state.revision, 2, 'successful replacements must persist the next revision');
 assert.equal(JSON.stringify(replacement.state).includes('etag'), false, 'API state projections must not expose ETags');
+
+const tripStorage = new MemoryTripEventStorage();
+tripStorage.addTrip('kuzey-public', 'kuzey2026', [
+  { userId: 'owner-1', role: 'owner' },
+  { userId: 'member-1', role: 'member' },
+  { userId: 'viewer-1', role: 'viewer' },
+]);
+tripStorage.addTrip('standard-private', 'standard', [{ userId: 'owner-1', role: 'owner' }]);
+tripStorage.addTrip('other-public', 'kuzey2026', [{ userId: 'other-owner', role: 'owner' }]);
+
+const ownerAuth = {
+  actor: { userId: 'owner-1', globalRole: 'user' },
+  account: { id: 'owner-1', displayName: 'Owner Name' },
+  sessionId: 'owner-session',
+};
+const memberAuth = {
+  actor: { userId: 'member-1', globalRole: 'user' },
+  account: { id: 'member-1', displayName: 'Member Name' },
+  sessionId: 'member-session',
+};
+const viewerAuth = {
+  actor: { userId: 'viewer-1', globalRole: 'user' },
+  account: { id: 'viewer-1', displayName: 'Viewer Name' },
+  sessionId: 'viewer-session',
+};
+let clockTick = 0;
+const repositoryStorage = new MemoryPublishedStateStorage();
+const deps = {
+  tripStorage,
+  publishedStateStorage: repositoryStorage,
+  now: () => `2026-07-29T13:00:${String(clockTick++).padStart(2, '0')}.000Z`,
+};
+
+const validInputs = {
+  'live-location': { lat: 41.01, lng: 28.97, speedKmh: 80, city: 'İstanbul', ts: '2026-07-29T12:30:00Z' },
+  'expense-summary': { totalEur: 12.5, count: 1, byCategory: { fuel: 12.5 }, ts: '2026-07-29T12:30:00Z' },
+  'published-plan': {
+    departureAt: '2026-07-30T05:00:00Z',
+    arrivalAt: '2026-08-01T18:00:00Z',
+    totalDays: 2,
+    days: [{ slug: 'day-1', date: '2026-07-30T05:00:00Z', origin: 'İstanbul', destination: 'Sofia' }],
+  },
+  'shared-journal': {
+    entries: [{ id: 'entry-1', text: 'Yola çıktık', createdAt: '2026-07-29T12:30:00Z', author: 'Client Forgery' }],
+  },
+};
+
+for (const [name, input] of Object.entries(validInputs)) {
+  await assert.rejects(
+    putPublishedResource(deps, viewerAuth, 'kuzey-public', name, input),
+    (error) => error?.code === 'forbidden',
+    `viewers must not write ${name}`,
+  );
+}
+
+await assert.rejects(
+  putPublishedResource(deps, memberAuth, 'kuzey-public', 'live-location', validInputs['live-location']),
+  (error) => error?.code === 'forbidden',
+  'live location requires startRoute permission',
+);
+await assert.rejects(
+  putPublishedResource(deps, memberAuth, 'kuzey-public', 'published-plan', validInputs['published-plan']),
+  (error) => error?.code === 'forbidden',
+  'published plan requires editTrip permission',
+);
+
+await putPublishedResource(deps, ownerAuth, 'kuzey-public', 'live-location', {
+  ...validInputs['live-location'], tripId: 'other-public',
+});
+assert.ok(repositoryStorage.entries.has('kuzey-public:live-location'), 'the repository trip argument selects storage');
+assert.equal(repositoryStorage.entries.has('other-public:live-location'), false, 'a body tripId cannot select another trip');
+assert.equal(repositoryStorage.entries.get('kuzey-public:live-location').state.tripId, 'kuzey-public');
+
+await repositoryStorage.write('standard-private', 'live-location', {
+  schemaVersion: 1,
+  tripId: 'standard-private',
+  revision: 1,
+  updatedAt: '2026-07-29T12:30:00.000Z',
+  updatedBy: 'owner-1',
+  data: validInputs['live-location'],
+}, null);
+await assert.rejects(
+  getPublicPublishedResource(deps, 'standard-private', 'live-location'),
+  (error) => error?.code === 'trip_not_found',
+  'standard trip state must never be public',
+);
+await assert.rejects(
+  putPublishedResource(deps, ownerAuth, 'standard-private', 'expense-summary', validInputs['expense-summary']),
+  (error) => error?.code === 'trip_not_found',
+  'standard trips must not receive published resource payloads',
+);
+assert.equal(
+  repositoryStorage.entries.has('standard-private:expense-summary'),
+  false,
+  'a rejected standard-trip publish must not persist state',
+);
+await assert.rejects(
+  getPublicPublishedResource(deps, 'kuzey-public', 'plan-edits'),
+  (error) => error?.code === 'trip_not_found',
+  'plan edits must never be public',
+);
+
+assert.deepEqual(
+  await getPlanEdits(deps, memberAuth.actor, 'kuzey-public'),
+  { revision: 0, departureAt: null, days: {}, updatedAt: null },
+  'missing plan edits have an explicit revision-zero projection',
+);
+const planOne = await putPlanEdits(deps, memberAuth.actor, 'kuzey-public', {
+  baseRevision: 0,
+  departureAt: '2026-07-30T05:00:00Z',
+  days: { 'day-1': { destination: 'Sofia' } },
+  tripId: 'other-public',
+});
+assert.equal(planOne.revision, 1);
+assert.equal(repositoryStorage.entries.has('other-public:plan-edits'), false, 'plan bodies cannot override the URL trip');
+await assert.rejects(
+  putPlanEdits(deps, memberAuth.actor, 'kuzey-public', {
+    baseRevision: 0,
+    departureAt: null,
+    days: {},
+  }),
+  (error) => error?.code === 'revision_conflict'
+    && error?.current?.revision === 1
+    && error?.current?.departureAt === '2026-07-30T05:00:00.000Z',
+  'stale plan writes must immediately include current projected state',
+);
+
+const assertInvalid = async (resourceName, input, message) => {
+  await assert.rejects(
+    putPublishedResource(deps, ownerAuth, 'kuzey-public', resourceName, input),
+    (error) => error?.code === 'invalid_published_state',
+    message,
+  );
+};
+
+await assertInvalid('live-location', { ...validInputs['live-location'], lat: 90.01 }, 'latitude must be in range');
+await assertInvalid('live-location', { ...validInputs['live-location'], lng: -180.01 }, 'longitude must be in range');
+await assertInvalid('expense-summary', { ...validInputs['expense-summary'], totalEur: -0.01 }, 'expense totals are nonnegative');
+await assertInvalid('expense-summary', { ...validInputs['expense-summary'], totalEur: Infinity }, 'expense totals are finite');
+await assertInvalid('expense-summary', {
+  ...validInputs['expense-summary'],
+  byCategory: Object.fromEntries(Array.from({ length: 33 }, (_, index) => [`category-${index}`, 1])),
+}, 'expense summaries accept no more than 32 category keys');
+await assertInvalid('expense-summary', {
+  ...validInputs['expense-summary'], byCategory: { fuel: -1 },
+}, 'expense category values are nonnegative');
+await assertInvalid('published-plan', {
+  ...validInputs['published-plan'],
+  days: Array.from({ length: 61 }, (_, index) => ({ slug: `day-${index}`, date: '2026-07-30T05:00:00Z' })),
+}, 'published plans accept no more than 60 days');
+await assert.rejects(
+  putPlanEdits(deps, ownerAuth.actor, 'kuzey-public', {
+    baseRevision: 1,
+    departureAt: null,
+    days: Object.fromEntries(Array.from({ length: 61 }, (_, index) => [`day-${index}`, {}])),
+  }),
+  (error) => error?.code === 'invalid_published_state',
+  'plan edits accept no more than 60 day keys',
+);
+await assertInvalid('shared-journal', {
+  entries: Array.from({ length: 251 }, (_, index) => ({ id: `entry-${index}`, text: 'x', createdAt: '2026-07-29T12:30:00Z' })),
+}, 'journals accept no more than 250 entries');
+await assertInvalid('shared-journal', {
+  entries: [{ id: 'x'.repeat(201), text: 'x', createdAt: '2026-07-29T12:30:00Z' }],
+}, 'journal IDs are bounded');
+await assertInvalid('shared-journal', {
+  entries: [{ id: 'x', text: 'x'.repeat(5001), createdAt: '2026-07-29T12:30:00Z' }],
+}, 'journal text is bounded');
+await assertInvalid('shared-journal', {
+  entries: [{ id: 'x', text: 'x', createdAt: 'not-a-date' }],
+}, 'journal dates must be valid ISO timestamps');
+await assertInvalid('shared-journal', {
+  entries: [{ id: 'x', text: 'x', createdAt: '2026-02-31T12:30:00Z' }],
+}, 'ISO-shaped but impossible calendar dates must be rejected');
+
+const raceStorage = new MemoryPublishedStateStorage();
+raceStorage.synchronizeReads('expense-summary', 2);
+const raceDeps = { ...deps, publishedStateStorage: raceStorage };
+const expenseRace = await Promise.all([
+  putPublishedResource(raceDeps, ownerAuth, 'kuzey-public', 'expense-summary', {
+    totalEur: 10, count: 1, byCategory: { fuel: 10 }, ts: '2026-07-29T12:31:00Z',
+  }),
+  putPublishedResource(raceDeps, memberAuth, 'kuzey-public', 'expense-summary', {
+    totalEur: 5, count: 2, byCategory: { food: 5 }, ts: '2026-07-29T12:32:00Z',
+  }),
+]);
+assert.deepEqual(expenseRace.map((result) => result.ok), [true, true]);
+assert.equal(raceStorage.conflictCount, 1, 'the contribution race must force one precondition failure');
+assert.deepEqual(
+  await getPublicPublishedResource(raceDeps, 'kuzey-public', 'expense-summary'),
+  {
+    totalEur: 15,
+    count: 3,
+    byCategory: { food: 5, fuel: 10 },
+    ts: '2026-07-29T12:32:00.000Z',
+    receivedAt: expenseRace[1].updatedAt,
+  },
+  'CAS retry must preserve and aggregate both account contributions',
+);
+assert.equal(
+  JSON.stringify(await getPublicPublishedResource(raceDeps, 'kuzey-public', 'expense-summary')).includes('owner-1'),
+  false,
+  'public expenses must not reveal contribution account IDs',
+);
+
+const alwaysConflictingStorage = new AlwaysConflictingPublishedStateStorage();
+await assert.rejects(
+  putPublishedResource(
+    { ...deps, publishedStateStorage: alwaysConflictingStorage },
+    ownerAuth,
+    'kuzey-public',
+    'expense-summary',
+    validInputs['expense-summary'],
+  ),
+  (error) => error?.code === 'revision_conflict',
+  'an exhausted non-plan merge reports a repository conflict',
+);
+assert.equal(alwaysConflictingStorage.writeCalls.length, 3, 'non-plan CAS writes stop after three attempts');
+
+await putPublishedResource(deps, memberAuth, 'kuzey-public', 'shared-journal', validInputs['shared-journal']);
+await putPublishedResource(deps, ownerAuth, 'kuzey-public', 'shared-journal', {
+  entries: [{ id: 'entry-2', text: 'İkinci kayıt', createdAt: '2026-07-29T12:31:00Z', author: 'Another Forgery' }],
+});
+const journal = await getPublicPublishedResource(deps, 'kuzey-public', 'shared-journal');
+assert.deepEqual(
+  journal.entries.map((entry) => [entry.id, entry.author]),
+  [['entry-2', 'Owner Name'], ['entry-1', 'Member Name']],
+  'journal contributions from both accounts survive and use server-authored display names',
+);
+assert.equal(JSON.stringify(journal).includes('Client Forgery'), false, 'client journal authors are ignored');
+assert.equal(JSON.stringify(journal).includes('Another Forgery'), false, 'all client journal authors are ignored');
+assert.equal(JSON.stringify(journal).includes('member-1'), false, 'public journals do not reveal account IDs');
 
 const vite = await createServer({
   root: process.cwd(),
