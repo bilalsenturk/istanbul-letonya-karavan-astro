@@ -63,15 +63,15 @@ enum TravelProfileSaveGuard {
 }
 
 /// Saf oturum karşılaştırması: geç gelen bir istek yalnızca aynı kullanıcı ve
-/// aynı erişim belirteci hâlâ etkinse oturum durumunu güncelleyebilir.
+/// aynı oturum kimliği hâlâ etkinken oturum durumunu güncelleyebilir.
 enum TravelProfileSessionGuard {
     static func accepts(
         currentAccountID: String?,
-        currentAccessToken: String?,
+        currentSessionID: UUID?,
         expectedAccountID: String,
-        expectedAccessToken: String
+        expectedSessionID: UUID
     ) -> Bool {
-        currentAccountID == expectedAccountID && currentAccessToken == expectedAccessToken
+        currentAccountID == expectedAccountID && currentSessionID == expectedSessionID
     }
 }
 

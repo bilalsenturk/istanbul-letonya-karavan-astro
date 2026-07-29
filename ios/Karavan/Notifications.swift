@@ -1,6 +1,7 @@
 import Foundation
 import UserNotifications
 import BackgroundTasks
+import UIKit
 
 // Yerel bildirimler — sunucusuz. Hava değişimleri + kalkış hatırlatmaları.
 // Ön planda anında; arka planda BGAppRefreshTask ile "best-effort" (iOS zamanlar).
@@ -8,9 +9,10 @@ import BackgroundTasks
 final class NotificationManager: NSObject, ObservableObject {
     static let shared = NotificationManager()
 
-    @Published var authorized = false
+    @Published private(set) var authorizationStatus: UNAuthorizationStatus = .notDetermined
+    @Published private(set) var authorized = false
     private let center = UNUserNotificationCenter.current()
-    private var lastDeparture: Date?   // saat dilimi değişince hatırlatmaları yeniden kurmak için
+    private var scheduleLifecycle = NotificationAuthorizationLifecycle(isAuthorized: false)
 
     override init() {
         super.init()
@@ -23,22 +25,40 @@ final class NotificationManager: NSObject, ObservableObject {
     /// Saat dilimi geçişinde kalkış hatırlatmalarını yeni yerel takvimle yeniden kur.
     @objc private nonisolated func timeZoneChanged() {
         Task { @MainActor in
-            if let departure = self.lastDeparture {
+            if let departure = self.scheduleLifecycle.departure {
                 self.scheduleDepartureReminders(departure: departure)
             }
         }
     }
 
     func requestAuthorization() async {
-        let granted = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
-        authorized = granted
+        _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
+        await refreshAuthorization()
     }
 
     /// İzin durumunu sistemden tazeler — kullanıcı Ayarlar'dan kapatabilir;
     /// `authorized` yalnızca istek anında güncellenirse bayat kalır.
     func refreshAuthorization() async {
         let settings = await center.notificationSettings()
-        authorized = settings.authorizationStatus == .authorized
+        let allowsScheduling: Bool
+        switch settings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            allowsScheduling = true
+        case .notDetermined, .denied:
+            allowsScheduling = false
+        @unknown default:
+            allowsScheduling = false
+        }
+
+        let retainedSchedules = scheduleLifecycle.transitionAuthorization(to: allowsScheduling)
+        authorizationStatus = settings.authorizationStatus
+        authorized = allowsScheduling
+        submit(retainedSchedules)
+    }
+
+    func openSettings() {
+        guard let url = URL(string: UIApplication.openNotificationSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 
     /// Gönderim sonucu `completion` ile bildirilir (hata = planlama başarısız).
@@ -60,7 +80,35 @@ final class NotificationManager: NSObject, ObservableObject {
 
     /// Kalkışa göre hatırlatmalar. Kalkış değişince eskiler İPTAL edilip yeniden kurulur.
     func scheduleDepartureReminders(departure: Date) {
-        lastDeparture = departure
+        submit(scheduleLifecycle.register(.departure(departure)))
+    }
+
+    /// Her akşam "bugünü günlüğe yaz" hatırlatması. Tekrarlayan; bir kez kurulur.
+    func scheduleDailyJournalReminder(hour: Int = 21) {
+        submit(scheduleLifecycle.register(.dailyJournal(hour: hour)))
+    }
+
+    /// Sabah gün özeti. İçerik gönderim anında değil kurulum anında sabitlenir;
+    /// canlı veri gerektiren kısımlar app açılınca güncellenir.
+    func scheduleDailySummary(hour: Int = 8) {
+        submit(scheduleLifecycle.register(.dailySummary(hour: hour)))
+    }
+
+    private func submit(_ intents: [NotificationScheduleIntent]) {
+        guard authorized else { return }
+        for intent in intents {
+            switch intent {
+            case let .departure(date):
+                submitDepartureReminders(departure: date)
+            case let .dailyJournal(hour):
+                submitDailyJournalReminder(hour: hour)
+            case let .dailySummary(hour):
+                submitDailySummary(hour: hour)
+            }
+        }
+    }
+
+    private func submitDepartureReminders(departure: Date) {
         let ids = (0 ..< 3).map { "departure-\($0)" }
         center.removePendingNotificationRequests(withIdentifiers: ids)
 
@@ -85,8 +133,7 @@ final class NotificationManager: NSObject, ObservableObject {
         }
     }
 
-    /// Her akşam "bugünü günlüğe yaz" hatırlatması. Tekrarlayan; bir kez kurulur.
-    func scheduleDailyJournalReminder(hour: Int = 21) {
+    private func submitDailyJournalReminder(hour: Int) {
         let id = "journal-daily"
         center.removePendingNotificationRequests(withIdentifiers: [id])
 
@@ -106,9 +153,7 @@ final class NotificationManager: NSObject, ObservableObject {
         ))
     }
 
-    /// Sabah gün özeti. İçerik gönderim anında değil kurulum anında sabitlenir;
-    /// canlı veri gerektiren kısımlar app açılınca güncellenir.
-    func scheduleDailySummary(hour: Int = 8) {
+    private func submitDailySummary(hour: Int) {
         let id = "summary-daily"
         center.removePendingNotificationRequests(withIdentifiers: [id])
 

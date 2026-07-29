@@ -61,6 +61,11 @@ struct PlacePickerView: View {
             waitingForCurrentLocation = false
             select(.currentLocation(latitude: coordinate.latitude, longitude: coordinate.longitude), remember: false)
         }
+        .onChange(of: location.status) { _, status in
+            if status == .denied || status == .restricted {
+                waitingForCurrentLocation = false
+            }
+        }
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
     }
@@ -268,6 +273,7 @@ struct PlacePickerView: View {
         if location.location != nil { return "Cihazın güncel GPS konumu" }
         switch location.status {
         case .denied, .restricted: return "Konum izni gerekli"
+        case .notDetermined: return "Konumunu kullanmak için dokun"
         default: return "GPS konumu alınıyor"
         }
     }
@@ -292,8 +298,17 @@ struct PlacePickerView: View {
         if let coordinate = location.location?.coordinate {
             select(.currentLocation(latitude: coordinate.latitude, longitude: coordinate.longitude), remember: false)
         } else {
-            waitingForCurrentLocation = true
-            location.request()
+            switch LocationPermissionPolicy.primaryAction(for: location.permissionStatus) {
+            case .requestWhenInUse:
+                waitingForCurrentLocation = true
+                location.requestWhenInUse()
+            case .startIfAuthorized:
+                waitingForCurrentLocation = true
+                location.startIfAuthorized()
+            case .openSettings:
+                waitingForCurrentLocation = false
+                location.openSettings()
+            }
         }
     }
 

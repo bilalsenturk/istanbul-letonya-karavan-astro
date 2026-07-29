@@ -4,8 +4,8 @@ import Foundation
 // yaşar; site sonucu gösterir. Kalkış/gün düzenlemesi değişince çağrılır.
 enum PlanPublisher {
     @MainActor
-    static func publish(trip: TripData?, edits: TripEdits) {
-        guard let trip, let url = Config.planPostURL else { return }
+    static func publish(scope: PublishedTripScope, trip: TripData?, edits: TripEdits) {
+        guard let trip else { return }
 
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime]
@@ -40,8 +40,6 @@ enum PlanPublisher {
 
         guard let body = try? JSONSerialization.data(withJSONObject: payload) else { return }
 
-        // Aynı takvimi tekrar tekrar göndermeyelim; başarısız kalırsa outbox saklar.
-        let signature = String(data: body, encoding: .utf8) ?? ""
-        PublishOutbox.shared.enqueue(key: "plan", url: url, body: body, signature: signature)
+        PublishOutbox.shared.enqueue(resource: .publishedPlan, body: body)
     }
 }

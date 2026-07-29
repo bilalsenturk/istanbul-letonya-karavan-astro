@@ -22,6 +22,7 @@ struct AccountStopsView: View {
     @State private var position: MapCameraPosition = .automatic
     @State private var sheet: AccountStopsSheet?
     @State private var errorMessage: String?
+    @State private var orderedStops: [AccountRouteStop] = []
 
     private var trip: AccountTrip? { workspace.selectedTrip }
 
@@ -32,7 +33,7 @@ struct AccountStopsView: View {
                 if let trip {
                     GeometryReader { geometry in
                         ZStack(alignment: .bottom) {
-                            map(trip)
+                            map()
                             stopPanel(trip, maxHeight: geometry.size.height * 0.54)
                         }
                     }
@@ -72,29 +73,29 @@ struct AccountStopsView: View {
             }
         }
         .onAppear {
-            refreshPreview()
+            refreshTripDerivedState()
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("-ui-preview-members") {
                 sheet = .members
             } else if ProcessInfo.processInfo.arguments.contains("-ui-preview-add-stop") {
                 sheet = .editRoute
             } else if ProcessInfo.processInfo.arguments.contains("-ui-preview-stop"),
-                      let stop = trip?.stops.last {
+                      let stop = orderedStops.last {
                 sheet = .stop(stop)
             }
             #endif
         }
-        .onChange(of: trip?.stops) { _, _ in refreshPreview() }
+        .onChange(of: trip?.stops) { _, _ in refreshTripDerivedState() }
     }
 
-    private func map(_ trip: AccountTrip) -> some View {
+    private func map() -> some View {
         Map(position: $position) {
             UserAnnotation()
             if preview.coordinates.count > 1 {
                 MapPolyline(coordinates: preview.coordinates)
                     .stroke(Theme.c2, style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
             }
-            ForEach(trip.stops) { stop in
+            ForEach(orderedStops) { stop in
                 if stop.resolvedSource != .currentLocation {
                 Annotation(stop.name, coordinate: CLLocationCoordinate2D(latitude: stop.lat, longitude: stop.lng)) {
                     Text("\(stop.order + 1)")
@@ -127,7 +128,7 @@ struct AccountStopsView: View {
             }
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    ForEach(trip.stops.sorted(by: { $0.order < $1.order })) { stop in
+                    ForEach(orderedStops) { stop in
                         Button {
                             if trip.access.canEditStops { sheet = .stop(stop) }
                         } label: {
@@ -160,7 +161,7 @@ struct AccountStopsView: View {
                     }
                 }
             }
-            .frame(height: min(maxHeight - (trip.access.canEditStops ? 78 : 20), CGFloat(trip.stops.count) * 59))
+            .frame(height: min(maxHeight - (trip.access.canEditStops ? 78 : 20), CGFloat(orderedStops.count) * 59))
 
             if trip.access.canEditStops {
                 Button { sheet = .editRoute } label: {
@@ -185,13 +186,19 @@ struct AccountStopsView: View {
         }
     }
 
-    private func refreshPreview() {
-        guard let trip else { return }
-        let stops = trip.stops.sorted(by: { $0.order < $1.order }).map(draftStop)
-        preview.update(stops: stops, mode: trip.transportMode ?? .automobile)
-        if stops.count == 1 {
+    private func refreshTripDerivedState() {
+        guard let trip else {
+            orderedStops = []
+            position = .automatic
+            return
+        }
+
+        orderedStops = trip.stops.sorted(by: { $0.order < $1.order })
+        let draftStops = orderedStops.map(draftStop)
+        preview.update(stops: draftStops, mode: trip.transportMode ?? .automobile)
+        if draftStops.count == 1 {
             position = .region(MKCoordinateRegion(
-                center: CLLocationCoordinate2D(latitude: stops[0].lat, longitude: stops[0].lng),
+                center: CLLocationCoordinate2D(latitude: draftStops[0].lat, longitude: draftStops[0].lng),
                 span: MKCoordinateSpan(latitudeDelta: 1, longitudeDelta: 1)
             ))
         } else {

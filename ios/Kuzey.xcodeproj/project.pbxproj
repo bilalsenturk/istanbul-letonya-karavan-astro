@@ -89,6 +89,7 @@
 		8A8CCD1D954E11A6C346CFB6 /* AppleMapsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31D0A33B6EDB7280B5616C20 /* AppleMapsService.swift */; };
 		8B1F02A46352AE9EC070FBFA /* TripActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD2D245D3ADDC9A38B3E287 /* TripActivityAttributes.swift */; };
 		8E67C1D2643A6A1CCA151B8A /* VoiceExpenseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29ABE562CEC889DE4C44F20A /* VoiceExpenseView.swift */; };
+		8FF38F286B43EAA135F41958 /* BearerSessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC3A9ECDDB4B946F8FA54364 /* BearerSessionCoordinator.swift */; };
 		905C9DA1A6B44AABF80B09A2 /* RouteAnnouncementPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6C3FE82A4D2A72C6C58B545 /* RouteAnnouncementPolicy.swift */; };
 		91A7A4AF00849EC63ACF1005 /* RouteDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 951D0A85ADCE46B95E28C1FF /* RouteDraft.swift */; };
 		96066EEDCC6FEF578788971B /* LatvianAnswerPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE47ED178D4A0D39015DF22A /* LatvianAnswerPanel.swift */; };
@@ -99,6 +100,7 @@
 		9D65F8215A7804576B305FB9 /* StopExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25CA028A20B4BE8F4D0ED411 /* StopExploreView.swift */; };
 		9D8DDBECC20E225D43C47798 /* JournalQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03DCAD8D74B488556BEED891 /* JournalQueue.swift */; };
 		9FD8D278A74E6E0537599478 /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 66226E6124A6D442A7150C3B /* ConfettiSwiftUI */; };
+		A29653BC2593568F1E35A2DE /* PermissionPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FD1E67012106FB06030EC54 /* PermissionPolicy.swift */; };
 		A51EF13DB9098CE6C8877536 /* latvian-pack.json in Resources */ = {isa = PBXBuildFile; fileRef = 0B26009BD58145101C6A2DFB /* latvian-pack.json */; };
 		A59FFDEF88DDBE3125C26C1A /* TripNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D701532F19396FBF2875EA /* TripNotifier.swift */; };
 		A6A5BE609BB235E23115F265 /* LatvianMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = D91E6EAF5244A2A02B41294D /* LatvianMotion.swift */; };
@@ -140,6 +142,7 @@
 		D639120DCFB9ED1C9D94A027 /* trip.json in Resources */ = {isa = PBXBuildFile; fileRef = 854400F42C0A6BF3D1C19B27 /* trip.json */; };
 		D9952DEBABD7B79B6776C983 /* LatvianSpeakExerciseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC58840FC821D027D95D169 /* LatvianSpeakExerciseView.swift */; };
 		DA24F180BEC42ED3B8D48106 /* LatvianCourseRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA146DCB2A1B3FB64681C8F5 /* LatvianCourseRules.swift */; };
+		DAF4C0D2E326575454BBB585 /* PublishedTripClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C1F10624F03099BED74AC14 /* PublishedTripClient.swift */; };
 		DCA192F45DFD629CE1326455 /* DayDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50EC37896D44D59908E84F08 /* DayDetailView.swift */; };
 		DD0EDC6C525BA8C722EFFB8F /* AnnouncementAudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0521A93D4BC40C937DF85C12 /* AnnouncementAudio.swift */; };
 		DD27A9E6C1CCB53B5B5F0E24 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B82E5004A631A77716317D /* LocationManager.swift */; };
@@ -207,8 +210,10 @@
 		133D28C12AF8362B15AAF88E /* ArrivalTargetPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrivalTargetPickerView.swift; sourceTree = "<group>"; };
 		152914230381950540AF3C38 /* RouteBuilderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteBuilderView.swift; sourceTree = "<group>"; };
 		177812CEA5E3FFBF09C427AD /* LatvianSpeechRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianSpeechRecognizer.swift; sourceTree = "<group>"; };
+		1C1F10624F03099BED74AC14 /* PublishedTripClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublishedTripClient.swift; sourceTree = "<group>"; };
 		1D776FB862EE977F4B986DF6 /* Adaptive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Adaptive.swift; sourceTree = "<group>"; };
 		1D93C8EE21182A5BA45A615A /* KAYNAK.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = KAYNAK.md; sourceTree = "<group>"; };
+		1FD1E67012106FB06030EC54 /* PermissionPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionPolicy.swift; sourceTree = "<group>"; };
 		21B82E5004A631A77716317D /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		25CA028A20B4BE8F4D0ED411 /* StopExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopExploreView.swift; sourceTree = "<group>"; };
 		26AC6D5D9A3E3BB448AFBF4B /* LatvianLessonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianLessonView.swift; sourceTree = "<group>"; };
@@ -336,6 +341,7 @@
 		DEDCB70244A1866C05724B7B /* RouteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStore.swift; sourceTree = "<group>"; };
 		E5A0D47F97A6BC761EC4A1D7 /* PhotoJournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoJournalView.swift; sourceTree = "<group>"; };
 		E8673B61A33C58C650B05B56 /* StopEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopEditorView.swift; sourceTree = "<group>"; };
+		EC3A9ECDDB4B946F8FA54364 /* BearerSessionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BearerSessionCoordinator.swift; sourceTree = "<group>"; };
 		EC538794F9ED1EDBD743061F /* TripSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripSettingsView.swift; sourceTree = "<group>"; };
 		ED5BDD8DBD5C0590C5E1BC5F /* MusicPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicPlayer.swift; sourceTree = "<group>"; };
 		F1E6F72F3F048515578B7874 /* LatvianHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianHomeView.swift; sourceTree = "<group>"; };
@@ -438,6 +444,7 @@
 				35155F1CE413BCBF9F18829E /* Navigation.swift */,
 				482F782E822AB4C91884E391 /* NavProgressStore.swift */,
 				5DC95431B932CB4DFD5412C9 /* Notifications.swift */,
+				1FD1E67012106FB06030EC54 /* PermissionPolicy.swift */,
 				0E7775AD4AAF14FD3D40306D /* PlanPublisher.swift */,
 				0D37D4838C53B2F0A2D94B66 /* PublishOutbox.swift */,
 				6E08E05BDE1D73F0761AE46D /* RoadFeedService.swift */,
@@ -639,7 +646,9 @@
 				45EA2D2DAE7C357998901565 /* AccountModels.swift */,
 				82F38AF9528057CFB313385F /* AccountPreviewFixtures.swift */,
 				79E023B62FCBECADC69DABCB /* AccountSessionStore.swift */,
+				EC3A9ECDDB4B946F8FA54364 /* BearerSessionCoordinator.swift */,
 				10E247B43DD7D356C7BA213B /* KeychainTokenStore.swift */,
+				1C1F10624F03099BED74AC14 /* PublishedTripClient.swift */,
 				AE5D628F94AB556FE9D36ECD /* TripWorkspaceStore.swift */,
 			);
 			path = Accounts;
@@ -822,6 +831,7 @@
 				DFDDFC0C50FBD902FED9A14E /* ArrivalTargetCard.swift in Sources */,
 				020E8C313C6FBED2120E39DC /* ArrivalTargetEditorView.swift in Sources */,
 				C35AE28C1535B5AE4E04BE01 /* ArrivalTargetPickerView.swift in Sources */,
+				8FF38F286B43EAA135F41958 /* BearerSessionCoordinator.swift in Sources */,
 				C1CD5BD742E28B2406B8C33B /* CampImage.swift in Sources */,
 				27D303E4234299F590A82DC4 /* Config.swift in Sources */,
 				1F27EF2FD3A054C89EB215C4 /* ContentView.swift in Sources */,
@@ -899,12 +909,14 @@
 				2BDE8F65A582F4E7E7245FA1 /* NotificationBudget.swift in Sources */,
 				F3FF95676307867E576FCA49 /* NotificationRules.swift in Sources */,
 				FA3A58E4C230882AAD9F18EB /* Notifications.swift in Sources */,
+				A29653BC2593568F1E35A2DE /* PermissionPolicy.swift in Sources */,
 				819C7A10A5135905BECC845D /* PhotoJournalView.swift in Sources */,
 				38411CC0FB39D09070DD0E7D /* PlacePickerView.swift in Sources */,
 				749D8D1E76BF2484862D1567 /* PlaceSearchService.swift in Sources */,
 				87236A869E46056C5C288964 /* PlanPublisher.swift in Sources */,
 				83113E5D1FBE09DAB2A20E48 /* PlanScreen.swift in Sources */,
 				9D2EE3E601345925BDEA151D /* PublishOutbox.swift in Sources */,
+				DAF4C0D2E326575454BBB585 /* PublishedTripClient.swift in Sources */,
 				7C79D592A14CF275B665F4C4 /* RoadFeedCard.swift in Sources */,
 				EDF70A6B777B56819BDB016C /* RoadFeedService.swift in Sources */,
 				80D069BE86856E1692DEFA19 /* RoleStore.swift in Sources */,

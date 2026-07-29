@@ -77,16 +77,41 @@ struct LiveLocationCard: View {
                         .foregroundStyle(Theme.c4)
                     }
                 } else {
-                    Button {
-                        loc.request()
-                    } label: {
-                        Text(loc.status == .denied ? "Ayarlar'dan konum izni ver" : "Konumu Aç")
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 13)
-                            .background(Theme.gradCool, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Kalan mesafe, hız ve sıradaki durağı konumuna göre hesapla.")
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .foregroundStyle(Theme.dim)
+                        Button(action: performPrimaryPermissionAction) {
+                            Text(primaryPermissionAction == .openSettings ? "Ayarları Aç" : "Konumu Aç")
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(minHeight: 44)
+                                .background(Theme.gradCool, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
                     }
+                }
+
+                if LocationPermissionPolicy.showsBackgroundAction(for: loc.permissionStatus) {
+                    Button {
+                        loc.requestAlways()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "location.fill.viewfinder")
+                            Text("Arka planda varışları aç")
+                        }
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .foregroundStyle(Theme.c2)
+                            .frame(maxWidth: .infinity)
+                            .frame(minHeight: 44)
+                            .background(Theme.panel, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                                    .strokeBorder(Theme.c2.opacity(0.45), lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -96,6 +121,21 @@ struct LiveLocationCard: View {
         // legs dizisi baştan son sayısıyla atanır (hepsi nil) — count hiç
         // değişmez. Anlamlı sinyal DOLAN etap sayısı: rota geldikçe nav tazelenir.
         .onChange(of: routeStore.legs.filter { $0 != nil }.count) { _, _ in Task { await updateNav() } }
+    }
+
+    private var primaryPermissionAction: LocationPermissionAction {
+        LocationPermissionPolicy.primaryAction(for: loc.permissionStatus)
+    }
+
+    private func performPrimaryPermissionAction() {
+        switch primaryPermissionAction {
+        case .requestWhenInUse:
+            loc.requestWhenInUse()
+        case .startIfAuthorized:
+            loc.startIfAuthorized()
+        case .openSettings:
+            loc.openSettings()
+        }
     }
 
     private func updateNav() async {
