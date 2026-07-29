@@ -78,6 +78,58 @@ assert.equal(inactive.activeRouteStop, null, "inactive journey must not claim an
 assert.equal(inactive.activeRouteCode, null, "inactive journey must not claim an active route code");
 assert.equal(inactive.activeRouteStartedAt, null, "inactive journey must not expose stale route start time");
 
+const plannedStops = [
+  { name: "İstanbul", lat: 41.0082, lng: 28.9784 },
+  { name: "Sofya", lat: 42.6977, lng: 23.3219 },
+  { name: "Riga", lat: 56.9496, lng: 24.1052 },
+];
+
+assert.equal(typeof liveSync.formatFriendlyLocation, "function", "friendly location formatter should exist");
+assert.equal(
+  liveSync.formatFriendlyLocation(inactive, plannedStops),
+  "Ümraniye, İstanbul",
+  "a city near a planned stop should include its readable region",
+);
+assert.equal(
+  liveSync.formatFriendlyLocation({ ...inactive, city: null }, plannedStops),
+  "İstanbul çevresi",
+  "a missing city near the route should use the nearest planned place",
+);
+assert.equal(
+  liveSync.formatFriendlyLocation({ ...normalized, city: null }, plannedStops),
+  "Sofya yönünde",
+  "a moving journey without a city should describe its active direction",
+);
+assert.equal(
+  liveSync.formatFriendlyLocation(
+    { ...inactive, city: null, lat: 0, lng: 0, position: { lat: 0, lng: 0 } },
+    plannedStops,
+  ),
+  "Konum güncelleniyor",
+  "a remote location without a city should never fall back to coordinates",
+);
+assert.equal(typeof liveSync.heroLiveLabels, "function", "hero live labels should exist");
+assert.deepEqual(
+  liveSync.heroLiveLabels(inactive, plannedStops),
+  {
+    place: "Ümraniye, İstanbul",
+    state: "Kalkış hazırlığı",
+    current: "Ümraniye",
+    next: "Sofya",
+  },
+  "inactive hero labels should describe the readable place and planned direction",
+);
+assert.deepEqual(
+  liveSync.heroLiveLabels(normalized, plannedStops),
+  {
+    place: "Edirne",
+    state: "Sofya yönü",
+    current: "Edirne",
+    next: "Sofya",
+  },
+  "moving hero labels should describe the current place and active direction",
+);
+
 const routeMapSource = fs.readFileSync(path.join(root, "src/scripts/routeMap.ts"), "utf8");
 assert.match(routeMapSource, /kuzey:live-location/, "map should listen to live app state");
 assert.match(routeMapSource, /liveMarker/, "map should render a live vehicle marker");
