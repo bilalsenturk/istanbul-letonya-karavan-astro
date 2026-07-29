@@ -409,6 +409,14 @@ export function initHomeDashboard(root?: HTMLElement, dependencies: HomeDashboar
   const loadWeather = async (live: NormalizedLiveRecord) => {
     const location = { lat: live.lat, lng: live.lng };
     const requestedAt = now();
+    const pendingTargetsDifferentLocation =
+      state.weatherPending &&
+      shouldRefreshWeather(state.weatherPending, location, requestedAt, Number.POSITIVE_INFINITY);
+    if (pendingTargetsDifferentLocation) {
+      state.weatherAbort?.abort();
+      state.weatherAbort = null;
+      state.weatherPending = null;
+    }
     if (!shouldRefreshWeather(state.weatherEntry, location, requestedAt)) {
       if (state.weatherEntry) renderWeather(state.weatherEntry.snapshot);
       return;
