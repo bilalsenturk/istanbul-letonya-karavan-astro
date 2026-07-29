@@ -1,6 +1,7 @@
 import Foundation
 import UserNotifications
 import BackgroundTasks
+import UIKit
 
 // Yerel bildirimler — sunucusuz. Hava değişimleri + kalkış hatırlatmaları.
 // Ön planda anında; arka planda BGAppRefreshTask ile "best-effort" (iOS zamanlar).
@@ -8,7 +9,8 @@ import BackgroundTasks
 final class NotificationManager: NSObject, ObservableObject {
     static let shared = NotificationManager()
 
-    @Published var authorized = false
+    @Published private(set) var authorizationStatus: UNAuthorizationStatus = .notDetermined
+    @Published private(set) var authorized = false
     private let center = UNUserNotificationCenter.current()
     private var lastDeparture: Date?   // saat dilimi değişince hatırlatmaları yeniden kurmak için
 
@@ -30,15 +32,28 @@ final class NotificationManager: NSObject, ObservableObject {
     }
 
     func requestAuthorization() async {
-        let granted = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
-        authorized = granted
+        _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
+        await refreshAuthorization()
     }
 
     /// İzin durumunu sistemden tazeler — kullanıcı Ayarlar'dan kapatabilir;
     /// `authorized` yalnızca istek anında güncellenirse bayat kalır.
     func refreshAuthorization() async {
         let settings = await center.notificationSettings()
-        authorized = settings.authorizationStatus == .authorized
+        authorizationStatus = settings.authorizationStatus
+        switch settings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            authorized = true
+        case .notDetermined, .denied:
+            authorized = false
+        @unknown default:
+            authorized = false
+        }
+    }
+
+    func openSettings() {
+        guard let url = URL(string: UIApplication.openNotificationSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 
     /// Gönderim sonucu `completion` ile bildirilir (hata = planlama başarısız).

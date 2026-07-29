@@ -126,9 +126,9 @@ struct MapScreen: View {
 
     // MARK: - Kamera
 
-    /// Konum izni + rota/nav önyüklemesi; trip sonradan gelirse tekrar çağrılır.
+    /// Mevcut konum izni + rota/nav önyüklemesi; trip sonradan gelirse tekrar çağrılır.
     private func bootstrap() async {
-        loc.request()
+        loc.startIfAuthorized()
         if let stops = store.trip?.stops {
             await routeStore.computeIfNeeded(stops: stops)
             await nav.update(location: loc.location, stops: stops, route: routeStore)

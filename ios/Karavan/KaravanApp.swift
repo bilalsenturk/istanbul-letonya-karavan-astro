@@ -20,6 +20,7 @@ struct KaravanApp: App {
     @StateObject private var journal = JournalStore()
     @StateObject private var routeSession = RouteSession.shared
     @StateObject private var appNavigation = AppNavigation.shared
+    @StateObject private var notifications = NotificationManager.shared
     @StateObject private var account = AccountSessionStore()
     @StateObject private var workspace = TripWorkspaceStore()
     @StateObject private var travelContent: TravelContentStore
@@ -57,6 +58,7 @@ struct KaravanApp: App {
                 .environmentObject(journal)
                 .environmentObject(routeSession)
                 .environmentObject(appNavigation)
+                .environmentObject(notifications)
                 .environmentObject(account)
                 .environmentObject(workspace)
                 .environmentObject(travelContent)
@@ -110,6 +112,7 @@ struct KaravanApp: App {
                         expenses.reload()                 // Siri arka planda eklemiş olabilir
                         locationManager.applyPowerMode()  // termal/güç durumu değişmiş olabilir
                         checkDeparturePrompt()            // öne gelince kalkış penceresi açılmış olabilir
+                        Task { await notifications.refreshAuthorization() }
                         Task { await journal.drainQueue() }
                         Task { await travelContent.refreshIfStale() }
                         // Öne gelince planı tazele: sahip cihazda tarih değişmiş olabilir.
@@ -136,17 +139,12 @@ struct KaravanApp: App {
     private func startAppServices() async {
         guard !appServicesStarted else { return }
         appServicesStarted = true
-        #if DEBUG
-        let isUIPreview = ProcessInfo.processInfo.arguments.contains { $0.hasPrefix("-ui-preview-") }
-        if !isUIPreview { Task { await NotificationManager.shared.requestAuthorization() } }
-        #else
-        Task { await NotificationManager.shared.requestAuthorization() }
-        #endif
-        weather.notifier = NotificationManager.shared
+        weather.notifier = notifications
         locationManager.nav = navProgress
         locationManager.trip = store
         locationManager.routeStore = routeStore
         locationManager.altimeter = altimeter
+        locationManager.startIfAuthorized()
         altimeter.start()
         await gallery.load()
         await AnnouncementEngine.shared.load()
@@ -163,8 +161,8 @@ struct KaravanApp: App {
         plan.onChange = { _ in applyPlanCascade() }
         await plan.syncFromWeb()
         applyPlanCascade()
-        NotificationManager.shared.scheduleDailyJournalReminder()
-        NotificationManager.shared.scheduleDailySummary()
+        notifications.scheduleDailyJournalReminder()
+        notifications.scheduleDailySummary()
         BackgroundWeather.schedule()
         checkDeparturePrompt()
     }
@@ -174,7 +172,7 @@ struct KaravanApp: App {
     @MainActor
     private func applyPlanCascade() {
         let departure = plan.departure(store.trip)
-        NotificationManager.shared.scheduleDepartureReminders(departure: departure)
+        notifications.scheduleDepartureReminders(departure: departure)
         store.writeSnapshot()
         LiveActivityManager.shared.reloadWidgetsThrottled()
         routeSession.writeSnapshot()

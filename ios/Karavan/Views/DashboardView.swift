@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 struct DashboardView: View {
     @EnvironmentObject var store: TripStore
@@ -10,6 +11,7 @@ struct DashboardView: View {
     @EnvironmentObject var altimeter: AltimeterService
     @EnvironmentObject var plan: TripPlanStore
     @EnvironmentObject var routeSession: RouteSession
+    @EnvironmentObject private var notifications: NotificationManager
     @EnvironmentObject private var account: AccountSessionStore
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var showSettings = false
@@ -29,6 +31,7 @@ struct DashboardView: View {
                     VStack(alignment: .leading, spacing: 18) {
                         header
                         if updates.shouldShowBanner { updateBanner }
+                        if !notifications.authorized { notificationPrimer }
                         if let trip = store.trip {
                             VStack(alignment: .leading, spacing: 10) {
                                 HStack {
@@ -164,10 +167,42 @@ struct DashboardView: View {
         .card()
     }
 
-    /// Konum izni + hava/rota/nav önyüklemesi. Yolculuk henüz yoksa sessizce
-    /// geçer; trip geldiğinde onChange yeniden çağırır.
+    private var notificationPrimer: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            HStack(spacing: 8) {
+                Image(systemName: "bell.badge.fill")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Theme.c1)
+                MonoLabel(text: "Yolculuk bildirimleri", color: Theme.c1)
+            }
+            Text("Kalkış, varış ve hava uyarılarını zamanında al.")
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .foregroundStyle(Theme.dim)
+            Button(action: performNotificationPermissionAction) {
+                Text(notifications.authorizationStatus == .denied ? "Ayarları Aç" : "Bildirimleri Aç")
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: 44)
+                    .background(Theme.gradWarm, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
+        .card()
+    }
+
+    private func performNotificationPermissionAction() {
+        if notifications.authorizationStatus == .denied {
+            notifications.openSettings()
+        } else {
+            Task { await notifications.requestAuthorization() }
+        }
+    }
+
+    /// Mevcut konum izni + hava/rota/nav önyüklemesi. Yolculuk henüz yoksa
+    /// sessizce geçer; trip geldiğinde onChange yeniden çağırır.
     private func bootstrap() async {
-        loc.request()
+        loc.startIfAuthorized()
         updateAltimeterMotionGate()
         if let stops = store.trip?.stops {
             async let w: () = weather.refresh(stops: stops)

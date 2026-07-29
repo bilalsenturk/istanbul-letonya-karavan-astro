@@ -7,7 +7,7 @@ import UIKit
 @MainActor
 final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var location: CLLocation?
-    @Published var status: CLAuthorizationStatus = .notDetermined
+    @Published private(set) var status: CLAuthorizationStatus = .notDetermined
     @Published var lastPublished: Date?
     @Published var publishEnabled = true
     @Published var powerSaving = false     // termal/düşük güçte GPS kısıldı mı
@@ -29,13 +29,13 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
 
     override init() {
         super.init()
+        status = manager.authorizationStatus
         manager.delegate = self
         manager.activityType = .automotiveNavigation
-        // Arka plan teslimatı: uygulama arkadayken/ekran kapalıyken de sürüş
-        // güncellemeleri gelsin (varış yaklaşımı, sürüş molası, pil uyarıları).
-        // Always izni yoksa sistem bu bayrağı yok sayar. Otomatik duraklatma
-        // kapalı: sürüş uygulamasında akışın kesilmesi bildirim hattını öldürür.
-        manager.allowsBackgroundLocationUpdates = true
+        // Arka plan teslimatı yalnızca kullanıcı açıkça Her Zaman izni verdiğinde
+        // açılır. Otomatik duraklatma kapalı: izinli sürüş akışında bildirim hattı
+        // kesilmemeli.
+        manager.allowsBackgroundLocationUpdates = status == .authorizedAlways
         manager.pausesLocationUpdatesAutomatically = false
         applyPowerMode()
         NotificationCenter.default.addObserver(self, selector: #selector(powerChanged),
@@ -61,15 +61,58 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         manager.distanceFilter = saving ? 400 : 100
     }
 
-    func request() {
+    var permissionStatus: LocationPermissionStatus {
         switch status {
-        case .notDetermined:
-            manager.requestWhenInUseAuthorization()
-        case .authorizedWhenInUse:
-            manager.requestAlwaysAuthorization()   // arka planda varış bildirimi için
-        default:
-            manager.startUpdatingLocation()
+        case .notDetermined: return .notDetermined
+        case .restricted: return .restricted
+        case .denied: return .denied
+        case .authorizedWhenInUse: return .whenInUse
+        case .authorizedAlways: return .always
+        @unknown default: return .restricted
         }
+    }
+
+    /// İlk sistem istemi. Yalnızca görünür bir kullanıcı eyleminden çağrılır.
+    func requestWhenInUse() {
+        guard status == .notDetermined else {
+            startIfAuthorized()
+            return
+        }
+        manager.requestWhenInUseAuthorization()
+    }
+
+    /// Geofence ve uygulama kapalıyken varış uyanışı için ikinci, açık eylem.
+    func requestAlways() {
+        guard status == .authorizedWhenInUse else { return }
+        manager.requestAlwaysAuthorization()
+    }
+
+    /// Yetki istemeden mevcut izne uygun GPS servislerini başlatır.
+    func startIfAuthorized() {
+        switch status {
+        case .authorizedWhenInUse:
+            manager.allowsBackgroundLocationUpdates = false
+            manager.stopMonitoringSignificantLocationChanges()
+            stopMonitoringRegions()
+            manager.startUpdatingLocation()
+        case .authorizedAlways:
+            manager.allowsBackgroundLocationUpdates = true
+            manager.startUpdatingLocation()
+            manager.startMonitoringSignificantLocationChanges()
+            if !monitoredStops.isEmpty {
+                startMonitoringStops(monitoredStops)
+            }
+        default:
+            manager.allowsBackgroundLocationUpdates = false
+            manager.stopUpdatingLocation()
+            manager.stopMonitoringSignificantLocationChanges()
+            stopMonitoringRegions()
+        }
+    }
+
+    func openSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 
     /// Varış geofence'i: her durağın çevresinde çember; girince bildirim (app kapalıyken de).
@@ -78,8 +121,9 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     func startMonitoringStops(_ stops: [Stop]) {
         monitoredStops = stops
         monitoredKey = Self.stopsKey(stops)
+        guard status == .authorizedAlways else { return }
         guard CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self) else { return }
-        for region in manager.monitoredRegions { manager.stopMonitoring(for: region) }
+        stopMonitoringRegions()
         for stop in stops.prefix(20) {
             let region = CLCircularRegion(center: stop.coordinate, radius: 3000, identifier: stop.id)
             region.notifyOnEntry = true
@@ -89,6 +133,12 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     }
 
     private var monitoredKey = ""
+
+    private func stopMonitoringRegions() {
+        for region in manager.monitoredRegions {
+            manager.stopMonitoring(for: region)
+        }
+    }
 
     private static func stopsKey(_ stops: [Stop]) -> String {
         stops.map { "\($0.id):\($0.name):\($0.lat),\($0.lng)" }.joined(separator: "|")
@@ -105,28 +155,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         let s = manager.authorizationStatus
         Task { @MainActor in
             self.status = s
-            if s == .authorizedWhenInUse {
-                // Geofence/SLOC ile app KAPALIYKEN uyanmak Always ister — WhenInUse
-                // verilir verilmez yükselt. Yalnızca bir kez dene: reddedildiyse
-                // her açılışta yeniden sormak iOS'ta sessizce yutulur ama temiz olsun.
-                let askedKey = "alwaysUpgradeRequested"
-                if !UserDefaults.standard.bool(forKey: askedKey) {
-                    UserDefaults.standard.set(true, forKey: askedKey)
-                    self.manager.requestAlwaysAuthorization()
-                }
-            }
-            if s == .authorizedWhenInUse || s == .authorizedAlways {
-                self.manager.startUpdatingLocation()
-                if !self.monitoredStops.isEmpty {
-                    self.startMonitoringStops(self.monitoredStops)
-                }
-            }
-            if s == .authorizedAlways {
-                // Önemli konum değişimi: uygulama tamamen kapalıyken bile sistemi
-                // uyandırıp süreci başlatır; neredeyse bedava (hücre bazlı). Arka
-                // planda yağmur/sınır kontrollerinin ana uyanma kanalı.
-                self.manager.startMonitoringSignificantLocationChanges()
-            }
+            self.startIfAuthorized()
         }
     }
 
