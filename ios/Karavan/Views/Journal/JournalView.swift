@@ -114,6 +114,20 @@ struct JournalView: View {
                 .font(.system(size: 17, weight: .semibold, design: .rounded))
                 .foregroundStyle(Theme.dim)
                 .multilineTextAlignment(.center)
+            Text("Yoldaki anları, notları ve fotoğrafları burada biriktir.")
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundStyle(Theme.muted)
+                .multilineTextAlignment(.center)
+            Button { showCompose = true } label: {
+                Text("İlk kaydını ekle")
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: 44)
+                    .background(Theme.gradWarm, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 4)
         }
     }
 
