@@ -370,7 +370,6 @@ const travelPhotos = [
     const timelineLegs = () => Array.from(document.querySelectorAll('[data-leg-index]'));
     const heroRoutePoints = () => Array.from(document.querySelectorAll('[data-hero-role]'));
     const routeDetails = document.querySelector('[data-route-details]');
-    let announcedRouteState = '';
     const routeSummaryQuery = window.matchMedia('(max-width: 760px)');
     const syncRouteDetailsMode = () => {
       const isMobileRouteSummary = routeSummaryQuery.matches;
@@ -436,16 +435,6 @@ const travelPhotos = [
       if (routeDetails) routeDetails.classList.toggle('is-started', routeStarted);
       setText('route-timeline-summary', activeLabel);
       setText('route-timeline-progress', fmtKm(progressKm));
-      const routeState = routeStarted
-        ? `active:${live.activeRouteStop || live.nextStop || 'Yolda'}`
-        : 'waiting';
-      if (routeState !== announcedRouteState) {
-        announcedRouteState = routeState;
-        setText(
-          'hero-route-status',
-          routeStarted ? `${live.activeRouteStop || live.nextStop || 'Yolda'} yönünde rota aktif.` : 'Rota başlamadı.',
-        );
-      }
       updateHeroRoute(live, progressKm);
     }
 

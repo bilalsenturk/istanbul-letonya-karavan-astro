@@ -1048,6 +1048,12 @@ const { title, description } = Astro.props;
         list-style: none;
       }
 
+      .accordion summary {
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+      }
+
       summary::-webkit-details-marker {
         display: none;
       }

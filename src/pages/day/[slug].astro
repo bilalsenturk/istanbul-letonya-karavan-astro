@@ -1,5 +1,6 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
+import CampActions from '../../components/CampActions.astro';
 import RouteMap from '../../components/RouteMap.astro';
 import RouteStepper from '../../components/RouteStepper.astro';
 import CameraPlayer from '../../components/CameraPlayer.astro';
@@ -65,12 +66,6 @@ const activeIndex = (() => {
   );
   return found >= 0 ? found : Math.min(dayIndex + 1, tripData.stops.length - 1);
 })();
-const campDestination = day.arrivalTarget
-  ? `${day.arrivalTarget.latitude},${day.arrivalTarget.longitude}`
-  : day.camp.place;
-const campDirections = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(campDestination)}&travelmode=driving`;
-const hasGoogleCampLink = /(?:google\.[^/]+\/maps|maps\.google\.)/i.test(day.camp.link);
-const campWebsite = day.arrivalTarget?.websiteURL || (hasGoogleCampLink ? null : day.camp.link);
 ---
 
 <MainLayout title={`Günlük Plan: ${day.date} (${day.origin} → ${day.destination})`}>
@@ -119,10 +114,7 @@ const campWebsite = day.arrivalTarget?.websiteURL || (hasGoogleCampLink ? null :
           {day.camp.email ? <p>E-posta: <a href={`mailto:${day.camp.email}`}>{day.camp.email}</a></p> : null}
           {day.camp.phone ? <p>Tel: <a href={`tel:${day.camp.phone}`}>{day.camp.phone}</a></p> : null}
           <p>Rezervasyon şablonu: <em>{day.camp.reservationTemplate}</em></p>
-          <p class="tag-row">
-            <a class="btn btn--primary" href={campDirections} target="_blank" rel="noreferrer">Kesin kamp rotasını aç</a>
-          </p>
-          {campWebsite ? <p><a href={campWebsite} target="_blank" rel="noreferrer">Kamp web sitesi</a></p> : null}
+          <CampActions arrivalTarget={day.arrivalTarget} camp={day.camp} />
 
           {day.camp.alternatives?.length ? (
             <div class="camp-alts">
@@ -255,7 +247,7 @@ const campWebsite = day.arrivalTarget?.websiteURL || (hasGoogleCampLink ? null :
         <a class="btn btn--ghost" href="#top">Yukarı çık</a>
       </div>
       <div class="grid">
-        {day.cityCameras.map((camera) => <div class="col-6"><CameraPlayer camera={camera} /></div>)}
+        {day.cityCameras.map((camera) => <div class="col-6"><CameraPlayer camera={camera} headingLevel={3} /></div>)}
       </div>
     </section>
   ) : null}

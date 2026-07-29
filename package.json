@@ -16,7 +16,8 @@
     "check:account-auth": "node --experimental-strip-types tools/check-account-auth.mjs",
     "check:trip-api": "node --experimental-strip-types tools/check-trip-api.mjs",
     "check:web-sync": "node --experimental-strip-types tools/check-web-app-sync.mjs",
-    "check:web-experience": "node --experimental-strip-types tools/check-web-experience.mjs",
+    "check:web-experience": "node --experimental-strip-types tools/check-web-experience.mjs && vitest run tools/web-experience-components.test.ts tools/camera-player.test.ts tools/camp-actions.test.ts",
+    "check:web-output": "node --experimental-strip-types tools/check-web-output.mjs",
     "check:travel-content": "node tools/check-travel-content.mjs",
     "check": "astro check",
     "lint": "eslint .",
@@ -39,6 +40,7 @@
     "prettier": "^3.5.3",
     "prettier-plugin-astro": "^0.14.1",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.26.0"
+    "typescript-eslint": "^8.26.0",
+    "vitest": "^4.1.10"
   }
 }

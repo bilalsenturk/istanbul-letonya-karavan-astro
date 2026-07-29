@@ -134,6 +134,7 @@ const { routeStops, totalKm } = Astro.props;
     type FriendlyLocationRecord,
     type PlannedStop,
   } from '../scripts/liveSync';
+  import { createRouteStatusController } from '../scripts/journeyExperience';
 
   type LiveWindow = Window & { __kuzeyLiveState?: FriendlyLocationRecord };
 
@@ -150,6 +151,9 @@ const { routeStops, totalKm } = Astro.props;
       const element = root.querySelector<HTMLElement>(`#${id}`);
       if (element) element.textContent = value;
     };
+    const updateRouteStatus = createRouteStatusController((message) => {
+      setText('hero-route-status', message);
+    });
 
     const apply = (record: FriendlyLocationRecord | undefined) => {
       if (!record) return;
@@ -158,6 +162,10 @@ const { routeStops, totalKm } = Astro.props;
       setText('hero-live-text', labels.state);
       setText('hero-current-place', labels.current);
       setText('hero-next-place', labels.next);
+      updateRouteStatus({
+        routeStarted: record.routeStarted,
+        target: record.activeRouteStop || record.nextStop,
+      });
     };
 
     const onLiveLocation = (event: Event) => {
