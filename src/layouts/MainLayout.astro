@@ -1613,5 +1613,10 @@ const { title, description } = Astro.props;
         KUZEY
       </p>
     </main>
+    <script>
+      if ('serviceWorker' in navigator && location.protocol === 'https:') {
+        navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+      }
+    </script>
   </body>
 </html>
