@@ -633,15 +633,26 @@ assert.equal(
   'User-agent: *\nAllow: /\n\nSitemap: https://istanbul-letonya-karavan-astro.vercel.app/sitemap-index.xml',
   'robots.txt should advertise the production sitemap',
 );
-const cacheControlFor = (source) => vercelConfig.headers
+const headerValueFor = (source, key) => vercelConfig.headers
   ?.find((rule) => rule.source === source)
-  ?.headers?.find((header) => header.key.toLowerCase() === 'cache-control')
+  ?.headers?.find((header) => header.key.toLowerCase() === key.toLowerCase())
   ?.value;
+const cacheControlFor = (source) => headerValueFor(source, 'cache-control');
 for (const source of ['/_astro/(.*)', '/assets/letonca/ses/(.*)']) {
   assert.equal(cacheControlFor(source), 'public, max-age=31536000, immutable', `${source} should be immutable for one year`);
 }
 for (const source of ['/api/(.*)', '/sw.js', '/kuzey-version.json', '/manifest.webmanifest', '/trip-data.json']) {
   assert.equal(cacheControlFor(source), 'no-store, max-age=0', `${source} should never be cached`);
+}
+const securityHeaders = {
+  'content-security-policy': "frame-ancestors 'none'",
+  'permissions-policy': 'camera=(self), geolocation=(self), microphone=(self), payment=(), usb=()',
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  'x-content-type-options': 'nosniff',
+  'x-frame-options': 'DENY',
+};
+for (const [key, value] of Object.entries(securityHeaders)) {
+  assert.equal(headerValueFor('/(.*)', key), value, `${key} should protect every response`);
 }
 
 function createWorkerHarness({ fetchImpl, matchImpl, openImpl, putImpl } = {}) {
