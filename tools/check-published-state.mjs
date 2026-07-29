@@ -1,7 +1,7 @@
 /* global structuredClone */
 
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createServer } from 'vite';
 import {
@@ -13,6 +13,38 @@ import {
 import { errorResponse, json, requestJSON } from '../src/accounts/api.ts';
 import { UnauthorizedError } from '../src/accounts/session.ts';
 import { TripStorageConflictError } from '../src/accounts/tripRepository.ts';
+
+const migrationScanRoots = ['src', 'ios/Karavan', 'README.md', 'ios/README.md', 'docs/APP-OVERVIEW.md'];
+const retiredPublishingReferences = [
+  'LIVE_POST_SECRET',
+  'x-live-secret',
+  'livePostSecret',
+  '/api/location',
+  '/api/expenses',
+  '/api/plan',
+  '/api/edits',
+  '/api/journal',
+];
+
+const sourceFiles = (pathname) => {
+  const absolutePath = resolve(process.cwd(), pathname);
+  if (!existsSync(absolutePath)) return [];
+  if (statSync(absolutePath).isFile()) return [pathname];
+  const entries = readdirSync(absolutePath, { withFileTypes: true });
+  return entries.flatMap((entry) => {
+    const child = `${pathname}/${entry.name}`;
+    return entry.isDirectory() ? sourceFiles(child) : entry.isFile() ? [child] : [];
+  });
+};
+
+const migrationFiles = migrationScanRoots.flatMap(sourceFiles);
+for (const forbidden of retiredPublishingReferences) {
+  const offenders = migrationFiles.filter(
+    (pathname) =>
+      pathname.includes(forbidden) || readFileSync(resolve(process.cwd(), pathname), 'utf8').includes(forbidden),
+  );
+  assert.deepEqual(offenders, [], `${forbidden} must not remain in current source or documentation`);
+}
 
 const v2PublishedStateRoutes = [
   { resource: 'live-location', methods: ['PUT'] },

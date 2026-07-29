@@ -11,17 +11,18 @@ yolculuk sırasında kullanılan asıl araç; (2) kök dizindeki **Astro** sites
 kaynağı (`/trip-data.json`), hem geride kalanların takip ettiği canlı ayna, hem de
 uygulamanın yazdığı verinin durduğu ince bir serverless katman (Vercel Blob).
 
-Backend yok. Veritabanı yok. Kullanıcı hesabı yok. İki taraf arasındaki tüm iletişim
-5 adet JSON endpoint'i ve tek bir paylaşılan sır (`x-live-secret`) üzerinden.
+Astro'nun serverless API katmanı Apple ile giriş, Bearer oturumları, rota rolleri ve
+özel Vercel Blob depolamasını yönetir. İstemcide gömülü ortak bir yayın sırrı yoktur;
+yazma yetkisi her istekte kullanıcı oturumu ve URL'deki rota üzerinden denetlenir.
 
 ```
-┌─────────────────┐   GET /trip-data.json (içerik)        ┌──────────────────┐
+┌─────────────────┐  Bearer + /api/v2/trips/{id}/*       ┌──────────────────┐
 │  iOS: Kuzey     │ ────────────────────────────────────► │  Astro / Vercel  │
-│  (SwiftUI)      │   POST /api/{location,expenses,       │  + Vercel Blob   │
-│                 │        plan,edits}  ◄── x-live-secret │                  │
-│  App Group ──►  │   GET  /api/roadfeed                  │  index.astro     │
-│  Widget + Live  │ ◄──────────────────────────────────── │  /day/[slug]     │
-│  Activity       │   GET /audio/*, /assets/*  (R2/CDN)   │  20s/60s polling │
+│  (SwiftUI)      │  GET /trip-data.json, /api/roadfeed  │  + Private Blob  │
+│                 │ ◄──────────────────────────────────── │                  │
+│  App Group ──►  │                                      │  index.astro     │
+│  Widget + Live  │  public /api/v2 projections          │  /day/[slug]     │
+│  Activity       │ ◄──────────────────────────────────── │  20s/60s polling │
 └─────────────────┘                                       └──────────────────┘
 ```
 
@@ -59,7 +60,7 @@ kaydet → geofence'leri kur → plan senkronu → arka plan hava görevi planla
 
 **`applyPlanCascade()`** tek fan-out noktası: kalkış bildirimlerini yeniden kur →
 App Group snapshot'ını yaz → widget'ları throttle'lı yenile → **sadece cihaz "sahip"
-ise** `/api/plan`'a POST at.
+ise** seçili rota kapsamındaki `published-plan` kaynağını Bearer `PUT` ile yayınla.
 
 `URLCache` 32 MB RAM / 128 MB disk olarak büyütülür (indirilen ses ve görseller
 çevrimdışı çalışsın diye).
@@ -75,7 +76,8 @@ ise** `/api/plan`'a POST at.
   şehre özel varış anonsu + Live Activity'yi kapat.
 - **Rota sapması SOS**: sadece hız > 20 km/s iken; 3 ardışık ölçüm ≥ 5 km rota dışıysa
   ve son uyarıdan ≥ 900 s geçtiyse → sesli uyarı + bildirim.
-- **Web'e yayın**: en fazla 30 saniyede bir `POST /api/location`.
+- **Web'e yayın**: en fazla 30 saniyede bir, seçili rota kapsamındaki `live-location`
+  kaynağını `PublishOutbox` üzerinden Bearer `PUT` ile gönderir.
 
 **`NavProgressStore`** — canlı ilerleme beyni
 - 700 m hareket **veya** 45 s geçmeden yeniden hesaplamaz.
@@ -143,9 +145,10 @@ geçmeliyse kabul, 3 deneme), PCM→WAV→`afconvert` ile 64 kbps AAC. Şu an 18
   günlerinde artar). Başlangıç saati = edit ?? (0. gün → gerçek kalkış saati, aksi
   halde 08:00), 0…23 arası clamp'lenir.
 
-**`TripPlanStore`** — last-write-wins'i bilerek reddeder: **sadece `isOwner` cihaz**
-`/api/edits`'e POST atar; diğer cihazlar GET edip uygular. Ağ payload'ı ISO-8601,
-yerel dosya varsayılan kodlama (mevcut cihaz dosyalarını bozmamak için).
+**`TripPlanStore`** — last-write-wins'i bilerek reddeder: seçili yayın rotasının
+`plan-edits` kaynağını Bearer `GET`/`PUT` ile senkronlar. İstek `baseRevision` taşır;
+`409` yanıtındaki güncel durumla üç yönlü birleştirme yapılır. Ağ payload'ı ISO-8601,
+yerel dosya varsayılan kodlamadır (mevcut cihaz dosyalarını bozmamak için).
 
 **`TripSettingsView`** — sahiplik anahtarı, senkron durumu, kalkış tarihi seçici
 (sahip değilse disabled), **canlı önizleme** (tüm günlerin nasıl kaydığı), hesaplanan
@@ -250,24 +253,63 @@ prerender edilir, sadece `src/pages/api/*` (`prerender = false`) serverless func
 | `/` | statik | Kontrol paneli / kokpit |
 | `/day/[slug]` | statik ×8 | Günlük operasyon brifingi |
 | `/trip-data.json` | statik endpoint | Tüm `tripData`, `max-age=300` — **iOS'un içerik kaynağı** |
-| `/api/{location,plan,expenses,edits}` | serverless | Blob destekli GET/POST |
+| `/api/v2/auth/*`, `/api/v2/me` | serverless | Apple oturumu, token yenileme ve seyahat profili |
+| `/api/v2/trips/*` | serverless | Rota, üye, durak ve korumalı yayın yönetimi |
+| `/api/v2/public/trips/*` | serverless | Kuzey sitesinin salt-okunur yayın projeksiyonları |
 | `/api/roadfeed` | serverless | Mazot + sınır + kur, `max-age=1800` |
 
 ## B2. API sözleşmesi
 
-Dördü de aynı desende: `@vercel/blob` `put`/`head`, `Access-Control-Allow-Origin: *`,
-`Cache-Control: no-store`, `BLOB_READ_WRITE_TOKEN` yoksa in-process `memRecord` fallback.
+Apple giriş ve token yenileme uçları dışında korumalı v2 istekleri
+`Authorization: Bearer <access-token>` taşır. `BearerSessionCoordinator`, aynı anda gelen
+`401` yanıtlarını tek bir refresh rotasyonunda birleştirir, isteği bir kez yineler ve
+yenilenen tokenları Keychain'e atomik yazar. Sunucu ayrıca oturum kaydını, URL rota
+kimliğini ve rolün işlem iznini doğrular; gövdedeki `tripId` depolama hedefi olamaz.
 
-**Auth:** sadece POST'ta `x-live-secret` header'ı `LIVE_POST_SECRET` ile eşleşmeli
-(iOS tarafında `Config.livePostSecret = "kuzey-2026-riga"`). **GET'ler tamamen açık.**
+**Korumalı URL'ler:**
 
-| Endpoint | Blob yolu | Payload özeti |
+| URL | Metot | Sözleşme |
 |---|---|---|
-| `/api/location` | `kuzey/live-location.json` | lat/lng (zorunlu, aralık kontrollü), speedKmh, ts, city, nextStop, nextFlag, remainingKm, **remainingToFinalKm**, remainingMin, traveledKm, legProgress → normalize + `receivedAt` |
-| `/api/plan` | `kuzey/plan.json` | departureAt, arrivalAt, totalDays, days[{slug,date,label,origin,destination,restDay,dayCount}] — maks 60 gün, alan uzunlukları sınırlı |
-| `/api/expenses` | `kuzey/expenses.json` | totalEur (2 hane), count, byCategory, ts — **kalem yok, gizlilik tasarımı** |
-| `/api/edits` | `kuzey/edits.json` | Ham edit'ler (türetilmiş tarihler değil) → her cihaz kendi `TripPlanner`'ıyla yeniden hesaplar. Sahiplik sadece app tarafı konvansiyonu, sunucu zorlamıyor |
-| `/api/roadfeed` | — | Canlı FX (frankfurter.app, 8 s timeout) + **elle bakımlı** mazot baseline tablosu + **heuristik** sınır tahmini (hafta sonu/peak saat mantığı). Dosya başındaki yorum hangi alanın gerçek-canlı, hangisinin tahmin olduğunu dürüstçe yazıyor |
+| `/api/v2/me` | `GET`, `PATCH` | Hesap, seyahat profili ve erişilebilen rotalar |
+| `/api/v2/trips` | `GET`, `POST` | Listeleme ve standart rota oluşturma |
+| `/api/v2/trips/{id}` | `GET`, `PATCH` | Rota okuma/güncelleme |
+| `/api/v2/trips/{id}/members` | `GET`, `POST`, `PATCH`, `DELETE` | Üye ve davet yönetimi |
+| `/api/v2/trips/{id}/stops` | `POST`, `PATCH`, `DELETE` | Durak ekleme, değiştirme, sıralama ve silme |
+| `/api/v2/trips/{id}/live-location` | `PUT` | Konum, hız, etap ilerlemesi ve cihaz ölçümleri |
+| `/api/v2/trips/{id}/expense-summary` | `PUT` | Hesap katkısı olarak toplam ve kategori özeti; kalemler cihazda kalır |
+| `/api/v2/trips/{id}/published-plan` | `PUT` | Maksimum 60 günlük hesaplanan plan görünümü |
+| `/api/v2/trips/{id}/shared-journal` | `PUT` | Sunucunun doğruladığı ve hesap adıyla ilişkilendirdiği günlük katkısı |
+| `/api/v2/trips/{id}/plan-edits` | `GET`, `PUT` | Özel, revizyonlu ham düzenleme durumu; herkese açık karşılığı yoktur |
+
+**Herkese açık URL'ler:** yalnızca `kind === kuzey2026` ve `publicTracking` açıkken
+yanıt verir. Özel durum zarfı, ETag ve katkı hesap kimlikleri dışarı çıkarılmaz.
+
+| URL | Metot | Görünüm |
+|---|---|---|
+| `/api/v2/public/trips/{id}/live-location` | `GET` | Canlı rota görünümü |
+| `/api/v2/public/trips/{id}/expense-summary` | `GET` | Hesap katkılarının anonim toplamı |
+| `/api/v2/public/trips/{id}/published-plan` | `GET` | Yayınlanmış takvim |
+| `/api/v2/public/trips/{id}/shared-journal` | `GET` | Düzleştirilmiş paylaşılabilir günlük |
+
+Tüm v2 JSON yanıtları `Cache-Control: no-store` taşır. `401` geçersiz/iptal edilmiş
+oturumu, `403` rol yetkisi eksikliğini, `404` bulunmayan veya herkese açık olmayan
+rotayı belirtir. Eski `baseRevision` ve eşzamanlı yazma çakışmaları `409` döner;
+plan düzenleme yanıtı istemcinin birleştirmesi için `current` alanını taşır. Rota alanı
+ve iş kuralı doğrulama hataları `422`, bozuk JSON ise `400` döner.
+
+**Özel Blob yolları:**
+
+| Veri | Yol |
+|---|---|
+| Hesap | `accounts/users/{userId}.json` |
+| Seyahat profili geçmişi | `accounts/profiles/{userId}/revisions/{timestamp}-{revisionId}.json` |
+| Oturum | `accounts/sessions/{sessionId}.json` |
+| Rota olayları | `accounts/trips/{tripId}/events/{revision}.json` |
+| Yayın durumu | `accounts/trips/{tripId}/state/{resource}.json` |
+
+Blob erişimi önce `PRIVATE_BLOB_READ_WRITE_TOKEN`, yoksa `BLOB_READ_WRITE_TOKEN`
+kullanır. Üretimde ikisi de yoksa kapalı davranır; geliştirmede yalnızca süreç belleği
+fallback'i vardır. İstemcinin bilmesi veya saklaması gereken ortak bir sunucu sırrı yoktur.
 
 ## B3. Ana sayfa (`index.astro`, 637 satır)
 
@@ -278,13 +320,13 @@ mantığı) → `#plan` (8 günlük timeline).
 
 İnline script (`define:vars` ile):
 - **Geri sayım** 1 s, T-0'da "🚐 Yoldayız!"
-- **`pollLive()` 20 s** → `/api/location`. Sunucu `remainingToFinalKm` yolladıysa onu
+- **`pollLive()` 20 s** → `/api/v2/public/trips/kuzey-2026/live-location`. Sunucu `remainingToFinalKm` yolladıysa onu
   kullanır, yoksa haversine × 1.25 (düz çizgi tek başına 3300 km'lik rotayı 1800 gösteriyordu).
   Şehir, sonraki durak, ilerleme barı, hız, kat edilen km günceller; durak listesinde
   `is-next`/`is-passed` işaretler.
-- **`pollPlan()` 60 s** → `/api/plan`. Kalkış tarihini ve her günün etiketini
+- **`pollPlan()` 60 s** → `/api/v2/public/trips/kuzey-2026/published-plan`. Kalkış tarihini ve her günün etiketini
   (`CSS.escape` ile `data-day-slug` eşleşmesi) yeniden yazar; `dayCount > 1` ise "· N gün" ekler.
-- **`pollSpend()` 60 s** → `/api/expenses` → €X + bütçe yüzdesi.
+- **`pollSpend()` 60 s** → `/api/v2/public/trips/kuzey-2026/expense-summary` → €X + bütçe yüzdesi.
 - Hepsi `pagehide`'da temizlenir. Service worker **sadece burada** register edilir.
 
 ## B4. Gün sayfası (`/day/[slug]`)
@@ -346,8 +388,9 @@ Dinlenme günü UI'da `day.origin === day.destination` ile tespit ediliyor.
 ## B7. PWA
 
 `manifest.webmanifest` — "Kuzey — Letonya Yolculuğu", standalone, `#07070b`, 192/512 +
-maskable ikonlar. `sw.js` (`trip-cache-v3`): navigasyonlar **network-first** (bozuk
-sayfa cache'te sıkışmasın diye bilinçli), diğer her şey stale-while-revalidate.
+maskable ikonlar. `sw.js` (`trip-cache-v11`): navigasyonlar **network-first**, hash'li
+Astro dosyaları **cache-first**; API'ler, manifest, gezi verisi, sürüm manifest'i ve
+service worker'ın kendisi **network-only**. `no-store` yanıtları Cache API'ye yazılmaz.
 
 ## B8. Build araçları (`tools/`)
 
@@ -365,28 +408,23 @@ sayfa cache'te sıkışmasın diye bilinçli), diğer her şey stale-while-reval
 1. **`src/components/LiveDashboard.astro` (433 satır) ölü kod** ve içinde altı adet
    uydurma trafik uyarısı üreten `generateMockTraffic()` var. Hiçbir yerden import
    edilmiyor; **mount edilmemeli** — uydurma veriyi canlıymış gibi gösterir.
-2. **`checklist` verisi hiçbir sayfada render edilmiyor** ama `MainLayout` nav'ında
-   `/#check` linki duruyor → ölü anchor.
-3. **`public/robots.txt` yanlış host'taki sitemap'i duyuruyor** (`istanbul-riga.vercel.app`
-   ≠ `astro.config.mjs`'deki `site`).
-4. **Tüm `/api/*` GET'leri açık ve CORS `*`** — canlı GPS konumu, harcama toplamı ve
-   takvim herkese okunabilir (tasarım kararı, ama bilinçli olunmalı).
-5. **Sır karşılaştırması sabit zamanlı değil** (düz `!==`) — dört POST handler'ında da.
-6. **Service worker `/api/*`'ı stale-while-revalidate'e sokuyor**; `no-store` header'ına
-   rağmen Cache API'ye yazıyor, dolayısıyla eski konum yanıtı ağdan önce servis edilebilir.
-7. **`tripData.ts:158` runtime doğrulaması olmadan `as TripData` cast'liyor** — şema
+2. **Herkese açık v2 projeksiyonları bilinçli olarak kimlik doğrulamaz.** Yeni kaynak
+   eklerken `publicTracking` kontrolü, açık allowlist ve özel zarf/hesap alanı sızıntı
+   testleri birlikte güncellenmeli; `plan-edits` özel kalmalıdır.
+3. **Site yalnızca `/api/v2/public/trips/kuzey-2026/*` URL'lerini okumalıdır.** iOS
+   yayınları ve plan senkronu korumalı rota kapsamından geçer; istemciye ortak sunucu
+   kimlik bilgisi eklenmemelidir.
+4. **`tripData.ts:173` runtime doğrulaması olmadan `as TripData` cast'liyor** — şema
    kayması ancak render sırasında patlar.
-8. **`index.astro:115` "Bugünün Güzergâhı" düğmesi `/day/istanbul-sofya`'ya sabit** —
-   gerçek günü takip etmiyor.
-9. **`route-geometry.json` duraklar değişince elle yeniden üretilmeli**, yoksa harita
+5. **`route-geometry.json` duraklar değişince elle yeniden üretilmeli**, yoksa harita
    sessizce eski yolu çizer.
-10. **`tools/testflight.sh` içinde App Store Connect key/issuer ID'leri hardcoded default**
-    (env ile override edilebilir).
-11. **`ToolsView.swift` SMS gövdesinde site URL'i `Config`'ten değil, elle yazılmış.**
-12. **Anons kategorilerinin çoğunun tetikleyicisi yok** — JSON'da replik var ama kod
-    onları hiç çağırmıyor (en büyük "hazır ama bağlanmamış" alan).
-13. `docs/…-design.md`'de TODO olarak geçen 2.25 MB'lık `passat-adria-karavan.png`
-    **hâlâ sıkıştırılmamış** ve ana sayfada `fetchpriority="high"` ile yükleniyor.
+6. **`tools/testflight.sh` içinde App Store Connect key/issuer ID'leri varsayılanlıdır**
+   (env ile override edilebilir; özel anahtar dosyası repoya girmez).
+7. **`ToolsView.swift` SMS gövdesinde site URL'i `Config`'ten değil, elle yazılmış.**
+8. **Anons kategorilerinin çoğunun tetikleyicisi yok** — JSON'da replik var ama kod
+   onları hiç çağırmıyor (en büyük "hazır ama bağlanmamış" alan).
+9. Kaynak yolculuk görsellerinden bazıları megabayt ölçeğindedir; Astro build'i AVIF/WebP
+   varyantları üretir ve `check:web-output` üretim çıktısına büyük PNG kaçmasını engeller.
 
 ---
 

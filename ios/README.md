@@ -26,23 +26,53 @@
 | Sabit | Ne işe yarar |
 |---|---|
 | `siteURL` | Deploy edilen site (veri + canlı konum hedefi) |
-| `livePostSecret` | Web'e konum gönderme anahtarı — Vercel'deki `LIVE_POST_SECRET` ile aynı olmalı |
+| `accountAPIBaseURL` | Apple oturumu ve rota kapsamlı `/api/v2` isteklerinin kökü |
 
 ## Apple hesabı ve çoklu rotalar
 
 - Uygulama `Sign in with Apple` ile açılır; erişim ve yenileme tokenları Keychain'de tutulur.
+- Korumalı çağrılar `Authorization: Bearer <access-token>` kullanır. Sunucu `401`
+  döndürürse tek bir ortak yenileme işlemi tokenları döndürür ve istek bir kez yinelenir.
 - Her kullanıcı yeni rota oluşturabilir. Harita araması, mevcut konum ve haritaya uzun basma ile durak eklenir.
 - Rota sahibi başka Apple hesaplarını `Üye` veya `Görüntüleyen` olarak davet eder.
 - `Üye` durakları düzenler; `Görüntüleyen` yalnızca okur. Son sahip kaldırılamaz.
 - Letonca kursu ve Kuzey müziği yalnızca `Leyla'nın Kuzey Yolculuğu` içinde görünür.
 
-## Web tarafında canlı konum için (bir kere)
+## Web yayın senkronu
 
 Vercel projesinde:
-1. **Storage → Blob** etkinleştir (`BLOB_READ_WRITE_TOKEN` otomatik oluşur)
-2. **Settings → Environment Variables** → `LIVE_POST_SECRET` = `Config.livePostSecret` ile aynı değer
+1. **Storage → Blob** etkinleştir (`BLOB_READ_WRITE_TOKEN` otomatik oluşur).
+2. En az 32 bayt rastgele bir `AUTH_SESSION_SECRET` tanımla.
 
-App konum iznini alınca 60 sn'de bir `POST /api/location` çağırır; site ana sayfadaki **"Karavan Nerede?"** kartı bunu okur.
+İstemcide gömülü ortak bir yayın sırrı yoktur. `BearerSessionCoordinator`, seçili
+`kuzey2026` rota kimliğiyle aşağıdaki korumalı URL'lere gider:
+
+| URL | Metot | Veri |
+|---|---|---|
+| `/api/v2/trips/{id}/live-location` | `PUT` | Canlı konum ve rota ilerlemesi |
+| `/api/v2/trips/{id}/expense-summary` | `PUT` | Yalnızca toplam/kategori özeti; harcama kalemleri cihazda kalır |
+| `/api/v2/trips/{id}/published-plan` | `PUT` | Hesaplanan takvim görünümü |
+| `/api/v2/trips/{id}/shared-journal` | `PUT` | Paylaşılabilir günlük katkısı |
+| `/api/v2/trips/{id}/plan-edits` | `GET`, `PUT` | Revizyonlu plan düzenlemeleri |
+
+Başarısız yayınlar `PublishOutbox` içinde rota kimliği, kaynak adı ve gövdeyle atomik
+olarak saklanır; URL, token veya başka kimlik bilgisi diske yazılmaz. Eski revizyon
+`409` döndürür ve istemci sunucunun güncel planıyla üç yönlü birleştirme yapar. Alan
+ve iş kuralı doğrulama hataları `422` döner.
+
+Site yalnızca aşağıdaki herkese açık, salt-okunur projeksiyonları kullanır; plan
+düzenlemeleri hiçbir zaman herkese açılmaz.
+
+| URL | Metot |
+|---|---|
+| `/api/v2/public/trips/kuzey-2026/live-location` | `GET` |
+| `/api/v2/public/trips/kuzey-2026/expense-summary` | `GET` |
+| `/api/v2/public/trips/kuzey-2026/published-plan` | `GET` |
+| `/api/v2/public/trips/kuzey-2026/shared-journal` | `GET` |
+
+Sunucuda yayın zarfları özel Blob deposunda
+`accounts/trips/{tripId}/state/{resource}.json` yolunda tutulur; herkese açık yanıtlar
+ETag, hesap kimliği ve özel zarf alanlarını çıkarır.
 
 ## Sürüm yayınlama (TestFlight)
 
