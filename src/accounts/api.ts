@@ -32,17 +32,61 @@ export const json = (value: unknown, status = 200): Response => new Response(JSO
 
 export const errorResponse = (error: unknown): Response => {
   if (error instanceof UnauthorizedError) return json({ error: 'unauthorized', message: messageFor('unauthorized') }, 401);
-  if (error instanceof TripRepositoryError) {
-    const status = error.code === 'forbidden' ? 403
-      : error.code === 'trip_not_found' ? 404
-        : error.code === 'revision_conflict' ? 409 : 422;
-    return json({ error: error.code, message: messageFor(error.code), current: error.current }, status);
+  const code = error instanceof TripRepositoryError ? error.code : error instanceof Error ? error.message : 'unknown_error';
+  if (code === 'session_revoked') return json({ error: code, message: messageFor(code) }, 401);
+  if (error instanceof TripRepositoryError && code === 'forbidden') return json({ error: code, message: messageFor(code) }, 403);
+  if ((error instanceof TripRepositoryError && code === 'trip_not_found') || code === 'account_not_found') {
+    return json({ error: code, message: messageFor(code) }, 404);
   }
-  const code = error instanceof Error ? error.message : 'unknown_error';
-  const status = code === 'invalid_json' || code === 'invalid_request_body' ? 400
-    : code === 'invalid_travel_profile' ? 422 : 500;
-  return json({ error: status === 500 ? 'internal_error' : code, message: messageFor(status === 500 ? 'internal_error' : code) }, status);
+  if (error instanceof TripRepositoryError && code === 'revision_conflict') {
+    return json({ error: code, message: messageFor(code), current: error.current }, 409);
+  }
+  if (code === 'invalid_json' || code === 'invalid_request_body') {
+    return json({ error: code, message: messageFor(code) }, 400);
+  }
+  if (code === 'invalid_travel_profile' || validationCodes.has(code)) {
+    return json({ error: code, message: messageFor(code) }, 422);
+  }
+  return json({ error: 'internal_error', message: messageFor('internal_error') }, 500);
 };
+
+const validationCodes = new Set([
+  'apple_credentials_required',
+  'apple_subject_required',
+  'duplicate_invite',
+  'duplicate_member',
+  'duplicate_stop',
+  'duplicate_trip_created_event',
+  'invalid_apple_nonce',
+  'invalid_arrival_target',
+  'invalid_email',
+  'invalid_invite_role',
+  'invalid_optional_string',
+  'invalid_stay_details',
+  'invalid_stop',
+  'invalid_stop_changes',
+  'invalid_stop_coordinates',
+  'invalid_stop_order',
+  'invalid_stop_source',
+  'invalid_stops',
+  'invalid_transport_mode',
+  'invalid_trip_event_sequence',
+  'invalid_trip_kind',
+  'invalid_trip_role',
+  'invite_email_required',
+  'last_owner_required',
+  'member_not_found',
+  'member_user_required',
+  'reserved_trip_kind',
+  'stop_id_required',
+  'stop_name_required',
+  'stop_not_found',
+  'stop_order_required',
+  'too_many_stops',
+  'trip_created_event_required',
+  'trip_name_required',
+  'trip_owner_required',
+]);
 
 export const requestJSON = async <T>(request: Request): Promise<T> => {
   try {

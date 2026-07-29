@@ -4,6 +4,7 @@ import {
   featuresFor,
   foldTripEvents,
   normalizeEmail,
+  TripDomainError,
   type GlobalRole,
   type TripAction,
   type TripEvent,
@@ -17,7 +18,7 @@ import {
 export interface TripEventStorage {
   listTripIds(): Promise<string[]>;
   list(tripId: string): Promise<TripEvent[]>;
-  append(event: TripEvent): Promise<void>;
+  append(event: TripEvent, expectedRevision: number): Promise<void>;
 }
 
 export type TripActor = {
@@ -55,6 +56,12 @@ export class TripRepositoryError extends Error {
   }
 }
 
+export class TripStorageConflictError extends TripRepositoryError {
+  constructor() {
+    super('revision_conflict');
+  }
+}
+
 export const createTrip = async (
   storage: TripEventStorage,
   actor: TripActor,
@@ -66,24 +73,34 @@ export const createTrip = async (
   }
   const name = input.name.trim();
   if (!name) throw new TripRepositoryError('trip_name_required');
-  if (input.stops.length > 50) throw new TripRepositoryError('too_many_stops');
   const tripId = randomUUID();
   const occurredAt = new Date().toISOString();
-  await storage.append(event(tripId, actor.userId, 1, 'tripCreated', {
-    name,
-    kind: 'standard',
-    transportMode: input.transportMode ?? 'automobile',
-    ownerUserId: actor.userId,
-  }, occurredAt));
+  const candidate = event(
+    tripId,
+    actor.userId,
+    1,
+    'tripCreated',
+    {
+      name,
+      kind: 'standard',
+      transportMode: input.transportMode ?? 'automobile',
+      ownerUserId: actor.userId,
+      stops: input.stops.map((stop, index) => ({ ...stop, order: index })),
+    },
+    occurredAt,
+  );
 
-  let revision = 1;
-  for (const [index, stop] of input.stops.entries()) {
-    revision += 1;
-    await storage.append(event(tripId, actor.userId, revision, 'stopAdded', {
-      stop: { ...stop, order: index },
-    }));
+  let trip: TripRecord;
+  try {
+    trip = foldTripEvents([candidate]);
+  } catch (error) {
+    if (error instanceof TripDomainError) {
+      throw new TripRepositoryError(error.code, error.message);
+    }
+    throw error;
   }
-  return loadTrip(storage, tripId);
+  await storage.append(candidate, 0);
+  return trip;
 };
 
 export const getTripForUser = async (
@@ -91,10 +108,9 @@ export const getTripForUser = async (
   actor: TripActor,
   tripId: string,
 ): Promise<TripView> => {
-  const trip = await loadTrip(storage, tripId);
+  const trip = await getTripForAction(storage, actor, tripId, 'read');
   const tripRole = trip.members.find((member) => member.userId === actor.userId)?.role ?? null;
   const access = { globalRole: actor.globalRole, tripRole };
-  if (!can(access, 'read')) throw new TripRepositoryError('forbidden');
   return {
     ...trip,
     features: featuresFor(trip.kind),
@@ -110,6 +126,28 @@ export const getTripForUser = async (
   };
 };
 
+export const getTripForAction = async (
+  storage: TripEventStorage,
+  actor: TripActor,
+  tripId: string,
+  action: TripAction,
+): Promise<TripRecord> => {
+  const trip = await loadTrip(storage, tripId);
+  requireAction(trip, actor, action);
+  return trip;
+};
+
+export const getPublicTrip = async (
+  storage: TripEventStorage,
+  tripId: string,
+): Promise<TripRecord> => {
+  const trip = await loadTrip(storage, tripId);
+  if (trip.kind !== 'kuzey2026' || !featuresFor(trip.kind).publicTracking) {
+    throw new TripRepositoryError('trip_not_found');
+  }
+  return trip;
+};
+
 export const listTripsForUser = async (
   storage: TripEventStorage,
   actor: TripActor,
@@ -119,7 +157,7 @@ export const listTripsForUser = async (
     try {
       return await getTripForUser(storage, actor, tripId);
     } catch (error) {
-      if (error instanceof TripRepositoryError && error.code === 'forbidden') return null;
+      if (error instanceof TripRepositoryError && (error.code === 'forbidden' || error.code === 'trip_corrupt')) return null;
       throw error;
     }
   }));
@@ -136,17 +174,17 @@ export const mutateTrip = async (
     payload: Record<string, unknown>;
   },
 ): Promise<TripRecord> => {
-  const current = await loadTrip(storage, input.tripId);
+  const { events, trip: current } = await loadTripHistory(storage, input.tripId);
   requireAction(current, actor, actionFor(input.type));
   requireCurrentRevision(current, input.baseRevision);
-  await storage.append(event(
+  const candidate = event(
     current.id,
     actor.userId,
     current.revision + 1,
     input.type,
     input.payload,
-  ));
-  return loadTrip(storage, current.id);
+  );
+  return appendCandidate(storage, events, current, candidate);
 };
 
 export const inviteMember = async (
@@ -159,23 +197,59 @@ export const inviteMember = async (
     role: Exclude<TripRole, 'owner'>;
   },
 ): Promise<TripRecord> => {
-  const current = await loadTrip(storage, input.tripId);
+  const { events, trip: current } = await loadTripHistory(storage, input.tripId);
   requireAction(current, actor, 'manageMembers');
   requireCurrentRevision(current, input.baseRevision);
   const email = normalizeEmail(input.email);
   if (!/^\S+@\S+\.\S+$/.test(email)) throw new TripRepositoryError('invalid_email');
   if (input.role !== 'member' && input.role !== 'viewer') throw new TripRepositoryError('invalid_invite_role');
-  await storage.append(event(current.id, actor.userId, current.revision + 1, 'memberInvited', {
+  const candidate = event(current.id, actor.userId, current.revision + 1, 'memberInvited', {
     email,
     role: input.role,
-  }));
-  return loadTrip(storage, current.id);
+  });
+  return appendCandidate(storage, events, current, candidate);
 };
 
 const loadTrip = async (storage: TripEventStorage, tripId: string): Promise<TripRecord> => {
+  const { trip } = await loadTripHistory(storage, tripId);
+  return trip;
+};
+
+const loadTripHistory = async (
+  storage: TripEventStorage,
+  tripId: string,
+): Promise<{ events: TripEvent[]; trip: TripRecord }> => {
   const events = await storage.list(tripId);
   if (events.length === 0) throw new TripRepositoryError('trip_not_found');
-  return foldTripEvents(events);
+  try {
+    return { events, trip: foldTripEvents(events) };
+  } catch {
+    throw new TripRepositoryError('trip_corrupt');
+  }
+};
+
+const appendCandidate = async (
+  storage: TripEventStorage,
+  events: TripEvent[],
+  current: TripRecord,
+  candidate: TripEvent,
+): Promise<TripRecord> => {
+  let next: TripRecord;
+  try {
+    next = foldTripEvents([...events, candidate]);
+  } catch (error) {
+    if (error instanceof TripDomainError) throw new TripRepositoryError(error.code, error.message);
+    throw error;
+  }
+  try {
+    await storage.append(candidate, current.revision);
+  } catch (error) {
+    if (error instanceof TripStorageConflictError) {
+      throw new TripRepositoryError('revision_conflict', 'revision_conflict', await loadTrip(storage, current.id));
+    }
+    throw error;
+  }
+  return next;
 };
 
 const requireAction = (trip: TripRecord, actor: TripActor, action: TripAction): void => {
