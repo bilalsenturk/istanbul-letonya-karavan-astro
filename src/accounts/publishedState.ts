@@ -88,7 +88,7 @@ export class PublishedStateValidationError extends Error {
   readonly code = 'invalid_published_state';
 
   constructor() {
-    super('invalid_request_body');
+    super('invalid_published_state');
     this.name = 'PublishedStateValidationError';
   }
 }

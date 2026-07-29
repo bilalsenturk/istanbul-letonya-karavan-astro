@@ -56,8 +56,12 @@ durumu Vercel Private Blob'da tutulur. İstemcide gömülü ortak bir yayın sı
 
 ### Korumalı v2 uçları
 
-Aşağıdaki çağrıların tamamı Bearer oturumu ve rota rolü/yetkisi ister. `{id}`, URL'deki
-seçili rota kimliğidir; gövdedeki bir rota kimliği depolama hedefini değiştiremez.
+Aşağıdaki çağrıların tamamı Bearer oturumu ister. `/api/v2/me` hesap kapsamındadır;
+`GET /api/v2/trips` kullanıcının erişebildiği rotaları listeler ve `POST /api/v2/trips`
+oturum sahibi adına standart bir rota oluşturur. `{id}` içeren rota kapsamlı uçlar,
+Bearer doğrulamasına ek olarak kullanıcının rota rolünü ve işlem yetkisini denetler.
+`{id}`, URL'deki seçili rota kimliğidir; gövdedeki bir rota kimliği depolama hedefini
+değiştiremez.
 
 | URL | Metot | Amaç |
 |---|---|---|

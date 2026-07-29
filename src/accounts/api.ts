@@ -32,7 +32,7 @@ export const json = (value: unknown, status = 200): Response => new Response(JSO
 
 export const errorResponse = (error: unknown): Response => {
   if (error instanceof UnauthorizedError) return json({ error: 'unauthorized', message: messageFor('unauthorized') }, 401);
-  const code = error instanceof TripRepositoryError ? error.code : error instanceof Error ? error.message : 'unknown_error';
+  const code = errorCode(error);
   if (code === 'session_revoked') return json({ error: code, message: messageFor(code) }, 401);
   if (error instanceof TripRepositoryError && code === 'forbidden') return json({ error: code, message: messageFor(code) }, 403);
   if ((error instanceof TripRepositoryError && code === 'trip_not_found') || code === 'account_not_found') {
@@ -62,6 +62,7 @@ const validationCodes = new Set([
   'invalid_email',
   'invalid_invite_role',
   'invalid_optional_string',
+  'invalid_published_state',
   'invalid_stay_details',
   'invalid_stop',
   'invalid_stop_changes',
@@ -87,6 +88,13 @@ const validationCodes = new Set([
   'trip_name_required',
   'trip_owner_required',
 ]);
+
+const errorCode = (error: unknown): string => {
+  if (error instanceof TripRepositoryError) return error.code;
+  if (!(error instanceof Error)) return 'unknown_error';
+  const coded = error as Error & { code?: unknown };
+  return typeof coded.code === 'string' ? coded.code : error.message;
+};
 
 export const requestJSON = async <T>(request: Request): Promise<T> => {
   try {

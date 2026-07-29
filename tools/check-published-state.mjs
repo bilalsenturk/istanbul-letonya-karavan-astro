@@ -15,16 +15,23 @@ import { UnauthorizedError } from '../src/accounts/session.ts';
 import { TripStorageConflictError } from '../src/accounts/tripRepository.ts';
 
 const migrationScanRoots = ['src', 'ios/Karavan', 'README.md', 'ios/README.md', 'docs/APP-OVERVIEW.md'];
-const retiredPublishingReferences = [
-  'LIVE_POST_SECRET',
-  'x-live-secret',
-  'livePostSecret',
-  '/api/location',
-  '/api/expenses',
-  '/api/plan',
-  '/api/edits',
-  '/api/journal',
+const retiredPublishingSymbols = ['LIVE_POST_SECRET', 'x-live-secret', 'livePostSecret'];
+const retiredPublishingRoutes = ['location', 'expenses', 'plan', 'edits', 'journal'];
+const retiredRouteReference =
+  /(?<![A-Za-z0-9_-])\/?api\/(?:location|expenses|plan|edits|journal)(?![A-Za-z0-9_-])/;
+const containsRetiredRouteReference = (source) => retiredRouteReference.test(source);
+
+const retiredRouteScanFixtures = [
+  { source: 'Config.siteURL?.appendingPathComponent("api/location")', expected: true },
+  { source: 'fetch("/api/expenses?scope=today")', expected: true },
+  { source: 'fetch("/api/location-history")', expected: false },
+  { source: 'fetch("/api/locations")', expected: false },
+  { source: 'const identifier = "myapi/location"', expected: false },
+  { source: 'fetch("/api/v2/trips/example/plan-edits")', expected: false },
 ];
+for (const { source, expected } of retiredRouteScanFixtures) {
+  assert.equal(containsRetiredRouteReference(source), expected, `retired route scanner must classify ${source}`);
+}
 
 const sourceFiles = (pathname) => {
   const absolutePath = resolve(process.cwd(), pathname);
@@ -38,12 +45,27 @@ const sourceFiles = (pathname) => {
 };
 
 const migrationFiles = migrationScanRoots.flatMap(sourceFiles);
-for (const forbidden of retiredPublishingReferences) {
+for (const forbidden of retiredPublishingSymbols) {
   const offenders = migrationFiles.filter(
     (pathname) =>
       pathname.includes(forbidden) || readFileSync(resolve(process.cwd(), pathname), 'utf8').includes(forbidden),
   );
   assert.deepEqual(offenders, [], `${forbidden} must not remain in current source or documentation`);
+}
+const retiredRouteOffenders = migrationFiles.filter((pathname) =>
+  containsRetiredRouteReference(readFileSync(resolve(process.cwd(), pathname), 'utf8')),
+);
+assert.deepEqual(
+  retiredRouteOffenders,
+  [],
+  'retired publishing routes must not remain in current source or documentation',
+);
+for (const route of retiredPublishingRoutes) {
+  assert.equal(
+    existsSync(resolve(process.cwd(), `src/pages/api/${route}.ts`)),
+    false,
+    `src/pages/api/${route}.ts must not be restored`,
+  );
 }
 
 const v2PublishedStateRoutes = [
@@ -782,7 +804,28 @@ try {
       params: { id: targetTripId },
     });
     assert.equal(malformed.status, 400, `${resource} rejects malformed JSON`);
+    assert.equal((await malformed.json()).error, 'invalid_json', `${resource} distinguishes malformed JSON`);
     assert.equal(malformed.headers.get('cache-control'), 'no-store', `${resource} error responses must not be cached`);
+
+    const invalidDomainPayload = await handlers.PUT({
+      request: new Request(`https://test.invalid/api/v2/trips/${targetTripId}/${resource}`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: 'null',
+      }),
+      params: { id: targetTripId },
+    });
+    assert.equal(invalidDomainPayload.status, 422, `${resource} rejects invalid domain data as unprocessable`);
+    assert.equal(
+      (await invalidDomainPayload.json()).error,
+      'invalid_published_state',
+      `${resource} identifies published-state validation failures`,
+    );
+    assert.equal(
+      invalidDomainPayload.headers.get('cache-control'),
+      'no-store',
+      `${resource} validation errors must not be cached`,
+    );
 
     const unauthenticated = route.createHandlers({
       authenticateRequest: async () => {
