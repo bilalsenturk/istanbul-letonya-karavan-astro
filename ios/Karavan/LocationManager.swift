@@ -103,6 +103,12 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                 startMonitoringStops(monitoredStops)
             }
         default:
+            var lifecycle = LocationAuthorizationLifecycle(
+                status: permissionStatus,
+                cachedLocation: location
+            )
+            lifecycle.transitionAuthorization(to: permissionStatus)
+            location = lifecycle.cachedLocation
             manager.allowsBackgroundLocationUpdates = false
             manager.stopUpdatingLocation()
             manager.stopMonitoringSignificantLocationChanges()
@@ -173,7 +179,16 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let last = locations.last else { return }
         Task { @MainActor in
-            self.location = last
+            var lifecycle = LocationAuthorizationLifecycle(
+                status: self.permissionStatus,
+                cachedLocation: self.location
+            )
+            lifecycle.cache(last)
+            guard let acceptedLocation = lifecycle.cachedLocation else {
+                self.location = nil
+                return
+            }
+            self.location = acceptedLocation
             let arrivedStopId = RouteSession.shared.activeStopId
             let arrivedTargetName = RouteSession.shared.activeTargetName
             if RouteSession.shared.finishIfArrived(location: last),

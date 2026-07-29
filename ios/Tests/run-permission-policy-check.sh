@@ -98,6 +98,23 @@ else
   fail "bildirim durumu aktif sahnede tazelenmiyor"
 fi
 
+if rg -q 'NotificationAuthorizationLifecycle' "$source_dir/Notifications.swift" \
+  && rg -q 'scheduleLifecycle\.register' "$source_dir/Notifications.swift" \
+  && rg -q 'scheduleLifecycle\.transitionAuthorization' "$source_dir/Notifications.swift" \
+  && rg -q 'submit\(retainedSchedules\)' "$source_dir/Notifications.swift"; then
+  pass "bildirim merkezi saf yetki yaşam döngüsünü kullanıyor"
+else
+  fail "bildirim merkezi saf yetki yaşam döngüsünü kullanmıyor"
+fi
+
+if rg -q 'LocationAuthorizationLifecycle' "$location_source" \
+  && rg -q 'lifecycle\.cache' "$location_source" \
+  && rg -q 'location = .*cachedLocation' "$location_source"; then
+  pass "konum yöneticisi yetki geçişinde önbellek kararını uyguluyor"
+else
+  fail "konum yöneticisi yetki geçişinde önbellek kararını uygulamıyor"
+fi
+
 if rg -q 'Kalan mesafe, hız ve sıradaki durağı konumuna göre hesapla\.' "$source_dir/Views/LiveLocationCard.swift" \
   && rg -q 'Arka planda varışları aç' "$source_dir/Views/LiveLocationCard.swift" \
   && rg -q 'Kalkış, varış ve hava uyarılarını zamanında al\.' "$dashboard_source"; then
