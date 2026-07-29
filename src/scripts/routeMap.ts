@@ -1,7 +1,14 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { routeMapInteractionOptions } from './liveSync';
-import { selectGeometryLegs, type Geometry, type Leg, type RouteMapMode, type Stop } from './routeMapData';
+import {
+  createTileReadinessController,
+  selectGeometryLegs,
+  type Geometry,
+  type Leg,
+  type RouteMapMode,
+  type Stop,
+} from './routeMapData';
 type LiveMapDetail = {
   position?: { lat: number; lng: number };
   lat?: number;
@@ -255,9 +262,12 @@ export function initRouteMap(container: HTMLElement): void {
   const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom: 18,
-  }).addTo(map);
-  tiles.on('load', () => wrapper.classList.add('ready'));
-  tiles.on('tileerror', () => wrapper.classList.remove('ready'));
+  });
+  const tileReadiness = createTileReadinessController((ready) => wrapper.classList.toggle('ready', ready));
+  tiles.on('loading', tileReadiness.loading);
+  tiles.on('tileerror', tileReadiness.tileError);
+  tiles.on('load', tileReadiness.load);
+  tiles.addTo(map);
 
   const from = String(container.dataset.from || '');
   const to = String(container.dataset.to || '');

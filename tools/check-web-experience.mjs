@@ -41,10 +41,41 @@ assert.deepEqual(
   ['Sofya', 'Novi Sad'],
   'day maps should show their exact origin and destination only',
 );
+assert.deepEqual(
+  routeMapData.selectRouteStops(
+    [
+      { name: 'İSTANBUL', lat: 41, lng: 29 },
+      { name: 'Sofya', lat: 42, lng: 23 },
+    ],
+    'istanbul',
+    'SOFYA',
+    'day',
+  ).map((stop) => stop.name),
+  ['İSTANBUL', 'Sofya'],
+  'Turkish dotted-I and base/case variants should select the same route stops',
+);
+assert.deepEqual(
+  routeMapData.selectRouteStops(
+    [
+      { name: 'IĞDIR', lat: 39, lng: 44 },
+      { name: 'Çeşme', lat: 38, lng: 27 },
+    ],
+    'ığdır',
+    'ÇEŞME',
+    'day',
+  ).map((stop) => stop.name),
+  ['IĞDIR', 'Çeşme'],
+  'Turkish dotless-I and diacritic case variants should match',
+);
 assert.equal(
   routeMapData.selectGeometryLegs(geometry, 'Sofya', 'Novi Sad', 'day').length,
   1,
   'day maps should draw one matching geometry leg',
+);
+assert.equal(
+  routeMapData.selectGeometryLegs(geometry, 'sofya', 'NOVİ SAD', 'day').length,
+  1,
+  'geometry leg matching should honor Turkish base/case variants',
 );
 assert.equal(
   routeMapData.selectGeometryLegs(geometry, 'İstanbul', 'Riga', 'journey').length,
@@ -52,13 +83,37 @@ assert.equal(
   'journey maps should retain every geometry leg',
 );
 
+const readinessTransitions = [];
+const tileReadiness = routeMapData.createTileReadinessController((ready) => {
+  readinessTransitions.push(ready);
+});
+tileReadiness.loading();
+tileReadiness.tileError();
+tileReadiness.load();
+assert.deepEqual(
+  readinessTransitions,
+  [false],
+  'an aggregate load must not hide the fallback after a tile failed in the same batch',
+);
+tileReadiness.loading();
+tileReadiness.load();
+assert.deepEqual(
+  readinessTransitions,
+  [false, true],
+  'a later error-free tile batch should recover the interactive map',
+);
+
 const priorWindow = globalThis.window;
 const priorIntersectionObserver = globalThis.IntersectionObserver;
 let observerOptions;
 let disconnected = false;
+let observerCallback;
 const observed = [];
+const initializedContainers = [];
+let importCount = 0;
 class LoaderIntersectionObserver {
-  constructor(_callback, options) {
+  constructor(callback, options) {
+    observerCallback = callback;
     observerOptions = options;
   }
 
@@ -82,9 +137,27 @@ try {
       assert.equal(selector, '.route-map');
       return [initializedMap, pendingMap];
     },
+  }, async () => {
+    importCount += 1;
+    return {
+      initRouteMap(container) {
+        initializedContainers.push(container);
+      },
+    };
   });
   assert.deepEqual(observerOptions, { rootMargin: '300px 0px', threshold: 0.01 });
   assert.deepEqual(observed, [pendingMap], 'already initialized maps must not be observed again');
+  assert.equal(importCount, 0, 'the map runtime must stay unloaded outside the near viewport');
+
+  observerCallback([{ target: pendingMap, isIntersecting: false }]);
+  assert.equal(importCount, 0, 'a non-intersecting entry must not load the map runtime');
+
+  observerCallback([{ target: pendingMap, isIntersecting: true }]);
+  observerCallback([{ target: pendingMap, isIntersecting: true }]);
+  await Promise.resolve();
+  assert.equal(importCount, 1, 'repeated intersecting entries must import the map runtime once');
+  assert.deepEqual(initializedContainers, [pendingMap], 'the visible map must initialize once');
+
   unregister();
   assert.equal(disconnected, true, 'unregister should release the observer');
 } finally {

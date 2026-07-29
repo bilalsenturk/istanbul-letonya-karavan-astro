@@ -1,9 +1,16 @@
-export function registerRouteMaps(root: ParentNode = document): () => void {
+export type RouteMapImporter = () => Promise<{ initRouteMap(container: HTMLElement): void }>;
+
+const importRouteMap: RouteMapImporter = () => import('./routeMap');
+
+export function registerRouteMaps(
+  root: ParentNode = document,
+  importer: RouteMapImporter = importRouteMap,
+): () => void {
   const containers = Array.from(root.querySelectorAll<HTMLElement>('.route-map'));
   const initialize = (container: HTMLElement) => {
     if (container.dataset.mapInitialized === 'true') return;
     container.dataset.mapInitialized = 'true';
-    import('./routeMap').then(({ initRouteMap }) => initRouteMap(container)).catch(() => {
+    importer().then(({ initRouteMap }) => initRouteMap(container)).catch(() => {
       container.dataset.mapInitialized = 'false';
     });
   };
