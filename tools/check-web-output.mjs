@@ -40,6 +40,13 @@ const pictureWidths = (picture) => [...new Set(
   tags(picture, 'source').flatMap((attributes) => [...(attributes.srcset ?? '').matchAll(/\s(\d+)w(?:,|$)/g)]
     .map((match) => Number(match[1]))),
 )].sort((left, right) => left - right);
+const assertJpegFallback = (picture, label) => {
+  const image = pictureImage(picture);
+  assert.match(image.src, /\.jpg$/, `${label} fallback src should be JPEG`);
+  const srcsetUrls = image.srcset.split(',').map((candidate) => candidate.trim().split(/\s+/)[0]);
+  assert.ok(srcsetUrls.length > 0, `${label} fallback should emit a srcset`);
+  assert.ok(srcsetUrls.every((url) => url.endsWith('.jpg')), `${label} fallback srcset should contain only JPEG files`);
+};
 const linkByText = (html, text) => {
   const match = [...html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)]
     .find(([, , body]) => body.replace(/<[^>]*>/g, '').trim() === text);
@@ -77,6 +84,7 @@ for (const width of [640, 960, 1440]) {
 }
 assert.equal(Math.max(...heroWidths), 1536, 'the hero should cap its responsive output at the source width');
 const heroImageAttributes = pictureImage(heroPicture);
+assertJpegFallback(heroPicture, 'hero');
 assert.deepEqual(
   {
     width: heroImageAttributes.width,
@@ -113,6 +121,7 @@ for (const [index, picture] of galleryPictures.entries()) {
   assert.deepEqual(pictureTypes(picture), ['image/avif', 'image/webp'], `${galleryAlts[index]} should offer AVIF before WebP`);
   assert.deepEqual(pictureWidths(picture), [420, 720, 1080], `${galleryAlts[index]} should emit the requested gallery widths`);
   assert.ok(Math.max(...pictureWidths(picture)) <= naturalGalleryWidths[index], `${galleryAlts[index]} should never upscale its source`);
+  assertJpegFallback(picture, galleryAlts[index]);
   assert.equal(pictureImage(picture).loading, 'lazy', `${galleryAlts[index]} should remain lazy-loaded`);
 }
 assert.doesNotMatch(

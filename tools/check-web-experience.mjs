@@ -531,6 +531,7 @@ assert.match(
 );
 assert.match(heroPicture, /widths=\{\[640,\s*960,\s*1440,\s*1920\]\}/, 'the hero should request its responsive widths');
 assert.match(heroPicture, /formats=\{\['avif',\s*'webp'\]\}/, 'the hero should offer AVIF and WebP');
+assert.match(heroPicture, /fallbackFormat="jpg"/, 'the hero should use a compact JPEG fallback');
 assert.match(heroPicture, /\bpriority\b/, 'the above-the-fold hero should be high priority');
 assert.match(heroPicture, /class="journey-hero__image"/, 'the hero should retain its visual class');
 assert.match(
@@ -552,6 +553,7 @@ assert.match(
 );
 assert.match(galleryPicture, /widths=\{\[420,\s*720,\s*1080\]\}/, 'gallery photos should request their responsive widths');
 assert.match(galleryPicture, /formats=\{\['avif',\s*'webp'\]\}/, 'gallery photos should offer AVIF and WebP');
+assert.match(galleryPicture, /fallbackFormat="jpg"/, 'gallery photos should use compact JPEG fallbacks');
 assert.match(galleryPicture, /loading="lazy"/, 'below-the-fold gallery photos should load lazily');
 assert.doesNotMatch(
   `${heroSource}\n${indexSource}`,
