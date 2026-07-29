@@ -478,7 +478,7 @@ function fakeStream(samples) {
   ].join('\n');
 }
 
-const loudSamples = Array.from({ length: SPEECH_SAMPLE_RATE }, (unused, index) =>
+const loudSamples = Array.from({ length: SPEECH_SAMPLE_RATE }, (_, index) =>
   Math.round(8000 * Math.sin(index / 12)),
 );
 const loudPcm = extractAudioFromStream(fakeStream(loudSamples));
@@ -506,7 +506,7 @@ try {
 }
 
 function toneSamples(count) {
-  return Array.from({ length: count }, (unused, index) => Math.round(8000 * Math.sin(index / 12)));
+  return Array.from({ length: count }, (_, index) => Math.round(8000 * Math.sin(index / 12)));
 }
 
 const rambleMs = 13_700;

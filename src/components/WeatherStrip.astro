@@ -107,7 +107,7 @@ const flags: Record<string, string> = {
         const t = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
         note.textContent = `Kaynak: Open-Meteo · ${t} itibarıyla güncel`;
       }
-    } catch (e) {
+    } catch {
       if (note) note.textContent = 'Hava durumu şu an alınamadı. Bağlantıyı kontrol edip tekrar dene.';
       cards.forEach((card) => {
         (card.querySelector('.wx__desc') as HTMLElement).textContent = 'veri yok';
