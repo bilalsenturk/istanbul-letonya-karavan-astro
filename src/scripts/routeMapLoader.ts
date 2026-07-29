@@ -2,10 +2,27 @@ export type RouteMapImporter = () => Promise<{ initRouteMap(container: HTMLEleme
 
 const importRouteMap: RouteMapImporter = () => import('./routeMap');
 
+export function registerRouteMapFallbacks(root: ParentNode = document): void {
+  const images = Array.from(root.querySelectorAll<HTMLImageElement>('.fallback-map-image'));
+
+  images.forEach((image) => {
+    const fallback = image.closest<HTMLElement>('.fallback-map');
+    const markFailed = () => fallback?.classList.add('fallback-map--failed');
+
+    if (image.dataset.fallbackBound !== 'true') {
+      image.dataset.fallbackBound = 'true';
+      image.addEventListener('error', markFailed, { once: true });
+    }
+
+    if (image.complete && image.naturalWidth === 0) markFailed();
+  });
+}
+
 export function registerRouteMaps(
   root: ParentNode = document,
   importer: RouteMapImporter = importRouteMap,
 ): () => void {
+  registerRouteMapFallbacks(root);
   const containers = Array.from(root.querySelectorAll<HTMLElement>('.route-map'));
   const initialize = (container: HTMLElement) => {
     if (container.dataset.mapInitialized === 'true') return;

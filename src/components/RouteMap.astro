@@ -66,6 +66,9 @@ const fallbackUrl = `https://staticmap.openstreetmap.de/staticmap.php?size=900x4
       </a>
     ) : null}
     <div class="fallback-map">
+      <p class="fallback-map-message" role="status">
+        Harita şu anda yüklenemedi. Rota ayrıntıları sayfada listeleniyor.
+      </p>
       <img
         class="fallback-map-image"
         loading={compact ? 'eager' : 'lazy'}
@@ -217,6 +220,8 @@ const fallbackUrl = `https://staticmap.openstreetmap.de/staticmap.php?size=900x4
   }
 
   .fallback-map-image {
+    position: relative;
+    z-index: 1;
     width: 100%;
     height: 100%;
     border: none;
@@ -226,6 +231,30 @@ const fallbackUrl = `https://staticmap.openstreetmap.de/staticmap.php?size=900x4
 
   .fallback-map {
     background: #091427;
+  }
+
+  .fallback-map-message {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 24px;
+    color: rgba(246, 246, 251, 0.82);
+    background: #091427;
+    font-size: 0.82rem;
+    font-weight: 650;
+    line-height: 1.5;
+    text-align: center;
+  }
+
+  .fallback-map--failed .fallback-map-image {
+    display: none;
+  }
+
+  .fallback-map--failed .fallback-map-message {
+    display: flex;
   }
 
   :global(.route-map-card--hero .leaflet-control-attribution) {

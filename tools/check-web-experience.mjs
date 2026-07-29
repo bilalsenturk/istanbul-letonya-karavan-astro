@@ -470,6 +470,7 @@ try {
   globalThis.IntersectionObserver = LoaderIntersectionObserver;
   const unregister = routeMapLoader.registerRouteMaps({
     querySelectorAll(selector) {
+      if (selector === '.fallback-map-image') return [];
       assert.equal(selector, '.route-map');
       return [initializedMap, pendingMap];
     },
@@ -501,6 +502,33 @@ try {
   globalThis.IntersectionObserver = priorIntersectionObserver;
 }
 
+{
+  let errorHandler;
+  const addedClasses = [];
+  const fallbackImage = {
+    dataset: {},
+    complete: false,
+    naturalWidth: 0,
+    addEventListener(type, handler, options) {
+      assert.equal(type, 'error');
+      assert.deepEqual(options, { once: true });
+      errorHandler = handler;
+    },
+    closest(selector) {
+      assert.equal(selector, '.fallback-map');
+      return { classList: { add: (value) => addedClasses.push(value) } };
+    },
+  };
+  routeMapLoader.registerRouteMapFallbacks({
+    querySelectorAll(selector) {
+      assert.equal(selector, '.fallback-map-image');
+      return [fallbackImage];
+    },
+  });
+  errorHandler();
+  assert.deepEqual(addedClasses, ['fallback-map--failed'], 'a failed static map should reveal its text fallback');
+}
+
 assert.match(loaderSource, /rootMargin:\s*['"]300px 0px['"]/);
 assert.match(loaderSource, /import\(['"]\.\/routeMap['"]\)/);
 assert.doesNotMatch(routeMapSource, /import\s*\{\s*initRouteMap/);
@@ -512,6 +540,16 @@ assert.match(
   routeMapRuntimeSource,
   /\.leaflet-control-zoom a,[\s\S]*?width:\s*44px\s*!important;[\s\S]*?height:\s*44px\s*!important;/,
   'Leaflet zoom controls should expose 44px touch targets',
+);
+assert.match(
+  routeMapSource,
+  /class="fallback-map-message"/,
+  'map fallbacks should explain a failed static image instead of showing a broken image icon',
+);
+assert.match(
+  loaderSource,
+  /fallback-map-image[\s\S]*?fallback-map--failed/,
+  'the map loader should expose static fallback failures to the component',
 );
 assert.match(indexSource, /slug:\s*day\.slug/, 'each route timeline leg should link to its day plan');
 assert.match(indexSource, /Gün planını aç/, 'each route timeline leg should expose a day-plan action');
