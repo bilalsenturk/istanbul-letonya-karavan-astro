@@ -9,30 +9,31 @@ set -euo pipefail
 
 KEY_ID="${ASC_KEY_ID:-8UAZ5US552}"
 ISSUER="${ASC_ISSUER_ID:-851d9c47-e440-45ca-b431-67aa0fc12079}"
-IOS_DIR="$(cd "$(dirname "$0")/../ios" && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+IOS_DIR="$ROOT_DIR/ios"
+MANIFEST="$ROOT_DIR/public/kuzey-version.json"
+VERSION_CHECK="$ROOT_DIR/tools/check-ios-release-version.mjs"
 ARCHIVE="/tmp/Kuzey-tf.xcarchive"
 EXPORT_DIR="/tmp/Kuzey-tf-export"
+EXPORT_PLIST="/tmp/kuzey-tf-export.plist"
 
 cd "$IOS_DIR"
 
 # Her yüklemede build numarası artmalı — Apple aynı numarayı ikinci kez kabul etmez.
+node "$VERSION_CHECK"
 CURRENT=$(grep -m1 "CURRENT_PROJECT_VERSION:" project.yml | tr -dc '0-9')
 NEXT=$((CURRENT + 1))
 echo "▸ build numarası: $CURRENT → $NEXT"
-sed -i '' "s/CURRENT_PROJECT_VERSION: \"$CURRENT\"/CURRENT_PROJECT_VERSION: \"$NEXT\"/g" project.yml
-
-echo "▸ proje üretiliyor"
-xcodegen generate >/dev/null
 
 echo "▸ arşivleniyor (Release)"
 rm -rf "$ARCHIVE" "$EXPORT_DIR"
 xcodebuild -project Kuzey.xcodeproj -scheme Kuzey \
-  -destination 'generic/platform=iOS' -configuration Release \
-  -allowProvisioningUpdates archive -archivePath "$ARCHIVE" \
-  | grep -E "error:|ARCHIVE" || true
+  -destination 'generic/platform=iOS' \
+  -configuration Release CURRENT_PROJECT_VERSION="$NEXT" -allowProvisioningUpdates \
+  archive -archivePath "$ARCHIVE" 2>&1 | tee /tmp/kuzey-archive.log
 
 echo "▸ dışa aktarılıyor"
-cat > /tmp/kuzey-tf-export.plist <<'PLIST'
+cat > "$EXPORT_PLIST" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
@@ -44,11 +45,39 @@ cat > /tmp/kuzey-tf-export.plist <<'PLIST'
 </dict></plist>
 PLIST
 xcodebuild -exportArchive -archivePath "$ARCHIVE" -exportPath "$EXPORT_DIR" \
-  -exportOptionsPlist /tmp/kuzey-tf-export.plist -allowProvisioningUpdates \
-  | grep -E "error|EXPORT" || true
+  -exportOptionsPlist "$EXPORT_PLIST" -allowProvisioningUpdates 2>&1 | tee /tmp/kuzey-export.log
 
 echo "▸ Apple'a yükleniyor"
-xcrun altool --upload-app -f "$EXPORT_DIR/Kuzey.ipa" -t ios \
-  --apiKey "$KEY_ID" --apiIssuer "$ISSUER" | tail -5
+xcrun altool --upload-app -f "$EXPORT_DIR/Kuzey.ipa" -t ios --apiKey "$KEY_ID" --apiIssuer "$ISSUER"
+
+# Apple yüklemeyi kabul etmeden kaynak sürümlerine dokunma. Böylece arşiv,
+# dışa aktarma veya yükleme hatasında repo hâlâ yeniden denenebilir build'de kalır.
+node --input-type=module - "$IOS_DIR/project.yml" "$MANIFEST" "$CURRENT" "$NEXT" <<'NODE'
+import { readFileSync, writeFileSync } from "node:fs";
+
+const [, , projectPath, manifestPath, current, next] = process.argv;
+const project = readFileSync(projectPath, "utf8");
+const matches = [...project.matchAll(/^\s*CURRENT_PROJECT_VERSION:\s*"?(\d+)"?\s*$/gm)];
+if (matches.length !== 2 || matches.some((match) => match[1] !== current)) {
+  throw new Error("project.yml build değerleri yükleme sonrasında beklenen kaynak sürümünde değil");
+}
+
+const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+if (String(manifest.latestBuild) !== current) {
+  throw new Error("manifest build değeri yükleme sonrasında beklenen kaynak sürümünde değil");
+}
+
+const updatedProject = project.replace(
+  /^(\s*CURRENT_PROJECT_VERSION:\s*)"?\d+"?(\s*)$/gm,
+  `$1"${next}"$2`,
+);
+const updatedManifest = { ...manifest, latestBuild: Number(next) };
+writeFileSync(projectPath, updatedProject);
+writeFileSync(manifestPath, `${JSON.stringify(updatedManifest, null, 2)}\n`);
+NODE
+
+echo "▸ kaynak sürümü kaydediliyor"
+xcodegen generate >/dev/null
+node "$VERSION_CHECK"
 
 echo "✓ yüklendi (build $NEXT). Apple ~15 dk işler, sonra TestFlight'ta görünür."
