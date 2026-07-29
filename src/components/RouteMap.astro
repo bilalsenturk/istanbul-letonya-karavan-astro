@@ -11,9 +11,18 @@ interface Props {
   activeFrom: string;
   activeTo: string;
   height?: string;
+  variant?: 'default' | 'hero';
 }
 
-const { title, routeStops, activeFrom, activeTo, height = '360px' } = Astro.props;
+const {
+  title,
+  routeStops,
+  activeFrom,
+  activeTo,
+  height = '360px',
+  variant = 'default',
+} = Astro.props;
+const compact = variant === 'hero';
 const mapId = `route-map-${Math.random().toString(36).slice(2, 10)}`;
 const validStops = routeStops.filter((stop) => Number.isFinite(stop.lat) && Number.isFinite(stop.lng));
 const fallbackCenter = (() => {
@@ -26,8 +35,8 @@ const fallbackMarkers = validStops.map((stop) => `&markers=${stop.lat.toFixed(4)
 const fallbackUrl = `https://staticmap.openstreetmap.de/staticmap.php?size=900x420&zoom=6&center=${encodeURIComponent(fallbackCenter)}&maptype=mapnik${fallbackMarkers}`;
 ---
 
-<section class="card" aria-label={title}>
-  <h3>{title}</h3>
+<section class:list={["card", "route-map-card", compact && "route-map-card--hero"]} aria-label={title}>
+  <h3 class:list={[compact && "route-map-heading--hidden"]}>{title}</h3>
   <div class:list={["map-frame", "route-map-container"]} style={`height:${height}; position:relative;`}>
     <div
       id={mapId}
@@ -35,13 +44,22 @@ const fallbackUrl = `https://staticmap.openstreetmap.de/staticmap.php?size=900x4
       data-stops={JSON.stringify(routeStops)}
       data-from={activeFrom}
       data-to={activeTo}
+      data-compact={compact ? 'true' : 'false'}
       style={`height:${height}; min-height:${height};`}
     ></div>
     <div class="route-map-live-status" data-route-live-status>Konum bekleniyor</div>
+    {compact ? (
+      <a class="route-map-open" href="#harita" aria-label="Tam yol haritasını aç">
+        <span>Haritayı aç</span>
+        <svg viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M4 10h11m-4-4 4 4-4 4" />
+        </svg>
+      </a>
+    ) : null}
     <div class="fallback-map">
       <img
         class="fallback-map-image"
-        loading="lazy"
+        loading={compact ? 'eager' : 'lazy'}
         src={fallbackUrl}
         alt="Yol haritası arka plan"
       />
@@ -50,6 +68,32 @@ const fallbackUrl = `https://staticmap.openstreetmap.de/staticmap.php?size=900x4
 </section>
 
 <style>
+  .route-map-card {
+    position: relative;
+  }
+
+  .route-map-card--hero {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    background: #101820;
+    box-shadow: 0 24px 58px -34px rgba(0, 0, 0, 0.9);
+  }
+
+  .route-map-heading--hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   .route-map {
     position: absolute;
     inset: 0;
@@ -58,6 +102,12 @@ const fallbackUrl = `https://staticmap.openstreetmap.de/staticmap.php?size=900x4
 
   .route-map-container {
     min-height: 320px;
+  }
+
+  .route-map-card--hero .route-map-container {
+    min-height: 180px;
+    margin: 0;
+    border-radius: 0;
   }
 
   .route-map-live-status {
@@ -81,6 +131,52 @@ const fallbackUrl = `https://staticmap.openstreetmap.de/staticmap.php?size=900x4
 
   .route-map-container.has-live .route-map-live-status {
     border-color: rgba(56, 224, 138, 0.42);
+  }
+
+  .route-map-card--hero .route-map-live-status {
+    top: 12px;
+    left: 12px;
+    max-width: calc(100% - 136px);
+    padding: 7px 10px;
+    border-color: rgba(255, 155, 80, 0.32);
+    border-radius: 9px;
+    background: rgba(6, 11, 16, 0.82);
+    font-size: 0.7rem;
+  }
+
+  .route-map-open {
+    position: absolute;
+    z-index: 4;
+    right: 10px;
+    bottom: 10px;
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    gap: 8px;
+    padding: 0 13px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 10px;
+    color: #fff;
+    background: rgba(6, 11, 16, 0.86);
+    font-size: 0.78rem;
+    font-weight: 750;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .route-map-open:hover {
+    color: #fff;
+    border-color: rgba(255, 155, 80, 0.7);
+  }
+
+  .route-map-open svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   .route-map-container:not(.ready) .route-map {
@@ -116,6 +212,10 @@ const fallbackUrl = `https://staticmap.openstreetmap.de/staticmap.php?size=900x4
 
   .fallback-map {
     background: #091427;
+  }
+
+  :global(.route-map-card--hero .leaflet-control-attribution) {
+    display: none;
   }
 </style>
 

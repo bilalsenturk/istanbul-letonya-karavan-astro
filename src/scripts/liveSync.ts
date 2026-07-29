@@ -73,6 +73,16 @@ export interface HeroLiveLabels {
   next: string;
 }
 
+export interface RouteMapInteractionOptions {
+  zoomControl: false;
+  scrollWheelZoom: false;
+  dragging: boolean;
+  touchZoom: boolean;
+  doubleClickZoom: boolean;
+  boxZoom: boolean;
+  keyboard: boolean;
+}
+
 const asNumber = (value: unknown): number | null => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null;
   return value;
@@ -131,6 +141,18 @@ export function heroLiveLabels(record: FriendlyLocationRecord, stops: PlannedSto
     : 'Kalkış hazırlığı';
 
   return { place, state, current, next };
+}
+
+export function routeMapInteractionOptions(compact: boolean): RouteMapInteractionOptions {
+  return {
+    zoomControl: false,
+    scrollWheelZoom: false,
+    dragging: !compact,
+    touchZoom: !compact,
+    doubleClickZoom: !compact,
+    boxZoom: !compact,
+    keyboard: !compact,
+  };
 }
 
 export function normalizeLiveRecord(raw: RawLiveRecord): NormalizedLiveRecord | null {

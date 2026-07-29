@@ -129,6 +129,33 @@ assert.deepEqual(
   },
   "moving hero labels should describe the current place and active direction",
 );
+assert.equal(typeof liveSync.routeMapInteractionOptions, "function", "route map mode should exist");
+assert.deepEqual(
+  liveSync.routeMapInteractionOptions(true),
+  {
+    zoomControl: false,
+    scrollWheelZoom: false,
+    dragging: false,
+    touchZoom: false,
+    doubleClickZoom: false,
+    boxZoom: false,
+    keyboard: false,
+  },
+  "compact route maps should not capture mobile gestures",
+);
+assert.deepEqual(
+  liveSync.routeMapInteractionOptions(false),
+  {
+    zoomControl: false,
+    scrollWheelZoom: false,
+    dragging: true,
+    touchZoom: true,
+    doubleClickZoom: true,
+    boxZoom: true,
+    keyboard: true,
+  },
+  "full route maps should keep their existing interactions",
+);
 
 const routeMapSource = fs.readFileSync(path.join(root, "src/scripts/routeMap.ts"), "utf8");
 assert.match(routeMapSource, /kuzey:live-location/, "map should listen to live app state");
