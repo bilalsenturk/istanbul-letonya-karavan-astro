@@ -9,6 +9,7 @@ import {
   mutateTrip,
   TripStorageConflictError,
 } from '../src/accounts/tripRepository.ts';
+import * as tripRepository from '../src/accounts/tripRepository.ts';
 
 class MemoryTripEventStorage {
   events = new Map();
@@ -246,6 +247,127 @@ await assert.rejects(
     payload: { stopId: 'finish', changes: { note: 'Bayat yazma' } },
   }),
   (error) => error?.code === 'revision_conflict' && error?.current?.revision === routeReplaced.revision,
+);
+
+const assertMutationRejectedWithoutPersistence = async (operation, code) => {
+  const before = storage.totalEvents();
+  await assert.rejects(operation(), (error) => error?.code === code);
+  assert.equal(storage.totalEvents(), before, `${code} must not persist an event`);
+};
+
+await assertMutationRejectedWithoutPersistence(
+  () => mutateTrip(storage, owner, {
+    tripId: created.id,
+    baseRevision: routeReplaced.revision,
+    type: 'stopUpdated',
+    payload: { stopId: 'finish', changes: { lat: 120 } },
+  }),
+  'invalid_stop_coordinates',
+);
+
+await assertMutationRejectedWithoutPersistence(
+  () => mutateTrip(storage, owner, {
+    tripId: created.id,
+    baseRevision: routeReplaced.revision,
+    type: 'stopsReordered',
+    payload: { stopIds: ['finish', 'finish', 'third'] },
+  }),
+  'invalid_stop_order',
+);
+
+await assertMutationRejectedWithoutPersistence(
+  () => inviteMember(storage, owner, {
+    tripId: created.id,
+    baseRevision: routeReplaced.revision,
+    email: 'member@example.com',
+    role: 'member',
+  }),
+  'duplicate_invite',
+);
+
+await assertMutationRejectedWithoutPersistence(
+  () => mutateTrip(storage, owner, {
+    tripId: created.id,
+    baseRevision: routeReplaced.revision,
+    type: 'memberRoleChanged',
+    payload: { userId: owner.userId, role: 'member' },
+  }),
+  'last_owner_required',
+);
+
+const mutationRace = await Promise.allSettled([
+  mutateTrip(storage, owner, {
+    tripId: created.id,
+    baseRevision: routeReplaced.revision,
+    type: 'tripUpdated',
+    payload: { name: 'Kazanan A' },
+  }),
+  mutateTrip(storage, owner, {
+    tripId: created.id,
+    baseRevision: routeReplaced.revision,
+    type: 'tripUpdated',
+    payload: { name: 'Kazanan B' },
+  }),
+]);
+assert.equal(mutationRace.filter((result) => result.status === 'fulfilled').length, 1);
+assert.equal(mutationRace.filter((result) => result.status === 'rejected').length, 1);
+const winningMutation = mutationRace.find((result) => result.status === 'fulfilled').value;
+const rejectedMutation = mutationRace.find((result) => result.status === 'rejected').reason;
+assert.equal(rejectedMutation?.code, 'revision_conflict');
+assert.equal(rejectedMutation?.current?.revision, winningMutation.revision);
+assert.equal(rejectedMutation?.current?.name, winningMutation.name);
+
+const inaccessible = await createTrip(storage, { userId: 'other-owner', globalRole: 'user' }, {
+  name: 'Özel Seyahat', stops: [],
+});
+storage.events.set('corrupt-trip', [{
+  id: 'corrupt-event',
+  tripId: 'corrupt-trip',
+  revision: 1,
+  occurredAt: '2026-07-29T12:00:00.000Z',
+  actorUserId: owner.userId,
+  type: 'tripUpdated',
+  payload: { name: 'Geçersiz geçmiş' },
+}]);
+const listedTrips = await tripRepository.listTripsForUser(storage, owner);
+assert.deepEqual(listedTrips.map((trip) => trip.id), [created.id]);
+await assert.rejects(
+  tripRepository.getTripForUser(storage, owner, 'corrupt-trip'),
+  (error) => error?.code === 'trip_corrupt',
+);
+assert.ok(inaccessible.id, 'the unauthorized trip remains present but hidden from this actor');
+
+assert.equal(
+  (await tripRepository.getTripForAction(storage, owner, created.id, 'editTrip')).id,
+  created.id,
+);
+await assert.rejects(
+  tripRepository.getTripForAction(storage, member, created.id, 'manageMembers'),
+  (error) => error?.code === 'forbidden',
+);
+
+const bootstrapStorage = new MemoryTripEventStorage();
+const bootstrapVite = await createServer({
+  root: process.cwd(),
+  configFile: false,
+  appType: 'custom',
+  logLevel: 'silent',
+  server: { middlewareMode: true },
+});
+try {
+  const { ensureKuzeyTrip } = await bootstrapVite.ssrLoadModule('/src/accounts/bootstrap.ts');
+  await ensureKuzeyTrip(bootstrapStorage);
+} finally {
+  await bootstrapVite.close();
+}
+const kuzeyEvents = await bootstrapStorage.list('kuzey-2026');
+assert.equal(kuzeyEvents[0].type, 'tripCreated');
+assert.ok(Array.isArray(kuzeyEvents[0].payload.stops));
+assert.ok(kuzeyEvents[0].payload.stops.length > 0);
+assert.equal((await tripRepository.getPublicTrip(bootstrapStorage, 'kuzey-2026')).id, 'kuzey-2026');
+await assert.rejects(
+  tripRepository.getPublicTrip(storage, created.id),
+  (error) => error?.code === 'trip_not_found',
 );
 
 const stranger = { userId: 'stranger', globalRole: 'user' };

@@ -346,6 +346,11 @@ const stopChanges = (value: unknown): Partial<RouteStopRecord> => {
   if (raw.lat !== undefined) result.lat = finiteNumber(raw.lat, 'invalid_stop_coordinates');
   if (raw.lng !== undefined) result.lng = finiteNumber(raw.lng, 'invalid_stop_coordinates');
   if (raw.order !== undefined) result.order = finiteNumber(raw.order, 'invalid_stop_order');
+  if ((result.lat !== undefined && Math.abs(result.lat) > 90)
+    || (result.lng !== undefined && Math.abs(result.lng) > 180)
+    || (result.order !== undefined && result.order < 0)) {
+    throw new TripDomainError('invalid_stop_coordinates');
+  }
   if (raw.source !== undefined) result.source = routeStopSource(raw.source);
   return result;
 };

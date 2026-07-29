@@ -3,7 +3,7 @@ import { tripData } from '../data/tripData.ts';
 import type { AccountRecord } from './accountRepository.ts';
 import type { ArrivalTargetRecord, RouteStopRecord, TripEvent } from './domain.ts';
 import { foldTripEvents } from './domain.ts';
-import type { TripEventStorage } from './tripRepository.ts';
+import { TripRepositoryError, TripStorageConflictError, type TripEventStorage } from './tripRepository.ts';
 
 const kuzeyTripId = 'kuzey-2026';
 const seedAt = '2026-07-26T00:00:00.000Z';
@@ -14,7 +14,7 @@ export const ensureKuzeyTrip = async (storage: TripEventStorage): Promise<void> 
   if (existing.length > 0) {
     if (existing.some((event) => event.id === routeRevisionId)) return;
     const trip = foldTripEvents(existing);
-    await storage.append({
+    const candidate = {
       id: routeRevisionId,
       tripId: kuzeyTripId,
       revision: trip.revision + 1,
@@ -22,24 +22,22 @@ export const ensureKuzeyTrip = async (storage: TripEventStorage): Promise<void> 
       actorUserId: 'system',
       type: 'stopsReplaced',
       payload: { stops: kuzeyStops() },
-    }, trip.revision);
+    } satisfies TripEvent;
+    await appendCandidate(storage, existing, trip.revision, candidate);
     return;
   }
-  let revision = 1;
-  await storage.append(seedEvent(revision, 'tripCreated', {
+  const created = seedEvent(1, 'tripCreated', {
     name: "Leyla'nın Kuzey Yolculuğu",
     kind: 'kuzey2026',
     ownerUserId: 'system-kuzey-owner',
-  }), 0);
-  for (const stop of kuzeyStops()) {
-    revision += 1;
-    await storage.append(seedEvent(revision, 'stopAdded', {
-      stop,
-    }), revision - 1);
-  }
+    stops: kuzeyStops(),
+  });
+  await appendCandidate(storage, [], 0, created);
+  const events = [created];
   for (const email of ['senturk.leyla@icloud.com', 'szngk.13@icloud.com']) {
-    revision += 1;
-    await storage.append(seedEvent(revision, 'memberInvited', { email, role: 'member' }), revision - 1);
+    const candidate = seedEvent(events.length + 1, 'memberInvited', { email, role: 'member' });
+    await appendCandidate(storage, events, events.length, candidate);
+    events.push(candidate);
   }
 };
 
@@ -82,22 +80,41 @@ export const claimPendingInvites = async (
   for (const tripId of await storage.listTripIds()) {
     const events = await storage.list(tripId);
     if (events.length === 0) continue;
-    const trip = foldTripEvents(events);
+    let trip = foldTripEvents(events);
     const invite = trip.invites.find((item) => item.email === account.email);
     if (!invite) continue;
-    let revision = trip.revision;
     if (!trip.members.some((member) => member.userId === account.id)) {
-      revision += 1;
-      await storage.append(accountEvent(trip.id, account.id, revision, 'memberAdded', {
+      const candidate = accountEvent(trip.id, account.id, trip.revision + 1, 'memberAdded', {
         userId: account.id,
         role: invite.role,
-      }), revision - 1);
+      });
+      trip = await appendCandidate(storage, events, trip.revision, candidate);
+      events.push(candidate);
     }
-    revision += 1;
-    await storage.append(accountEvent(trip.id, account.id, revision, 'inviteRemoved', {
+    const candidate = accountEvent(trip.id, account.id, trip.revision + 1, 'inviteRemoved', {
       email: account.email,
-    }), revision - 1);
+    });
+    await appendCandidate(storage, events, trip.revision, candidate);
   }
+};
+
+const appendCandidate = async (
+  storage: TripEventStorage,
+  events: TripEvent[],
+  expectedRevision: number,
+  candidate: TripEvent,
+): Promise<ReturnType<typeof foldTripEvents>> => {
+  const trip = foldTripEvents([...events, candidate]);
+  try {
+    await storage.append(candidate, expectedRevision);
+  } catch (error) {
+    if (error instanceof TripStorageConflictError) {
+      const currentEvents = await storage.list(candidate.tripId);
+      throw new TripRepositoryError('revision_conflict', 'revision_conflict', foldTripEvents(currentEvents));
+    }
+    throw error;
+  }
+  return trip;
 };
 
 const seedEvent = (revision: number, type: TripEvent['type'], payload: Record<string, unknown>): TripEvent => ({
