@@ -1,4 +1,6 @@
 ---
+import { selectRouteStops, type RouteMapMode } from '../scripts/routeMapData';
+
 interface Stop {
   name: string;
   lat: number;
@@ -10,6 +12,8 @@ interface Props {
   routeStops: Stop[];
   activeFrom: string;
   activeTo: string;
+  mode: RouteMapMode;
+  live: boolean;
   height?: string;
   variant?: 'default' | 'hero';
 }
@@ -19,12 +23,15 @@ const {
   routeStops,
   activeFrom,
   activeTo,
+  mode,
+  live,
   height = '360px',
   variant = 'default',
 } = Astro.props;
 const compact = variant === 'hero';
+const selectedStops = selectRouteStops(routeStops, activeFrom, activeTo, mode);
 const mapId = `route-map-${Math.random().toString(36).slice(2, 10)}`;
-const validStops = routeStops.filter((stop) => Number.isFinite(stop.lat) && Number.isFinite(stop.lng));
+const validStops = selectedStops.filter((stop) => Number.isFinite(stop.lat) && Number.isFinite(stop.lng));
 const fallbackCenter = (() => {
   if (!validStops.length) return '55.0000,24.0000';
   const avgLat = validStops.reduce((total, stop) => total + stop.lat, 0) / validStops.length;
@@ -41,13 +48,15 @@ const fallbackUrl = `https://staticmap.openstreetmap.de/staticmap.php?size=900x4
     <div
       id={mapId}
       class="route-map"
-      data-stops={JSON.stringify(routeStops)}
+      data-stops={JSON.stringify(selectedStops)}
       data-from={activeFrom}
       data-to={activeTo}
+      data-mode={mode}
+      data-live={live ? 'true' : 'false'}
       data-compact={compact ? 'true' : 'false'}
       style={`height:${height}; min-height:${height};`}
     ></div>
-    <div class="route-map-live-status" data-route-live-status>Konum bekleniyor</div>
+    {live ? <div class="route-map-live-status" data-route-live-status>Konum bekleniyor</div> : null}
     {compact ? (
       <a class="route-map-open" href="#harita" aria-label="Tam yol haritasını aç">
         <span>Haritayı aç</span>
@@ -225,11 +234,7 @@ const fallbackUrl = `https://staticmap.openstreetmap.de/staticmap.php?size=900x4
 </style>
 
 <script>
-  import { initRouteMap } from '../scripts/routeMap';
+  import { registerRouteMaps } from '../scripts/routeMapLoader';
 
-  document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.route-map').forEach((el) => {
-      if (el.id) initRouteMap(el.id);
-    });
-  });
+  registerRouteMaps();
 </script>

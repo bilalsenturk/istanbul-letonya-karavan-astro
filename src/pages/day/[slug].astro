@@ -4,6 +4,7 @@ import RouteMap from '../../components/RouteMap.astro';
 import RouteStepper from '../../components/RouteStepper.astro';
 import CameraPlayer from '../../components/CameraPlayer.astro';
 import { tripData } from '../../data/tripData';
+import { selectRouteStops } from '../../scripts/routeMapData';
 
 export function getStaticPaths() {
   return tripData.days.map((day) => ({
@@ -18,7 +19,7 @@ if (!day) {
   return Astro.redirect('/');
 }
 
-const mapStops = tripData.stops.map((stop) => ({ name: stop.name, lat: stop.lat, lng: stop.lng }));
+const mapStops = selectRouteStops(tripData.stops, day.origin, day.destination, 'day');
 const stepperStops = tripData.stops.map((stop) => ({ name: stop.name, country: stop.country }));
 const dayIndex = tripData.days.findIndex((row) => row.slug === slug);
 const previous = dayIndex - 1;
@@ -96,6 +97,8 @@ const activeIndex = (() => {
         routeStops={mapStops}
         activeFrom={day.origin}
         activeTo={day.destination}
+        mode="day"
+        live={false}
         height="420px"
       />
       <div class="two-col" style="margin-top:10px;">

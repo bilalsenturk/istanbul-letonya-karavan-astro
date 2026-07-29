@@ -6,17 +6,97 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const liveSync = await import(pathToFileURL(path.join(root, 'src/scripts/liveSync.ts')).href);
+const routeMapData = await import(pathToFileURL(path.join(root, 'src/scripts/routeMapData.ts')).href);
+const routeMapLoader = await import(pathToFileURL(path.join(root, 'src/scripts/routeMapLoader.ts')).href);
 
 const sourceFiles = [
   'src/components/JourneyHero.astro',
   'src/components/RouteMap.astro',
   'src/layouts/MainLayout.astro',
   'src/pages/index.astro',
+  'src/pages/day/[slug].astro',
+  'src/scripts/routeMapLoader.ts',
   'public/sw.js',
 ];
-const [heroSource, routeMapSource, layoutSource, indexSource, workerSource] = await Promise.all(
+const [heroSource, routeMapSource, layoutSource, indexSource, daySource, loaderSource, workerSource] = await Promise.all(
   sourceFiles.map((sourceFile) => readFile(path.join(root, sourceFile), 'utf8')),
 );
+
+const stops = [
+  { name: 'İstanbul', lat: 41, lng: 29 },
+  { name: 'Sofya', lat: 42, lng: 23 },
+  { name: 'Novi Sad', lat: 45, lng: 20 },
+  { name: 'Riga', lat: 57, lng: 24 },
+];
+const geometry = {
+  legs: [
+    { from: 'İstanbul', to: 'Sofya', distance: 1, duration: 1, coords: [[41, 29], [42, 23]] },
+    { from: 'Sofya', to: 'Novi Sad', distance: 1, duration: 1, coords: [[42, 23], [45, 20]] },
+    { from: 'Novi Sad', to: 'Riga', distance: 1, duration: 1, coords: [[45, 20], [57, 24]] },
+  ],
+};
+
+assert.deepEqual(
+  routeMapData.selectRouteStops(stops, 'Sofya', 'Novi Sad', 'day').map((stop) => stop.name),
+  ['Sofya', 'Novi Sad'],
+  'day maps should show their exact origin and destination only',
+);
+assert.equal(
+  routeMapData.selectGeometryLegs(geometry, 'Sofya', 'Novi Sad', 'day').length,
+  1,
+  'day maps should draw one matching geometry leg',
+);
+assert.equal(
+  routeMapData.selectGeometryLegs(geometry, 'İstanbul', 'Riga', 'journey').length,
+  geometry.legs.length,
+  'journey maps should retain every geometry leg',
+);
+
+const priorWindow = globalThis.window;
+const priorIntersectionObserver = globalThis.IntersectionObserver;
+let observerOptions;
+let disconnected = false;
+const observed = [];
+class LoaderIntersectionObserver {
+  constructor(_callback, options) {
+    observerOptions = options;
+  }
+
+  observe(target) {
+    observed.push(target);
+  }
+
+  unobserve() {}
+
+  disconnect() {
+    disconnected = true;
+  }
+}
+const initializedMap = { dataset: { mapInitialized: 'true' } };
+const pendingMap = { dataset: {} };
+try {
+  globalThis.window = { IntersectionObserver: LoaderIntersectionObserver };
+  globalThis.IntersectionObserver = LoaderIntersectionObserver;
+  const unregister = routeMapLoader.registerRouteMaps({
+    querySelectorAll(selector) {
+      assert.equal(selector, '.route-map');
+      return [initializedMap, pendingMap];
+    },
+  });
+  assert.deepEqual(observerOptions, { rootMargin: '300px 0px', threshold: 0.01 });
+  assert.deepEqual(observed, [pendingMap], 'already initialized maps must not be observed again');
+  unregister();
+  assert.equal(disconnected, true, 'unregister should release the observer');
+} finally {
+  globalThis.window = priorWindow;
+  globalThis.IntersectionObserver = priorIntersectionObserver;
+}
+
+assert.match(loaderSource, /rootMargin:\s*['"]300px 0px['"]/);
+assert.match(loaderSource, /import\(['"]\.\/routeMap['"]\)/);
+assert.doesNotMatch(routeMapSource, /import\s*\{\s*initRouteMap/);
+assert.match(indexSource, /mode="journey"\s+live=\{true\}/, 'homepage maps should be live journey maps');
+assert.match(daySource, /mode="day"\s+live=\{false\}/, 'day maps should be static day maps');
 
 function createWorkerHarness({ fetchImpl, matchImpl, openImpl, putImpl } = {}) {
   const handlers = new Map();
