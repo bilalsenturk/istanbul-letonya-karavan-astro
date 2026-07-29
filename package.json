@@ -16,6 +16,7 @@
     "check:account-auth": "node --experimental-strip-types tools/check-account-auth.mjs",
     "check:trip-api": "node --experimental-strip-types tools/check-trip-api.mjs",
     "check:web-sync": "node --experimental-strip-types tools/check-web-app-sync.mjs",
+    "check:web-experience": "node --experimental-strip-types tools/check-web-experience.mjs",
     "check:travel-content": "node tools/check-travel-content.mjs",
     "check": "astro check",
     "lint": "eslint .",
