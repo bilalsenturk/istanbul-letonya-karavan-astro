@@ -136,6 +136,23 @@ struct BearerSessionCheck {
         let coordinator = BearerSessionCoordinator(session: URLSession(configuration: configuration), tokenStore: store)
 
         print("\n=== Bearer oturumu ===")
+        let accountAPIURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .appendingPathComponent("../Karavan/Accounts/AccountAPI.swift")
+            .standardized
+        let accountAPISource = try String(contentsOf: accountAPIURL, encoding: .utf8)
+        let protectedOperations = [
+            "func me(", "func updateTravelProfile(", "func logout(", "func createTrip(",
+            "func invite(", "func updateStop(", "func addStop(", "func updateTrip(",
+            "func replaceStops("
+        ]
+        let protectedDeclarationsCarryTokens = protectedOperations.contains { operation in
+            guard let start = accountAPISource.range(of: operation)?.lowerBound else { return true }
+            let declaration = accountAPISource[start...].split(separator: "{", maxSplits: 1).first ?? ""
+            return declaration.contains("accessToken:")
+        }
+        expect(!protectedDeclarationsCarryTokens, "korumalı AccountAPI işlemleri token parametresi istemez")
+
         MockURLProtocol.configure(.rotate)
         try coordinator.install(AccountTokens(accessToken: "old-access", refreshToken: "old-refresh"))
         async let a = coordinator.data(path: "me", method: "GET", body: nil)

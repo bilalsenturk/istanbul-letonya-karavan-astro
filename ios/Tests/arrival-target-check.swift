@@ -547,15 +547,16 @@ struct ArrivalTargetCheck {
                 currentAccountID: "account-a", requestAccountID: "account-a",
                 submittedRevision: 4, currentRevision: 5
               ))
+        let sessionID = UUID()
+        check("token yenileme aynı profil oturumunu korur",
+              TravelProfileSessionGuard.accepts(
+                currentAccountID: "account-a", currentSessionID: sessionID,
+                expectedAccountID: "account-a", expectedSessionID: sessionID
+              ))
         check("A'nın geç yanıtı B oturumunu değiştiremez",
               !TravelProfileSessionGuard.accepts(
-                currentAccountID: "account-b", currentAccessToken: "token-b",
-                expectedAccountID: "account-a", expectedAccessToken: "token-a"
-              ))
-        check("aynı oturum sunucu profilini uygulayabilir",
-              TravelProfileSessionGuard.accepts(
-                currentAccountID: "account-a", currentAccessToken: "token-a",
-                expectedAccountID: "account-a", expectedAccessToken: "token-a"
+                currentAccountID: "account-b", currentSessionID: UUID(),
+                expectedAccountID: "account-a", expectedSessionID: sessionID
               ))
         let activeSave = UUID()
         check("eski kayıt tamamlanması yeni kaydı kapatamaz",

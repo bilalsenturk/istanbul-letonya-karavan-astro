@@ -12,13 +12,17 @@ final class AccountSessionStore: ObservableObject {
     @Published var errorMessage: String?
 
     private let api: AccountAPI
-    private let tokens: AccountTokenStoring
-    private var currentTokens: AccountTokens?
+    private let bearerSession: BearerSessionCoordinator
+    private var sessionID: UUID?
     private var pendingNonce: String?
 
-    init(api: AccountAPI = AccountAPI(), tokens: AccountTokenStoring = KeychainTokenStore()) {
-        self.api = api
-        self.tokens = tokens
+    init(api: AccountAPI? = nil, bearerSession: BearerSessionCoordinator? = nil) {
+        let activeBearerSession = bearerSession ?? .shared
+        self.api = api ?? AccountAPI(authenticated: activeBearerSession)
+        self.bearerSession = activeBearerSession
+        activeBearerSession.onRevoked = { [weak self] in
+            self?.clearLocalSession()
+        }
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-ui-preview-account") {
             user = .previewAdmin
@@ -29,7 +33,6 @@ final class AccountSessionStore: ObservableObject {
     }
 
     var isSignedIn: Bool { user != nil }
-    var accessToken: String? { currentTokens?.accessToken }
 
     func configureAppleRequest(_ request: ASAuthorizationAppleIDRequest) {
         let nonce = Self.randomNonce()
@@ -56,8 +59,8 @@ final class AccountSessionStore: ObservableObject {
                 familyName: credential.fullName?.familyName
             )
             let accountTokens = AccountTokens(accessToken: response.accessToken, refreshToken: response.refreshToken)
-            try tokens.save(accountTokens)
-            currentTokens = accountTokens
+            try bearerSession.install(accountTokens)
+            sessionID = UUID()
             user = response.user
             initialTrips = response.trips
             errorMessage = nil
@@ -78,31 +81,24 @@ final class AccountSessionStore: ObservableObject {
         #endif
         guard user == nil else { isRestoring = false; return }
         defer { isRestoring = false }
-        guard let stored = tokens.load() else { return }
+        sessionID = UUID()
+        guard bearerSession.restore() else { return }
         do {
-            let response = try await api.me(accessToken: stored.accessToken)
-            currentTokens = stored
+            let response = try await api.me()
             user = response.user
             initialTrips = response.trips
-        } catch let error as AccountHTTPError where error.status == 401 {
-            do {
-                let refreshed = try await api.refresh(stored.refreshToken)
-                try tokens.save(refreshed)
-                let response = try await api.me(accessToken: refreshed.accessToken)
-                currentTokens = refreshed
-                user = response.user
-                initialTrips = response.trips
-            } catch {
-                clearLocalSession()
-            }
         } catch {
-            errorMessage = "Hesap bilgileri yenilenemedi. Bağlantınızı kontrol edin."
+            if !bearerSession.hasSession {
+                clearLocalSession()
+            } else {
+                errorMessage = "Hesap bilgileri yenilenemedi. Bağlantınızı kontrol edin."
+            }
         }
     }
 
     func reload() async throws -> AccountMeResponse {
-        guard let accessToken else { throw AccountSignInError.sessionRequired }
-        let response = try await api.me(accessToken: accessToken)
+        guard bearerSession.hasSession else { throw AccountSignInError.sessionRequired }
+        let response = try await api.me()
         user = response.user
         initialTrips = response.trips
         return response
@@ -112,15 +108,16 @@ final class AccountSessionStore: ObservableObject {
         _ profile: AccountTravelProfile,
         expectedUserID: String? = nil
     ) async throws -> AccountUser {
-        guard let accessToken, let user else { throw AccountSignInError.sessionRequired }
+        guard bearerSession.hasSession, let user, let sessionID else { throw AccountSignInError.sessionRequired }
         let expectedAccountID = expectedUserID ?? user.id
         guard user.id == expectedAccountID else { throw TravelProfileSaveError.staleSession }
-        let updatedUser = try await api.updateTravelProfile(profile, accessToken: accessToken)
+        let expectedSessionID = sessionID
+        let updatedUser = try await api.updateTravelProfile(profile)
         guard TravelProfileSessionGuard.accepts(
             currentAccountID: self.user?.id,
-            currentAccessToken: currentTokens?.accessToken,
+            currentSessionID: self.sessionID,
             expectedAccountID: expectedAccountID,
-            expectedAccessToken: accessToken
+            expectedSessionID: expectedSessionID
         ) else {
             throw TravelProfileSaveError.staleSession
         }
@@ -129,24 +126,24 @@ final class AccountSessionStore: ObservableObject {
     }
 
     func createTrip(_ draft: RouteDraft) async throws -> AccountTrip {
-        guard let accessToken else { throw AccountSignInError.sessionRequired }
-        let trip = try await api.createTrip(draft, accessToken: accessToken)
+        guard bearerSession.hasSession else { throw AccountSignInError.sessionRequired }
+        let trip = try await api.createTrip(draft)
         initialTrips.append(trip)
         return trip
     }
 
     func invite(trip: AccountTrip, email: String, role: AccountTripRole) async throws -> AccountTrip {
-        guard let accessToken else { throw AccountSignInError.sessionRequired }
-        return try await api.invite(tripId: trip.id, revision: trip.revision, email: email, role: role, accessToken: accessToken)
+        guard bearerSession.hasSession else { throw AccountSignInError.sessionRequired }
+        return try await api.invite(tripId: trip.id, revision: trip.revision, email: email, role: role)
     }
 
     func updateStop(trip: AccountTrip, stop: AccountRouteStop) async throws -> AccountTrip {
-        guard let accessToken else { throw AccountSignInError.sessionRequired }
-        return try await api.updateStop(tripId: trip.id, revision: trip.revision, stop: stop, accessToken: accessToken)
+        guard bearerSession.hasSession else { throw AccountSignInError.sessionRequired }
+        return try await api.updateStop(tripId: trip.id, revision: trip.revision, stop: stop)
     }
 
     func addStop(trip: AccountTrip, stop: RouteDraftStop) async throws -> AccountTrip {
-        guard let accessToken else { throw AccountSignInError.sessionRequired }
+        guard bearerSession.hasSession else { throw AccountSignInError.sessionRequired }
         let apiStop = AccountRouteStop(
             id: stop.id,
             name: stop.name,
@@ -161,11 +158,11 @@ final class AccountSessionStore: ObservableObject {
             arrivalTarget: stop.arrivalTarget.map(AccountArrivalTarget.init),
             stayDetails: stop.stayDetails.map(AccountStayDetails.init)
         )
-        return try await api.addStop(tripId: trip.id, revision: trip.revision, stop: apiStop, accessToken: accessToken)
+        return try await api.addStop(tripId: trip.id, revision: trip.revision, stop: apiStop)
     }
 
     func saveRoute(trip: AccountTrip, draft: RouteDraft) async throws -> AccountTrip {
-        guard let accessToken else { throw AccountSignInError.sessionRequired }
+        guard bearerSession.hasSession else { throw AccountSignInError.sessionRequired }
         var current = trip
         if trip.access.canEditTrip,
            trip.name != draft.name || (trip.transportMode ?? .automobile) != draft.transportMode {
@@ -173,16 +170,14 @@ final class AccountSessionStore: ObservableObject {
                 tripId: trip.id,
                 revision: current.revision,
                 name: draft.name,
-                transportMode: draft.transportMode,
-                accessToken: accessToken
+                transportMode: draft.transportMode
             )
         }
         if trip.access.canEditStops {
             current = try await api.replaceStops(
                 tripId: trip.id,
                 revision: current.revision,
-                stops: draft.apiStops,
-                accessToken: accessToken
+                stops: draft.apiStops
             )
         }
         if let index = initialTrips.firstIndex(where: { $0.id == current.id }) {
@@ -192,13 +187,13 @@ final class AccountSessionStore: ObservableObject {
     }
 
     func signOut() async {
-        if let accessToken { await api.logout(accessToken: accessToken) }
+        if bearerSession.hasSession { await api.logout() }
         clearLocalSession()
     }
 
     private func clearLocalSession() {
-        tokens.clear()
-        currentTokens = nil
+        bearerSession.clear()
+        sessionID = nil
         user = nil
         initialTrips = []
         errorMessage = nil
