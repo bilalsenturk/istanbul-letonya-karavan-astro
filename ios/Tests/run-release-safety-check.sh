@@ -4,7 +4,7 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 release_script="$root/tools/testflight.sh"
 real_node="$(command -v node)"
-out="$(mktemp -d)"
+out="$(mktemp -d /tmp/kuzey-release-safety.XXXXXX)"
 trap 'rm -rf "$out"' EXIT
 
 fail() {
@@ -33,7 +33,7 @@ pass "katı kabuk, hata yayılımı ve build override sözleşmesi"
 make_fixture() {
   local name="$1"
   local requested_build="${2:-}"
-  local fixture="$out/$name"
+  local fixture="${3:-$out/$name}"
   mkdir -p "$fixture/tools" "$fixture/ios/Kuzey.xcodeproj" "$fixture/public" "$fixture/bin"
   cp "$release_script" "$fixture/tools/testflight.sh"
   cp "$root/tools/check-ios-release-version.mjs" "$fixture/tools/check-ios-release-version.mjs"
@@ -67,6 +67,8 @@ NODE
 
   printf '%s\n' "$current" > "$fixture/expected-current"
   printf '%s\n' "$((current + 1))" > "$fixture/expected-next"
+  printf '%s\n' "$out/kuzey-testflight-release-$name" > "$fixture/owned-root-path"
+  printf '%s\n' "$out/kuzey-testflight-release-$name/build-$((current + 1))" > "$fixture/transaction-path"
 
   cat > "$fixture/bin/node" <<'SH'
 #!/usr/bin/env bash
@@ -194,19 +196,96 @@ assert_build() {
 run_release() {
   local fixture="$1"
   local failure_stage="${2:-}"
-  local current next
+  local transaction_override="${3:-}"
+  local home_override="${4:-$HOME}"
+  local current next owned_root transaction
   current="$(<"$fixture/expected-current")"
   next="$(<"$fixture/expected-next")"
+  owned_root="$(<"$fixture/owned-root-path")"
+  transaction="$(<"$fixture/transaction-path")"
+  if [[ -n "$transaction_override" ]]; then transaction="$transaction_override"; fi
   : > "${fixture}/node-count"
 
   PATH="$fixture/bin:$PATH" \
-    KUZ_RELEASE_TRANSACTION_DIR="$fixture/release-transaction" \
+    HOME="$home_override" KUZ_RELEASE_OWNED_ROOT="$owned_root" \
+    KUZ_RELEASE_TRANSACTION_DIR="$transaction" \
     RELEASE_FIXTURE_ROOT="$fixture" RELEASE_TEST_LOG="$fixture/release.log" \
     RELEASE_REAL_NODE="$real_node" RELEASE_NODE_COUNT="$fixture/node-count" \
     RELEASE_EXPECTED_CURRENT="$current" RELEASE_EXPECTED_NEXT="$next" \
     FAKE_FAIL_STAGE="$failure_stage" ASC_KEY_ID="test-key" ASC_ISSUER_ID="test-issuer" \
     bash "$fixture/tools/testflight.sh" >"$fixture/output.log" 2>&1
 }
+
+assert_rejected_path() {
+  local label="$1"
+  local fixture="$2"
+  local target="$3"
+  local protected_file="$4"
+  local home_override="${5:-$HOME}"
+
+  accepted=false
+  if run_release "$fixture" "" "$target" "$home_override"; then accepted=true; fi
+  test -f "$protected_file" || fail "$label transaction yolu var olan içeriği sildi"
+  if [[ "$accepted" == true ]]; then fail "$label transaction yolu kabul edildi"; fi
+  pass "$label transaction yolu silme yapılmadan reddedildi"
+}
+
+printf '\n=== Zararlı transaction yolları ===\n'
+home_fixture="$(make_fixture adversarial-home)"
+fake_home="$out/fake-home"
+mkdir -p "$fake_home"
+: > "$fake_home/koru"
+assert_rejected_path HOME "$home_fixture" "$fake_home" "$fake_home/koru" "$fake_home"
+
+parent_case="$out/repo-parent-case"
+mkdir -p "$parent_case"
+parent_fixture="$(make_fixture repo-parent "" "$parent_case/repo")"
+: > "$parent_case/koru"
+assert_rejected_path "repo parent" "$parent_fixture" "$parent_case" "$parent_case/koru"
+
+normalized_fixture="$(make_fixture normalized-ios)"
+: > "$normalized_fixture/ios/koru"
+assert_rejected_path "normalize edilmiş iOS" "$normalized_fixture" \
+  "$normalized_fixture/public/../ios" "$normalized_fixture/ios/koru"
+
+unowned_fixture="$(make_fixture unowned-existing)"
+: > "$unowned_fixture/release.log"
+if run_release "$unowned_fixture" archive; then
+  fail "sahipli transaction hazırlık çalışması archive hatası vermedi"
+fi
+unowned_transaction="$(<"$unowned_fixture/transaction-path")"
+printf 'yanlış-sahip\n' > "$unowned_transaction/.kuzey-transaction-owned"
+: > "$unowned_transaction/koru"
+if run_release "$unowned_fixture" archive; then
+  fail "önceden var olan sahipsiz transaction kabul edildi"
+fi
+test -f "$unowned_transaction/koru" || fail "sahipsiz transaction içeriği silindi"
+pass "önceden var olan sahipsiz transaction silme yapılmadan reddedildi"
+
+unowned_root_fixture="$(make_fixture unowned-root)"
+unowned_root="$(<"$unowned_root_fixture/owned-root-path")"
+mkdir "$unowned_root"
+: > "$unowned_root/koru"
+if run_release "$unowned_root_fixture" archive; then
+  fail "önceden var olan sahipsiz release-owned kök kabul edildi"
+fi
+test -f "$unowned_root/koru" || fail "sahipsiz release-owned kök içeriği silindi"
+pass "önceden var olan sahipsiz release-owned kök silme yapılmadan reddedildi"
+
+printf '\n=== Canonical release-owned kök ===\n'
+symlink_parent_fixture="$(make_fixture symlink-parent)"
+symlink_parent_root="/tmp/kuzey-testflight-release-$(basename "$out")"
+symlink_parent_next="$(<"$symlink_parent_fixture/expected-next")"
+printf '%s\n' "$symlink_parent_root" > "$symlink_parent_fixture/owned-root-path"
+printf '%s\n' "$symlink_parent_root/build-$symlink_parent_next" > "$symlink_parent_fixture/transaction-path"
+: > "$symlink_parent_fixture/release.log"
+run_release "$symlink_parent_fixture" \
+  || fail "/tmp symlink üstünden canonical owned-root çalışmadı: $(<"$symlink_parent_fixture/output.log")"
+test -f "$symlink_parent_root/.kuzey-testflight-owned" \
+  || fail "canonical owned-root sentinel oluşturmadı"
+rm -f "$symlink_parent_root/.kuzey-testflight-owned"
+rmdir "$symlink_parent_root"
+pass "/tmp symlink üstünden canonical owned-root güvenle oluşturulup temizlendi"
 
 run_failure_case() {
   local stage="$1"
@@ -242,7 +321,9 @@ fi
 assert_build "$commit_failure_fixture" "$commit_current"
 grep -Fxq "commit checker build $commit_next gördü" "$commit_failure_fixture/release.log" \
   || fail "enjekte edilen checker hatası kurulu sonraki build'i gözlemlemedi"
-test -f "$commit_failure_fixture/release-transaction/upload-accepted" \
+commit_transaction="$(<"$commit_failure_fixture/transaction-path")"
+commit_owned_root="$(<"$commit_failure_fixture/owned-root-path")"
+test -f "$commit_transaction/upload-accepted" \
   || fail "Apple kabulünden sonra recovery işareti korunmadı"
 upload_count="$(grep -c '^upload kaynak build ' "$commit_failure_fixture/release.log")"
 [[ "$upload_count" == 1 ]] || fail "ilk release tam olarak bir upload yapmalı"
@@ -250,7 +331,9 @@ run_release "$commit_failure_fixture"
 assert_build "$commit_failure_fixture" "$commit_next"
 recovered_upload_count="$(grep -c '^upload kaynak build ' "$commit_failure_fixture/release.log")"
 [[ "$recovered_upload_count" == 1 ]] || fail "recovery aynı build'i yeniden upload etmemeli"
-test ! -e "$commit_failure_fixture/release-transaction" || fail "başarılı recovery transaction alanını temizlemeli"
+test ! -e "$commit_transaction" || fail "başarılı recovery sahipli transaction alanını temizlemeli"
+test -f "$commit_owned_root/.kuzey-testflight-owned" \
+  || fail "başarılı cleanup release-owned kök sentinel'ini korumalı"
 if find "$commit_failure_fixture" -name '*.kuzey-release-pending' -print -quit | grep -q .; then
   fail "recovery bekleyen geçici kaynak dosyası bırakmamalı"
 fi

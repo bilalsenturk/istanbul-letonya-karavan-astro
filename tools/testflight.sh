@@ -6,6 +6,7 @@
 #   ~/.appstoreconnect/private_keys/AuthKey_<KEY_ID>.p8
 #   ASC_KEY_ID ve ASC_ISSUER_ID (aşağıdaki varsayılanlar ya da ortam değişkeni)
 set -euo pipefail
+umask 077
 
 KEY_ID="${ASC_KEY_ID:-8UAZ5US552}"
 ISSUER="${ASC_ISSUER_ID:-851d9c47-e440-45ca-b431-67aa0fc12079}"
@@ -13,9 +14,6 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 IOS_DIR="$ROOT_DIR/ios"
 MANIFEST="$ROOT_DIR/public/kuzey-version.json"
 VERSION_CHECK="$ROOT_DIR/tools/check-ios-release-version.mjs"
-ARCHIVE="/tmp/Kuzey-tf.xcarchive"
-EXPORT_DIR="/tmp/Kuzey-tf-export"
-EXPORT_PLIST="/tmp/kuzey-tf-export.plist"
 
 cd "$IOS_DIR"
 
@@ -24,23 +22,119 @@ node "$VERSION_CHECK"
 CURRENT=$(grep -m1 "CURRENT_PROJECT_VERSION:" project.yml \
   | sed -E 's/.*CURRENT_PROJECT_VERSION:[^0-9]*([0-9]+).*/\1/')
 NEXT=$((CURRENT + 1))
-TRANSACTION_DIR="${KUZ_RELEASE_TRANSACTION_DIR:-/tmp/kuzey-tf-version-$NEXT}"
+
+SYSTEM_TEMP_ROOT="$(realpath /tmp)"
+ROOT_DIR_CANONICAL="$(realpath "$ROOT_DIR")"
+ROOT_KEY="$(printf '%s' "$ROOT_DIR_CANONICAL" | shasum -a 256 | awk '{print substr($1, 1, 16)}')"
+OWNED_ROOT_REQUEST="${KUZ_RELEASE_OWNED_ROOT:-/tmp/kuzey-testflight-release-$(id -u)-$ROOT_KEY}"
+ROOT_SENTINEL_VALUE="kuzey-testflight-release:v1:$ROOT_KEY"
+TRANSACTION_SENTINEL_VALUE="kuzey-testflight-transaction:v1:$ROOT_KEY:$NEXT"
+
+canonical_candidate() {
+  local requested="$1"
+  if [[ -e "$requested" || -L "$requested" ]]; then
+    realpath "$requested"
+    return
+  fi
+
+  local parent name canonical_parent
+  parent="$(dirname "$requested")"
+  name="$(basename "$requested")"
+  if [[ ! -d "$parent" ]]; then
+    printf '❌ release yolu için güvenilir üst dizin yok: %s\n' "$requested" >&2
+    return 1
+  fi
+  canonical_parent="$(realpath "$parent")"
+  printf '%s/%s\n' "$canonical_parent" "$name"
+}
+
+owned_root_name="$(basename "$OWNED_ROOT_REQUEST")"
+case "$owned_root_name" in
+  kuzey-testflight-release-*) ;;
+  *)
+    printf '❌ release-owned kök adı geçersiz: %s\n' "$OWNED_ROOT_REQUEST" >&2
+    exit 2
+    ;;
+esac
+
+OWNED_ROOT="$(canonical_candidate "$OWNED_ROOT_REQUEST")"
+case "$OWNED_ROOT/" in
+  "$SYSTEM_TEMP_ROOT/"*) ;;
+  *)
+    printf '❌ release-owned kök sistem geçici dizininin içinde olmalı: %s\n' "$OWNED_ROOT" >&2
+    exit 2
+    ;;
+esac
+
+ROOT_SENTINEL="$OWNED_ROOT/.kuzey-testflight-owned"
+if [[ -e "$OWNED_ROOT" || -L "$OWNED_ROOT" ]]; then
+  if [[ ! -d "$OWNED_ROOT" || -L "$OWNED_ROOT" || ! -O "$OWNED_ROOT" ]]; then
+    printf '❌ release-owned kök güvenilir bir kullanıcı dizini değil: %s\n' "$OWNED_ROOT" >&2
+    exit 2
+  fi
+  if [[ ! -f "$ROOT_SENTINEL" || -L "$ROOT_SENTINEL" || ! -O "$ROOT_SENTINEL" \
+    || "$(<"$ROOT_SENTINEL")" != "$ROOT_SENTINEL_VALUE" ]]; then
+    printf '❌ önceden var olan release-owned kökün sahiplik işareti geçersiz: %s\n' "$OWNED_ROOT" >&2
+    exit 2
+  fi
+else
+  mkdir "$OWNED_ROOT"
+  printf '%s\n' "$ROOT_SENTINEL_VALUE" > "$ROOT_SENTINEL"
+fi
+
+EXPECTED_TRANSACTION_DIR="$OWNED_ROOT/build-$NEXT"
+TRANSACTION_REQUEST="${KUZ_RELEASE_TRANSACTION_DIR:-$EXPECTED_TRANSACTION_DIR}"
+TRANSACTION_CANONICAL="$(canonical_candidate "$TRANSACTION_REQUEST")"
+if [[ "$TRANSACTION_CANONICAL" != "$EXPECTED_TRANSACTION_DIR" ]]; then
+  printf '❌ transaction yolu release-owned build alanının dışında: %s\n' "$TRANSACTION_CANONICAL" >&2
+  exit 2
+fi
+TRANSACTION_DIR="$EXPECTED_TRANSACTION_DIR"
+TRANSACTION_SENTINEL="$TRANSACTION_DIR/.kuzey-transaction-owned"
 STAGED_ROOT="$TRANSACTION_DIR/staged"
 ORIGINAL_ROOT="$TRANSACTION_DIR/original"
 ACCEPTED_MARKER="$TRANSACTION_DIR/upload-accepted"
+ARCHIVE="$TRANSACTION_DIR/Kuzey.xcarchive"
+EXPORT_DIR="$TRANSACTION_DIR/export"
+EXPORT_PLIST="$TRANSACTION_DIR/ExportOptions.plist"
 
-case "$TRANSACTION_DIR" in
-  ""|/|/tmp|"$ROOT_DIR"|"$IOS_DIR")
-    printf '❌ güvenli olmayan release transaction yolu: %s\n' "$TRANSACTION_DIR" >&2
-    exit 2
-    ;;
-esac
-case "$TRANSACTION_DIR/" in
-  "$IOS_DIR/"*)
-    printf '❌ release transaction yolu iOS kaynak ağacının içinde olamaz: %s\n' "$TRANSACTION_DIR" >&2
-    exit 2
-    ;;
-esac
+validate_owned_transaction() {
+  local canonical marker_value
+  if [[ ! -d "$TRANSACTION_DIR" || -L "$TRANSACTION_DIR" || ! -O "$TRANSACTION_DIR" ]]; then
+    printf '❌ transaction güvenilir bir kullanıcı dizini değil: %s\n' "$TRANSACTION_DIR" >&2
+    return 1
+  fi
+  canonical="$(realpath "$TRANSACTION_DIR")"
+  case "$canonical/" in
+    "$OWNED_ROOT/"*) ;;
+    *)
+      printf '❌ transaction release-owned kökün dışında: %s\n' "$canonical" >&2
+      return 1
+      ;;
+  esac
+  if [[ "$canonical" != "$EXPECTED_TRANSACTION_DIR" ]]; then
+    printf '❌ transaction beklenen build alanı değil: %s\n' "$canonical" >&2
+    return 1
+  fi
+  if [[ ! -f "$TRANSACTION_SENTINEL" || -L "$TRANSACTION_SENTINEL" || ! -O "$TRANSACTION_SENTINEL" ]]; then
+    printf '❌ transaction sahiplik işareti eksik: %s\n' "$TRANSACTION_DIR" >&2
+    return 1
+  fi
+  marker_value="$(<"$TRANSACTION_SENTINEL")"
+  if [[ "$marker_value" != "$TRANSACTION_SENTINEL_VALUE" ]]; then
+    printf '❌ transaction sahiplik işareti eşleşmiyor: %s\n' "$TRANSACTION_DIR" >&2
+    return 1
+  fi
+}
+
+remove_owned_transaction() {
+  validate_owned_transaction
+  rm -rf -- "$TRANSACTION_DIR"
+}
+
+if [[ -e "$TRANSACTION_DIR" || -L "$TRANSACTION_DIR" ]]; then
+  validate_owned_transaction
+fi
 
 ROLLBACK_ACTIVE=false
 
@@ -101,9 +195,11 @@ NODE
 }
 
 prepare_transaction() {
-  if [[ -e "$TRANSACTION_DIR" ]]; then
-    rm -rf "$TRANSACTION_DIR"
+  if [[ -e "$TRANSACTION_DIR" || -L "$TRANSACTION_DIR" ]]; then
+    remove_owned_transaction
   fi
+  mkdir "$TRANSACTION_DIR"
+  printf '%s\n' "$TRANSACTION_SENTINEL_VALUE" > "$TRANSACTION_SENTINEL"
   mkdir -p "$STAGED_ROOT" "$ORIGINAL_ROOT" "$STAGED_ROOT/tools" "$STAGED_ROOT/public"
   cp -R "$IOS_DIR" "$STAGED_ROOT/ios"
   cp "$VERSION_CHECK" "$STAGED_ROOT/tools/check-ios-release-version.mjs"
@@ -126,6 +222,7 @@ install_file() {
 }
 
 commit_staged_versions() {
+  validate_owned_transaction
   node "$STAGED_ROOT/tools/check-ios-release-version.mjs"
   ROLLBACK_ACTIVE=true
   install_file "$STAGED_ROOT/ios/project.yml" "$IOS_DIR/project.yml"
@@ -133,7 +230,7 @@ commit_staged_versions() {
   install_file "$STAGED_ROOT/public/kuzey-version.json" "$MANIFEST"
   node "$VERSION_CHECK"
   ROLLBACK_ACTIVE=false
-  rm -rf "$TRANSACTION_DIR"
+  remove_owned_transaction
 }
 
 echo "▸ build numarası: $CURRENT → $NEXT"
@@ -155,11 +252,10 @@ fi
 prepare_transaction
 
 echo "▸ arşivleniyor (Release)"
-rm -rf "$ARCHIVE" "$EXPORT_DIR"
 xcodebuild -project Kuzey.xcodeproj -scheme Kuzey \
   -destination 'generic/platform=iOS' \
   -configuration Release CURRENT_PROJECT_VERSION="$NEXT" -allowProvisioningUpdates \
-  archive -archivePath "$ARCHIVE" 2>&1 | tee /tmp/kuzey-archive.log
+  archive -archivePath "$ARCHIVE" 2>&1 | tee "$TRANSACTION_DIR/archive.log"
 
 echo "▸ dışa aktarılıyor"
 cat > "$EXPORT_PLIST" <<'PLIST'
@@ -174,7 +270,7 @@ cat > "$EXPORT_PLIST" <<'PLIST'
 </dict></plist>
 PLIST
 xcodebuild -exportArchive -archivePath "$ARCHIVE" -exportPath "$EXPORT_DIR" \
-  -exportOptionsPlist "$EXPORT_PLIST" -allowProvisioningUpdates 2>&1 | tee /tmp/kuzey-export.log
+  -exportOptionsPlist "$EXPORT_PLIST" -allowProvisioningUpdates 2>&1 | tee "$TRANSACTION_DIR/export.log"
 
 echo "▸ Apple'a yükleniyor"
 xcrun altool --upload-app -f "$EXPORT_DIR/Kuzey.ipa" -t ios --apiKey "$KEY_ID" --apiIssuer "$ISSUER"
