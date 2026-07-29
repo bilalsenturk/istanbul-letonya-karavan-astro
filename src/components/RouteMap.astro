@@ -110,6 +110,11 @@ const fallbackUrl = `https://staticmap.openstreetmap.de/staticmap.php?size=900x4
     border-radius: 0;
   }
 
+  .route-map-card--hero :global(.leaflet-tile-pane),
+  .route-map-card--hero .fallback-map-image {
+    filter: saturate(0.72) brightness(0.76) contrast(1.08);
+  }
+
   .route-map-live-status {
     position: absolute;
     left: 14px;
