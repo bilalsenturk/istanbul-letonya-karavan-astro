@@ -10,9 +10,11 @@ import {
 } from 'jose';
 import { verifyAppleIdentityToken } from '../src/accounts/appleAuth.ts';
 import { createAccountRepository, normalizeTravelProfile } from '../src/accounts/accountRepository.ts';
-import { errorResponse } from '../src/accounts/api.ts';
+import { errorResponse, json, requestJSON } from '../src/accounts/api.ts';
 import { createMeHandlers } from '../src/accounts/meHandler.ts';
 import { UnauthorizedError, issueSession, requireSession, verifyAccessToken, verifyRefreshToken } from '../src/accounts/session.ts';
+import { TripRepositoryError } from '../src/accounts/tripRepository.ts';
+import { createRefreshHandler } from '../src/pages/api/v2/auth/refresh.ts';
 
 const travelProfile = normalizeTravelProfile({
   contactName: ' Bilal Şentürk ', contactEmail: ' BILAL@EXAMPLE.COM ',
@@ -336,6 +338,73 @@ await assert.rejects(requireSession(new Request('https://test.invalid', { header
 const unauthorized = errorResponse(new UnauthorizedError());
 assert.equal(unauthorized.status, 401);
 assert.deepEqual(await unauthorized.json(), { error: 'unauthorized', message: 'Oturum açmanız gerekiyor.' });
+const revoked = errorResponse(new Error('session_revoked'));
+assert.equal(revoked.status, 401);
+assert.deepEqual(await revoked.json(), { error: 'session_revoked', message: 'Oturum sona erdi. Yeniden giriş yapın.' });
+const forbidden = errorResponse(new TripRepositoryError('forbidden'));
+assert.equal(forbidden.status, 403);
+assert.equal((await forbidden.json()).error, 'forbidden');
+const missingTrip = errorResponse(new TripRepositoryError('trip_not_found'));
+assert.equal(missingTrip.status, 404);
+assert.equal((await missingTrip.json()).error, 'trip_not_found');
+const currentTrip = { id: 'trip-1', revision: 7 };
+const conflict = errorResponse(new TripRepositoryError('revision_conflict', 'stale revision', currentTrip));
+assert.equal(conflict.status, 409);
+assert.deepEqual(await conflict.json(), {
+  error: 'revision_conflict',
+  message: 'Rota başka bir cihazda değişti. Güncel sürüm yüklendi.',
+  current: currentTrip,
+});
+const invalidStopOrder = errorResponse(new TripRepositoryError('invalid_stop_order'));
+assert.equal(invalidStopOrder.status, 422);
+assert.equal((await invalidStopOrder.json()).error, 'invalid_stop_order');
+const invalidInviteEmail = errorResponse(new TripRepositoryError('invalid_email'));
+assert.equal(invalidInviteEmail.status, 422);
+assert.equal((await invalidInviteEmail.json()).error, 'invalid_email');
+const invalidProfile = errorResponse(new Error('invalid_travel_profile'));
+assert.equal(invalidProfile.status, 422);
+assert.equal((await invalidProfile.json()).error, 'invalid_travel_profile');
+const invalidAppleNonce = errorResponse(new Error('invalid_apple_nonce'));
+assert.equal(invalidAppleNonce.status, 422);
+assert.equal((await invalidAppleNonce.json()).error, 'invalid_apple_nonce');
+const missingAccount = errorResponse(new Error('account_not_found'));
+assert.equal(missingAccount.status, 404);
+assert.equal((await missingAccount.json()).error, 'account_not_found');
+const malformedRequest = errorResponse(new Error('invalid_json'));
+assert.equal(malformedRequest.status, 400);
+assert.equal((await malformedRequest.json()).error, 'invalid_json');
+const corruptTrip = errorResponse(new TripRepositoryError('trip_corrupt', 'stored trip data is corrupt'));
+assert.equal(corruptTrip.status, 500);
+assert.deepEqual(await corruptTrip.json(), { error: 'internal_error', message: 'İşlem tamamlanamadı.' });
+const unknown = errorResponse(new Error('database credentials leaked'));
+assert.equal(unknown.status, 500);
+assert.deepEqual(await unknown.json(), { error: 'internal_error', message: 'İşlem tamamlanamadı.' });
+const refreshRequest = () => new Request('https://test.invalid/api/v2/auth/refresh', {
+  method: 'POST', body: JSON.stringify({ refreshToken: 'refresh-token' }), headers: { 'content-type': 'application/json' },
+});
+const refreshHandler = (overrides = {}) => createRefreshHandler({
+  accountById: async () => ({ id: 'refresh-user' }),
+  revokeSession: async () => {},
+  saveSession: async () => {},
+  sessionIsActive: async () => true,
+  errorResponse,
+  issueSession: async () => ({ accessToken: 'fresh-access', refreshToken: 'fresh-refresh', sessionId: 'fresh-session', accessExpiresAt: '2026-07-26T08:15:00.000Z' }),
+  json,
+  requestJSON,
+  verifyRefreshToken: async () => ({ userId: 'refresh-user', sessionId: 'prior-session' }),
+  ...overrides,
+});
+const invalidRefresh = await refreshHandler({
+  verifyRefreshToken: async () => { throw new Error('refresh signature invalid'); },
+})(refreshRequest());
+assert.equal(invalidRefresh.status, 401);
+assert.deepEqual(await invalidRefresh.json(), { error: 'unauthorized', message: 'Oturum açmanız gerekiyor.' });
+const revokedRefresh = await refreshHandler({ sessionIsActive: async () => false })(refreshRequest());
+assert.equal(revokedRefresh.status, 401);
+assert.deepEqual(await revokedRefresh.json(), { error: 'unauthorized', message: 'Oturum açmanız gerekiyor.' });
+const missingRefreshAccount = await refreshHandler({ accountById: async () => null })(refreshRequest());
+assert.equal(missingRefreshAccount.status, 401);
+assert.deepEqual(await missingRefreshAccount.json(), { error: 'unauthorized', message: 'Oturum açmanız gerekiyor.' });
 const unauthorizedHandlers = createMeHandlers({
   authenticate: async () => { throw new UnauthorizedError(); },
   updateTravelProfile: accountRepository.updateTravelProfile,

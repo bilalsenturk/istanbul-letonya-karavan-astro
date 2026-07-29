@@ -1,22 +1,53 @@
 import type { APIRoute } from 'astro';
 import { accountById, revokeSession, saveSession, sessionIsActive } from '../../../../accounts/accountRepository.ts';
 import { errorResponse, json, requestJSON } from '../../../../accounts/api.ts';
-import { issueSession, verifyRefreshToken } from '../../../../accounts/session.ts';
+import { issueSession, UnauthorizedError, verifyRefreshToken } from '../../../../accounts/session.ts';
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request }) => {
+type RefreshDependencies = {
+  accountById: typeof accountById;
+  revokeSession: typeof revokeSession;
+  saveSession: typeof saveSession;
+  sessionIsActive: typeof sessionIsActive;
+  errorResponse: typeof errorResponse;
+  issueSession: typeof issueSession;
+  json: typeof json;
+  requestJSON: typeof requestJSON;
+  verifyRefreshToken: typeof verifyRefreshToken;
+};
+
+export const createRefreshHandler = (dependencies: RefreshDependencies) => async (request: Request): Promise<Response> => {
   try {
-    const body = await requestJSON<{ refreshToken?: string }>(request);
-    const claims = await verifyRefreshToken(body.refreshToken ?? '');
-    if (!(await sessionIsActive(claims.sessionId, claims.userId))) throw new Error('session_revoked');
-    const account = await accountById(claims.userId);
-    if (!account) throw new Error('account_not_found');
-    await revokeSession(claims.sessionId);
-    const session = await issueSession(account);
-    await saveSession(session.sessionId, account.id, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
-    return json(session);
+    const body = await dependencies.requestJSON<{ refreshToken?: string }>(request);
+    let claims;
+    try {
+      claims = await dependencies.verifyRefreshToken(body.refreshToken ?? '');
+    } catch {
+      throw new UnauthorizedError();
+    }
+    if (!(await dependencies.sessionIsActive(claims.sessionId, claims.userId))) throw new UnauthorizedError();
+    const account = await dependencies.accountById(claims.userId);
+    if (!account) throw new UnauthorizedError();
+    await dependencies.revokeSession(claims.sessionId);
+    const session = await dependencies.issueSession(account);
+    await dependencies.saveSession(session.sessionId, account.id, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
+    return dependencies.json(session);
   } catch (error) {
-    return errorResponse(error);
+    return dependencies.errorResponse(error);
   }
 };
+
+const refresh = createRefreshHandler({
+  accountById,
+  revokeSession,
+  saveSession,
+  sessionIsActive,
+  errorResponse,
+  issueSession,
+  json,
+  requestJSON,
+  verifyRefreshToken,
+});
+
+export const POST: APIRoute = ({ request }) => refresh(request);
