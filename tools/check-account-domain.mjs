@@ -5,6 +5,7 @@ import {
   foldTripEvents,
   normalizeEmail,
   resolveGlobalRole,
+  TripDomainError,
 } from '../src/accounts/domain.ts';
 
 assert.equal(normalizeEmail('  SENTURK.BILAL@ICLOUD.COM '), 'senturk.bilal@icloud.com');
@@ -212,6 +213,32 @@ assert.deepEqual(trip.members, [{ userId: 'user-1', role: 'owner' }]);
 assert.throws(
   () => foldTripEvents([{ ...tripEvent('tripCreated', 1), payload: { name: '', kind: 'standard', ownerUserId: 'u1' } }]),
   /trip_name_required/,
+);
+
+assert.throws(
+  () => foldTripEvents([
+    {
+      ...tripEvent('tripCreated', 2),
+      payload: { name: 'Late start', kind: 'standard', ownerUserId: 'u1' },
+    },
+  ]),
+  (error) => error instanceof TripDomainError && error.code === 'invalid_trip_event_sequence',
+  'trip histories must start at revision 1',
+);
+
+assert.throws(
+  () => foldTripEvents([
+    {
+      ...tripEvent('tripCreated', 1),
+      payload: { name: 'Missing revision', kind: 'standard', ownerUserId: 'u1' },
+    },
+    {
+      ...tripEvent('tripUpdated', 3),
+      payload: { name: 'Revision three' },
+    },
+  ]),
+  (error) => error instanceof TripDomainError && error.code === 'invalid_trip_event_sequence',
+  'trip histories must contain every revision',
 );
 
 assert.throws(
