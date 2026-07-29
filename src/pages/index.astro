@@ -1,4 +1,9 @@
 ---
+import { Picture } from 'astro:assets';
+import followBudapest from '../assets/journey/follow-budapest.jpg';
+import followHighway from '../assets/journey/follow-highway.jpg';
+import followSofia from '../assets/journey/follow-sofia.png';
+import heroSocialImage from '../assets/journey/kuzey-road-motion.webp';
 import MainLayout from '../layouts/MainLayout.astro';
 import JourneyHero from '../components/JourneyHero.astro';
 import RouteMap from '../components/RouteMap.astro';
@@ -36,23 +41,25 @@ const routeTimeline = tripData.days.map((day) => ({
 }));
 const travelPhotos = [
   {
-    src: '/assets/follow-highway.jpg',
+    src: followHighway,
     alt: 'Karavanla otoyolda yolculuk',
   },
   {
-    src: '/assets/follow-budapest.jpg',
+    src: followBudapest,
     alt: 'Budapeşte yolunda karavan',
   },
   {
-    src: '/assets/follow-sofia.png',
+    src: followSofia,
     alt: 'Sofya şehir içinde karavan',
   },
 ];
 ---
 
 <MainLayout
-  title="KUZEY"
-  description="Leyla'nın Kuzey Yolculuğu."
+  title="Leyla'nın Kuzey Yolculuğu | KUZEY"
+  description="İstanbul'dan Riga'ya uzanan karavan yolculuğunu canlı rota, günlük planlar ve yol notlarıyla takip edin."
+  image={heroSocialImage.src}
+  type="website"
 >
   <div
     class="follow-page"
@@ -206,9 +213,16 @@ const travelPhotos = [
         <button type="button" data-gallery-scroll="1" aria-label="Sonraki fotoğraf" title="Sonraki fotoğraf">→</button>
       </div>
       <div class="follow-gallery__track" data-gallery-track tabindex="0" aria-label="Yol fotoğrafları">
-        {travelPhotos.map((photo, index) => (
+        {travelPhotos.map((photo) => (
           <figure class="follow-gallery__item">
-            <img src={photo.src} alt={photo.alt} loading={index === 0 ? 'eager' : 'lazy'} />
+            <Picture
+              src={photo.src}
+              widths={[420, 720, 1080]}
+              sizes="(max-width: 760px) 86vw, 47vw"
+              formats={['avif', 'webp']}
+              alt={photo.alt}
+              loading="lazy"
+            />
           </figure>
         ))}
       </div>

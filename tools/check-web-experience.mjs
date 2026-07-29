@@ -352,6 +352,10 @@ const sourceFiles = [
 const [heroSource, campActionsSource, cameraSectionSource, stepperSource, routeMapSource, layoutSource, indexSource, daySource, loaderSource, homeRuntimeSource, workerSource] = await Promise.all(
   sourceFiles.map((sourceFile) => readFile(path.join(root, sourceFile), 'utf8')),
 );
+const robotsSource = await readFile(path.join(root, 'public/robots.txt'), 'utf8');
+const vercelConfig = JSON.parse(
+  await readFile(path.join(root, 'vercel.json'), 'utf8').catch(() => '{}'),
+);
 
 const stops = [
   { name: 'İstanbul', lat: 41, lng: 29 },
@@ -513,6 +517,86 @@ assert.match(heroSource, /role="timer"[\s\S]*aria-live="off"/, 'countdowns shoul
 assert.match(heroSource, /role="progressbar"[\s\S]*aria-valuenow="0"/, 'route progress should expose an initial value');
 assert.match(stepperSource, /aria-current=\{state === 'active' \? 'step' : undefined\}/, 'the current route stop should be announced');
 assert.match(indexSource, /Sırbistan:\s*'RS'/, 'Serbia should be included in the route country codes');
+
+const heroPicture = heroSource.match(/<Picture\b[\s\S]*?\/>/)?.[0] ?? '';
+assert.match(
+  heroSource,
+  /import\s*\{\s*Picture\s*\}\s*from\s*['"]astro:assets['"]/,
+  'the hero should use Astro Picture',
+);
+assert.match(
+  heroSource,
+  /import\s+heroImage\s+from\s+['"]\.\.\/assets\/journey\/kuzey-road-motion\.webp['"]/,
+  'the hero image should live in the Astro asset pipeline',
+);
+assert.match(heroPicture, /widths=\{\[640,\s*960,\s*1440,\s*1920\]\}/, 'the hero should request its responsive widths');
+assert.match(heroPicture, /formats=\{\['avif',\s*'webp'\]\}/, 'the hero should offer AVIF and WebP');
+assert.match(heroPicture, /\bpriority\b/, 'the above-the-fold hero should be high priority');
+assert.match(heroPicture, /class="journey-hero__image"/, 'the hero should retain its visual class');
+assert.match(
+  heroPicture,
+  /alt="Günün ilk ışıklarında kuzeye ilerleyen otomobil ve Adria karavan"/,
+  'the hero should retain its descriptive alt text',
+);
+
+const galleryPicture = indexSource.match(/<Picture\b[\s\S]*?loading="lazy"[\s\S]*?\/>/)?.[0] ?? '';
+assert.match(
+  indexSource,
+  /import\s*\{\s*Picture\s*\}\s*from\s*['"]astro:assets['"]/,
+  'the gallery should use Astro Picture',
+);
+assert.match(
+  indexSource,
+  /from\s+['"]\.\.\/assets\/journey\/follow-(?:highway|budapest|sofia)\.(?:jpg|png)['"]/,
+  'gallery photos should live in the Astro asset pipeline',
+);
+assert.match(galleryPicture, /widths=\{\[420,\s*720,\s*1080\]\}/, 'gallery photos should request their responsive widths');
+assert.match(galleryPicture, /formats=\{\['avif',\s*'webp'\]\}/, 'gallery photos should offer AVIF and WebP');
+assert.match(galleryPicture, /loading="lazy"/, 'below-the-fold gallery photos should load lazily');
+assert.doesNotMatch(
+  `${heroSource}\n${indexSource}`,
+  /src=["']\/assets\/(?:hero\/kuzey-road-motion\.webp|follow-(?:highway\.jpg|budapest\.jpg|sofia\.png))["']/,
+  'journey images should no longer bypass Astro image optimization',
+);
+
+assert.match(layoutSource, /image\?:\s*string/, 'the layout should accept a social image');
+assert.match(layoutSource, /type\?:\s*'website'\s*\|\s*'article'/, 'the layout should accept website and article types');
+assert.match(
+  layoutSource,
+  /new URL\(Astro\.url\.pathname,\s*Astro\.site\)/,
+  'canonical URLs should be derived from the production site and current pathname',
+);
+assert.match(layoutSource, /new URL\(image,\s*Astro\.site\)/, 'social images should be absolute');
+assert.match(layoutSource, /<link\s+rel="canonical"\s+href=\{canonical\}/, 'the layout should emit a canonical link');
+for (const property of ['og:type', 'og:title', 'og:description', 'og:url', 'og:image']) {
+  assert.match(layoutSource, new RegExp(`property=["']${property}["']`), `the layout should emit ${property}`);
+}
+for (const name of ['twitter:card', 'twitter:title', 'twitter:description', 'twitter:image']) {
+  assert.match(layoutSource, new RegExp(`name=["']${name}["']`), `the layout should emit ${name}`);
+}
+assert.doesNotMatch(
+  layoutSource,
+  /rel="preconnect"[^>]+(?:unpkg\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)/,
+  'the layout should not preconnect to unused hosts',
+);
+assert.match(indexSource, /<MainLayout[\s\S]*description="[^"]+"[\s\S]*image=\{heroSocialImage\.src\}/, 'home should define distinct social metadata');
+assert.match(daySource, /<MainLayout[^>]*description=\{dayDescription\}[^>]*image=\{dayImage\}[^>]*type="article"/, 'day pages should define article metadata');
+
+assert.equal(
+  robotsSource.trim(),
+  'User-agent: *\nAllow: /\n\nSitemap: https://istanbul-letonya-karavan-astro.vercel.app/sitemap-index.xml',
+  'robots.txt should advertise the production sitemap',
+);
+const cacheControlFor = (source) => vercelConfig.headers
+  ?.find((rule) => rule.source === source)
+  ?.headers?.find((header) => header.key.toLowerCase() === 'cache-control')
+  ?.value;
+for (const source of ['/_astro/(.*)', '/assets/letonca/ses/(.*)']) {
+  assert.equal(cacheControlFor(source), 'public, max-age=31536000, immutable', `${source} should be immutable for one year`);
+}
+for (const source of ['/api/(.*)', '/sw.js', '/kuzey-version.json', '/manifest.webmanifest', '/trip-data.json']) {
+  assert.equal(cacheControlFor(source), 'no-store, max-age=0', `${source} should never be cached`);
+}
 
 function createWorkerHarness({ fetchImpl, matchImpl, openImpl, putImpl } = {}) {
   const handlers = new Map();

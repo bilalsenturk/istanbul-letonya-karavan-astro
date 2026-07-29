@@ -66,9 +66,12 @@ const activeIndex = (() => {
   );
   return found >= 0 ? found : Math.min(dayIndex + 1, tripData.stops.length - 1);
 })();
+const dayTitle = `${day.origin} → ${day.destination} | ${day.date} Günlük Plan`;
+const dayDescription = `${day.date} ${day.origin} → ${day.destination} karavan etabı: rota, kamp, yakıt, riskler ve yol durakları.`;
+const dayImage = day.camp.image ?? '/assets/follow-riga-hero.jpg';
 ---
 
-<MainLayout title={`Günlük Plan: ${day.date} (${day.origin} → ${day.destination})`}>
+<MainLayout title={dayTitle} description={dayDescription} image={dayImage} type="article">
   <section class="shell" id="top">
     <div class="day-title">
       <h1>{day.date}</h1>

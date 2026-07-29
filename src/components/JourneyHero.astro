@@ -1,4 +1,6 @@
 ---
+import { Picture } from 'astro:assets';
+import heroImage from '../assets/journey/kuzey-road-motion.webp';
 import RouteMap from './RouteMap.astro';
 
 interface Stop {
@@ -24,11 +26,14 @@ const { routeStops, totalKm } = Astro.props;
   >
     <div class="journey-hero__frame">
       <div class="journey-hero__visual">
-        <img
+        <Picture
           class="journey-hero__image"
-          src="/assets/hero/kuzey-road-motion.webp"
+          src={heroImage}
+          widths={[640, 960, 1440, 1920]}
+          sizes="(min-width: 760px) 58vw, 100vw"
+          formats={['avif', 'webp']}
           alt="Günün ilk ışıklarında kuzeye ilerleyen otomobil ve Adria karavan"
-          fetchpriority="high"
+          priority
         />
         <div class="journey-hero__edge" aria-hidden="true"></div>
         <section class="journey-countdown" role="timer" aria-live="off" aria-label="Kalkış durumu">

@@ -2,9 +2,18 @@
 interface Props {
   title: string;
   description?: string;
+  image?: string;
+  type?: 'website' | 'article';
 }
 
-const { title, description } = Astro.props;
+const {
+  title,
+  description = "Leyla'nın Kuzey Yolculuğu",
+  image = '/assets/follow-riga-hero.jpg',
+  type = 'website',
+} = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const socialImage = new URL(image, Astro.site);
 ---
 
 <!doctype html>
@@ -12,11 +21,18 @@ const { title, description } = Astro.props;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta
-      name="description"
-      content={description ?? "Leyla'nın Kuzey Yolculuğu"}
-    />
+    <meta name="description" content={description} />
     <title>{title}</title>
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content={type} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={socialImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImage} />
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <!-- PWA / iOS app -->
@@ -27,8 +43,6 @@ const { title, description } = Astro.props;
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="KUZEY" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-    <link rel="preconnect" href="https://unpkg.com" />
-    <link rel="preconnect" href="https://www.google.com" />
     <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
     <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin />
     <link

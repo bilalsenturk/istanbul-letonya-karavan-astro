@@ -16,7 +16,30 @@ const dayExpectations = [
 ];
 
 const readOutput = (relativePath) => readFile(path.join(outputRoot, relativePath), 'utf8');
-const decodeAttribute = (value) => value.replaceAll('&amp;', '&');
+const decodeAttribute = (value) => value
+  .replaceAll('&amp;', '&')
+  .replaceAll('&quot;', '"')
+  .replaceAll('&#39;', "'");
+const parseAttributes = (source) => Object.fromEntries(
+  [...source.matchAll(/\b([:\w-]+)="([^"]*)"/g)]
+    .map(([, name, value]) => [name, decodeAttribute(value)]),
+);
+const tags = (html, tagName) => [...html.matchAll(new RegExp(`<${tagName}\\b([^>]*)>`, 'g'))]
+  .map((match) => parseAttributes(match[1]));
+const metaContent = (html, key) => tags(html, 'meta')
+  .find((attributes) => attributes.property === key || attributes.name === key)
+  ?.content ?? null;
+const canonicalHref = (html) => tags(html, 'link')
+  .find((attributes) => attributes.rel === 'canonical')
+  ?.href ?? null;
+const pictures = (html) => [...html.matchAll(/<picture\b[^>]*>[\s\S]*?<\/picture>/g)].map((match) => match[0]);
+const pictureImage = (picture) => tags(picture, 'img')[0] ?? null;
+const pictureByAlt = (html, alt) => pictures(html).find((picture) => pictureImage(picture)?.alt === alt) ?? null;
+const pictureTypes = (picture) => tags(picture, 'source').map((attributes) => attributes.type);
+const pictureWidths = (picture) => [...new Set(
+  tags(picture, 'source').flatMap((attributes) => [...(attributes.srcset ?? '').matchAll(/\s(\d+)w(?:,|$)/g)]
+    .map((match) => Number(match[1]))),
+)].sort((left, right) => left - right);
 const linkByText = (html, text) => {
   const match = [...html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)]
     .find(([, , body]) => body.replace(/<[^>]*>/g, '').trim() === text);
@@ -39,6 +62,78 @@ const assertDayHeadingOrder = (html, slug) => {
 };
 
 const home = await readOutput('index.html');
+const heroAlt = 'Günün ilk ışıklarında kuzeye ilerleyen otomobil ve Adria karavan';
+const galleryAlts = [
+  'Karavanla otoyolda yolculuk',
+  'Budapeşte yolunda karavan',
+  'Sofya şehir içinde karavan',
+];
+const heroPicture = pictureByAlt(home, heroAlt);
+assert.ok(heroPicture, 'the built homepage should render the hero through a picture element');
+assert.deepEqual(pictureTypes(heroPicture), ['image/avif', 'image/webp'], 'the hero should offer AVIF before WebP');
+const heroWidths = pictureWidths(heroPicture);
+for (const width of [640, 960, 1440]) {
+  assert.ok(heroWidths.includes(width), `the hero should emit its requested ${width}px source`);
+}
+assert.equal(Math.max(...heroWidths), 1536, 'the hero should cap its responsive output at the source width');
+const heroImageAttributes = pictureImage(heroPicture);
+assert.deepEqual(
+  {
+    width: heroImageAttributes.width,
+    height: heroImageAttributes.height,
+    sizes: heroImageAttributes.sizes,
+    alt: heroImageAttributes.alt,
+    loading: heroImageAttributes.loading,
+    decoding: heroImageAttributes.decoding,
+    fetchpriority: heroImageAttributes.fetchpriority,
+    class: heroImageAttributes.class,
+  },
+  {
+    width: '1536',
+    height: '1024',
+    sizes: '(min-width: 760px) 58vw, 100vw',
+    alt: heroAlt,
+    loading: 'eager',
+    decoding: 'sync',
+    fetchpriority: 'high',
+    class: 'journey-hero__image',
+  },
+  'the hero should preserve its intrinsic geometry, class, alt, and high-priority loading contract',
+);
+
+const galleryPictures = galleryAlts.map((alt) => pictureByAlt(home, alt));
+assert.ok(galleryPictures.every(Boolean), 'the gallery should preserve all three photos and their exact alt order');
+assert.deepEqual(
+  pictures(home).map((picture) => pictureImage(picture)?.alt).filter((alt) => galleryAlts.includes(alt)),
+  galleryAlts,
+  'the gallery should preserve its image order',
+);
+const naturalGalleryWidths = [1536, 1800, 1448];
+for (const [index, picture] of galleryPictures.entries()) {
+  assert.deepEqual(pictureTypes(picture), ['image/avif', 'image/webp'], `${galleryAlts[index]} should offer AVIF before WebP`);
+  assert.deepEqual(pictureWidths(picture), [420, 720, 1080], `${galleryAlts[index]} should emit the requested gallery widths`);
+  assert.ok(Math.max(...pictureWidths(picture)) <= naturalGalleryWidths[index], `${galleryAlts[index]} should never upscale its source`);
+  assert.equal(pictureImage(picture).loading, 'lazy', `${galleryAlts[index]} should remain lazy-loaded`);
+}
+assert.doesNotMatch(
+  home,
+  /\/assets\/(?:hero\/kuzey-road-motion\.webp|follow-(?:highway\.jpg|budapest\.jpg|sofia\.png))/,
+  'the built homepage should not reference the former public journey images',
+);
+
+const productionOrigin = 'https://istanbul-letonya-karavan-astro.vercel.app';
+const homeCanonical = `${productionOrigin}/`;
+const homeTitle = metaContent(home, 'og:title');
+const homeDescription = metaContent(home, 'og:description');
+const homeImage = metaContent(home, 'og:image');
+assert.equal(canonicalHref(home), homeCanonical, 'the homepage should have its exact production canonical');
+assert.equal(metaContent(home, 'og:type'), 'website', 'the homepage should identify as a website');
+assert.equal(metaContent(home, 'og:url'), homeCanonical, 'the homepage Open Graph URL should match its canonical');
+assert.ok(homeTitle && homeDescription && homeImage, 'the homepage should emit complete Open Graph metadata');
+assert.doesNotThrow(() => new URL(homeImage), 'the homepage social image should be absolute');
+assert.equal(metaContent(home, 'twitter:title'), homeTitle, 'homepage Twitter and Open Graph titles should agree');
+assert.equal(metaContent(home, 'twitter:description'), homeDescription, 'homepage Twitter and Open Graph descriptions should agree');
+assert.equal(metaContent(home, 'twitter:image'), homeImage, 'homepage Twitter and Open Graph images should agree');
 const homeRuntimeHref = [...home.matchAll(/<script\b[^>]*type="module"[^>]*src="([^"]+)"/g)]
   .map((match) => match[1])
   .find((href) => href.includes('index.astro_astro_type_script'));
@@ -86,6 +181,21 @@ for (const { expectation, html } of dayPages) {
   assert.match(html, /style="--route-stop-count: 7;"/, `${expectation.slug} should expose the dynamic stop count`);
   assertDayHeadingOrder(html, expectation.slug);
   assert.doesNotMatch(html, />Şehir Kameraları<\/h2>/, `${expectation.slug} should omit its empty camera section`);
+
+  const canonical = `${productionOrigin}/day/${expectation.slug}/`;
+  const title = metaContent(html, 'og:title');
+  const description = metaContent(html, 'og:description');
+  const image = metaContent(html, 'og:image');
+  assert.equal(canonicalHref(html), canonical, `${expectation.slug} should have its exact production canonical`);
+  assert.equal(metaContent(html, 'og:type'), 'article', `${expectation.slug} should identify as an article`);
+  assert.equal(metaContent(html, 'og:url'), canonical, `${expectation.slug} Open Graph URL should match its canonical`);
+  assert.notEqual(title, homeTitle, `${expectation.slug} should have a distinct title`);
+  assert.notEqual(description, homeDescription, `${expectation.slug} should have a distinct description`);
+  assert.notEqual(image, homeImage, `${expectation.slug} should have a distinct social image`);
+  assert.doesNotThrow(() => new URL(image), `${expectation.slug} social image should be absolute`);
+  assert.equal(metaContent(html, 'twitter:title'), title, `${expectation.slug} Twitter and Open Graph titles should agree`);
+  assert.equal(metaContent(html, 'twitter:description'), description, `${expectation.slug} Twitter and Open Graph descriptions should agree`);
+  assert.equal(metaContent(html, 'twitter:image'), image, `${expectation.slug} Twitter and Open Graph images should agree`);
 }
 
 assert.match(dayPages[1].html, />🇷🇸<\//, 'built route steps should include Serbia metadata');
