@@ -1,16 +1,14 @@
 /* global structuredClone */
 
 import assert from 'node:assert/strict';
+import { createServer } from 'vite';
 import {
   createTrip,
   getTripForUser,
   inviteMember,
   mutateTrip,
+  TripStorageConflictError,
 } from '../src/accounts/tripRepository.ts';
-
-class TripStorageConflictError extends Error {
-  code = 'revision_conflict';
-}
 
 class MemoryTripEventStorage {
   events = new Map();
@@ -61,19 +59,78 @@ assert.equal(created.members[0].role, 'owner');
 assert.equal(created.stops[0].source, 'currentLocation', 'current location remains semantic');
 assert.deepEqual(created.stops.map((stop) => stop.order), [0, 1]);
 
-const revisionRaceStorage = new MemoryTripEventStorage();
-await revisionRaceStorage.append(createdEvent, 0);
-const revisionTwo = { ...createdEvent, id: 'revision-two-a', revision: 2 };
-await assert.rejects(
-  revisionRaceStorage.append(revisionTwo, 0),
-  (error) => error instanceof TripStorageConflictError,
-);
-const revisionRace = await Promise.allSettled([
-  revisionRaceStorage.append(revisionTwo, 1),
-  revisionRaceStorage.append({ ...revisionTwo, id: 'revision-two-b' }, 1),
-]);
-assert.equal(revisionRace.filter((result) => result.status === 'fulfilled').length, 1);
-assert.equal(revisionRace.filter((result) => result.status === 'rejected').length, 1);
+const vite = await createServer({
+  root: process.cwd(),
+  configFile: false,
+  appType: 'custom',
+  logLevel: 'silent',
+  server: { middlewareMode: true },
+});
+try {
+  const { BlobTripEventStorage } = await vite.ssrLoadModule('/src/accounts/blobTripStorage.ts');
+  const { listPrivatePaths, readPrivateJSON } = await vite.ssrLoadModule('/src/accounts/privateBlob.ts');
+  const { TripRepositoryError, TripStorageConflictError: AdapterConflictError } = await vite.ssrLoadModule(
+    '/src/accounts/tripRepository.ts',
+  );
+  const revisionRaceStorage = new BlobTripEventStorage();
+  const raceTripId = `atomic-race-${created.id}`;
+  const revisionOne = {
+    id: 'adapter-revision-one',
+    tripId: raceTripId,
+    revision: 1,
+    occurredAt: '2026-07-29T12:00:00.000Z',
+    actorUserId: owner.userId,
+    type: 'tripCreated',
+    payload: {
+      name: 'Atomic storage test',
+      kind: 'standard',
+      transportMode: 'automobile',
+      ownerUserId: owner.userId,
+      stops: [],
+    },
+  };
+  await revisionRaceStorage.append(revisionOne, 0);
+  const revisionCandidates = [
+    {
+      ...revisionOne,
+      id: 'adapter-revision-two-a',
+      revision: 2,
+      type: 'tripUpdated',
+      payload: { name: 'Writer A' },
+    },
+    {
+      ...revisionOne,
+      id: 'adapter-revision-two-b',
+      revision: 2,
+      type: 'tripUpdated',
+      payload: { name: 'Writer B' },
+    },
+  ];
+  await assert.rejects(
+    revisionRaceStorage.append(revisionCandidates[0], 0),
+    (error) => error instanceof AdapterConflictError && error.code === 'revision_conflict',
+  );
+  const revisionRace = await Promise.allSettled([
+    revisionRaceStorage.append(revisionCandidates[0], 1),
+    revisionRaceStorage.append(revisionCandidates[1], 1),
+  ]);
+  assert.equal(revisionRace.filter((result) => result.status === 'fulfilled').length, 1);
+  assert.equal(revisionRace.filter((result) => result.status === 'rejected').length, 1);
+  const rejected = revisionRace.find((result) => result.status === 'rejected');
+  assert.ok(rejected?.reason instanceof AdapterConflictError);
+  assert.ok(rejected.reason instanceof TripRepositoryError);
+  assert.equal(rejected.reason.code, 'revision_conflict');
+  const winnerIndex = revisionRace.findIndex((result) => result.status === 'fulfilled');
+  const winner = revisionCandidates[winnerIndex];
+  const eventPrefix = `accounts/trips/${raceTripId}/events/`;
+  const revisionOnePath = `${eventPrefix}0000000001.json`;
+  const revisionTwoPath = `${eventPrefix}0000000002.json`;
+  assert.deepEqual(await listPrivatePaths(eventPrefix), [revisionOnePath, revisionTwoPath]);
+  assert.deepEqual(await readPrivateJSON(revisionTwoPath), winner);
+  assert.deepEqual(await revisionRaceStorage.list(raceTripId), [revisionOne, winner]);
+} finally {
+  await vite.close();
+}
 
 const assertCreateRejectedWithoutPersistence = async (input, code) => {
   const before = storage.totalEvents();
