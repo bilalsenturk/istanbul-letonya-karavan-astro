@@ -19,7 +19,7 @@ function parseInteger(rawValue, label) {
 
 function collectBuilds() {
   const yaml = read('ios/project.yml');
-  const yamlMatches = [...yaml.matchAll(/^\s*CURRENT_PROJECT_VERSION:\s*([^\s#]+)\s*(?:#.*)?$/gm)];
+  const yamlMatches = [...yaml.matchAll(/^[ \t]*CURRENT_PROJECT_VERSION:[ \t]*([^\s#]+)[ \t]*(?:#.*)?$/gm)];
   if (yamlMatches.length !== 2) {
     throw new Error(`ios/project.yml app ve widget için iki build değeri içermeli (bulunan: ${yamlMatches.length})`);
   }
