@@ -70,12 +70,7 @@ export const putPlanEdits = async (
     data: normalized.data,
   };
   try {
-    const written = await dependencies.publishedStateStorage.write(
-      tripId,
-      'plan-edits',
-      state,
-      current?.etag ?? null,
-    );
+    const written = await dependencies.publishedStateStorage.write(tripId, 'plan-edits', state, current?.etag ?? null);
     return projectPlanEdits(written.state, tripId);
   } catch (error) {
     if (!isStorageConflict(error)) throw error;
@@ -91,7 +86,9 @@ export const putPublishedResource = async (
   resource: PublishedResource,
   input: unknown,
 ): Promise<{ ok: true; revision: number; updatedAt: string }> => {
-  if (resource === 'plan-edits' || !(resource in resourceActions)) throw new TripRepositoryError('trip_not_found');
+  if (resource === 'plan-edits' || !Object.hasOwn(resourceActions, resource)) {
+    throw new TripRepositoryError('trip_not_found');
+  }
   const writableResource = resource as Exclude<PublishedResource, 'plan-edits'>;
   const trip = await getTripForAction(dependencies.tripStorage, auth.actor, tripId, resourceActions[resource]);
   if (trip.kind !== 'kuzey2026') throw new TripRepositoryError('trip_not_found');
@@ -110,12 +107,7 @@ export const putPublishedResource = async (
       data: mergeResource(writableResource, current?.state.data, auth.account.id, normalized),
     };
     try {
-      const written = await dependencies.publishedStateStorage.write(
-        tripId,
-        resource,
-        state,
-        current?.etag ?? null,
-      );
+      const written = await dependencies.publishedStateStorage.write(tripId, resource, state, current?.etag ?? null);
       return { ok: true, revision: written.state.revision, updatedAt: written.state.updatedAt };
     } catch (error) {
       if (!isStorageConflict(error)) throw error;
@@ -166,7 +158,9 @@ const mergeResource = (
 ): unknown => {
   if (resource !== 'expense-summary' && resource !== 'shared-journal') return normalized;
   const existing = contributionRecord(current);
-  return { contributions: { ...existing, [accountId]: normalized } };
+  const merged = { contributions: { ...existing, [accountId]: normalized } };
+  if (resource === 'expense-summary') aggregateExpenses(merged as ContributionState<ExpenseSummary>);
+  return merged;
 };
 
 const contributionRecord = (value: unknown): Record<string, unknown> => {
@@ -188,7 +182,10 @@ const projectPlanEdits = (state: PublishedStateEnvelope<PlanEditsState> | null, 
 };
 
 const requireScopedEnvelope = (state: PublishedStateEnvelope<unknown> | null, tripId: string): void => {
-  if (state && (state.schemaVersion !== 1 || state.tripId !== tripId || !Number.isInteger(state.revision) || state.revision < 1)) {
+  if (
+    state &&
+    (state.schemaVersion !== 1 || state.tripId !== tripId || !Number.isInteger(state.revision) || state.revision < 1)
+  ) {
     throw new Error('published_state_corrupt');
   }
 };
@@ -204,7 +201,7 @@ const isStorageConflict = (error: unknown): boolean =>
   error instanceof Error && error.message === 'private_blob_conflict';
 
 const isPublicResource = (resource: unknown): resource is Exclude<PublishedResource, 'plan-edits'> =>
-  resource === 'live-location'
-  || resource === 'expense-summary'
-  || resource === 'published-plan'
-  || resource === 'shared-journal';
+  resource === 'live-location' ||
+  resource === 'expense-summary' ||
+  resource === 'published-plan' ||
+  resource === 'shared-journal';

@@ -1,3 +1,5 @@
+/* global structuredClone */
+
 import assert from 'node:assert/strict';
 import { createServer } from 'vite';
 import {
@@ -10,6 +12,7 @@ import { TripStorageConflictError } from '../src/accounts/tripRepository.ts';
 
 class MemoryPublishedStateStorage {
   entries = new Map();
+  readCalls = [];
   writeCalls = [];
   conflictCount = 0;
   readBarriers = new Map();
@@ -19,6 +22,7 @@ class MemoryPublishedStateStorage {
   }
 
   async read(tripId, resource) {
+    this.readCalls.push(`${tripId}:${resource}`);
     const snapshot = structuredClone(this.entries.get(`${tripId}:${resource}`) ?? null);
     const barrier = this.readBarriers.get(resource);
     if (barrier && barrier.waiting < barrier.count) {
@@ -66,29 +70,32 @@ class MemoryTripEventStorage {
   }
 
   addTrip(id, kind, members) {
-    this.events.set(id, [{
-      id: `${id}-created`,
-      tripId: id,
-      revision: 1,
-      occurredAt: '2026-07-29T12:00:00.000Z',
-      actorUserId: members[0].userId,
-      type: 'tripCreated',
-      payload: {
-        name: id,
-        kind,
-        transportMode: 'automobile',
-        ownerUserId: members[0].userId,
-        stops: [],
+    this.events.set(id, [
+      {
+        id: `${id}-created`,
+        tripId: id,
+        revision: 1,
+        occurredAt: '2026-07-29T12:00:00.000Z',
+        actorUserId: members[0].userId,
+        type: 'tripCreated',
+        payload: {
+          name: id,
+          kind,
+          transportMode: 'automobile',
+          ownerUserId: members[0].userId,
+          stops: [],
+        },
       },
-    }, ...members.slice(1).map((member, index) => ({
-      id: `${id}-member-${index}`,
-      tripId: id,
-      revision: index + 2,
-      occurredAt: `2026-07-29T12:00:0${index + 1}.000Z`,
-      actorUserId: members[0].userId,
-      type: 'memberAdded',
-      payload: member,
-    }))]);
+      ...members.slice(1).map((member, index) => ({
+        id: `${id}-member-${index}`,
+        tripId: id,
+        revision: index + 2,
+        occurredAt: `2026-07-29T12:00:0${index + 1}.000Z`,
+        actorUserId: members[0].userId,
+        type: 'memberAdded',
+        payload: member,
+      })),
+    ]);
   }
 }
 
@@ -192,21 +199,49 @@ await assert.rejects(
   'published plan requires editTrip permission',
 );
 
+const unsupportedResourceStorage = new MemoryPublishedStateStorage();
+const unsupportedResourceDeps = { ...deps, publishedStateStorage: unsupportedResourceStorage };
+for (const inheritedResource of ['toString', '__proto__', 'constructor']) {
+  await assert.rejects(
+    putPublishedResource(
+      unsupportedResourceDeps,
+      ownerAuth,
+      'kuzey-public',
+      inheritedResource,
+      validInputs['shared-journal'],
+    ),
+    (error) => error?.code === 'trip_not_found',
+    `inherited resource ${inheritedResource} must be rejected by the explicit allowlist`,
+  );
+}
+assert.deepEqual(unsupportedResourceStorage.readCalls, [], 'unsupported resources are rejected before state reads');
+assert.deepEqual(unsupportedResourceStorage.writeCalls, [], 'unsupported resources are rejected before state writes');
+
 await putPublishedResource(deps, ownerAuth, 'kuzey-public', 'live-location', {
-  ...validInputs['live-location'], tripId: 'other-public',
+  ...validInputs['live-location'],
+  tripId: 'other-public',
 });
 assert.ok(repositoryStorage.entries.has('kuzey-public:live-location'), 'the repository trip argument selects storage');
-assert.equal(repositoryStorage.entries.has('other-public:live-location'), false, 'a body tripId cannot select another trip');
+assert.equal(
+  repositoryStorage.entries.has('other-public:live-location'),
+  false,
+  'a body tripId cannot select another trip',
+);
 assert.equal(repositoryStorage.entries.get('kuzey-public:live-location').state.tripId, 'kuzey-public');
 
-await repositoryStorage.write('standard-private', 'live-location', {
-  schemaVersion: 1,
-  tripId: 'standard-private',
-  revision: 1,
-  updatedAt: '2026-07-29T12:30:00.000Z',
-  updatedBy: 'owner-1',
-  data: validInputs['live-location'],
-}, null);
+await repositoryStorage.write(
+  'standard-private',
+  'live-location',
+  {
+    schemaVersion: 1,
+    tripId: 'standard-private',
+    revision: 1,
+    updatedAt: '2026-07-29T12:30:00.000Z',
+    updatedBy: 'owner-1',
+    data: validInputs['live-location'],
+  },
+  null,
+);
 await assert.rejects(
   getPublicPublishedResource(deps, 'standard-private', 'live-location'),
   (error) => error?.code === 'trip_not_found',
@@ -240,17 +275,126 @@ const planOne = await putPlanEdits(deps, memberAuth.actor, 'kuzey-public', {
   tripId: 'other-public',
 });
 assert.equal(planOne.revision, 1);
-assert.equal(repositoryStorage.entries.has('other-public:plan-edits'), false, 'plan bodies cannot override the URL trip');
+assert.equal(
+  repositoryStorage.entries.has('other-public:plan-edits'),
+  false,
+  'plan bodies cannot override the URL trip',
+);
 await assert.rejects(
   putPlanEdits(deps, memberAuth.actor, 'kuzey-public', {
     baseRevision: 0,
     departureAt: null,
     days: {},
   }),
-  (error) => error?.code === 'revision_conflict'
-    && error?.current?.revision === 1
-    && error?.current?.departureAt === '2026-07-30T05:00:00.000Z',
+  (error) =>
+    error?.code === 'revision_conflict' &&
+    error?.current?.revision === 1 &&
+    error?.current?.departureAt === '2026-07-30T05:00:00.000Z',
   'stale plan writes must immediately include current projected state',
+);
+
+const currentDayEdit = {
+  origin: 'İstanbul',
+  destination: 'Sofia',
+  distanceKm: '550 km',
+  duration: '7 sa',
+  fuel: '55 L',
+  note: 'Sınırda mola',
+  campName: 'Sofia Camp',
+  campPlace: 'Sofia',
+  arrivalTarget: {
+    id: 'target-1',
+    mapItemIdentifier: 'map-1',
+    name: 'Sofia Camp',
+    kind: 'campground',
+    latitude: 42.66,
+    longitude: 23.28,
+    formattedAddress: 'Sofia, Bulgaria',
+    maximumLengthMeters: 8.5,
+    source: 'appleMaps',
+    updatedAt: '2026-07-29T12:00:00Z',
+  },
+  stayDetails: {
+    checkIn: '2026-07-30T12:00:00Z',
+    checkOut: '2026-07-31T08:00:00Z',
+    reservationStatus: 'confirmed',
+    estimatedArrival: '18:30',
+    estimatedArrivalMode: 'manual',
+    estimatedArrivalWindow: {
+      start: '2026-07-30T15:00:00Z',
+      end: '2026-07-30T16:00:00Z',
+      timeZoneIdentifier: 'Europe/Sofia',
+    },
+  },
+  isRestDay: false,
+  extraDays: 1,
+  startHour: 7,
+  subplans: [
+    {
+      id: 'subplan-1',
+      title: 'Akşam yürüyüşü',
+      placeName: 'Sofia',
+      latitude: 42.69,
+      longitude: 23.32,
+      startMinute: 1_080,
+      durationMinutes: 60,
+      note: 'Merkez',
+    },
+  ],
+};
+const planTwo = await putPlanEdits(deps, memberAuth.actor, 'kuzey-public', {
+  baseRevision: 1,
+  departureAt: '2026-07-30T05:00:00Z',
+  days: { 'day-1': currentDayEdit },
+});
+assert.equal(planTwo.revision, 2, 'the current Swift DayEdit payload remains valid');
+assert.equal(planTwo.days['day-1'].arrivalTarget.kind, 'campground');
+assert.equal(planTwo.days['day-1'].subplans[0].startMinute, 1_080);
+
+const assertInvalidPlanEdits = async (days, message) => {
+  await assert.rejects(
+    putPlanEdits(deps, memberAuth.actor, 'kuzey-public', {
+      baseRevision: 2,
+      departureAt: null,
+      days,
+    }),
+    (error) => error?.code === 'invalid_published_state',
+    message,
+  );
+};
+
+await assertInvalidPlanEdits(
+  { 'day-deep': { note: { nested: { deeper: { payload: 'x' } } } } },
+  'plan edits reject nested values outside the concrete DayEdit shape',
+);
+await assertInvalidPlanEdits({ 'day-string': { note: 'x'.repeat(5_001) } }, 'plan edits reject huge strings');
+await assertInvalidPlanEdits(
+  {
+    'day-array': {
+      subplans: Array.from({ length: 65 }, (_, index) => ({ ...currentDayEdit.subplans[0], id: `sub-${index}` })),
+    },
+  },
+  'plan edits reject huge arrays',
+);
+await assertInvalidPlanEdits(
+  { 'day-keys': Object.fromEntries(Array.from({ length: 65 }, (_, index) => [`field-${index}`, index])) },
+  'plan edits reject huge key sets',
+);
+await assertInvalidPlanEdits(
+  {
+    'day-bytes': {
+      subplans: Array.from({ length: 64 }, (_, index) => ({
+        ...currentDayEdit.subplans[0],
+        id: `sub-${index}`,
+        note: 'x'.repeat(1_000),
+      })),
+    },
+  },
+  'plan edits reject a single oversized serialized day',
+);
+await assertInvalidPlanEdits(
+  Object.fromEntries(Array.from({ length: 60 }, (_, index) => [`day-${index}`, { note: 'x'.repeat(5_000) }])),
+  'plan edits reject an oversized serialized days collection even when each day is valid',
 );
 
 const assertInvalid = async (resourceName, input, message) => {
@@ -263,19 +407,50 @@ const assertInvalid = async (resourceName, input, message) => {
 
 await assertInvalid('live-location', { ...validInputs['live-location'], lat: 90.01 }, 'latitude must be in range');
 await assertInvalid('live-location', { ...validInputs['live-location'], lng: -180.01 }, 'longitude must be in range');
-await assertInvalid('expense-summary', { ...validInputs['expense-summary'], totalEur: -0.01 }, 'expense totals are nonnegative');
-await assertInvalid('expense-summary', { ...validInputs['expense-summary'], totalEur: Infinity }, 'expense totals are finite');
-await assertInvalid('expense-summary', {
-  ...validInputs['expense-summary'],
-  byCategory: Object.fromEntries(Array.from({ length: 33 }, (_, index) => [`category-${index}`, 1])),
-}, 'expense summaries accept no more than 32 category keys');
-await assertInvalid('expense-summary', {
-  ...validInputs['expense-summary'], byCategory: { fuel: -1 },
-}, 'expense category values are nonnegative');
-await assertInvalid('published-plan', {
-  ...validInputs['published-plan'],
-  days: Array.from({ length: 61 }, (_, index) => ({ slug: `day-${index}`, date: '2026-07-30T05:00:00Z' })),
-}, 'published plans accept no more than 60 days');
+await assertInvalid(
+  'expense-summary',
+  { ...validInputs['expense-summary'], totalEur: -0.01 },
+  'expense totals are nonnegative',
+);
+await assertInvalid(
+  'expense-summary',
+  { ...validInputs['expense-summary'], totalEur: Infinity },
+  'expense totals are finite',
+);
+await assertInvalid(
+  'expense-summary',
+  { ...validInputs['expense-summary'], totalEur: Number.MAX_VALUE },
+  'huge finite expense totals are rejected before currency rounding can overflow',
+);
+await assertInvalid(
+  'expense-summary',
+  { ...validInputs['expense-summary'], byCategory: { fuel: Number.MAX_VALUE } },
+  'huge finite category totals are rejected before currency rounding can overflow',
+);
+await assertInvalid(
+  'expense-summary',
+  {
+    ...validInputs['expense-summary'],
+    byCategory: Object.fromEntries(Array.from({ length: 33 }, (_, index) => [`category-${index}`, 1])),
+  },
+  'expense summaries accept no more than 32 category keys',
+);
+await assertInvalid(
+  'expense-summary',
+  {
+    ...validInputs['expense-summary'],
+    byCategory: { fuel: -1 },
+  },
+  'expense category values are nonnegative',
+);
+await assertInvalid(
+  'published-plan',
+  {
+    ...validInputs['published-plan'],
+    days: Array.from({ length: 61 }, (_, index) => ({ slug: `day-${index}`, date: '2026-07-30T05:00:00Z' })),
+  },
+  'published plans accept no more than 60 days',
+);
 await assert.rejects(
   putPlanEdits(deps, ownerAuth.actor, 'kuzey-public', {
     baseRevision: 1,
@@ -285,34 +460,67 @@ await assert.rejects(
   (error) => error?.code === 'invalid_published_state',
   'plan edits accept no more than 60 day keys',
 );
-await assertInvalid('shared-journal', {
-  entries: Array.from({ length: 251 }, (_, index) => ({ id: `entry-${index}`, text: 'x', createdAt: '2026-07-29T12:30:00Z' })),
-}, 'journals accept no more than 250 entries');
-await assertInvalid('shared-journal', {
-  entries: [{ id: 'x'.repeat(201), text: 'x', createdAt: '2026-07-29T12:30:00Z' }],
-}, 'journal IDs are bounded');
-await assertInvalid('shared-journal', {
-  entries: [{ id: 'x', text: 'x'.repeat(5001), createdAt: '2026-07-29T12:30:00Z' }],
-}, 'journal text is bounded');
-await assertInvalid('shared-journal', {
-  entries: [{ id: 'x', text: 'x', createdAt: 'not-a-date' }],
-}, 'journal dates must be valid ISO timestamps');
-await assertInvalid('shared-journal', {
-  entries: [{ id: 'x', text: 'x', createdAt: '2026-02-31T12:30:00Z' }],
-}, 'ISO-shaped but impossible calendar dates must be rejected');
+await assertInvalid(
+  'shared-journal',
+  {
+    entries: Array.from({ length: 251 }, (_, index) => ({
+      id: `entry-${index}`,
+      text: 'x',
+      createdAt: '2026-07-29T12:30:00Z',
+    })),
+  },
+  'journals accept no more than 250 entries',
+);
+await assertInvalid(
+  'shared-journal',
+  {
+    entries: [{ id: 'x'.repeat(201), text: 'x', createdAt: '2026-07-29T12:30:00Z' }],
+  },
+  'journal IDs are bounded',
+);
+await assertInvalid(
+  'shared-journal',
+  {
+    entries: [{ id: 'x', text: 'x'.repeat(5001), createdAt: '2026-07-29T12:30:00Z' }],
+  },
+  'journal text is bounded',
+);
+await assertInvalid(
+  'shared-journal',
+  {
+    entries: [{ id: 'x', text: 'x', createdAt: 'not-a-date' }],
+  },
+  'journal dates must be valid ISO timestamps',
+);
+await assertInvalid(
+  'shared-journal',
+  {
+    entries: [{ id: 'x', text: 'x', createdAt: '2026-02-31T12:30:00Z' }],
+  },
+  'ISO-shaped but impossible calendar dates must be rejected',
+);
 
 const raceStorage = new MemoryPublishedStateStorage();
 raceStorage.synchronizeReads('expense-summary', 2);
 const raceDeps = { ...deps, publishedStateStorage: raceStorage };
 const expenseRace = await Promise.all([
   putPublishedResource(raceDeps, ownerAuth, 'kuzey-public', 'expense-summary', {
-    totalEur: 10, count: 1, byCategory: { fuel: 10 }, ts: '2026-07-29T12:31:00Z',
+    totalEur: 10,
+    count: 1,
+    byCategory: { fuel: 10 },
+    ts: '2026-07-29T12:31:00Z',
   }),
   putPublishedResource(raceDeps, memberAuth, 'kuzey-public', 'expense-summary', {
-    totalEur: 5, count: 2, byCategory: { food: 5 }, ts: '2026-07-29T12:32:00Z',
+    totalEur: 5,
+    count: 2,
+    byCategory: { food: 5 },
+    ts: '2026-07-29T12:32:00Z',
   }),
 ]);
-assert.deepEqual(expenseRace.map((result) => result.ok), [true, true]);
+assert.deepEqual(
+  expenseRace.map((result) => result.ok),
+  [true, true],
+);
 assert.equal(raceStorage.conflictCount, 1, 'the contribution race must force one precondition failure');
 assert.deepEqual(
   await getPublicPublishedResource(raceDeps, 'kuzey-public', 'expense-summary'),
@@ -329,6 +537,63 @@ assert.equal(
   JSON.stringify(await getPublicPublishedResource(raceDeps, 'kuzey-public', 'expense-summary')).includes('owner-1'),
   false,
   'public expenses must not reveal contribution account IDs',
+);
+
+const prototypeCategoryStorage = new MemoryPublishedStateStorage();
+const prototypeCategoryDeps = { ...deps, publishedStateStorage: prototypeCategoryStorage };
+await putPublishedResource(prototypeCategoryDeps, ownerAuth, 'kuzey-public', 'expense-summary', {
+  totalEur: 5,
+  count: 1,
+  byCategory: JSON.parse('{"toString":2,"__proto__":3}'),
+  ts: '2026-07-29T12:31:00Z',
+});
+const inheritedCategories = Object.create({ inherited: 999 });
+inheritedCategories.toString = 4;
+Object.defineProperty(inheritedCategories, '__proto__', { value: 5, enumerable: true });
+await putPublishedResource(prototypeCategoryDeps, memberAuth, 'kuzey-public', 'expense-summary', {
+  totalEur: 9,
+  count: 2,
+  byCategory: inheritedCategories,
+  ts: '2026-07-29T12:32:00Z',
+});
+const prototypeCategoryProjection = await getPublicPublishedResource(
+  prototypeCategoryDeps,
+  'kuzey-public',
+  'expense-summary',
+);
+assert.equal(prototypeCategoryProjection.totalEur, 14);
+assert.equal(prototypeCategoryProjection.byCategory.toString, 6, 'toString is aggregated as an own category');
+assert.equal(prototypeCategoryProjection.byCategory.__proto__, 8, '__proto__ is aggregated as an own category');
+assert.equal(Object.hasOwn(prototypeCategoryProjection.byCategory, '__proto__'), true);
+assert.equal(
+  Object.hasOwn(prototypeCategoryProjection.byCategory, 'inherited'),
+  false,
+  'inherited categories are ignored',
+);
+assert.equal(
+  Object.values(prototypeCategoryProjection.byCategory).every(Number.isFinite),
+  true,
+  'prototype-like category totals remain finite',
+);
+
+const cumulativeExpenseStorage = new MemoryPublishedStateStorage();
+const cumulativeExpenseDeps = { ...deps, publishedStateStorage: cumulativeExpenseStorage };
+const largeSafeExpense = {
+  totalEur: 60_000_000_000_000,
+  count: 1,
+  byCategory: { fuel: 60_000_000_000_000 },
+  ts: '2026-07-29T12:31:00Z',
+};
+await putPublishedResource(cumulativeExpenseDeps, ownerAuth, 'kuzey-public', 'expense-summary', largeSafeExpense);
+await assert.rejects(
+  putPublishedResource(cumulativeExpenseDeps, memberAuth, 'kuzey-public', 'expense-summary', largeSafeExpense),
+  (error) => error?.code === 'invalid_published_state',
+  'a contribution that makes the aggregate exceed the safe amount ceiling is rejected',
+);
+assert.equal(
+  (await getPublicPublishedResource(cumulativeExpenseDeps, 'kuzey-public', 'expense-summary')).totalEur,
+  60_000_000_000_000,
+  'a rejected cumulative overflow leaves the prior finite aggregate intact',
 );
 
 const alwaysConflictingStorage = new AlwaysConflictingPublishedStateStorage();
@@ -352,7 +617,10 @@ await putPublishedResource(deps, ownerAuth, 'kuzey-public', 'shared-journal', {
 const journal = await getPublicPublishedResource(deps, 'kuzey-public', 'shared-journal');
 assert.deepEqual(
   journal.entries.map((entry) => [entry.id, entry.author]),
-  [['entry-2', 'Owner Name'], ['entry-1', 'Member Name']],
+  [
+    ['entry-2', 'Owner Name'],
+    ['entry-1', 'Member Name'],
+  ],
   'journal contributions from both accounts survive and use server-authored display names',
 );
 assert.equal(JSON.stringify(journal).includes('Client Forgery'), false, 'client journal authors are ignored');
@@ -385,8 +653,16 @@ try {
     storage.write(localTripId, resource, { ...localInitialState, revision: 2 }, localCreated.etag),
     storage.write(localTripId, resource, { ...localInitialState, revision: 2 }, localCreated.etag),
   ]);
-  assert.equal(contenders.filter((result) => result.status === 'fulfilled').length, 1, 'one writer must win the stale-ETag race');
-  assert.equal(contenders.filter((result) => result.status === 'rejected').length, 1, 'one writer must conflict in the stale-ETag race');
+  assert.equal(
+    contenders.filter((result) => result.status === 'fulfilled').length,
+    1,
+    'one writer must win the stale-ETag race',
+  );
+  assert.equal(
+    contenders.filter((result) => result.status === 'rejected').length,
+    1,
+    'one writer must conflict in the stale-ETag race',
+  );
   const winner = contenders.find((result) => result.status === 'fulfilled');
   const loser = contenders.find((result) => result.status === 'rejected');
   assert.notEqual(winner.value.etag, localCreated.etag, 'each successful local write must produce a new opaque ETag');
