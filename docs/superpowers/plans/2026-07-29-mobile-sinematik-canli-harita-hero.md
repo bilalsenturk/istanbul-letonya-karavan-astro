@@ -102,44 +102,34 @@ git add docs/superpowers/concepts/2026-07-29-journey-hero-mobile.png \
 git commit -m "design: add cinematic live-map hero concept"
 ```
 
-### Task 2: Add failing hero contract checks
+### Task 2: Add and test friendly live-location behavior
 
 **Files:**
 - Modify: `tools/check-web-app-sync.mjs`
+- Modify: `src/scripts/liveSync.ts`
 
 **Interfaces:**
-- Consumes: Existing source-level regression checks in `tools/check-web-app-sync.mjs`.
-- Produces: `npm run check:web-sync` assertions for friendly location copy, compact map markup, mobile layout, and reduced motion.
+- Consumes: `NormalizedLiveRecord` and planned route stops.
+- Produces: `formatFriendlyLocation(record, stops) -> string`, `heroLiveLabels(record, stops)`, and `installJourneyHeroLiveState(root)`.
 
-- [ ] **Step 1: Replace obsolete hero assertions with the new contract**
+- [ ] **Step 1: Write the first failing behavior test**
 
-Add these assertions after `homeSource` is loaded:
+Add these assertions after the existing inactive-record checks:
 
 ```js
-assert.match(homeSource, /JourneyHero/, "home should render the focused journey hero component");
-assert.match(homeSource, /formatFriendlyLocation/, "home should format a human-readable live place");
-assert.doesNotMatch(
-  homeSource,
-  /live\.lat\.toFixed\([^)]+\)[\s\S]{0,80}live\.lng\.toFixed/,
-  "home must never show raw coordinates as the live place",
+const plannedStops = [
+  { name: "İstanbul", lat: 41.0082, lng: 28.9784 },
+  { name: "Sofya", lat: 42.6977, lng: 23.3219 },
+  { name: "Riga", lat: 56.9496, lng: 24.1052 },
+];
+
+assert.equal(typeof liveSync.formatFriendlyLocation, "function", "friendly location formatter should exist");
+assert.equal(
+  liveSync.formatFriendlyLocation(inactive, plannedStops),
+  "Ümraniye, İstanbul",
+  "a city near a planned stop should include its readable region",
 );
-assert.match(homeSource, /Konum güncelleniyor/, "home should provide a coordinate-free empty state");
-assert.match(homeSource, /data-map-stops=/, "home should provide planned stops to the friendly location formatter");
-
-const heroSource = fs.readFileSync(path.join(root, "src/components/JourneyHero.astro"), "utf8");
-assert.match(heroSource, /variant="hero"/, "hero should include the compact live map variant");
-assert.match(heroSource, /kuzey-road-motion\.webp/, "hero should use the cinematic production image");
-assert.match(heroSource, /data-hero-role="current"/, "hero should expose the current route point");
-assert.match(heroSource, /data-hero-role="next"/, "hero should expose the next route point");
-assert.match(heroSource, /prefers-reduced-motion:\s*reduce/, "hero motion must respect reduced-motion preference");
-assert.match(heroSource, /clamp\(320px,\s*44svh,\s*430px\)/, "mobile image height should match the approved spec");
-
-const routeMapComponent = fs.readFileSync(path.join(root, "src/components/RouteMap.astro"), "utf8");
-assert.match(routeMapComponent, /variant\?:\s*'default'\s*\|\s*'hero'/, "RouteMap should expose a typed hero variant");
-assert.match(routeMapComponent, /data-compact/, "hero map should declare compact behavior");
 ```
-
-Remove assertions that require the old eight-stop hero rail, the old 3:2 mobile image, and the large countdown overlay.
 
 - [ ] **Step 2: Run the check and verify failure**
 
@@ -147,13 +137,69 @@ Remove assertions that require the old eight-stop hero rail, the old 3:2 mobile 
 npm run check:web-sync
 ```
 
-Expected: FAIL because `JourneyHero.astro`, the compact map variant, and `formatFriendlyLocation` do not exist.
+Expected: FAIL with an assertion that `friendly location formatter should exist`.
 
-- [ ] **Step 3: Commit the failing contract**
+- [ ] **Step 3: Implement the minimal formatter**
+
+Add `PlannedStop`, a Haversine helper, and `formatFriendlyLocation` to `src/scripts/liveSync.ts`. The minimal implementation returns the city and the nearest planned stop when that stop is within 120 km and has a different name.
+
+- [ ] **Step 4: Run the check and verify the first case passes**
 
 ```bash
-git add tools/check-web-app-sync.mjs
-git commit -m "test: define mobile journey hero contract"
+npm run check:web-sync
+```
+
+Expected: PASS.
+
+- [ ] **Step 5: Add failing no-city and route-state cases**
+
+Add literal expectations for:
+
+```js
+assert.equal(
+  liveSync.formatFriendlyLocation({ ...inactive, city: null }, plannedStops),
+  "İstanbul çevresi",
+);
+assert.equal(
+  liveSync.formatFriendlyLocation({ ...normalized, city: null }, plannedStops),
+  "Sofya yönünde",
+);
+assert.equal(
+  liveSync.formatFriendlyLocation({ ...inactive, city: null, lat: 0, lng: 0, position: { lat: 0, lng: 0 } }, plannedStops),
+  "Konum güncelleniyor",
+);
+```
+
+Run `npm run check:web-sync` and confirm the first unsupported branch fails.
+
+- [ ] **Step 6: Implement route and empty-state branches**
+
+Add `heroLiveLabels(record, stops)` returning:
+
+```ts
+interface HeroLiveLabels {
+  place: string;
+  state: string;
+  current: string;
+  next: string;
+}
+```
+
+Add `installJourneyHeroLiveState(root)` that parses `root.dataset.stops`, applies labels from `window.__kuzeyLiveState`, listens for `kuzey:live-location`, and updates `live-city`, `hero-live-text`, `hero-current-place`, and `hero-next-place` inside that root.
+
+- [ ] **Step 7: Run the completed behavior checks**
+
+```bash
+npm run check:web-sync
+```
+
+Expected: PASS with all literal location cases.
+
+- [ ] **Step 8: Commit the tested behavior**
+
+```bash
+git add tools/check-web-app-sync.mjs src/scripts/liveSync.ts
+git commit -m "feat: format live location without coordinates"
 ```
 
 ### Task 3: Add a compact RouteMap variant
@@ -223,7 +269,7 @@ Add component-scoped rules for `.route-map-card--hero`: no visible card heading,
 npm run check:web-sync
 ```
 
-Expected: FAIL only on the not-yet-created `JourneyHero.astro` and `formatFriendlyLocation` assertions.
+Expected: PASS.
 
 - [ ] **Step 5: Commit the compact map**
 
@@ -238,7 +284,7 @@ git commit -m "feat: add compact live route map"
 - Create: `src/components/JourneyHero.astro`
 
 **Interfaces:**
-- Consumes: `routeStops: { name: string; lat: number; lng: number }[]`, `totalKm: number`.
+- Consumes: `routeStops: { name: string; lat: number; lng: number }[]`, `totalKm: number`, and `installJourneyHeroLiveState`.
 - Produces: Existing live DOM IDs used by `index.astro`, four route roles, the compact `RouteMap`, and the summary rail.
 
 - [ ] **Step 1: Create the component structure**
@@ -291,6 +337,18 @@ const { routeStops, totalKm } = Astro.props;
 </section>
 ```
 
+Add `data-journey-hero` and `data-stops={JSON.stringify(routeStops)}` to the root section. Add a bundled component script:
+
+```astro
+<script>
+  import { installJourneyHeroLiveState } from '../scripts/liveSync';
+
+  document.querySelectorAll<HTMLElement>('[data-journey-hero]').forEach((root) => {
+    installJourneyHeroLiveState(root);
+  });
+</script>
+```
+
 Add the summary rail immediately after the hero and preserve these update IDs: `remaining-distance`, `remaining-note`, `live-traveled`, `journey-progress-note`, `spend-amount`, `spend-note`, `fuel-used`, `fuel-note`, `weather-now`, and `weather-detail`.
 
 - [ ] **Step 2: Implement the approved visual system**
@@ -313,7 +371,7 @@ Create component-scoped CSS with:
 npm run check:web-sync
 ```
 
-Expected: FAIL only because `index.astro` has not yet imported the component or added friendly location logic.
+Expected: PASS.
 
 - [ ] **Step 4: Commit the component**
 
@@ -328,8 +386,8 @@ git commit -m "feat: build mobile-first journey hero"
 - Modify: `src/pages/index.astro`
 
 **Interfaces:**
-- Consumes: `JourneyHero`, `mapStops`, current live API record, route timeline.
-- Produces: `formatFriendlyLocation(live) -> string`, updated hero state, unchanged downstream map and detail sections.
+- Consumes: `JourneyHero`, `mapStops`, current live API record, route timeline, and `kuzey:live-location`.
+- Produces: Updated hero state without competing direct location writes, unchanged downstream map and detail sections.
 
 - [ ] **Step 1: Replace the old hero markup**
 
@@ -347,73 +405,23 @@ Replace the old `.follow-hero` section with:
 
 Keep route timeline, full map, road details, expenses, and gallery in their existing order. Remove the old hero-only CSS blocks from `index.astro`; keep downstream section styles.
 
-- [ ] **Step 2: Pass stops to the live script**
+- [ ] **Step 2: Stop the old script from overwriting friendly labels**
 
-Add `data-map-stops={JSON.stringify(mapStops)}` to the existing inline script and parse it beside `routeTimeline`:
-
-```js
-const mapStops = (() => {
-  try {
-    return JSON.parse(script?.dataset.mapStops || '[]');
-  } catch {
-    return [];
-  }
-})();
-```
-
-- [ ] **Step 3: Add the friendly location formatter**
-
-Add these functions after `cleanText`:
+In `updateLiveUi`, remove the coordinate fallback and these direct writes:
 
 ```js
-const radians = (value) => (value * Math.PI) / 180;
-const distanceKm = (from, to) => {
-  const dLat = radians(to.lat - from.lat);
-  const dLng = radians(to.lng - from.lng);
-  const a = Math.sin(dLat / 2) ** 2
-    + Math.cos(radians(from.lat)) * Math.cos(radians(to.lat)) * Math.sin(dLng / 2) ** 2;
-  return 6371.0088 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
-const nearestPlannedStop = (live) => mapStops
-  .map((stop) => ({ ...stop, distanceKm: distanceKm(live, stop) }))
-  .sort((a, b) => a.distanceKm - b.distanceKm)[0] || null;
-
-function formatFriendlyLocation(live) {
-  const city = cleanText(live.city);
-  const nearest = nearestPlannedStop(live);
-  if (city) {
-    if (nearest && nearest.distanceKm <= 120 && stopKey(city) !== stopKey(nearest.name)) {
-      return `${city}, ${nearest.name}`;
-    }
-    return city;
-  }
-  const target = cleanText(live.activeRouteStop) || cleanText(live.nextStop);
-  if (live.routeStarted && target) return `${target} yönünde`;
-  if (nearest && nearest.distanceKm <= 120) return `${nearest.name} çevresi`;
-  return 'Konum güncelleniyor';
-}
-```
-
-- [ ] **Step 4: Update hero state without coordinates**
-
-In `updateLiveUi`, replace the coordinate fallback with:
-
-```js
-const city = formatFriendlyLocation(live);
 const next = live.activeRouteStop || live.nextStop || '-';
-const status = live.routeStarted
-  ? next !== '-' ? `${next} yönü` : 'Rota aktif'
-  : 'Kalkış hazırlığı';
-
-setText('live-city', city);
-setText('hero-live-text', status);
-setText('hero-current-place', city === 'Konum güncelleniyor' ? 'Şu an' : city.split(',')[0]);
-setText('hero-next-place', next === '-' ? 'Sıradaki' : next);
 ```
+
+`JourneyHero.astro` owns those four labels through the tested live-sync helper. Keep `live-updated` in the page script.
 
 Update `updateHeroRoute` to toggle `is-passed`, `is-active`, and `is-next` on the four `data-hero-role` elements. Preserve `hero-route-fill` as the total route percentage.
 
-- [ ] **Step 5: Run checks**
+- [ ] **Step 3: Remove obsolete source checks**
+
+Delete `tools/check-web-app-sync.mjs` assertions that require the old eight-stop hero rail, the old 3:2 mobile image, the old large countdown overlay, or exact hero asset filenames. The behavior tests for `formatFriendlyLocation` remain.
+
+- [ ] **Step 4: Run checks**
 
 ```bash
 npm run check:web-sync
@@ -424,10 +432,10 @@ npm run build
 
 Expected: all commands exit 0. If an existing unrelated dirty file fails lint, rerun ESLint against `src/pages/index.astro`, `src/components/JourneyHero.astro`, `src/components/RouteMap.astro`, and `src/scripts/routeMap.ts`, then record the unrelated file separately.
 
-- [ ] **Step 6: Commit the integration**
+- [ ] **Step 5: Commit the integration and updated regression script**
 
 ```bash
-git add src/pages/index.astro
+git add src/pages/index.astro tools/check-web-app-sync.mjs
 git commit -m "feat: integrate cinematic live-map hero"
 ```
 
