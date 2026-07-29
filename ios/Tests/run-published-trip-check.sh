@@ -20,6 +20,7 @@ swiftc -O -o "$OUT/publishedtripcheck" \
   "$SRC/Models.swift" \
   "$SRC/RouteStepPolicy.swift" \
   "$SRC/ArrivalTarget.swift" \
+  "$SRC/TripPlanner.swift" \
   "$SRC/Accounts/AccountModels.swift" \
   "$SRC/Config.swift" \
   "$SRC/Accounts/KeychainTokenStore.swift" \

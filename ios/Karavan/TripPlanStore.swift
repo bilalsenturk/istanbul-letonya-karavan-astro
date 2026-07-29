@@ -1,5 +1,24 @@
 import Foundation
 
+enum PlanEditMerge {
+    static func rebase(
+        local: TripEdits,
+        base: TripEdits,
+        remote: TripEdits,
+        canMoveDeparture: Bool
+    ) -> TripEdits {
+        var merged = remote
+        for slug in Set(local.days.keys).union(base.days.keys)
+        where local.days[slug] != base.days[slug] {
+            merged.days[slug] = local.days[slug]
+        }
+        if canMoveDeparture, local.departureAt != base.departureAt {
+            merged.departureAt = local.departureAt
+        }
+        return merged
+    }
+}
+
 // Kullanıcı düzenlemelerinin cihazdaki deposu + kaskat tetikleyicisi.
 // Web verisi TABAN kalır; düzenlemeler onun üstüne bindirilir. Böylece site
 // güncellenince taban tazelenir, kişisel değişikliklerin korunur.
@@ -34,23 +53,32 @@ final class TripPlanStore: ObservableObject {
     /// "bu cihazda ne değişti" tabanı. Diske yazılır (yeniden başlatmada da geçerli).
     private var syncBase = TripEdits()
     private var arrivalTargetOverrides = ScopedArrivalTargetOverrides()
+    private var publishedTripScope: PublishedTripScope?
+    private let planEditsClient: PlanEditSending
+    private let storageDirectory: URL
+    private let canMoveDepartureOverride: (() -> Bool)?
 
     private var fileURL: URL {
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("trip-edits.json")
+        storageDirectory.appendingPathComponent("trip-edits.json")
     }
 
     private var baseFileURL: URL {
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("trip-edits-sync-base.json")
+        storageDirectory.appendingPathComponent("trip-edits-sync-base.json")
     }
 
     private var arrivalTargetOverridesFileURL: URL {
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("arrival-target-overrides.json")
+        storageDirectory.appendingPathComponent("arrival-target-overrides.json")
     }
 
-    init() {
+    init(
+        planEditsClient: PlanEditSending? = nil,
+        storageDirectory: URL? = nil,
+        canMoveDeparture: (() -> Bool)? = nil
+    ) {
+        self.planEditsClient = planEditsClient ?? PublishedTripClient.shared
+        self.storageDirectory = storageDirectory
+            ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        canMoveDepartureOverride = canMoveDeparture
         isOwner = UserDefaults.standard.bool(forKey: Self.ownerKey)
         if let data = try? Data(contentsOf: fileURL),
            let decoded = try? JSONDecoder().decode(TripEdits.self, from: data) {
@@ -85,85 +113,101 @@ final class TripPlanStore: ObservableObject {
 #endif
     }
 
-    // MARK: - Public projection
+    // MARK: - Cihazlar arası senkron
 
-    /// Legacy anonymous edits transport has been retired. The current local
-    /// plan is projected through the selected trip's Bearer route by the app.
+    func setPublishedTripScope(_ scope: PublishedTripScope?) {
+        publishedTripScope = scope
+    }
+
+    /// Seçili public Kuzey rotasının kimlik doğrulamalı revision
+    /// kaydını çeker. Yerel farklar uzak kaydın üstüne bindirilir;
+    /// fark varsa aynı revision'a koşullu PUT yapılır.
     func syncFromWeb() async {
-        lastSyncedAt = nil
+        guard !syncing, let scope = publishedTripScope else { return }
+        syncing = true
+        defer { syncing = false }
+
+        let remote: RemotePlanEdits
+        do {
+            remote = try await planEditsClient.getPlanEdits(scope: scope)
+        } catch {
+            return
+        }
+        guard publishedTripScope == scope else { return }
+
+        lastSyncedAt = Date()
+        let remoteEdits = remote.edits.sharedSyncState
+        let merged = PlanEditMerge.rebase(
+            local: edits.sharedSyncState,
+            base: syncBase.sharedSyncState,
+            remote: remoteEdits,
+            canMoveDeparture: canMoveDeparture
+        )
+        apply(edits: merged, syncBase: remoteEdits)
+        guard merged != remoteEdits else { return }
+
+        do {
+            let accepted = try await planEditsClient.putPlanEdits(
+                scope: scope,
+                baseRevision: remote.revision,
+                edits: merged
+            )
+            guard publishedTripScope == scope else { return }
+            applyAccepted(accepted)
+        } catch PublishedTripClientError.revisionConflict(let current) {
+            guard publishedTripScope == scope else { return }
+            let currentEdits = current.edits.sharedSyncState
+            let rebased = PlanEditMerge.rebase(
+                local: merged,
+                base: remoteEdits,
+                remote: currentEdits,
+                canMoveDeparture: canMoveDeparture
+            )
+            apply(edits: rebased, syncBase: currentEdits)
+            guard rebased != currentEdits else { return }
+            do {
+                let accepted = try await planEditsClient.putPlanEdits(
+                    scope: scope,
+                    baseRevision: current.revision,
+                    edits: rebased
+                )
+                guard publishedTripScope == scope else { return }
+                applyAccepted(accepted)
+            } catch {
+                // Yerel/rebase edilmiş düzenleme ile current tabanı diskte
+                // kalır; bir sonraki foreground sync aynı farkı yeniden dener.
+            }
+        } catch {
+            // GET sonrası oluşan yerel fark ve uzak taban diskte kalır.
+        }
     }
 
-    /// Preserve a local baseline while KaravanApp publishes the public plan
-    /// through the scoped outbox during its onChange cascade.
     private func pushToWeb() {
-        syncBase = edits.sharedSyncState
-        persistBase()
-    }
-
-    /// 3-yönlü birleştirme: base'den beri BU cihazda değişen günler uzak
-    /// hâlin üstüne bindirilir (yerelde silinen gün uzaktan da silinir).
-    /// Kalkış tarihi yalnızca sahip/sürücü cihazdan alınır; takipçi
-    /// uzaktaki kalkışı aynen korur (asla taşıyamaz).
-    private func merge(local: TripEdits, base: TripEdits, remote: TripEdits) -> TripEdits {
-        var merged = remote
-        for slug in Set(local.days.keys).union(base.days.keys)
-        where local.days[slug] != base.days[slug] {
-            merged.days[slug] = local.days[slug]   // nil → uzaktakini siler
-        }
-        if canMoveDeparture, local.departureAt != base.departureAt {
-            merged.departureAt = local.departureAt
-        }
-        return merged
+        guard publishedTripScope != nil else { return }
+        Task { await syncFromWeb() }
     }
 
     /// Kalkış tarihini web'e taşıma yetkisi: sahip cihaz ya da sürücünün cihazı.
     private var canMoveDeparture: Bool {
-        isOwner || RoleStore.shared.isDriver
+        canMoveDepartureOverride?() ?? (isOwner || RoleStore.shared.isDriver)
     }
 
-    private static func encodeDays(_ days: [String: DayEdit]) -> [String: Any] {
-        let safeDays = days.mapValues { edit in
-            var safe = edit
-            safe.arrivalTarget = edit.arrivalTarget?.publicSummary
-            safe.arrivalTargetScope = nil
-            if var details = safe.stayDetails {
-                details.reservationReference = nil
-                details.note = nil
-                details.lastContactedAt = nil
-                safe.stayDetails = details
-            }
-            return safe
-        }
-        guard let data = try? encoder.encode(safeDays),
-              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else { return [:] }
-        return obj
+    private func applyAccepted(_ remote: RemotePlanEdits) {
+        let accepted = remote.edits.sharedSyncState
+        apply(edits: accepted, syncBase: accepted)
     }
 
-    private static let encoder: JSONEncoder = {
-        let e = JSONEncoder()
-        e.dateEncodingStrategy = .iso8601
-        return e
-    }()
-
-    private static let decoder: JSONDecoder = {
-        let d = JSONDecoder()
-        // Web yükü kesirli saniyeli ISO-8601 gönderebilir (örn. updatedAt
-        // damgalı kayıtlar); düz .iso8601 bunu okuyamaz ve takipçi senkronu
-        // kalıcı olarak ölür. Önce kesirli saniyeyle, olmazsa düz biçimle dene.
-        d.dateDecodingStrategy = .custom { decoder in
-            let container = try decoder.singleValueContainer()
-            let text = try container.decode(String.self)
-            let iso = ISO8601DateFormatter()
-            iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            if let date = iso.date(from: text) { return date }
-            iso.formatOptions = [.withInternetDateTime]
-            if let date = iso.date(from: text) { return date }
-            throw DecodingError.dataCorruptedError(
-                in: container, debugDescription: "Geçersiz ISO-8601 tarih: \(text)")
+    private func apply(edits updatedEdits: TripEdits, syncBase updatedBase: TripEdits) {
+        let didChange = edits != updatedEdits
+        edits = updatedEdits
+        syncBase = updatedBase
+        persist()
+        persistBase()
+        if didChange {
+            onChange?(edits)
+            objectWillChange.send()
         }
-        return d
-    }()
+    }
 
     // MARK: - Türetme kısayolları
 

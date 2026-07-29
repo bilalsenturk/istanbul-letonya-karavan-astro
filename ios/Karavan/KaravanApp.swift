@@ -242,6 +242,7 @@ struct KaravanApp: App {
     private func applyPublishedTripScope() {
         let scope = PublishedTripScope(trip: workspace.selectedTrip)
         PublishOutbox.shared.setScope(scope)
+        plan.setPublishedTripScope(scope)
         locationManager.publishedTripScope = scope
         guard scope != nil else { return }
         expenses.publishTotal()
