@@ -13,8 +13,16 @@ protocol AccountTokenStoring {
 }
 
 final class KeychainTokenStore: AccountTokenStoring {
-    private let service = "com.bilalsenturk.kuzey.account"
-    private let account = "session-tokens"
+    private let service: String
+    private let account: String
+
+    init(
+        service: String = "com.bilalsenturk.kuzey.account",
+        account: String = "session-tokens"
+    ) {
+        self.service = service
+        self.account = account
+    }
 
     func load() -> AccountTokens? {
         let query: [String: Any] = [
