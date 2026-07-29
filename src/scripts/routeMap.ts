@@ -186,13 +186,13 @@ function ensureRigStyles(): void {
     .leaflet-control-zoom-in,
     .leaflet-control-zoom-out {
       display: block !important;
-      width: 34px !important;
-      height: 34px !important;
-      line-height: 32px !important;
+      width: 44px !important;
+      height: 44px !important;
+      line-height: 42px !important;
       border: 0 !important;
       background: rgba(255, 255, 255, 0.94) !important;
       color: #0a1421 !important;
-      font: 700 19px/32px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+      font: 700 21px/42px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
     }
 
     .leaflet-control-zoom-in {

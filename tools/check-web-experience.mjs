@@ -345,11 +345,12 @@ const sourceFiles = [
   'src/layouts/MainLayout.astro',
   'src/pages/index.astro',
   'src/pages/day/[slug].astro',
+  'src/scripts/routeMap.ts',
   'src/scripts/routeMapLoader.ts',
   'src/scripts/homeDashboard.ts',
   'public/sw.js',
 ];
-const [heroSource, campActionsSource, cameraSectionSource, stepperSource, routeMapSource, layoutSource, indexSource, daySource, loaderSource, homeRuntimeSource, workerSource] = await Promise.all(
+const [heroSource, campActionsSource, cameraSectionSource, stepperSource, routeMapSource, layoutSource, indexSource, daySource, routeMapRuntimeSource, loaderSource, homeRuntimeSource, workerSource] = await Promise.all(
   sourceFiles.map((sourceFile) => readFile(path.join(root, sourceFile), 'utf8')),
 );
 const robotsSource = await readFile(path.join(root, 'public/robots.txt'), 'utf8');
@@ -507,6 +508,11 @@ assert.doesNotMatch(indexSource, /<script\s+is:inline/);
 assert.doesNotMatch(homeRuntimeSource, /setInterval\s*\(/);
 assert.match(indexSource, /mode="journey"\s+live=\{true\}/, 'homepage maps should be live journey maps');
 assert.match(daySource, /mode="day"\s+live=\{false\}/, 'day maps should be static day maps');
+assert.match(
+  routeMapRuntimeSource,
+  /\.leaflet-control-zoom a,[\s\S]*?width:\s*44px\s*!important;[\s\S]*?height:\s*44px\s*!important;/,
+  'Leaflet zoom controls should expose 44px touch targets',
+);
 assert.match(indexSource, /slug:\s*day\.slug/, 'each route timeline leg should link to its day plan');
 assert.match(indexSource, /Gün planını aç/, 'each route timeline leg should expose a day-plan action');
 assert.match(campActionsSource, /Kesin kamp rotasını aç/, 'day plans should offer exact camp directions');
