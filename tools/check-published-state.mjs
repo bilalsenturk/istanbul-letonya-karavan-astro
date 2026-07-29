@@ -22,6 +22,8 @@ const v2PublishedStateRoutes = [
   { resource: 'shared-journal', methods: ['PUT'] },
 ];
 
+const publicPublishedStateRoutes = ['live-location', 'expense-summary', 'published-plan', 'shared-journal'];
+
 for (const { resource, methods } of v2PublishedStateRoutes) {
   const relativePath = `src/pages/api/v2/trips/[id]/${resource}.ts`;
   const routePath = resolve(process.cwd(), relativePath);
@@ -33,9 +35,10 @@ for (const { resource, methods } of v2PublishedStateRoutes) {
   assert.match(source, /return dependencies\.json\(/, `${resource} responses must use the no-store JSON helper`);
   assert.match(source, /return dependencies\.errorResponse\(error\)/, `${resource} failures must use errorResponse`);
   const authenticateIndex = source.indexOf('authenticateRequest(request)');
-  const repositoryIndex = resource === 'plan-edits'
-    ? Math.min(source.indexOf('await getPlanEdits'), source.indexOf('await putPlanEdits'))
-    : source.indexOf('await putPublishedResource');
+  const repositoryIndex =
+    resource === 'plan-edits'
+      ? Math.min(source.indexOf('await getPlanEdits'), source.indexOf('await putPlanEdits'))
+      : source.indexOf('await putPublishedResource');
   assert.ok(authenticateIndex < repositoryIndex, `${resource} must authenticate before repository calls`);
   for (const method of methods) {
     assert.match(source, new RegExp(`export const ${method}\\b`), `${resource} must export ${method}`);
@@ -46,6 +49,28 @@ for (const { resource, methods } of v2PublishedStateRoutes) {
     }
   }
 }
+
+for (const resource of publicPublishedStateRoutes) {
+  const relativePath = `src/pages/api/v2/public/trips/[id]/${resource}.ts`;
+  const routePath = resolve(process.cwd(), relativePath);
+  assert.ok(existsSync(routePath), `${relativePath} must exist`);
+  const source = readFileSync(routePath, 'utf8');
+  assert.match(source, /export const prerender = false/, `${resource} must be server-rendered`);
+  assert.match(source, /await getPublicPublishedResource/, `${resource} must use the public repository projection`);
+  assert.match(source, /return dependencies\.json\(/, `${resource} must return the raw no-store JSON projection`);
+  assert.match(source, /return dependencies\.errorResponse\(error\)/, `${resource} failures must use no-store errors`);
+  assert.match(source, /export const GET\b/, `${resource} must export GET`);
+  for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
+    assert.doesNotMatch(source, new RegExp(`export const ${method}\\b`), `${resource} must not expose ${method}`);
+  }
+  assert.doesNotMatch(source, /authenticateRequest/, `${resource} must be readable without authentication`);
+}
+
+assert.equal(
+  existsSync(resolve(process.cwd(), 'src/pages/api/v2/public/trips/[id]/plan-edits.ts')),
+  false,
+  'private plan edits must never have a public route',
+);
 
 class MemoryPublishedStateStorage {
   entries = new Map();
@@ -707,7 +732,10 @@ try {
     });
     assert.equal(put.status, 200, `${resource} accepts authenticated PUT requests`);
     assert.equal(put.headers.get('cache-control'), 'no-store', `${resource} PUT responses must not be cached`);
-    assert.ok(routeStorage.entries.has(`${targetTripId}:${resource}`), `${resource} uses params.id for storage selection`);
+    assert.ok(
+      routeStorage.entries.has(`${targetTripId}:${resource}`),
+      `${resource} uses params.id for storage selection`,
+    );
     assert.equal(
       routeStorage.entries.has(`${forgedTripId}:${resource}`),
       false,
@@ -715,21 +743,29 @@ try {
     );
 
     const malformed = await handlers.PUT({
-      request: new Request(`https://test.invalid/api/v2/trips/${targetTripId}/${resource}`, { method: 'PUT', body: '{' }),
+      request: new Request(`https://test.invalid/api/v2/trips/${targetTripId}/${resource}`, {
+        method: 'PUT',
+        body: '{',
+      }),
       params: { id: targetTripId },
     });
     assert.equal(malformed.status, 400, `${resource} rejects malformed JSON`);
     assert.equal(malformed.headers.get('cache-control'), 'no-store', `${resource} error responses must not be cached`);
 
     const unauthenticated = route.createHandlers({
-      authenticateRequest: async () => { throw new UnauthorizedError(); },
+      authenticateRequest: async () => {
+        throw new UnauthorizedError();
+      },
       errorResponse,
       json,
       requestJSON,
       repositoryDependencies: routeDependencies,
     });
     const denied = await unauthenticated.PUT({
-      request: new Request(`https://test.invalid/api/v2/trips/${targetTripId}/${resource}`, { method: 'PUT', body: '{}' }),
+      request: new Request(`https://test.invalid/api/v2/trips/${targetTripId}/${resource}`, {
+        method: 'PUT',
+        body: '{}',
+      }),
       params: { id: targetTripId },
     });
     assert.equal(denied.status, 401, `${resource} authenticates before publishing state`);
@@ -747,6 +783,83 @@ try {
       params: { id: targetTripId },
     });
     assert.equal(deniedGet.status, 401, 'plan-edits GET authenticates before reading state');
+  }
+
+  const legacyPublicKeys = {
+    'live-location': [
+      'activeRouteCode',
+      'activeRouteStartedAt',
+      'activeRouteStop',
+      'altitudeAvailable',
+      'altitudeKind',
+      'altitudeMeters',
+      'altitudeSource',
+      'city',
+      'journeyStarted',
+      'lat',
+      'legProgress',
+      'lng',
+      'nextFlag',
+      'nextStop',
+      'pressureHpa',
+      'receivedAt',
+      'remainingKm',
+      'remainingMin',
+      'remainingToFinalKm',
+      'speedKmh',
+      'traveledKm',
+      'ts',
+    ],
+    'expense-summary': ['byCategory', 'count', 'receivedAt', 'totalEur', 'ts'],
+    'published-plan': ['arrivalAt', 'days', 'departureAt', 'receivedAt', 'totalDays'],
+    'shared-journal': ['entries', 'updatedAt'],
+  };
+  const publicApi = await vite.ssrLoadModule('/src/accounts/api.ts');
+
+  for (const resource of publicPublishedStateRoutes) {
+    const route = await vite.ssrLoadModule(`/src/pages/api/v2/public/trips/[id]/${resource}.ts`);
+    const handlers = route.createHandlers({
+      errorResponse: publicApi.errorResponse,
+      json: publicApi.json,
+      repositoryDependencies: routeDependencies,
+    });
+    const response = await handlers.GET({
+      request: new Request(`https://test.invalid/api/v2/public/trips/kuzey-public/${resource}`),
+      params: { id: 'kuzey-public' },
+    });
+    assert.equal(response.status, 200, `${resource} is available without an authenticated request`);
+    assert.equal(response.headers.get('cache-control'), 'no-store', `${resource} public responses must not be cached`);
+    const body = await response.json();
+    assert.deepEqual(
+      Object.keys(body).sort(),
+      legacyPublicKeys[resource],
+      `${resource} keeps its legacy response shape`,
+    );
+    assert.deepEqual(
+      body,
+      await getPublicPublishedResource(routeDependencies, 'kuzey-public', resource),
+      `${resource} handler returns the public repository projection without an envelope`,
+    );
+    assert.equal(
+      /(?:contributions|owner-1|member-1|schemaVersion|tripId|revision|updatedBy|etag)/.test(JSON.stringify(body)),
+      false,
+      `${resource} public response must not expose private storage metadata or contribution account IDs`,
+    );
+  }
+
+  const publicLiveLocation = await vite.ssrLoadModule('/src/pages/api/v2/public/trips/[id]/live-location.ts');
+  const publicHandlers = publicLiveLocation.createHandlers({
+    errorResponse: publicApi.errorResponse,
+    json: publicApi.json,
+    repositoryDependencies: routeDependencies,
+  });
+  for (const deniedTripId of ['other-public', 'standard-private', 'missing-trip']) {
+    const response = await publicHandlers.GET({
+      request: new Request(`https://test.invalid/api/v2/public/trips/${deniedTripId}/live-location`),
+      params: { id: deniedTripId },
+    });
+    assert.equal(response.status, 404, `${deniedTripId} public state must be hidden as not found`);
+    assert.equal(response.headers.get('cache-control'), 'no-store', `${deniedTripId} 404 responses must not be cached`);
   }
 
   const { BlobPublishedStateStorage } = await vite.ssrLoadModule('/src/accounts/blobPublishedStateStorage.ts');
