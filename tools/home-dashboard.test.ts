@@ -188,6 +188,53 @@ describe('home live compatibility', () => {
 
     expect(normalize({ lat: '91', lng: '29' })).toBeNull();
   });
+
+  test('falls back to legacy traveled distance when a started record omits leg progress', async () => {
+    const normalized = homeDashboard.normalizeHomeLiveRecord({
+      lat: '41.6764',
+      lng: '26.5581',
+      routeStarted: true,
+      activeRouteStop: 'Sofya',
+      traveledKm: '194.2',
+    });
+    expect(normalized?.legProgress).toBeNull();
+
+    const clock = createFakeClock(Date.parse('2026-08-03T00:00:00.250Z'));
+    const { window, root } = createDashboardFixture();
+    const fetchImpl = async (input: RequestInfo | URL): Promise<Response> => {
+      const url = String(input);
+      if (url === '/api/v2/public/trips/kuzey-2026/live-location') {
+        return Response.json({
+          lat: '41.6764',
+          lng: '26.5581',
+          routeStarted: true,
+          activeRouteStop: 'Sofya',
+          traveledKm: '194.2',
+        });
+      }
+      if (url.startsWith('https://api.open-meteo.com/')) {
+        return Response.json({ current: {} });
+      }
+      return Response.json({});
+    };
+    const cleanup = homeDashboard.initHomeDashboard(root, {
+      fetch: fetchImpl,
+      now: clock.now,
+      schedule: clock.schedule,
+      cancel: clock.cancel,
+    });
+
+    try {
+      await clock.runCurrent();
+      await Promise.resolve();
+      expect(root.querySelector('#live-traveled')?.textContent).toBe('194 km');
+      expect(root.querySelector('#route-timeline-progress')?.textContent).toBe('194 km');
+      expect(root.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('19');
+    } finally {
+      cleanup();
+      window.close();
+    }
+  });
 });
 
 test('runs the real dashboard against controlled DOM, fetch, and clock boundaries', async () => {

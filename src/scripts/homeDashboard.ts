@@ -78,8 +78,11 @@ export function normalizeHomeLiveRecord(raw: Record<string, unknown>): Normalize
   if (!normalized) return null;
 
   const progress = legacyNumber(raw.legProgress);
-  normalized.legProgress =
-    routeStarted && progress != null ? clampValue(progress > 1 ? progress / 100 : progress, 0, 1) : 0;
+  normalized.legProgress = routeStarted
+    ? progress == null
+      ? null
+      : clampValue(progress > 1 ? progress / 100 : progress, 0, 1)
+    : 0;
   return normalized;
 }
 

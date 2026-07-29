@@ -158,7 +158,7 @@ assert.deepEqual(
 );
 
 const routeMapSource = fs.readFileSync(path.join(root, "src/scripts/routeMap.ts"), "utf8");
-assert.match(routeMapSource, /kuzey:live-location/, "map should listen to live app state");
+assert.match(routeMapSource, /subscribeLiveLocation/, "map should retain its live app subscription across bfcache restores");
 assert.match(routeMapSource, /liveMarker/, "map should render a live vehicle marker");
 assert.match(routeMapSource, /applyLiveState/, "map should re-style active route from live state");
 assert.match(routeMapSource, /passat-adria-map-icon\.svg/, "map should use the supplied Passat + Adria SVG icon");

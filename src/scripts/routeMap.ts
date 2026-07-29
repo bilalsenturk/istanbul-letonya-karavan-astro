@@ -1,6 +1,6 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { routeMapInteractionOptions } from './liveSync';
+import { routeMapInteractionOptions, subscribeLiveLocation } from './liveSync';
 import {
   createTileReadinessController,
   selectGeometryLegs,
@@ -482,8 +482,7 @@ export function initRouteMap(container: HTMLElement): void {
       lastLiveState = detail;
       applyLiveState();
     };
-    window.addEventListener('kuzey:live-location', onLiveLocation);
-    window.addEventListener('pagehide', () => window.removeEventListener('kuzey:live-location', onLiveLocation), { once: true });
+    subscribeLiveLocation(onLiveLocation);
   }
 
   requestAnimationFrame(() => {

@@ -83,6 +83,25 @@ export interface RouteMapInteractionOptions {
   keyboard: boolean;
 }
 
+export function subscribeLiveLocation(listener: (event: Event) => void, view: Window = window): () => void {
+  let active = true;
+
+  function cleanup() {
+    if (!active) return;
+    active = false;
+    view.removeEventListener('kuzey:live-location', listener);
+    view.removeEventListener('pagehide', handlePageHide);
+  }
+
+  function handlePageHide(event: PageTransitionEvent) {
+    if (!event.persisted) cleanup();
+  }
+
+  view.addEventListener('kuzey:live-location', listener);
+  view.addEventListener('pagehide', handlePageHide);
+  return cleanup;
+}
+
 const asNumber = (value: unknown): number | null => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null;
   return value;
