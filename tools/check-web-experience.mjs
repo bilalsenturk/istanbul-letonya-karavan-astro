@@ -8,6 +8,150 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const liveSync = await import(pathToFileURL(path.join(root, 'src/scripts/liveSync.ts')).href);
 const routeMapData = await import(pathToFileURL(path.join(root, 'src/scripts/routeMapData.ts')).href);
 const routeMapLoader = await import(pathToFileURL(path.join(root, 'src/scripts/routeMapLoader.ts')).href);
+const pollingModule = await import(pathToFileURL(path.join(root, 'src/scripts/polling.ts')).href).catch(() => null);
+
+assert.ok(pollingModule, 'the homepage polling scheduler should exist');
+
+function createFakeClock() {
+  let currentTime = 0;
+  let nextTimerId = 1;
+  const timers = new Map();
+
+  const runDueTimers = async () => {
+    while (true) {
+      const next = [...timers.entries()]
+        .filter(([, timer]) => timer.dueAt <= currentTime)
+        .sort((left, right) => left[1].dueAt - right[1].dueAt || left[0] - right[0])[0];
+      if (!next) return;
+      const [id, timer] = next;
+      timers.delete(id);
+      await timer.callback();
+    }
+  };
+
+  return {
+    now: () => currentTime,
+    schedule(callback, delayMs) {
+      const id = nextTimerId++;
+      timers.set(id, { callback, dueAt: currentTime + delayMs });
+      return id;
+    },
+    cancel(id) {
+      timers.delete(id);
+    },
+    async runNext() {
+      const nextDueAt = Math.min(...[...timers.values()].map((timer) => timer.dueAt));
+      assert.ok(Number.isFinite(nextDueAt), 'a timer should be scheduled');
+      currentTime = Math.max(currentTime, nextDueAt);
+      await runDueTimers();
+    },
+    async advance(delayMs) {
+      currentTime += delayMs;
+      await runDueTimers();
+    },
+    pendingDelays() {
+      return [...timers.values()]
+        .map((timer) => timer.dueAt - currentTime)
+        .sort((left, right) => left - right);
+    },
+  };
+}
+
+{
+  const clock = createFakeClock();
+  let calls = 0;
+  let resolveTask;
+  const taskResult = new Promise((resolve) => {
+    resolveTask = resolve;
+  });
+  const loop = pollingModule.createPollingLoop({
+    task: async () => {
+      calls += 1;
+      await taskResult;
+    },
+    intervalMs: 20_000,
+    maxBackoffMs: 160_000,
+    now: clock.now,
+    schedule: clock.schedule,
+    cancel: clock.cancel,
+  });
+
+  loop.start();
+  loop.start();
+  assert.deepEqual(clock.pendingDelays(), [0], 'starting repeatedly should schedule only one initial poll');
+  const firstRun = clock.runNext();
+  await Promise.resolve();
+  assert.equal(calls, 1);
+  await clock.advance(20_000);
+  assert.equal(calls, 1, 'an unresolved poll must not overlap');
+  resolveTask();
+  await firstRun;
+  assert.deepEqual(clock.pendingDelays(), [20_000], 'successful polls should wait one interval after settling');
+  loop.stop();
+}
+
+{
+  const clock = createFakeClock();
+  let calls = 0;
+  const loop = pollingModule.createPollingLoop({
+    task: async () => {
+      calls += 1;
+      if (calls < 3) throw new Error('offline');
+    },
+    intervalMs: 20_000,
+    maxBackoffMs: 160_000,
+    now: clock.now,
+    schedule: clock.schedule,
+    cancel: clock.cancel,
+  });
+
+  loop.start();
+  await clock.runNext();
+  assert.deepEqual(clock.pendingDelays(), [40_000], 'the first failure should double the polling interval');
+  await clock.runNext();
+  assert.deepEqual(clock.pendingDelays(), [80_000], 'consecutive failures should increase the backoff');
+  await clock.runNext();
+  assert.deepEqual(clock.pendingDelays(), [20_000], 'a successful retry should reset the polling interval');
+  loop.stop();
+}
+
+{
+  const clock = createFakeClock();
+  const signals = [];
+  let calls = 0;
+  let resolveFirst;
+  const firstResult = new Promise((resolve) => {
+    resolveFirst = resolve;
+  });
+  const loop = pollingModule.createPollingLoop({
+    task: async (signal) => {
+      calls += 1;
+      signals.push(signal);
+      if (calls === 1) await firstResult;
+    },
+    intervalMs: 20_000,
+    maxBackoffMs: 160_000,
+    now: clock.now,
+    schedule: clock.schedule,
+    cancel: clock.cancel,
+  });
+
+  loop.start();
+  const firstRun = clock.runNext();
+  await Promise.resolve();
+  loop.pause();
+  assert.equal(signals[0].aborted, true, 'pausing should abort an active request');
+  await clock.advance(20_000);
+  loop.resume();
+  resolveFirst();
+  await firstRun;
+  assert.equal(calls, 2, 'resuming stale work should schedule exactly one immediate run');
+  assert.deepEqual(clock.pendingDelays(), [20_000], 'an aborted run should not increase the failure backoff');
+  loop.stop();
+  loop.stop();
+  await clock.advance(160_000);
+  assert.equal(calls, 2, 'stopping repeatedly should leave no scheduled work');
+}
 
 const sourceFiles = [
   'src/components/JourneyHero.astro',
@@ -19,9 +163,10 @@ const sourceFiles = [
   'src/pages/index.astro',
   'src/pages/day/[slug].astro',
   'src/scripts/routeMapLoader.ts',
+  'src/scripts/homeDashboard.ts',
   'public/sw.js',
 ];
-const [heroSource, campActionsSource, cameraSectionSource, stepperSource, routeMapSource, layoutSource, indexSource, daySource, loaderSource, workerSource] = await Promise.all(
+const [heroSource, campActionsSource, cameraSectionSource, stepperSource, routeMapSource, layoutSource, indexSource, daySource, loaderSource, homeRuntimeSource, workerSource] = await Promise.all(
   sourceFiles.map((sourceFile) => readFile(path.join(root, sourceFile), 'utf8')),
 );
 
@@ -171,6 +316,8 @@ try {
 assert.match(loaderSource, /rootMargin:\s*['"]300px 0px['"]/);
 assert.match(loaderSource, /import\(['"]\.\/routeMap['"]\)/);
 assert.doesNotMatch(routeMapSource, /import\s*\{\s*initRouteMap/);
+assert.doesNotMatch(indexSource, /<script\s+is:inline/);
+assert.doesNotMatch(homeRuntimeSource, /setInterval\s*\(/);
 assert.match(indexSource, /mode="journey"\s+live=\{true\}/, 'homepage maps should be live journey maps');
 assert.match(daySource, /mode="day"\s+live=\{false\}/, 'day maps should be static day maps');
 assert.match(indexSource, /slug:\s*day\.slug/, 'each route timeline leg should link to its day plan');

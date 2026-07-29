@@ -39,6 +39,19 @@ const assertDayHeadingOrder = (html, slug) => {
 };
 
 const home = await readOutput('index.html');
+const homeRuntimeHref = [...home.matchAll(/<script\b[^>]*type="module"[^>]*src="([^"]+)"/g)]
+  .map((match) => match[1])
+  .find((href) => href.includes('index.astro_astro_type_script'));
+assert.ok(homeRuntimeHref, 'the built homepage should load its orchestration from a generated module asset');
+const homeRuntimeBundle = await readOutput(homeRuntimeHref.replace(/^\//, ''));
+assert.match(homeRuntimeBundle, /\/api\/v2\/public\/trips\/kuzey-2026/);
+assert.match(homeRuntimeBundle, /\/live-location/);
+assert.match(homeRuntimeBundle, /\/expense-summary/);
+assert.match(homeRuntimeBundle, /\/published-plan/);
+assert.match(homeRuntimeBundle, /\/api\/roadfeed/);
+assert.doesNotMatch(homeRuntimeBundle, /setInterval\s*\(/, 'the built homepage runtime should not contain overlapping interval polls');
+assert.match(homeRuntimeBundle, /visibilitychange/, 'the built homepage runtime should pause while hidden');
+assert.match(homeRuntimeBundle, /pagehide/, 'the built homepage runtime should stop during page teardown');
 const expectedDayHrefs = dayExpectations.map(({ slug }) => `/day/${slug}`);
 const actualDayHrefs = [...home.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>Gün planını aç<\/a>/g)]
   .map((match) => decodeAttribute(match[1]));

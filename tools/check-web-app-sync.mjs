@@ -166,21 +166,22 @@ assert.match(routeMapSource, /L\.control\.zoom\(\{\s*position:\s*['"]bottomright
 assert.match(routeMapSource, /leaflet-control-zoom-out/, "map should style the zoom out control explicitly");
 
 const homeSource = fs.readFileSync(path.join(root, "src/pages/index.astro"), "utf8");
+const homeRuntimeSource = fs.readFileSync(path.join(root, "src/scripts/homeDashboard.ts"), "utf8");
 assert.match(homeSource, /live-altitude/, "home should expose app altitude");
 assert.match(homeSource, /live-pressure/, "home should expose app pressure");
 assert.match(homeSource, /roadfeed-fuel/, "home should mirror iOS road feed");
-assert.match(homeSource, /kuzey:live-location/, "home should dispatch live state to the map");
+assert.match(homeRuntimeSource, /kuzey:live-location/, "home should dispatch live state to the map");
 assert.match(homeSource, /follow-highway\.jpg/, "home should include the highway caravan image");
 assert.match(homeSource, /follow-budapest\.jpg/, "home should include the Budapest caravan image");
 assert.match(homeSource, /follow-sofia\.png/, "home should include the Sofia caravan image");
 assert.match(homeSource, /follow-gallery/, "home should render a dedicated image gallery");
 assert.match(homeSource, /follow-gallery__track/, "home gallery should be swipeable");
 assert.match(homeSource, /data-gallery-scroll/, "home gallery should expose carousel controls");
-assert.match(homeSource, /\/api\/plan/, "home hero countdown should use the published app plan");
+assert.match(homeRuntimeSource, /\/published-plan/, "home hero countdown should use the published app plan");
 assert.match(homeSource, /<details\s+class="route-timeline-section"[\s\S]*?<summary\s+class="route-timeline-head"/, "route timeline should be collapsible");
 assert.match(homeSource, /data-route-details/, "route timeline should expose a details hook");
-assert.match(homeSource, /routeDetails\.open\s*=\s*!isMobileRouteSummary/, "route timeline should start collapsed on mobile");
-assert.match(homeSource, /routeDetails\.classList\.toggle\('is-started'/, "route timeline summary should reflect started state with color");
+assert.match(homeRuntimeSource, /routeDetails\.open\s*=\s*!routeSummaryQuery\.matches/, "route timeline should start collapsed on mobile");
+assert.match(homeRuntimeSource, /routeDetails\?\.classList\.toggle\('is-started'/, "route timeline summary should reflect started state with color");
 assert.match(homeSource, /\.route-timeline-head::before\s*\{[\s\S]*?content:\s*none/, "route timeline summary should suppress the global details marker");
 
 console.log("Web/app sync checks passed.");
