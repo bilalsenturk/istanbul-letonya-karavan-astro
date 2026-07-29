@@ -22,7 +22,7 @@ export const ensureKuzeyTrip = async (storage: TripEventStorage): Promise<void> 
       actorUserId: 'system',
       type: 'stopsReplaced',
       payload: { stops: kuzeyStops() },
-    });
+    }, trip.revision);
     return;
   }
   let revision = 1;
@@ -30,16 +30,16 @@ export const ensureKuzeyTrip = async (storage: TripEventStorage): Promise<void> 
     name: "Leyla'nın Kuzey Yolculuğu",
     kind: 'kuzey2026',
     ownerUserId: 'system-kuzey-owner',
-  }));
+  }), 0);
   for (const stop of kuzeyStops()) {
     revision += 1;
     await storage.append(seedEvent(revision, 'stopAdded', {
       stop,
-    }));
+    }), revision - 1);
   }
   for (const email of ['senturk.leyla@icloud.com', 'szngk.13@icloud.com']) {
     revision += 1;
-    await storage.append(seedEvent(revision, 'memberInvited', { email, role: 'member' }));
+    await storage.append(seedEvent(revision, 'memberInvited', { email, role: 'member' }), revision - 1);
   }
 };
 
@@ -91,12 +91,12 @@ export const claimPendingInvites = async (
       await storage.append(accountEvent(trip.id, account.id, revision, 'memberAdded', {
         userId: account.id,
         role: invite.role,
-      }));
+      }), revision - 1);
     }
     revision += 1;
     await storage.append(accountEvent(trip.id, account.id, revision, 'inviteRemoved', {
       email: account.email,
-    }));
+    }), revision - 1);
   }
 };
 

@@ -8,6 +8,10 @@ import {
   mutateTrip,
 } from '../src/accounts/tripRepository.ts';
 
+class TripStorageConflictError extends Error {
+  code = 'revision_conflict';
+}
+
 class MemoryTripEventStorage {
   events = new Map();
 
@@ -19,8 +23,11 @@ class MemoryTripEventStorage {
     return [...(this.events.get(tripId) ?? [])];
   }
 
-  async append(event) {
+  async append(event, expectedRevision) {
     const items = this.events.get(event.tripId) ?? [];
+    if (event.revision !== expectedRevision + 1 || items.some((item) => item.revision === event.revision)) {
+      throw new TripStorageConflictError('revision_conflict');
+    }
     items.push(structuredClone(event));
     this.events.set(event.tripId, items);
   }
@@ -53,6 +60,20 @@ assert.equal(created.revision, 1);
 assert.equal(created.members[0].role, 'owner');
 assert.equal(created.stops[0].source, 'currentLocation', 'current location remains semantic');
 assert.deepEqual(created.stops.map((stop) => stop.order), [0, 1]);
+
+const revisionRaceStorage = new MemoryTripEventStorage();
+await revisionRaceStorage.append(createdEvent, 0);
+const revisionTwo = { ...createdEvent, id: 'revision-two-a', revision: 2 };
+await assert.rejects(
+  revisionRaceStorage.append(revisionTwo, 0),
+  (error) => error instanceof TripStorageConflictError,
+);
+const revisionRace = await Promise.allSettled([
+  revisionRaceStorage.append(revisionTwo, 1),
+  revisionRaceStorage.append({ ...revisionTwo, id: 'revision-two-b' }, 1),
+]);
+assert.equal(revisionRace.filter((result) => result.status === 'fulfilled').length, 1);
+assert.equal(revisionRace.filter((result) => result.status === 'rejected').length, 1);
 
 const assertCreateRejectedWithoutPersistence = async (input, code) => {
   const before = storage.totalEvents();

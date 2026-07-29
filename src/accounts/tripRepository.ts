@@ -18,7 +18,7 @@ import {
 export interface TripEventStorage {
   listTripIds(): Promise<string[]>;
   list(tripId: string): Promise<TripEvent[]>;
-  append(event: TripEvent): Promise<void>;
+  append(event: TripEvent, expectedRevision: number): Promise<void>;
 }
 
 export type TripActor = {
@@ -53,6 +53,12 @@ export class TripRepositoryError extends Error {
     super(message);
     this.code = code;
     this.current = current;
+  }
+}
+
+export class TripStorageConflictError extends TripRepositoryError {
+  constructor() {
+    super('revision_conflict');
   }
 }
 
@@ -93,7 +99,7 @@ export const createTrip = async (
     }
     throw error;
   }
-  await storage.append(candidate);
+  await storage.append(candidate, 0);
   return trip;
 };
 
@@ -156,7 +162,7 @@ export const mutateTrip = async (
     current.revision + 1,
     input.type,
     input.payload,
-  ));
+  ), current.revision);
   return loadTrip(storage, current.id);
 };
 
@@ -179,7 +185,7 @@ export const inviteMember = async (
   await storage.append(event(current.id, actor.userId, current.revision + 1, 'memberInvited', {
     email,
     role: input.role,
-  }));
+  }), current.revision);
   return loadTrip(storage, current.id);
 };
 

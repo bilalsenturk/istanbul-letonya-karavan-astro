@@ -1,6 +1,6 @@
 import type { TripEvent } from './domain.ts';
-import { listPrivatePaths, readPrivateJSON, writePrivateJSON } from './privateBlob.ts';
-import type { TripEventStorage } from './tripRepository.ts';
+import { createPrivateJSON, listPrivatePaths, PrivateBlobConflictError, readPrivateJSON } from './privateBlob.ts';
+import { TripStorageConflictError, type TripEventStorage } from './tripRepository.ts';
 
 export class BlobTripEventStorage implements TripEventStorage {
   async listTripIds(): Promise<string[]> {
@@ -15,9 +15,15 @@ export class BlobTripEventStorage implements TripEventStorage {
       .sort((left, right) => left.revision - right.revision);
   }
 
-  async append(event: TripEvent): Promise<void> {
+  async append(event: TripEvent, expectedRevision: number): Promise<void> {
+    if (event.revision !== expectedRevision + 1) throw new TripStorageConflictError();
     const revision = String(event.revision).padStart(10, '0');
-    await writePrivateJSON(`accounts/trips/${event.tripId}/events/${revision}-${event.id}.json`, event);
+    try {
+      await createPrivateJSON(`accounts/trips/${event.tripId}/events/${revision}.json`, event);
+    } catch (error) {
+      if (error instanceof PrivateBlobConflictError) throw new TripStorageConflictError();
+      throw error;
+    }
   }
 }
 
