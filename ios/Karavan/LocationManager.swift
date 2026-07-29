@@ -11,6 +11,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     @Published var lastPublished: Date?
     @Published var publishEnabled = true
     @Published var powerSaving = false     // termal/düşük güçte GPS kısıldı mı
+    var publishedTripScope: PublishedTripScope?
 
     // Web'e zengin canlı durum göndermek için (şehir, sıradaki hedef, kalan km/süre…)
     weak var nav: NavProgressStore?
@@ -348,16 +349,10 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     /// Konumu siteye gönderir (en fazla 60 sn'de bir). Site yoksa sessizce geçer.
     private func publishToWeb(_ loc: CLLocation) {
         guard publishEnabled,
-              let url = Config.livePostURL,
+              publishedTripScope != nil,
               Date().timeIntervalSince(lastPostAt) > 60
         else { return }
         lastPostAt = Date()
-
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.setValue(Config.livePostSecret, forHTTPHeaderField: "x-live-secret")
-        req.timeoutInterval = 10
 
         let routeStarted = RouteSession.shared.isActive
         var payload: [String: Any] = [
@@ -412,13 +407,8 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
             payload["altitudeKind"] = "absolute"
             payload["altitudeSource"] = "gps"
         }
-        req.httpBody = try? JSONSerialization.data(withJSONObject: payload)
-
-        Task {
-            guard let (_, response) = try? await URLSession.shared.data(for: req),
-                  let http = response as? HTTPURLResponse, http.statusCode == 200
-            else { return }
-            await MainActor.run { self.lastPublished = Date() }
-        }
+        guard let body = try? JSONSerialization.data(withJSONObject: payload) else { return }
+        PublishOutbox.shared.enqueue(resource: .liveLocation, body: body)
+        lastPublished = Date()
     }
 }

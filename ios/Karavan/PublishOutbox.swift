@@ -1,103 +1,117 @@
 import Foundation
+#if canImport(UIKit)
 import UIKit
+#endif
 
-// Web'e POST edilen yükler için küçük giden kutusu: gönderimler sırayla yapılır,
-// aynı uç için yalnızca EN YENİ yük bekletilir (latest-wins) ve başarısız yük
-// diske yazılıp yeniden başlatmada / app öne gelince tekrar denenir.
+/// Public trip payloads are retried in order. The persisted record deliberately
+/// contains no request URL, header, token, or other credential material.
 @MainActor
 final class PublishOutbox {
     static let shared = PublishOutbox()
 
     private struct PendingPost: Codable, Equatable {
-        var url: String
-        var body: Data
-        var signature: String
+        let tripID: String
+        let resourcePath: String
+        let body: Data
     }
 
     private struct OutboxFile: Codable {
         var pending: [String: PendingPost] = [:]
-        var lastSent: [String: String] = [:]   // anahtar -> son BAŞARILI imza
     }
 
     private var state = OutboxFile()
     private var sending: Set<String> = []
+    private var scope: PublishedTripScope?
     private let fileURL: URL
+    private let sender: PublishedTripSending
 
-    private init() {
-        fileURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    init(
+        fileURL: URL? = nil,
+        sender: PublishedTripSending? = nil,
+        observeLifecycle: Bool = true
+    ) {
+        self.fileURL = fileURL ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("publish-outbox.json")
+        self.sender = sender ?? PublishedTripClient.shared
         load()
-        // Soğuk açılışta willEnterForeground TETİKLENMEZ; diskte yarım kalmış
-        // yük varsa hemen boşalt.
-        retryPending()
-        // App öne gelince yarım kalan gönderimleri tekrar dene.
-        NotificationCenter.default.addObserver(
-            forName: UIApplication.willEnterForegroundNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in self?.retryPending() }
+#if canImport(UIKit)
+        if observeLifecycle {
+            NotificationCenter.default.addObserver(
+                forName: UIApplication.willEnterForegroundNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor in self?.retryPending() }
+            }
         }
+#endif
     }
 
-    /// Aynı imza zaten başarıyla gönderildiyse atla; değilse sıraya al ve gönder.
-    func enqueue(key: String, url: URL, body: Data, signature: String) {
-        guard signature != state.lastSent[key],
-              state.pending[key]?.signature != signature else { return }
-        state.pending[key] = PendingPost(url: url.absoluteString, body: body, signature: signature)
+    /// A nil scope pauses work but preserves queued public payloads. Re-enabling
+    /// a scope drains records only for that selected trip.
+    func setScope(_ scope: PublishedTripScope?) {
+        self.scope = scope
+        if scope != nil { retryPending() }
+    }
+
+    func enqueue(resource: PublishedTripResource, body: Data) {
+        guard let scope else { return }
+        let key = "\(scope.tripID):\(resource.rawValue)"
+        state.pending[key] = PendingPost(tripID: scope.tripID, resourcePath: resource.rawValue, body: body)
         persist()
         Task { await drain(key: key) }
     }
 
-    /// Diskte/bellekte bekleyen tüm yükleri tekrar göndermeyi dene.
     func retryPending() {
-        for key in state.pending.keys {
+        guard let scope else { return }
+        for (key, post) in state.pending where post.tripID == scope.tripID {
             Task { await drain(key: key) }
         }
     }
 
-    // MARK: - Sıralı gönderim
+    var persistedKeys: [String] { state.pending.keys.sorted() }
+    var persistedJSON: String {
+        guard let data = try? JSONEncoder().encode(state) else { return "" }
+        return String(decoding: data, as: UTF8.self)
+    }
 
-    /// Anahtar başına tek uçuş: gönderim sürerken gelen yeni yük, mevcut bittiğinde
-    /// döngüde sıradaki olarak gönderilir (sıra bozulmaz, en yeni kazanır).
     private func drain(key: String) async {
         guard !sending.contains(key) else { return }
         sending.insert(key)
         defer { sending.remove(key) }
 
-        while let post = state.pending[key], let url = URL(string: post.url) {
-            var req = URLRequest(url: url)
-            req.httpMethod = "POST"
-            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            req.setValue(Config.livePostSecret, forHTTPHeaderField: "x-live-secret")
-            req.httpBody = post.body
-            req.timeoutInterval = 10
-
-            guard let (_, response) = try? await URLSession.shared.data(for: req),
-                  let http = response as? HTTPURLResponse,
-                  (200 ..< 300).contains(http.statusCode)
-            else { return }   // başarısız: sırada kalsın, sonra tekrar denenir
-
-            // Uçuş sırasında daha yeni bir yük geldiyse onu ezmeden döngüye devam et.
+        while let activeScope = scope,
+              let post = state.pending[key],
+              post.tripID == activeScope.tripID {
+            guard let resource = PublishedTripResource(rawValue: post.resourcePath) else {
+                state.pending.removeValue(forKey: key)
+                persist()
+                continue
+            }
+            do {
+                try await sender.put(scope: activeScope, resource: resource, body: post.body)
+            } catch {
+                return
+            }
             guard state.pending[key] == post else { continue }
             state.pending.removeValue(forKey: key)
-            state.lastSent[key] = post.signature
             persist()
         }
     }
 
-    // MARK: - Kalıcılık
-
     private func load() {
-        guard let data = try? Data(contentsOf: fileURL),
-              let decoded = try? JSONDecoder().decode(OutboxFile.self, from: data)
-        else { return }
+        guard let data = try? Data(contentsOf: fileURL) else { return }
+        guard let decoded = try? JSONDecoder().decode(OutboxFile.self, from: data) else {
+            // The former format carried a URL and a shared-secret signature.
+            // Do not retain that credential-bearing file after migration.
+            try? FileManager.default.removeItem(at: fileURL)
+            return
+        }
         state = decoded
     }
 
     private func persist() {
-        if let data = try? JSONEncoder().encode(state) {
-            try? data.write(to: fileURL, options: .atomic)
-        }
+        guard let data = try? JSONEncoder().encode(state) else { return }
+        try? data.write(to: fileURL, options: .atomic)
     }
 }

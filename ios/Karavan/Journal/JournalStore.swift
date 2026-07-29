@@ -554,7 +554,6 @@ final class JournalStore: ObservableObject {
     /// denenir. Aksi halde kullanıcı paylaşımı kaldırdığını/kaydı sildiğini
     /// sanırken metin herkese açık web sitesinde kalmaya devam edebilirdi.
     func publishShared() {
-        guard Config.journalPostURL != nil else { return }
         sharePublishPending = true
         // YENİ bir yayın isteği eski geri çekilme sayacını miras almamalı:
         // önceki başarısız denemelerin backoff'u (~2 saate kadar) dolmadan
@@ -578,7 +577,7 @@ final class JournalStore: ObservableObject {
     /// süre günlere, hatta yıllara çıkar (deponun geçmişinde üst sınırsız
     /// geri çekilme 12. denemede ~4 yıla çıkmıştı).
     private func attemptPublishShared() async {
-        guard sharePublishPending, let url = Config.journalPostURL else { return }
+        guard sharePublishPending else { return }
         // drainQueue her tetiklemede bunu çağırır; bir önceki çağrı hâlâ
         // `await`'te beklerken ikincisi başlarsa aynı POST iki kez atılır ve
         // geri çekilme sayacı tek denemede iki kez artardı.
@@ -607,33 +606,11 @@ final class JournalStore: ObservableObject {
             },
         ]
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(Config.livePostSecret, forHTTPHeaderField: "x-live-secret")
-        request.timeoutInterval = 12
-        request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
-
-        sharePublishLastAttemptAt = Date()
-
-        var succeeded = false
-        do {
-            let (_, response) = try await URLSession.shared.data(for: request)
-            if let http = response as? HTTPURLResponse {
-                succeeded = (200...299).contains(http.statusCode)
-            } else {
-                succeeded = true   // HTTPURLResponse olmayan ortamlarda (ör. test) varsayılan başarı
-            }
-        } catch {
-            succeeded = false   // ağ hatası / zaman aşımı — bayrak KALDIRILMAZ, bir sonraki tetiklemede tekrar denenir
-        }
-
-        if succeeded {
-            sharePublishPending = false
-            sharePublishAttempts = 0
-        } else {
-            sharePublishAttempts += 1
-        }
+        guard let body = try? JSONSerialization.data(withJSONObject: payload) else { return }
+        PublishOutbox.shared.enqueue(resource: .sharedJournal, body: body)
+        sharePublishPending = false
+        sharePublishAttempts = 0
+        sharePublishLastAttemptAt = nil
         persist()
     }
 

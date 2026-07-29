@@ -80,8 +80,12 @@ struct KaravanApp: App {
                 .onChange(of: account.user?.id) { _, _ in
                     applyAccountWorkspace()
                 }
-                .onChange(of: workspace.selectedTrip?.id) { _, _ in
+                .onChange(of: workspace.selectedTrip) { _, _ in
                     applyAccountRole()
+                    applyPublishedTripScope()
+                }
+                .onChange(of: account.initialTrips) { _, _ in
+                    applyPublishedTripScope()
                 }
                 .task {
                     let contentLoad = Task { await travelContent.loadIfNeeded() }
@@ -175,8 +179,8 @@ struct KaravanApp: App {
         // Siteye YALNIZCA sahip cihaz yazar. Aksi hâlde henüz senkron olmamış bir
         // takipçi (çevrimdışıydı, yeni kuruldu) eski takvimi siteye basıp
         // sahibin doğru planını ezebilir.
-        if plan.isOwner {
-            PlanPublisher.publish(trip: store.trip, edits: plan.edits)
+        if plan.isOwner, let scope = PublishedTripScope(trip: workspace.selectedTrip) {
+            PlanPublisher.publish(scope: scope, trip: store.trip, edits: plan.edits)
         }
     }
 
@@ -199,6 +203,7 @@ struct KaravanApp: App {
     private func applyAccountWorkspace() {
         guard let user = account.user else {
             workspace.clear()
+            applyPublishedTripScope()
             return
         }
         workspace.activate(user: user, trips: account.initialTrips)
@@ -217,6 +222,7 @@ struct KaravanApp: App {
         }
         #endif
         applyAccountRole()
+        applyPublishedTripScope()
     }
 
     @MainActor
@@ -225,6 +231,20 @@ struct KaravanApp: App {
         let ownsSelectedTrip = workspace.selectedTrip?.access.tripRole == .owner
         role.isDriver = user.isAdmin || ownsSelectedTrip
         plan.isOwner = user.isAdmin || ownsSelectedTrip
+    }
+
+    /// Public endpoints exist only for the opted-in Kuzey trip. Changing
+    /// accounts, a selected trip, or its feature flags recomputes the scope;
+    /// leaving it pauses the credential-free outbox without discarding work.
+    @MainActor
+    private func applyPublishedTripScope() {
+        let scope = PublishedTripScope(trip: workspace.selectedTrip)
+        PublishOutbox.shared.setScope(scope)
+        locationManager.publishedTripScope = scope
+        guard scope != nil else { return }
+        expenses.publishTotal()
+        journal.publishShared()
+        applyPlanCascade()
     }
 
     /// Bugünün etkin günü (çok günlü durakta ortanca gün de sayılır).

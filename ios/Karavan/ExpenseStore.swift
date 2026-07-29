@@ -188,14 +188,13 @@ final class ExpenseStore: ObservableObject {
 
     // MARK: - Web'e yalnızca toplamı yayınla
 
-    private func publishTotal() {
+    func publishTotal() {
         Self.enqueuePublish(expenses: expenses)
     }
 
     /// Toplam yükünü outbox'a bırakır (sıralı + en yeni kazanır + yeniden
     /// denemeli). Siri/App Intent sürecinden de çağrılabilir.
     static func enqueuePublish(expenses list: [Expense]) {
-        guard let url = Config.expensesPostURL else { return }
         let total = list.reduce(0) { $0 + $1.amountEur }
         let rounded = (total * 100).rounded() / 100
         let categories = Dictionary(grouping: list, by: \.category)
@@ -211,12 +210,6 @@ final class ExpenseStore: ObservableObject {
         ]
         guard let body = try? JSONSerialization.data(withJSONObject: payload) else { return }
 
-        // İmza, zaman damgası hariç içerikten türetilir: açılışta değişiklik
-        // yoksa POST atlanır; gönderimler outbox ile sıralı + en yeni kazanır.
-        let signature = "\(rounded)|\(list.count)|" + categories
-            .sorted { $0.key < $1.key }
-            .map { "\($0.key)=\($0.value)" }
-            .joined(separator: ",")
-        PublishOutbox.shared.enqueue(key: "expenses", url: url, body: body, signature: signature)
+        PublishOutbox.shared.enqueue(resource: .expenseSummary, body: body)
     }
 }

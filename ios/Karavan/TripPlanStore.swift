@@ -14,8 +14,8 @@ final class TripPlanStore: ObservableObject {
     @Published var isOwner: Bool {
         didSet {
             UserDefaults.standard.set(isOwner, forKey: Self.ownerKey)
-            // Sahipliğe terfide hemen körü körüne yazma: pushToWeb önce uzak
-            // hâlle birleştirir, bayat yerel düzenleme yenilerini ezemez.
+            // The public projection is queued by KaravanApp only after the
+            // selected trip has passed its public-tracking eligibility gate.
             if isOwner { pushToWeb() }
         }
     }
@@ -85,74 +85,19 @@ final class TripPlanStore: ObservableObject {
 #endif
     }
 
-    // MARK: - Cihazlar arası senkron
+    // MARK: - Public projection
 
-    /// Web'deki düzenlemeleri çeker; bu cihazda henüz gönderilmemiş yerel
-    /// değişiklikleri koruyarak birleştirir. Gün düzenlemesini herkes
-    /// yapabildiği için sahip cihaz da çeker. Birleşik hâl uzaktakinden
-    /// farklıysa (yerel değişiklik varsa) geri gönderilir.
+    /// Legacy anonymous edits transport has been retired. The current local
+    /// plan is projected through the selected trip's Bearer route by the app.
     func syncFromWeb() async {
-        guard !syncing, let url = Config.editsURL else { return }
-        syncing = true
-        defer { syncing = false }
-
-        guard let remote = await Self.fetchRemote(url: url) else { return }
-        lastSyncedAt = Date()
-        let sharedRemote = remote.sharedSyncState
-        let merged = merge(
-            local: edits.sharedSyncState,
-            base: syncBase.sharedSyncState,
-            remote: sharedRemote
-        )
-        syncBase = sharedRemote
-        persistBase()
-
-        if merged != edits {
-            edits = merged
-            persist()
-            onChange?(edits)
-            objectWillChange.send()
-        }
-        // Yerel değişiklikler uzaktakinde yoksa birleşik hâli geri gönder.
-        if merged != sharedRemote { enqueue(merged, url: url) }
+        lastSyncedAt = nil
     }
 
-    /// Düzenlemeleri web'e yazar. Gün düzenlemelerini HER cihaz gönderebilir;
-    /// kalkış tarihi yalnızca sahip/sürücü yükünde yer alır. Gönderimden önce
-    /// uzak hâl çekilip yerel değişikliklerle birleştirilir: bayat cihaz
-    /// başkasının yeni düzenlemesini ezemez. Gönderim outbox üzerinden
-    /// sıralı + yeniden denemeli yapılır.
+    /// Preserve a local baseline while KaravanApp publishes the public plan
+    /// through the scoped outbox during its onChange cascade.
     private func pushToWeb() {
-        guard let url = Config.editsURL else { return }
-        Task {
-            var outgoing = edits.sharedSyncState
-            if let remote = await Self.fetchRemote(url: url) {
-                outgoing = merge(
-                    local: edits.sharedSyncState,
-                    base: syncBase.sharedSyncState,
-                    remote: remote.sharedSyncState
-                )
-                if outgoing != edits {
-                    edits = outgoing
-                    persist()
-                    onChange?(edits)
-                    objectWillChange.send()
-                }
-            }
-            enqueue(outgoing, url: url)
-        }
-    }
-
-    /// Uzak düzenlemeleri GET ile çeker; hata/eksik veride nil.
-    private static func fetchRemote(url: URL) async -> TripEdits? {
-        var request = URLRequest(url: url)
-        request.cachePolicy = .reloadIgnoringLocalCacheData
-        request.timeoutInterval = 12
-        guard let (data, response) = try? await URLSession.shared.data(for: request),
-              let http = response as? HTTPURLResponse, http.statusCode == 200,
-              let remote = try? decoder.decode(TripEdits.self, from: data)
-        else { return nil }
-        return remote
+        syncBase = edits.sharedSyncState
+        persistBase()
     }
 
     /// 3-yönlü birleştirme: base'den beri BU cihazda değişen günler uzak
@@ -174,27 +119,6 @@ final class TripPlanStore: ObservableObject {
     /// Kalkış tarihini web'e taşıma yetkisi: sahip cihaz ya da sürücünün cihazı.
     private var canMoveDeparture: Bool {
         isOwner || RoleStore.shared.isDriver
-    }
-
-    /// Yükü outbox'a bırakır. Takipçi yükünde departureAt ANAHTARI HİÇ
-    /// GÖNDERİLMEZ: takipçi kalkışı asla taşıyamaz (sunucu eksik anahtarı
-    /// "mevcudu koru" sayar — bkz. src/pages/api/edits.ts).
-    private func enqueue(_ outgoing: TripEdits, url: URL) {
-        let sharedOutgoing = outgoing.sharedSyncState
-        var payload: [String: Any] = ["days": Self.encodeDays(sharedOutgoing.days)]
-        if canMoveDeparture {
-            if let dep = sharedOutgoing.departureAt {
-                payload["departureAt"] = ISO8601DateFormatter().string(from: dep)
-            } else {
-                payload["departureAt"] = NSNull()
-            }
-        }
-        guard let body = try? JSONSerialization.data(withJSONObject: payload) else { return }
-
-        let signature = String(data: body, encoding: .utf8) ?? ""
-        PublishOutbox.shared.enqueue(key: "edits", url: url, body: body, signature: signature)
-        syncBase = sharedOutgoing
-        persistBase()
     }
 
     private static func encodeDays(_ days: [String: DayEdit]) -> [String: Any] {

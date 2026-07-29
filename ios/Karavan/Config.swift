@@ -14,21 +14,6 @@ enum Config {
     /// Uzak gezi verisi (site her deploy olduğunda app içeriği tazelenir)
     static var tripDataURL: URL? { siteURL?.appendingPathComponent("trip-data.json") }
 
-    /// Canlı konumun web'e gönderileceği endpoint (POST)
-    static var livePostURL: URL? { siteURL?.appendingPathComponent("api/location") }
-
-    /// Harcama toplamının web'e gönderileceği endpoint (POST). Kalemler cihazda kalır.
-    static var expensesPostURL: URL? { siteURL?.appendingPathComponent("api/expenses") }
-
-    /// Hesaplanmış takvimin (kalkış + gün tarihleri) web'e gönderileceği endpoint.
-    static var planPostURL: URL? { siteURL?.appendingPathComponent("api/plan") }
-
-    /// Plan düzenlemelerinin cihazlar arası ortak kaynağı (GET okur, POST yazar).
-    static var editsURL: URL? { siteURL?.appendingPathComponent("api/edits") }
-
-    /// Paylaşılan günlük kayıtlarının web'e gönderileceği uç nokta.
-    static var journalPostURL: URL? { siteURL?.appendingPathComponent("api/journal") }
-
     /// Yol bülteni: dizel fiyatı + sınır beklemesi + döviz kuru.
     static var roadFeedURL: URL? { siteURL?.appendingPathComponent("api/roadfeed") }
 
@@ -51,11 +36,4 @@ enum Config {
         (mediaBaseURL ?? siteURL)?.appendingPathComponent("audio/manifest.json")
     }
 
-    /// Web'e veri gönderirken kullanılan paylaşılan gizli anahtar.
-    /// Vercel'de LIVE_POST_SECRET env değişkeniyle aynı olmalı.
-    /// DİKKAT: Bu değer derlenen IPA'nın içinde açık durur; uygulama aile
-    /// cihazları dışına dağıtılacaksa (TestFlight/App Store) anahtarı ROTASYONA
-    /// sok (Vercel + burada değiştir) — binary'den okunup endpoint'lere sahte
-    /// veri basılabilir.
-    static let livePostSecret = "kuzey-2026-riga"
 }
