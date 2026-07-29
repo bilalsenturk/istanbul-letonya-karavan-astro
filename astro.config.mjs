@@ -7,6 +7,6 @@ export default defineConfig({
   site: 'https://istanbul-letonya-karavan-astro.vercel.app',
   integrations: [sitemap()],
   // Sayfalar statik kalır; yalnızca `prerender = false` işaretli API rotaları
-  // (ör. /api/location) sunucuda çalışır.
+  // (ör. /api/v2/trips/[id]) sunucuda çalışır.
   adapter: vercel(),
 });
