@@ -1,9 +1,9 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
 import CampActions from '../../components/CampActions.astro';
+import DayCameraSection from '../../components/DayCameraSection.astro';
 import RouteMap from '../../components/RouteMap.astro';
 import RouteStepper from '../../components/RouteStepper.astro';
-import CameraPlayer from '../../components/CameraPlayer.astro';
 import { tripData } from '../../data/tripData';
 import { selectRouteStops } from '../../scripts/routeMapData';
 
@@ -240,17 +240,7 @@ const activeIndex = (() => {
     </div>
   </section>
 
-  {day.cityCameras.length > 0 ? (
-    <section class="shell">
-      <div class="section-title">
-        <h2>Şehir Kameraları</h2>
-        <a class="btn btn--ghost" href="#top">Yukarı çık</a>
-      </div>
-      <div class="grid">
-        {day.cityCameras.map((camera) => <div class="col-6"><CameraPlayer camera={camera} headingLevel={3} /></div>)}
-      </div>
-    </section>
-  ) : null}
+  <DayCameraSection cameras={day.cityCameras} />
 
   <section class="shell">
     <h2>İleriye Yönelik Notlar</h2>

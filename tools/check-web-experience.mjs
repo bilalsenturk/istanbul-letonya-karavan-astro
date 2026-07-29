@@ -12,6 +12,7 @@ const routeMapLoader = await import(pathToFileURL(path.join(root, 'src/scripts/r
 const sourceFiles = [
   'src/components/JourneyHero.astro',
   'src/components/CampActions.astro',
+  'src/components/DayCameraSection.astro',
   'src/components/RouteStepper.astro',
   'src/components/RouteMap.astro',
   'src/layouts/MainLayout.astro',
@@ -20,7 +21,7 @@ const sourceFiles = [
   'src/scripts/routeMapLoader.ts',
   'public/sw.js',
 ];
-const [heroSource, campActionsSource, stepperSource, routeMapSource, layoutSource, indexSource, daySource, loaderSource, workerSource] = await Promise.all(
+const [heroSource, campActionsSource, cameraSectionSource, stepperSource, routeMapSource, layoutSource, indexSource, daySource, loaderSource, workerSource] = await Promise.all(
   sourceFiles.map((sourceFile) => readFile(path.join(root, sourceFile), 'utf8')),
 );
 
@@ -175,8 +176,9 @@ assert.match(daySource, /mode="day"\s+live=\{false\}/, 'day maps should be stati
 assert.match(indexSource, /slug:\s*day\.slug/, 'each route timeline leg should link to its day plan');
 assert.match(indexSource, /Gün planını aç/, 'each route timeline leg should expose a day-plan action');
 assert.match(campActionsSource, /Kesin kamp rotasını aç/, 'day plans should offer exact camp directions');
-assert.match(daySource, /day\.cityCameras\.length\s*>\s*0/, 'empty camera sections should not render');
-assert.match(daySource, /<CameraPlayer\s+camera=\{camera\}\s+headingLevel=\{3\}/, 'day cameras should render h3 child headings');
+assert.match(cameraSectionSource, /cameras\.length\s*>\s*0/, 'empty camera sections should not render');
+assert.match(cameraSectionSource, /<CameraPlayer\s+camera=\{camera\}\s+headingLevel=\{3\}/, 'day cameras should render h3 child headings');
+assert.match(daySource, /<DayCameraSection\s+cameras=\{day\.cityCameras\}/, 'day pages should use the tested camera-section boundary');
 assert.match(heroSource, /role="timer"[\s\S]*aria-live="off"/, 'countdowns should not announce every second');
 assert.match(heroSource, /role="progressbar"[\s\S]*aria-valuenow="0"/, 'route progress should expose an initial value');
 assert.match(stepperSource, /aria-current=\{state === 'active' \? 'step' : undefined\}/, 'the current route stop should be announced');

@@ -25,6 +25,7 @@ const isVideo = kind === 'video';
 const openUrl = camera.openUrl ?? camera.url;
 const mediaId = `camera-${Math.random().toString(36).slice(2, 8)}`;
 const refreshInterval = Math.max(45, Math.min(180, camera.refreshSeconds ?? 90));
+const actionStyle = 'min-height: 44px';
 ---
 
 <article class="card" aria-live="polite">
@@ -44,7 +45,7 @@ const refreshInterval = Math.max(45, Math.min(180, camera.refreshSeconds ?? 90))
         title={camera.title}
       ></iframe>
       <div class="player-overlay">
-        <a class="open-link" href={camera.url} target="_blank" rel="noreferrer">Canlı yayını yeni sekmede aç</a>
+        <a class="open-link" data-camera-action style={actionStyle} href={camera.url} target="_blank" rel="noreferrer">Canlı yayını yeni sekmede aç</a>
       </div>
     </div>
   ) : isImage ? (
@@ -61,7 +62,7 @@ const refreshInterval = Math.max(45, Math.min(180, camera.refreshSeconds ?? 90))
       />
       <div class="camera-frame-status" data-status>Hazırlandı, ilk kare yüklendi.</div>
       <div class="player-overlay">
-        <a class="open-link" href={openUrl} target="_blank" rel="noreferrer">OpenCam panelini aç</a>
+        <a class="open-link" data-camera-action style={actionStyle} href={openUrl} target="_blank" rel="noreferrer">OpenCam panelini aç</a>
       </div>
     </div>
   ) : (
@@ -71,7 +72,7 @@ const refreshInterval = Math.max(45, Math.min(180, camera.refreshSeconds ?? 90))
           Bu kaynak iframe ile güvenli olarak gömülemiyor. En güncel görüntüye
           <strong>bu bağlantıdan</strong> erişebilirsin.
         </p>
-        <a class="open-link" href={openUrl} target="_blank" rel="noreferrer">Kamerayı yeni sekmede aç</a>
+        <a class="open-link" data-camera-action style={actionStyle} href={openUrl} target="_blank" rel="noreferrer">Kamerayı yeni sekmede aç</a>
       </div>
     </div>
   )}
