@@ -15,6 +15,7 @@
     "check:accounts": "node --experimental-strip-types tools/check-account-domain.mjs",
     "check:account-auth": "node --experimental-strip-types tools/check-account-auth.mjs",
     "check:trip-api": "node --experimental-strip-types tools/check-trip-api.mjs",
+    "check:published-state": "node --experimental-strip-types tools/check-published-state.mjs",
     "check:web-sync": "node --experimental-strip-types tools/check-web-app-sync.mjs",
     "check:travel-content": "node tools/check-travel-content.mjs",
     "check": "astro check",

@@ -1,6 +1,8 @@
 import { BlobPreconditionFailedError, get, list, put } from '@vercel/blob';
 
-const memory = new Map<string, string>();
+type MemoryEntry = { payload: string; etag: string };
+
+const memory = new Map<string, MemoryEntry>();
 
 export class PrivateBlobConflictError extends Error {
   constructor() {
@@ -18,8 +20,8 @@ const privateToken = (): string | null => {
 export const readPrivateJSON = async <T>(pathname: string): Promise<T | null> => {
   const token = privateToken();
   if (!token) {
-    const value = memory.get(pathname);
-    return value ? JSON.parse(value) as T : null;
+    const entry = memory.get(pathname);
+    return entry ? JSON.parse(entry.payload) as T : null;
   }
   const result = await get(pathname, { access: 'private', token, useCache: false });
   if (!result || result.statusCode !== 200) return null;
@@ -31,7 +33,7 @@ export const writePrivateJSON = async (pathname: string, value: unknown): Promis
   const payload = JSON.stringify(value);
   const token = privateToken();
   if (!token) {
-    memory.set(pathname, payload);
+    writeMemory(pathname, payload);
     return;
   }
   await put(pathname, payload, {
@@ -44,27 +46,55 @@ export const writePrivateJSON = async (pathname: string, value: unknown): Promis
   });
 };
 
-export const createPrivateJSON = async (pathname: string, value: unknown): Promise<{ etag: string }> => {
+export const readPrivateJSONWithETag = async <T>(pathname: string): Promise<{ value: T; etag: string } | null> => {
+  const token = privateToken();
+  if (!token) {
+    const entry = memory.get(pathname);
+    return entry ? { value: JSON.parse(entry.payload) as T, etag: entry.etag } : null;
+  }
+  const result = await get(pathname, { access: 'private', token, useCache: false });
+  if (!result || result.statusCode !== 200) return null;
+  const text = await new Response(result.stream).text();
+  return { value: JSON.parse(text) as T, etag: result.blob.etag };
+};
+
+export const writePrivateJSONConditional = async (
+  pathname: string,
+  value: unknown,
+  expectedEtag: string | null,
+): Promise<{ etag: string }> => {
   const payload = JSON.stringify(value);
   const token = privateToken();
   if (!token) {
-    if (memory.has(pathname)) throw new PrivateBlobConflictError();
-    memory.set(pathname, payload);
-    return { etag: 'memory' };
+    const current = memory.get(pathname);
+    if ((expectedEtag === null && current) || (expectedEtag !== null && current?.etag !== expectedEtag)) {
+      throw new PrivateBlobConflictError();
+    }
+    return { etag: writeMemory(pathname, payload) };
   }
   try {
-    const result = await put(pathname, payload, {
+    const result = await put(pathname, payload, expectedEtag === null ? {
       access: 'private',
       token,
       contentType: 'application/json',
       addRandomSuffix: false,
       allowOverwrite: false,
+    } : {
+      access: 'private',
+      token,
+      contentType: 'application/json',
+      addRandomSuffix: false,
+      ifMatch: expectedEtag,
     });
     return { etag: result.etag };
   } catch (error) {
     if (isBlobConflict(error)) throw new PrivateBlobConflictError();
     throw error;
   }
+};
+
+export const createPrivateJSON = async (pathname: string, value: unknown): Promise<{ etag: string }> => {
+  return writePrivateJSONConditional(pathname, value, null);
 };
 
 export const listPrivatePaths = async (prefix: string): Promise<string[]> => {
@@ -100,4 +130,10 @@ const isBlobConflict = (error: unknown): boolean => {
     details.statusCode === 412 ||
     (typeof details.message === 'string' && details.message.includes('Precondition failed'))
   );
+};
+
+const writeMemory = (pathname: string, payload: string): string => {
+  const etag = crypto.randomUUID();
+  memory.set(pathname, { payload, etag });
+  return etag;
 };
