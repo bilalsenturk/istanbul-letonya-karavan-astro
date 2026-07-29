@@ -1,8 +1,5 @@
 const CACHE = 'trip-cache-v11';
-const ASSETS = [
-  '/favicon.ico',
-  '/favicon.svg',
-];
+const HASHED_ASTRO_ASSET = /^\/_astro\/.+\.[A-Za-z0-9_-]{6,}\.[A-Za-z0-9]+$/;
 
 function strategyForRequest(request) {
   const url = new URL(request.url);
@@ -15,7 +12,7 @@ function strategyForRequest(request) {
     return 'network-only';
   }
 
-  if (url.pathname.startsWith('/_astro/')) return 'cache-first';
+  if (HASHED_ASTRO_ASSET.test(url.pathname)) return 'cache-first';
 
   const isNavigation =
     request.mode === 'navigate' ||
@@ -27,14 +24,23 @@ function canStoreResponse(response) {
   return response.ok && !/(?:^|,)\s*no-store\s*(?:,|$)/i.test(response.headers.get('cache-control') || '');
 }
 
-async function cacheResponse(request, response) {
+function cacheResponse(event, request, response) {
   if (!canStoreResponse(response)) return;
-  const cache = await caches.open(CACHE);
-  await cache.put(request, response.clone());
+  let cachedResponse;
+  try {
+    cachedResponse = response.clone();
+  } catch {
+    return;
+  }
+  event.waitUntil(
+    caches
+      .open(CACHE)
+      .then((cache) => cache.put(request, cachedResponse))
+      .catch(() => undefined)
+  );
 }
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
@@ -57,8 +63,8 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;
-        return fetch(request).then(async (response) => {
-          await cacheResponse(request, response);
+        return fetch(request).then((response) => {
+          cacheResponse(event, request, response);
           return response;
         });
       })
@@ -68,8 +74,8 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     fetch(request)
-      .then(async (response) => {
-        await cacheResponse(request, response);
+      .then((response) => {
+        cacheResponse(event, request, response);
         return response;
       })
       .catch(() => caches.match(request))
