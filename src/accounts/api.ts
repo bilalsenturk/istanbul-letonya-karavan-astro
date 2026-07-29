@@ -73,6 +73,7 @@ const validationCodes = new Set([
   'invalid_trip_event_sequence',
   'invalid_trip_kind',
   'invalid_trip_role',
+  'invite_email_required',
   'last_owner_required',
   'member_not_found',
   'member_user_required',
@@ -84,6 +85,7 @@ const validationCodes = new Set([
   'too_many_stops',
   'trip_created_event_required',
   'trip_name_required',
+  'trip_owner_required',
 ]);
 
 export const requestJSON = async <T>(request: Request): Promise<T> => {

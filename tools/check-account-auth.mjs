@@ -317,6 +317,7 @@ assert.equal((await patched.json()).user.travelProfile.contactName, 'Ayşe');
 const accessRequest = new Request('https://test.invalid/api/v2/me', { headers: { authorization: 'Bearer malformed' } });
 const authNow = new Date('2026-07-26T08:00:00.000Z');
 const authSecret = new TextEncoder().encode('a-test-secret-with-at-least-thirty-two-bytes');
+await assert.rejects(verifyRefreshToken('not-a-refresh-token', authSecret, authNow), UnauthorizedError);
 await assert.rejects(requireSession(new Request('https://test.invalid'), undefined, authNow), UnauthorizedError);
 await assert.rejects(requireSession(accessRequest, new TextEncoder().encode('a-test-secret-with-at-least-thirty-two-bytes'), authNow), UnauthorizedError);
 const expired = await issueSession({ id: 'expired', email: null, displayName: null, globalRole: 'user' },
@@ -333,6 +334,11 @@ const invalidClaims = await new SignJWT({ type: 'access', sid: 'invalid-claims',
 await assert.rejects(requireSession(new Request('https://test.invalid', { headers: { authorization: `Bearer ${invalidClaims}` } }),
   authSecret, authNow), UnauthorizedError);
 const configuredSession = await issueSession({ id: 'config', email: null, displayName: null, globalRole: 'user' }, authSecret, authNow);
+await assert.rejects(verifyRefreshToken(configuredSession.accessToken, authSecret, authNow), UnauthorizedError);
+const invalidRefreshClaims = await new SignJWT({ type: 'refresh' })
+  .setProtectedHeader({ alg: 'HS256' }).setIssuer('kuzey-api').setAudience('kuzey-ios').setSubject('missing-session-id')
+  .setIssuedAt(Math.floor(authNow.getTime() / 1000)).setExpirationTime(Math.floor(authNow.getTime() / 1000) + 300).sign(authSecret);
+await assert.rejects(verifyRefreshToken(invalidRefreshClaims, authSecret, authNow), UnauthorizedError);
 await assert.rejects(requireSession(new Request('https://test.invalid', { headers: { authorization: `Bearer ${configuredSession.accessToken}` } }), undefined, authNow),
   (error) => !(error instanceof UnauthorizedError) && /AUTH_SESSION_SECRET/.test(error.message));
 const unauthorized = errorResponse(new UnauthorizedError());
@@ -361,6 +367,12 @@ assert.equal((await invalidStopOrder.json()).error, 'invalid_stop_order');
 const invalidInviteEmail = errorResponse(new TripRepositoryError('invalid_email'));
 assert.equal(invalidInviteEmail.status, 422);
 assert.equal((await invalidInviteEmail.json()).error, 'invalid_email');
+const missingInviteEmail = errorResponse(new TripRepositoryError('invite_email_required'));
+assert.equal(missingInviteEmail.status, 422);
+assert.equal((await missingInviteEmail.json()).error, 'invite_email_required');
+const missingTripOwner = errorResponse(new TripRepositoryError('trip_owner_required'));
+assert.equal(missingTripOwner.status, 422);
+assert.equal((await missingTripOwner.json()).error, 'trip_owner_required');
 const invalidProfile = errorResponse(new Error('invalid_travel_profile'));
 assert.equal(invalidProfile.status, 422);
 assert.equal((await invalidProfile.json()).error, 'invalid_travel_profile');
@@ -395,10 +407,15 @@ const refreshHandler = (overrides = {}) => createRefreshHandler({
   ...overrides,
 });
 const invalidRefresh = await refreshHandler({
-  verifyRefreshToken: async () => { throw new Error('refresh signature invalid'); },
+  verifyRefreshToken: (token) => verifyRefreshToken(token, authSecret, authNow),
 })(refreshRequest());
 assert.equal(invalidRefresh.status, 401);
 assert.deepEqual(await invalidRefresh.json(), { error: 'unauthorized', message: 'Oturum açmanız gerekiyor.' });
+const verifierFailure = await refreshHandler({
+  verifyRefreshToken: async () => { throw new Error('AUTH_SESSION_SECRET configuration failed'); },
+})(refreshRequest());
+assert.equal(verifierFailure.status, 500);
+assert.deepEqual(await verifierFailure.json(), { error: 'internal_error', message: 'İşlem tamamlanamadı.' });
 const revokedRefresh = await refreshHandler({ sessionIsActive: async () => false })(refreshRequest());
 assert.equal(revokedRefresh.status, 401);
 assert.deepEqual(await revokedRefresh.json(), { error: 'unauthorized', message: 'Oturum açmanız gerekiyor.' });

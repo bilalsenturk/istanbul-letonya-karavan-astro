@@ -20,12 +20,7 @@ type RefreshDependencies = {
 export const createRefreshHandler = (dependencies: RefreshDependencies) => async (request: Request): Promise<Response> => {
   try {
     const body = await dependencies.requestJSON<{ refreshToken?: string }>(request);
-    let claims;
-    try {
-      claims = await dependencies.verifyRefreshToken(body.refreshToken ?? '');
-    } catch {
-      throw new UnauthorizedError();
-    }
+    const claims = await dependencies.verifyRefreshToken(body.refreshToken ?? '');
     if (!(await dependencies.sessionIsActive(claims.sessionId, claims.userId))) throw new UnauthorizedError();
     const account = await dependencies.accountById(claims.userId);
     if (!account) throw new UnauthorizedError();

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { jwtVerify, SignJWT } from 'jose';
+import { errors, jwtVerify, SignJWT } from 'jose';
 import type { GlobalRole } from './domain.ts';
 
 const issuer = 'kuzey-api';
@@ -92,9 +92,15 @@ export const verifyRefreshToken = async (
   secret = sessionSecretFromEnv(),
   now = new Date(),
 ): Promise<RefreshClaims> => {
-  const payload = await verifiedPayload(token, secret, now);
-  if (payload.type !== 'refresh') throw new Error('invalid_token_type');
-  if (!payload.sub || typeof payload.sid !== 'string') throw new Error('invalid_session_claims');
+  let payload;
+  try {
+    payload = await verifiedPayload(token, secret, now);
+  } catch (error) {
+    if (error instanceof errors.JOSEError) throw new UnauthorizedError();
+    throw error;
+  }
+  if (payload.type !== 'refresh') throw new UnauthorizedError();
+  if (!payload.sub || typeof payload.sid !== 'string') throw new UnauthorizedError();
   return { userId: payload.sub, sessionId: payload.sid };
 };
 
