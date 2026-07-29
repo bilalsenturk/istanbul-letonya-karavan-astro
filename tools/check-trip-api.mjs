@@ -36,24 +36,52 @@ const created = await createTrip(storage, owner, {
   name: 'Balkan Yazı',
   transportMode: 'walking',
   stops: [
-    { id: 'start', name: 'Konumum', lat: 41.01, lng: 28.97, order: 0, source: 'currentLocation' },
-    { id: 'finish', name: 'Sofya', lat: 42.69, lng: 23.32, order: 1 },
+    { id: 'start', name: 'Konumum', lat: 41.01, lng: 28.97, order: 7, source: 'currentLocation' },
+    { id: 'finish', name: 'Sofya', lat: 42.69, lng: 23.32, order: 3 },
   ],
 });
 
 assert.equal(created.kind, 'standard', 'new users cannot create a Kuzey-special trip');
 assert.equal(created.transportMode, 'walking', 'trip keeps its transport mode');
-assert.equal((await storage.list(created.id)).length, 1);
+const createdEvents = await storage.list(created.id);
+assert.equal(createdEvents.length, 1);
+const [createdEvent] = createdEvents;
+assert.equal(createdEvent.type, 'tripCreated');
+assert.equal(createdEvent.revision, 1);
+assert.deepEqual(createdEvent.payload.stops.map((stop) => stop.order), [0, 1]);
 assert.equal(created.revision, 1);
 assert.equal(created.members[0].role, 'owner');
 assert.equal(created.stops[0].source, 'currentLocation', 'current location remains semantic');
 assert.deepEqual(created.stops.map((stop) => stop.order), [0, 1]);
 
-const before = storage.totalEvents();
-await assert.rejects(createTrip(storage, owner, {
-  name: 'Bozuk', stops: [{ id: 'x', name: '', lat: 120, lng: 29, order: 0 }],
-}), (error) => error?.code === 'stop_name_required');
-assert.equal(storage.totalEvents(), before);
+const assertCreateRejectedWithoutPersistence = async (input, code) => {
+  const before = storage.totalEvents();
+  await assert.rejects(createTrip(storage, owner, input), (error) => error?.code === code);
+  assert.equal(storage.totalEvents(), before, `${code} must not persist an event`);
+};
+
+await assertCreateRejectedWithoutPersistence({
+  name: 'Bozuk Koordinat', stops: [{ id: 'x', name: 'Hatalı', lat: 120, lng: 29, order: 0 }],
+}, 'invalid_stop_coordinates');
+
+await assertCreateRejectedWithoutPersistence({
+  name: 'Bozuk', stops: [{ id: 'x', name: '', lat: 41, lng: 29, order: 0 }],
+}, 'stop_name_required');
+
+await assertCreateRejectedWithoutPersistence({
+  name: 'Tekrarlı Durak',
+  stops: [
+    { id: 'aynı', name: 'Birinci', lat: 41, lng: 29, order: 0 },
+    { id: 'aynı', name: 'İkinci', lat: 42, lng: 30, order: 1 },
+  ],
+}, 'duplicate_stop');
+
+await assertCreateRejectedWithoutPersistence({
+  name: 'Fazla Durak',
+  stops: Array.from({ length: 51 }, (_, index) => ({
+    id: `stop-${index}`, name: `Durak ${index}`, lat: 41, lng: 29, order: index,
+  })),
+}, 'too_many_stops');
 
 await assert.rejects(
   createTrip(storage, owner, { name: 'Fake Kuzey', kind: 'kuzey2026', stops: [] }),
