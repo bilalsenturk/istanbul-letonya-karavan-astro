@@ -24,6 +24,10 @@ class MemoryTripEventStorage {
     items.push(structuredClone(event));
     this.events.set(event.tripId, items);
   }
+
+  totalEvents() {
+    return [...this.events.values()].reduce((total, events) => total + events.length, 0);
+  }
 }
 
 const storage = new MemoryTripEventStorage();
@@ -39,9 +43,17 @@ const created = await createTrip(storage, owner, {
 
 assert.equal(created.kind, 'standard', 'new users cannot create a Kuzey-special trip');
 assert.equal(created.transportMode, 'walking', 'trip keeps its transport mode');
-assert.equal(created.revision, 3);
+assert.equal((await storage.list(created.id)).length, 1);
+assert.equal(created.revision, 1);
 assert.equal(created.members[0].role, 'owner');
 assert.equal(created.stops[0].source, 'currentLocation', 'current location remains semantic');
+assert.deepEqual(created.stops.map((stop) => stop.order), [0, 1]);
+
+const before = storage.totalEvents();
+await assert.rejects(createTrip(storage, owner, {
+  name: 'Bozuk', stops: [{ id: 'x', name: '', lat: 120, lng: 29, order: 0 }],
+}), (error) => error?.code === 'stop_name_required');
+assert.equal(storage.totalEvents(), before);
 
 await assert.rejects(
   createTrip(storage, owner, { name: 'Fake Kuzey', kind: 'kuzey2026', stops: [] }),

@@ -4,6 +4,7 @@ import {
   featuresFor,
   foldTripEvents,
   normalizeEmail,
+  TripDomainError,
   type GlobalRole,
   type TripAction,
   type TripEvent,
@@ -66,24 +67,34 @@ export const createTrip = async (
   }
   const name = input.name.trim();
   if (!name) throw new TripRepositoryError('trip_name_required');
-  if (input.stops.length > 50) throw new TripRepositoryError('too_many_stops');
   const tripId = randomUUID();
   const occurredAt = new Date().toISOString();
-  await storage.append(event(tripId, actor.userId, 1, 'tripCreated', {
-    name,
-    kind: 'standard',
-    transportMode: input.transportMode ?? 'automobile',
-    ownerUserId: actor.userId,
-  }, occurredAt));
+  const candidate = event(
+    tripId,
+    actor.userId,
+    1,
+    'tripCreated',
+    {
+      name,
+      kind: 'standard',
+      transportMode: input.transportMode ?? 'automobile',
+      ownerUserId: actor.userId,
+      stops: input.stops.map((stop, index) => ({ ...stop, order: index })),
+    },
+    occurredAt,
+  );
 
-  let revision = 1;
-  for (const [index, stop] of input.stops.entries()) {
-    revision += 1;
-    await storage.append(event(tripId, actor.userId, revision, 'stopAdded', {
-      stop: { ...stop, order: index },
-    }));
+  let trip: TripRecord;
+  try {
+    trip = foldTripEvents([candidate]);
+  } catch (error) {
+    if (error instanceof TripDomainError) {
+      throw new TripRepositoryError(error.code, error.message);
+    }
+    throw error;
   }
-  return loadTrip(storage, tripId);
+  await storage.append(candidate);
+  return trip;
 };
 
 export const getTripForUser = async (
