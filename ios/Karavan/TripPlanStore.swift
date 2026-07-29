@@ -19,6 +19,12 @@ enum PlanEditMerge {
     }
 }
 
+private struct PlanEditSubmission {
+    let edits: TripEdits
+    let base: TripEdits
+    let generation: UInt64
+}
+
 // Kullanıcı düzenlemelerinin cihazdaki deposu + kaskat tetikleyicisi.
 // Web verisi TABAN kalır; düzenlemeler onun üstüne bindirilir. Böylece site
 // güncellenince taban tazelenir, kişisel değişikliklerin korunur.
@@ -54,6 +60,8 @@ final class TripPlanStore: ObservableObject {
     private var syncBase = TripEdits()
     private var arrivalTargetOverrides = ScopedArrivalTargetOverrides()
     private var publishedTripScope: PublishedTripScope?
+    private var localMutationGeneration: UInt64 = 0
+    private var followUpSyncRequested = false
     private let planEditsClient: PlanEditSending
     private let storageDirectory: URL
     private let canMoveDepartureOverride: (() -> Bool)?
@@ -123,9 +131,13 @@ final class TripPlanStore: ObservableObject {
     /// kaydını çeker. Yerel farklar uzak kaydın üstüne bindirilir;
     /// fark varsa aynı revision'a koşullu PUT yapılır.
     func syncFromWeb() async {
-        guard !syncing, let scope = publishedTripScope else { return }
+        guard let scope = publishedTripScope else { return }
+        guard !syncing else {
+            followUpSyncRequested = true
+            return
+        }
         syncing = true
-        defer { syncing = false }
+        defer { finishSync() }
 
         let remote: RemotePlanEdits
         do {
@@ -145,34 +157,47 @@ final class TripPlanStore: ObservableObject {
         )
         apply(edits: merged, syncBase: remoteEdits)
         guard merged != remoteEdits else { return }
+        let firstSubmission = PlanEditSubmission(
+            edits: merged,
+            base: remoteEdits,
+            generation: localMutationGeneration
+        )
 
         do {
             let accepted = try await planEditsClient.putPlanEdits(
                 scope: scope,
                 baseRevision: remote.revision,
-                edits: merged
+                edits: firstSubmission.edits
             )
             guard publishedTripScope == scope else { return }
-            applyAccepted(accepted)
+            reconcileAccepted(accepted, submitted: firstSubmission)
         } catch PublishedTripClientError.revisionConflict(let current) {
             guard publishedTripScope == scope else { return }
             let currentEdits = current.edits.sharedSyncState
             let rebased = PlanEditMerge.rebase(
-                local: merged,
-                base: remoteEdits,
+                local: edits.sharedSyncState,
+                base: firstSubmission.base,
                 remote: currentEdits,
                 canMoveDeparture: canMoveDeparture
             )
+            if localMutationGeneration != firstSubmission.generation {
+                followUpSyncRequested = true
+            }
             apply(edits: rebased, syncBase: currentEdits)
             guard rebased != currentEdits else { return }
+            let retrySubmission = PlanEditSubmission(
+                edits: rebased,
+                base: currentEdits,
+                generation: localMutationGeneration
+            )
             do {
                 let accepted = try await planEditsClient.putPlanEdits(
                     scope: scope,
                     baseRevision: current.revision,
-                    edits: rebased
+                    edits: retrySubmission.edits
                 )
                 guard publishedTripScope == scope else { return }
-                applyAccepted(accepted)
+                reconcileAccepted(accepted, submitted: retrySubmission)
             } catch {
                 // Yerel/rebase edilmiş düzenleme ile current tabanı diskte
                 // kalır; bir sonraki foreground sync aynı farkı yeniden dener.
@@ -184,6 +209,10 @@ final class TripPlanStore: ObservableObject {
 
     private func pushToWeb() {
         guard publishedTripScope != nil else { return }
+        guard !syncing else {
+            followUpSyncRequested = true
+            return
+        }
         Task { await syncFromWeb() }
     }
 
@@ -192,9 +221,31 @@ final class TripPlanStore: ObservableObject {
         canMoveDepartureOverride?() ?? (isOwner || RoleStore.shared.isDriver)
     }
 
-    private func applyAccepted(_ remote: RemotePlanEdits) {
+    private func reconcileAccepted(
+        _ remote: RemotePlanEdits,
+        submitted: PlanEditSubmission
+    ) {
         let accepted = remote.edits.sharedSyncState
-        apply(edits: accepted, syncBase: accepted)
+        guard localMutationGeneration != submitted.generation else {
+            apply(edits: accepted, syncBase: accepted)
+            return
+        }
+        let preserved = PlanEditMerge.rebase(
+            local: edits.sharedSyncState,
+            base: submitted.edits,
+            remote: accepted,
+            canMoveDeparture: canMoveDeparture
+        )
+        apply(edits: preserved, syncBase: accepted)
+        followUpSyncRequested = true
+    }
+
+    private func finishSync() {
+        syncing = false
+        guard followUpSyncRequested else { return }
+        followUpSyncRequested = false
+        guard publishedTripScope != nil else { return }
+        Task { await syncFromWeb() }
     }
 
     private func apply(edits updatedEdits: TripEdits, syncBase updatedBase: TripEdits) {
@@ -307,6 +358,7 @@ final class TripPlanStore: ObservableObject {
     // MARK: - Kalıcılık + kaskat
 
     private func commit() {
+        localMutationGeneration &+= 1
         persist()
         pushToWeb()          // her cihaz gün düzenlemesini gönderir; kalkış kısıtlı
         onChange?(edits)
