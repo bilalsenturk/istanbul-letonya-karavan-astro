@@ -52,6 +52,7 @@ assert.match(homeRuntimeBundle, /\/api\/roadfeed/);
 assert.doesNotMatch(homeRuntimeBundle, /setInterval\s*\(/, 'the built homepage runtime should not contain overlapping interval polls');
 assert.match(homeRuntimeBundle, /visibilitychange/, 'the built homepage runtime should pause while hidden');
 assert.match(homeRuntimeBundle, /pagehide/, 'the built homepage runtime should stop during page teardown');
+assert.match(homeRuntimeBundle, /pageshow/, 'the built homepage runtime should resume after bfcache restoration');
 const expectedDayHrefs = dayExpectations.map(({ slug }) => `/day/${slug}`);
 const actualDayHrefs = [...home.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>Gün planını aç<\/a>/g)]
   .map((match) => decodeAttribute(match[1]));

@@ -92,6 +92,88 @@ function createFakeClock() {
 
 {
   const clock = createFakeClock();
+  const loop = pollingModule.createPollingLoop({
+    task: async () => {
+      throw new Error('offline');
+    },
+    intervalMs: 20_000,
+    maxBackoffMs: 160_000,
+    now: clock.now,
+    schedule: clock.schedule,
+    cancel: clock.cancel,
+  });
+
+  loop.start();
+  await clock.runNext();
+  assert.deepEqual(clock.pendingDelays(), [40_000]);
+  await clock.runNext();
+  assert.deepEqual(clock.pendingDelays(), [80_000]);
+  await clock.runNext();
+  assert.deepEqual(clock.pendingDelays(), [160_000]);
+  await clock.runNext();
+  assert.deepEqual(clock.pendingDelays(), [160_000], 'failure backoff must stay capped');
+  loop.stop();
+}
+
+{
+  const clock = createFakeClock();
+  let calls = 0;
+  const loop = pollingModule.createPollingLoop({
+    task: async () => {
+      calls += 1;
+    },
+    intervalMs: 20_000,
+    maxBackoffMs: 160_000,
+    now: clock.now,
+    schedule: clock.schedule,
+    cancel: clock.cancel,
+  });
+
+  loop.start();
+  await clock.runNext();
+  await clock.advance(5_000);
+  loop.pause();
+  await clock.advance(7_000);
+  loop.resume();
+  assert.deepEqual(clock.pendingDelays(), [8_000], 'fresh work should retain its remaining delay after resume');
+  await clock.advance(7_999);
+  assert.equal(calls, 1);
+  await clock.advance(1);
+  assert.equal(calls, 2);
+  loop.stop();
+}
+
+{
+  const clock = createFakeClock();
+  const signals = [];
+  let resolveTask;
+  const taskResult = new Promise((resolve) => {
+    resolveTask = resolve;
+  });
+  const loop = pollingModule.createPollingLoop({
+    task: async (signal) => {
+      signals.push(signal);
+      await taskResult;
+    },
+    intervalMs: 20_000,
+    maxBackoffMs: 160_000,
+    now: clock.now,
+    schedule: clock.schedule,
+    cancel: clock.cancel,
+  });
+
+  loop.start();
+  const activeRun = clock.runNext();
+  await Promise.resolve();
+  loop.stop();
+  assert.equal(signals[0].aborted, true, 'stop should abort an active signal');
+  resolveTask();
+  await activeRun;
+  assert.deepEqual(clock.pendingDelays(), [], 'an active task settling after stop must not reschedule');
+}
+
+{
+  const clock = createFakeClock();
   let calls = 0;
   const loop = pollingModule.createPollingLoop({
     task: async () => {

@@ -23,6 +23,13 @@ interface DashboardState {
   weatherAbort: AbortController | null;
 }
 
+export interface HomeDashboardDependencies {
+  fetch?: typeof fetch;
+  now?: () => number;
+  schedule?: (callback: () => void | Promise<void>, delayMs: number) => unknown;
+  cancel?: (timer: unknown) => void;
+}
+
 const activeDashboards = new WeakMap<HTMLElement, () => void>();
 
 const parseArray = <T>(value: string | undefined): T[] => {
@@ -39,7 +46,46 @@ const isAbortError = (error: unknown): boolean =>
     ? error.name === 'AbortError'
     : (error as { name?: unknown } | null)?.name === 'AbortError';
 
-export function initHomeDashboard(root?: HTMLElement): () => void {
+const legacyNumber = (value: unknown): number | null => {
+  if (value == null || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+};
+
+const legacyText = (value: unknown): string | null => (typeof value === 'string' && value.trim() ? value.trim() : null);
+
+export function normalizeHomeLiveRecord(raw: Record<string, unknown>): NormalizedLiveRecord | null {
+  const routeStarted = raw.journeyStarted === true || raw.routeStarted === true;
+  const receivedAt = legacyText(raw.receivedAt);
+  const altitudeKind = legacyText(raw.altitudeKind);
+  const normalized = normalizeLiveRecord({
+    ...raw,
+    lat: legacyNumber(raw.lat),
+    lng: legacyNumber(raw.lng),
+    speedKmh: legacyNumber(raw.speedKmh),
+    remainingKm: legacyNumber(raw.remainingKm),
+    remainingToFinalKm: legacyNumber(raw.remainingToFinalKm),
+    remainingMin: legacyNumber(raw.remainingMin),
+    traveledKm: legacyNumber(raw.traveledKm),
+    legProgress: legacyNumber(raw.legProgress),
+    altitudeMeters: legacyNumber(raw.altitudeMeters),
+    altitudeKind,
+    pressureHpa: legacyNumber(raw.pressureHpa),
+    journeyStarted: routeStarted,
+    ts: legacyText(raw.ts) ?? receivedAt,
+    receivedAt,
+  });
+  if (!normalized) return null;
+
+  const progress = legacyNumber(raw.legProgress);
+  normalized.legProgress =
+    routeStarted && progress != null ? clampValue(progress > 1 ? progress / 100 : progress, 0, 1) : 0;
+  return normalized;
+}
+
+const clampValue = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
+
+export function initHomeDashboard(root?: HTMLElement, dependencies: HomeDashboardDependencies = {}): () => void {
   const dashboard = root ?? document.querySelector<HTMLElement>('[data-home-dashboard]');
   if (!dashboard) return () => undefined;
 
@@ -47,6 +93,10 @@ export function initHomeDashboard(root?: HTMLElement): () => void {
 
   const doc = dashboard.ownerDocument;
   const view = doc.defaultView ?? window;
+  const fetchImpl = dependencies.fetch ?? ((input, init) => fetch(input, init));
+  const now = dependencies.now ?? Date.now;
+  const schedule = dependencies.schedule ?? ((callback, delayMs) => setTimeout(callback, delayMs));
+  const cancel = dependencies.cancel ?? ((timer) => clearTimeout(timer as ReturnType<typeof setTimeout>));
   const totalKm = Number(dashboard.dataset.totalKm || '0');
   let departureAt = dashboard.dataset.departureAt || '';
   const routeCodes = parseArray<string>(dashboard.dataset.routeCodes);
@@ -80,7 +130,7 @@ export function initHomeDashboard(root?: HTMLElement): () => void {
     const number = Number(value);
     return Number.isFinite(number) ? number : null;
   };
-  const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
+  const clamp = clampValue;
   const normalizeProgress = (value: unknown): number | null => {
     const number = toNum(value);
     if (number == null) return null;
@@ -122,7 +172,7 @@ export function initHomeDashboard(root?: HTMLElement): () => void {
   const ageText = (iso: unknown): string | null => {
     const date = typeof iso === 'string' && iso ? new Date(iso) : null;
     if (!date || Number.isNaN(date.getTime())) return null;
-    const minutes = Math.max(0, Math.round((Date.now() - date.getTime()) / 60_000));
+    const minutes = Math.max(0, Math.round((now() - date.getTime()) / 60_000));
     if (minutes < 2) return 'az önce';
     if (minutes < 60) return `${minutes} dk önce`;
     const hours = Math.round(minutes / 60);
@@ -134,7 +184,7 @@ export function initHomeDashboard(root?: HTMLElement): () => void {
   const publishMapState = (live: NormalizedLiveRecord) => {
     const detail = mapLiveEventDetail(live);
     (view as Window & { __kuzeyLiveState?: ReturnType<typeof mapLiveEventDetail> }).__kuzeyLiveState = detail;
-    view.dispatchEvent(new CustomEvent('kuzey:live-location', { detail }));
+    view.dispatchEvent(new view.CustomEvent('kuzey:live-location', { detail }));
   };
 
   const stopKey = (value: unknown): string => cleanText(value)?.toLocaleLowerCase('tr-TR') ?? '';
@@ -228,7 +278,7 @@ export function initHomeDashboard(root?: HTMLElement): () => void {
     const departure = departureAt ? new Date(departureAt) : null;
     const seconds =
       departure && !Number.isNaN(departure.getTime())
-        ? Math.max(0, Math.floor((departure.getTime() - Date.now()) / 1_000))
+        ? Math.max(0, Math.floor((departure.getTime() - now()) / 1_000))
         : 0;
     const routeStarted = state.live?.routeStarted === true;
     const label = routeStarted ? 'Rota aktif' : seconds > 0 ? 'Kalkışa' : 'Kalkış zamanı';
@@ -240,18 +290,18 @@ export function initHomeDashboard(root?: HTMLElement): () => void {
     setText('countdown-seconds', String(seconds % 60).padStart(2, '0'));
   };
 
-  let countdownTimer: ReturnType<typeof setTimeout> | undefined;
+  let countdownTimer: unknown;
   const stopCountdown = () => {
     if (countdownTimer == null) return;
-    clearTimeout(countdownTimer);
+    cancel(countdownTimer);
     countdownTimer = undefined;
   };
   const scheduleCountdown = () => {
     stopCountdown();
     if (doc.hidden) return;
     renderCountdown();
-    const remainder = Date.now() % 1_000;
-    countdownTimer = setTimeout(scheduleCountdown, remainder === 0 ? 1_000 : 1_000 - remainder);
+    const remainder = now() % 1_000;
+    countdownTimer = schedule(scheduleCountdown, remainder === 0 ? 1_000 : 1_000 - remainder);
   };
 
   const updateLiveUi = (live: NormalizedLiveRecord) => {
@@ -344,7 +394,7 @@ export function initHomeDashboard(root?: HTMLElement): () => void {
       url.searchParams.set('longitude', String(live.lng));
       url.searchParams.set('current', 'temperature_2m,weather_code,wind_speed_10m,precipitation');
       url.searchParams.set('timezone', 'auto');
-      const response = await fetch(url, { signal: weatherController.signal });
+      const response = await fetchImpl(url, { signal: weatherController.signal });
       if (!response.ok) throw new Error('weather failed');
       const data = (await response.json()) as { current?: Record<string, unknown> };
       const current = data?.current;
@@ -434,7 +484,7 @@ export function initHomeDashboard(root?: HTMLElement): () => void {
   };
 
   const fetchJson = async (path: string, signal: AbortSignal): Promise<unknown> => {
-    const response = await fetch(path, { cache: 'no-store', signal });
+    const response = await fetchImpl(path, { cache: 'no-store', signal });
     if (!response.ok) throw new Error(`${path} ${response.status}`);
     return response.json();
   };
@@ -442,7 +492,7 @@ export function initHomeDashboard(root?: HTMLElement): () => void {
   const refreshLive = async (signal: AbortSignal) => {
     try {
       const data = await fetchJson(urls.live, signal);
-      const live = data && typeof data === 'object' ? normalizeLiveRecord(data as Record<string, unknown>) : null;
+      const live = data && typeof data === 'object' ? normalizeHomeLiveRecord(data as Record<string, unknown>) : null;
       if (!live) throw new Error('bad live payload');
       updateLiveUi(live);
     } catch (error) {
@@ -480,10 +530,38 @@ export function initHomeDashboard(root?: HTMLElement): () => void {
   };
 
   const loops = [
-    createPollingLoop({ task: refreshLive, intervalMs: 20_000, maxBackoffMs: 160_000 }),
-    createPollingLoop({ task: refreshExpenses, intervalMs: 60_000, maxBackoffMs: 480_000 }),
-    createPollingLoop({ task: refreshPlan, intervalMs: 5 * 60_000, maxBackoffMs: 40 * 60_000 }),
-    createPollingLoop({ task: refreshRoadfeed, intervalMs: 30 * 60_000, maxBackoffMs: 4 * 60 * 60_000 }),
+    createPollingLoop({
+      task: refreshLive,
+      intervalMs: 20_000,
+      maxBackoffMs: 160_000,
+      now,
+      schedule,
+      cancel,
+    }),
+    createPollingLoop({
+      task: refreshExpenses,
+      intervalMs: 60_000,
+      maxBackoffMs: 480_000,
+      now,
+      schedule,
+      cancel,
+    }),
+    createPollingLoop({
+      task: refreshPlan,
+      intervalMs: 5 * 60_000,
+      maxBackoffMs: 40 * 60_000,
+      now,
+      schedule,
+      cancel,
+    }),
+    createPollingLoop({
+      task: refreshRoadfeed,
+      intervalMs: 30 * 60_000,
+      maxBackoffMs: 4 * 60 * 60_000,
+      now,
+      schedule,
+      cancel,
+    }),
   ];
 
   const galleryCleanups: Array<() => void> = [];
@@ -532,5 +610,28 @@ export function initHomeDashboard(root?: HTMLElement): () => void {
   scheduleCountdown();
   if (doc.hidden) handleVisibility();
 
+  return cleanup;
+}
+
+export function mountHomeDashboard(root?: HTMLElement, dependencies: HomeDashboardDependencies = {}): () => void {
+  const dashboard = root ?? document.querySelector<HTMLElement>('[data-home-dashboard]');
+  if (!dashboard) return () => undefined;
+
+  const view = dashboard.ownerDocument.defaultView ?? window;
+  let cleanupDashboard = initHomeDashboard(dashboard, dependencies);
+  let disposed = false;
+
+  const handlePageShow = (event: PageTransitionEvent) => {
+    if (disposed || !event.persisted || activeDashboards.has(dashboard)) return;
+    cleanupDashboard = initHomeDashboard(dashboard, dependencies);
+  };
+  const cleanup = () => {
+    if (disposed) return;
+    disposed = true;
+    cleanupDashboard();
+    view.removeEventListener('pageshow', handlePageShow);
+  };
+
+  view.addEventListener('pageshow', handlePageShow);
   return cleanup;
 }
