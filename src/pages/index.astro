@@ -8,6 +8,7 @@ const mapStops = tripData.stops.map((stop) => ({ name: stop.name, lat: stop.lat,
 const countryCodes: Record<string, string> = {
   Türkiye: 'TR',
   Bulgaristan: 'BG',
+  Sırbistan: 'RS',
   Romanya: 'RO',
   Macaristan: 'HU',
   Slovakya: 'SK',
@@ -24,6 +25,7 @@ const parseDistanceKm = (label: string): number => {
 };
 const routeTimeline = tripData.days.map((day) => ({
   id: day.id,
+  slug: day.slug,
   date: day.date,
   from: day.origin,
   to: day.destination,
@@ -103,6 +105,7 @@ const travelPhotos = [
                   </div>
                 ) : null}
               </dl>
+              <a class="route-leg__action" href={`/day/${leg.slug}`}>Gün planını aç</a>
             </div>
           </article>
         ))}
@@ -252,7 +255,10 @@ const travelPhotos = [
     };
     const setProgress = (id, value) => {
       const el = byId(id);
-      if (el) el.style.width = `${Math.max(0, Math.min(100, value))}%`;
+      const progress = Math.max(0, Math.min(100, value));
+      if (el) el.style.width = `${progress}%`;
+      const progressbar = el?.closest?.('[role="progressbar"]');
+      if (progressbar) progressbar.setAttribute('aria-valuenow', String(Math.round(progress)));
     };
     const toNum = (value) => {
       if (value == null || value === '') return null;
@@ -364,6 +370,7 @@ const travelPhotos = [
     const timelineLegs = () => Array.from(document.querySelectorAll('[data-leg-index]'));
     const heroRoutePoints = () => Array.from(document.querySelectorAll('[data-hero-role]'));
     const routeDetails = document.querySelector('[data-route-details]');
+    let announcedRouteState = '';
     const routeSummaryQuery = window.matchMedia('(max-width: 760px)');
     const syncRouteDetailsMode = () => {
       const isMobileRouteSummary = routeSummaryQuery.matches;
@@ -429,6 +436,16 @@ const travelPhotos = [
       if (routeDetails) routeDetails.classList.toggle('is-started', routeStarted);
       setText('route-timeline-summary', activeLabel);
       setText('route-timeline-progress', fmtKm(progressKm));
+      const routeState = routeStarted
+        ? `active:${live.activeRouteStop || live.nextStop || 'Yolda'}`
+        : 'waiting';
+      if (routeState !== announcedRouteState) {
+        announcedRouteState = routeState;
+        setText(
+          'hero-route-status',
+          routeStarted ? `${live.activeRouteStop || live.nextStop || 'Yolda'} yönünde rota aktif.` : 'Rota başlamadı.',
+        );
+      }
       updateHeroRoute(live, progressKm);
     }
 
@@ -1260,6 +1277,23 @@ const travelPhotos = [
     overflow-wrap: anywhere;
   }
 
+  .route-leg__action {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-top: 8px;
+    color: #dce4ee;
+    font-size: 0.84rem;
+    font-weight: 750;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.18em;
+  }
+
+  .route-leg__action:hover {
+    color: #fff;
+  }
+
   .route-leg.is-active {
     border-color: rgba(56, 224, 138, 0.32);
     background: rgba(13, 24, 21, 0.8);
@@ -1396,8 +1430,8 @@ const travelPhotos = [
 
   .follow-gallery__controls button {
     display: grid;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     place-items: center;
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;

@@ -31,7 +31,7 @@ const { routeStops, totalKm } = Astro.props;
           fetchpriority="high"
         />
         <div class="journey-hero__edge" aria-hidden="true"></div>
-        <section class="journey-countdown" aria-live="polite" aria-label="Kalkış durumu">
+        <section class="journey-countdown" role="timer" aria-live="off" aria-label="Kalkış durumu">
           <span id="hero-countdown-label">Kalkışa</span>
           <div>
             <strong><b id="countdown-days">--</b> gün</strong>
@@ -66,6 +66,7 @@ const { routeStops, totalKm } = Astro.props;
             <li data-hero-role="end"><i aria-hidden="true"></i><small>Riga</small></li>
           </ol>
         </div>
+        <p id="hero-route-status" class="sr-only" role="status" aria-live="polite">Rota başlamadı.</p>
       </div>
 
       <div class="journey-hero__map">
@@ -112,7 +113,14 @@ const { routeStops, totalKm } = Astro.props;
       </article>
     </div>
 
-    <div class="journey-summary__progress" aria-label="Toplam rota ilerlemesi">
+    <div
+      class="journey-summary__progress"
+      role="progressbar"
+      aria-label="Toplam rota ilerlemesi"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    >
       <span>İstanbul → Riga</span>
       <div><i id="journey-progress"></i></div>
       <strong>{totalKm.toLocaleString('tr-TR')} km</strong>

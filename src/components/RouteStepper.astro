@@ -15,6 +15,7 @@ const { stops, activeIndex = -1, compact = false } = Astro.props;
 const flags: Record<string, string> = {
   'Türkiye': '🇹🇷',
   'Bulgaristan': '🇧🇬',
+  'Sırbistan': '🇷🇸',
   'Romanya': '🇷🇴',
   'Macaristan': '🇭🇺',
   'Polonya': '🇵🇱',
@@ -27,7 +28,12 @@ const progressPct =
   activeIndex < 0 ? 0 : Math.min(100, (activeIndex / Math.max(1, total - 1)) * 100);
 ---
 
-<div class:list={['stepper', { 'stepper--compact': compact }]} role="list" aria-label="Rota aşamaları">
+<div
+  class:list={['stepper', { 'stepper--compact': compact }]}
+  role="list"
+  aria-label="Rota aşamaları"
+  style={`--route-stop-count: ${stops.length};`}
+>
   <div class="stepper__track" aria-hidden="true">
     <span class="stepper__fill" style={`width:${progressPct}%`}></span>
   </div>
@@ -35,7 +41,7 @@ const progressPct =
     {stops.map((stop, i) => {
       const state = i < activeIndex ? 'done' : i === activeIndex ? 'active' : 'todo';
       return (
-        <li class:list={['step', `step--${state}`]} role="listitem">
+        <li class:list={['step', `step--${state}`]} role="listitem" aria-current={state === 'active' ? 'step' : undefined}>
           <span class="step__dot">
             <span class="step__flag">{flags[stop.country] ?? '📍'}</span>
           </span>
@@ -87,8 +93,7 @@ const progressPct =
   .stepper__nodes {
     position: relative;
     display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(88px, 1fr);
+    grid-template-columns: repeat(var(--route-stop-count), minmax(88px, 1fr));
     gap: 0;
     margin: 0;
     padding: 0;
