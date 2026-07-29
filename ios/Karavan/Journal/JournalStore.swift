@@ -283,7 +283,7 @@ final class JournalStore: ObservableObject {
         cloudAvailable = false
         cloudProblem = nil
         return
-        #endif
+        #else
 
         // Hesap kapısı üç değerlidir: yalnızca GERÇEK hesap yokluğu
         // (couldNotDetermine/noAccount/restricted) "oturum kapalı" sayılır.
@@ -433,6 +433,7 @@ final class JournalStore: ObservableObject {
         // görünmüyordu (CloudKit'te dururken). drainQueue() açılışta ve öne
         // gelince zaten tetiklendiği için ayrı bir "açılış" kancasına gerek yok.
         await mergeFromCloud()
+        #endif
     }
 
     /// CloudKit'teki kayıtları yerel `entries` ile birleştirir (okuma tarafı).
