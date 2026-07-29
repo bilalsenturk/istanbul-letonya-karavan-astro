@@ -1,9 +1,11 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
+import CampActions from '../../components/CampActions.astro';
+import DayCameraSection from '../../components/DayCameraSection.astro';
 import RouteMap from '../../components/RouteMap.astro';
 import RouteStepper from '../../components/RouteStepper.astro';
-import CameraPlayer from '../../components/CameraPlayer.astro';
 import { tripData } from '../../data/tripData';
+import { selectRouteStops } from '../../scripts/routeMapData';
 
 export function getStaticPaths() {
   return tripData.days.map((day) => ({
@@ -18,7 +20,7 @@ if (!day) {
   return Astro.redirect('/');
 }
 
-const mapStops = tripData.stops.map((stop) => ({ name: stop.name, lat: stop.lat, lng: stop.lng }));
+const mapStops = selectRouteStops(tripData.stops, day.origin, day.destination, 'day');
 const stepperStops = tripData.stops.map((stop) => ({ name: stop.name, country: stop.country }));
 const dayIndex = tripData.days.findIndex((row) => row.slug === slug);
 const previous = dayIndex - 1;
@@ -64,9 +66,12 @@ const activeIndex = (() => {
   );
   return found >= 0 ? found : Math.min(dayIndex + 1, tripData.stops.length - 1);
 })();
+const dayTitle = `${day.origin} → ${day.destination} | ${day.date} Günlük Plan`;
+const dayDescription = `${day.date} ${day.origin} → ${day.destination} karavan etabı: rota, kamp, yakıt, riskler ve yol durakları.`;
+const dayImage = day.camp.image ?? '/assets/follow-riga-hero.jpg';
 ---
 
-<MainLayout title={`Günlük Plan: ${day.date} (${day.origin} → ${day.destination})`}>
+<MainLayout title={dayTitle} description={dayDescription} image={dayImage} type="article">
   <section class="shell" id="top">
     <div class="day-title">
       <h1>{day.date}</h1>
@@ -88,7 +93,7 @@ const activeIndex = (() => {
   <section class="grid">
     <article class="card col-8">
       <div class="section-title">
-        <h3>Rota ve Plan</h3>
+        <h2>Rota ve Plan</h2>
         <a class="btn btn--ghost" href="/">Kontrol Paneli</a>
       </div>
       <RouteMap
@@ -96,11 +101,13 @@ const activeIndex = (() => {
         routeStops={mapStops}
         activeFrom={day.origin}
         activeTo={day.destination}
+        mode="day"
+        live={false}
         height="420px"
       />
       <div class="two-col" style="margin-top:10px;">
         <div>
-          <h4>Kamp</h4>
+          <h3>Kamp</h3>
           {day.camp.image ? (
             <img class="camp-photo" src={day.camp.image} alt={day.camp.name} loading="lazy" width="800" height="500" />
           ) : null}
@@ -110,11 +117,11 @@ const activeIndex = (() => {
           {day.camp.email ? <p>E-posta: <a href={`mailto:${day.camp.email}`}>{day.camp.email}</a></p> : null}
           {day.camp.phone ? <p>Tel: <a href={`tel:${day.camp.phone}`}>{day.camp.phone}</a></p> : null}
           <p>Rezervasyon şablonu: <em>{day.camp.reservationTemplate}</em></p>
-          <p><a href={day.camp.link} target="_blank" rel="noreferrer">Kamp konumu</a></p>
+          <CampActions arrivalTarget={day.arrivalTarget} camp={day.camp} />
 
           {day.camp.alternatives?.length ? (
             <div class="camp-alts">
-              <h4>Diğer kamp seçenekleri</h4>
+              <h3>Diğer kamp seçenekleri</h3>
               {day.camp.alternatives.map((alt) => (
                 <a class="camp-alt" href={alt.link} target="_blank" rel="noreferrer">
                   {alt.image ? (
@@ -131,7 +138,7 @@ const activeIndex = (() => {
           ) : null}
         </div>
         <div>
-          <h4>Canlı Trafik Kontrolü</h4>
+          <h3>Canlı Trafik Kontrolü</h3>
           <p class="subline" style="margin-bottom: 12px;">
             Trafik izleme için en stabil seçenek doğrudan harita uygulamasını yeni sekmede açmaktır.
           </p>
@@ -158,18 +165,18 @@ const activeIndex = (() => {
 
     <article class="card col-4">
       <div class="section-title">
-        <h3>Riskler ve Olasılıklar</h3>
+        <h2>Riskler ve Olasılıklar</h2>
         <span class="pill">Strateji odaklı</span>
       </div>
-      <h4>Sorun Senaryoları</h4>
+      <h3>Sorun Senaryoları</h3>
       <ul>
         {day.risks.map((item) => <li>{item}</li>)}
       </ul>
-      <h4>Fırsat ve alternatifler</h4>
+      <h3>Fırsat ve alternatifler</h3>
       <ul>
         {day.opportunities.map((item) => <li>{item}</li>)}
       </ul>
-      <h4>Kontenjan / Yedek Plan</h4>
+      <h3>Kontenjan / Yedek Plan</h3>
       <ul>
         {day.contingencies.map((item) => <li>{item}</li>)}
       </ul>
@@ -178,12 +185,12 @@ const activeIndex = (() => {
 
   <section class="shell">
     <div class="section-title">
-      <h3>Etap Brifingi</h3>
+      <h2>Etap Brifingi</h2>
       <a class="btn btn--ghost" href="#top">Ana başlık</a>
     </div>
     <div class="grid">
       <article class="card col-6">
-        <h4>Güzergâh özeti</h4>
+        <h3>Güzergâh özeti</h3>
         <p class="muted">{day.origin} → {day.destination}</p>
         <ul>
           {segmentGuide.highlights.map((item) => <li>{item}</li>)}
@@ -192,7 +199,7 @@ const activeIndex = (() => {
       </article>
 
       <article class="card col-6">
-        <h4>Ülke odaklı operatif notlar</h4>
+        <h3>Ülke odaklı operatif notlar</h3>
         {dayCountryGuides.map((guide) => (
           <details class="accordion">
             <summary>{guide.country}</summary>
@@ -219,13 +226,13 @@ const activeIndex = (() => {
 
   <section class="shell">
     <div class="section-title">
-      <h3>Yol Üzeri Duraklar</h3>
+      <h2>Yol Üzeri Duraklar</h2>
       <span class="pill">Yakıt-kahve-tavsiyeler</span>
     </div>
     <div class="grid">
       {day.stops.map((stop) => (
         <article class="card col-4">
-          <h4>{stop.type} · {stop.name}</h4>
+          <h3>{stop.type} · {stop.name}</h3>
           <p>{stop.note}</p>
           <p class="tag-row">
             <span class="tag">~{stop.estimatedMinutes} dk</span>
@@ -236,24 +243,16 @@ const activeIndex = (() => {
     </div>
   </section>
 
-  <section class="shell">
-    <div class="section-title">
-      <h3>Şehir Kameraları</h3>
-      <a class="btn btn--ghost" href="#top">Yukarı çık</a>
-    </div>
-    <div class="grid">
-      {day.cityCameras.map((camera) => <div class="col-6"><CameraPlayer camera={camera} /></div>)}
-    </div>
-  </section>
+  <DayCameraSection cameras={day.cityCameras} />
 
   <section class="shell">
-    <h3>İleriye Yönelik Notlar</h3>
+    <h2>İleriye Yönelik Notlar</h2>
     <p class="subline">Riga sonrası adaptasyon ve 2. haftaya geçişte kullanılan aksiyon kartları.</p>
     <div class="grid">
       {tripData.postArrival.map((item) => (
         <article class="card col-4">
           <strong>{item.when}</strong>
-          <h4>{item.title}</h4>
+          <h3>{item.title}</h3>
           <p>{item.text}</p>
         </article>
       ))}
@@ -261,7 +260,7 @@ const activeIndex = (() => {
   </section>
 
   <section class="shell">
-    <h3>Geçiş Bağlantıları</h3>
+    <h2>Geçiş Bağlantıları</h2>
     <p class="tag-row">
       {previous >= 0 ? <a class="btn" href={`/day/${tripData.days[previous].slug}`}>Önceki Gün</a> : null}
       {next < tripData.days.length ? <a class="btn btn--ghost" href={`/day/${tripData.days[next].slug}`}>Sonraki Gün</a> : null}

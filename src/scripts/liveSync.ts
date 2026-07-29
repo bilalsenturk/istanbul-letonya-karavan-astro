@@ -55,6 +55,53 @@ export interface AltitudeDisplay {
   note: string;
 }
 
+export interface PlannedStop {
+  name: string;
+  lat: number;
+  lng: number;
+}
+
+export type FriendlyLocationRecord = Pick<
+  NormalizedLiveRecord,
+  'lat' | 'lng' | 'city' | 'routeStarted' | 'activeRouteStop' | 'nextStop'
+>;
+
+export interface HeroLiveLabels {
+  place: string;
+  state: string;
+  current: string;
+  next: string;
+}
+
+export interface RouteMapInteractionOptions {
+  zoomControl: false;
+  scrollWheelZoom: false;
+  dragging: boolean;
+  touchZoom: boolean;
+  doubleClickZoom: boolean;
+  boxZoom: boolean;
+  keyboard: boolean;
+}
+
+export function subscribeLiveLocation(listener: (event: Event) => void, view: Window = window): () => void {
+  let active = true;
+
+  function cleanup() {
+    if (!active) return;
+    active = false;
+    view.removeEventListener('kuzey:live-location', listener);
+    view.removeEventListener('pagehide', handlePageHide);
+  }
+
+  function handlePageHide(event: PageTransitionEvent) {
+    if (!event.persisted) cleanup();
+  }
+
+  view.addEventListener('kuzey:live-location', listener);
+  view.addEventListener('pagehide', handlePageHide);
+  return cleanup;
+}
+
 const asNumber = (value: unknown): number | null => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null;
   return value;
@@ -67,6 +114,65 @@ const asString = (value: unknown): string | null => {
 };
 
 const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
+
+const radians = (value: number): number => (value * Math.PI) / 180;
+
+const distanceKm = (from: { lat: number; lng: number }, to: { lat: number; lng: number }): number => {
+  const latitudeDelta = radians(to.lat - from.lat);
+  const longitudeDelta = radians(to.lng - from.lng);
+  const a = Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(radians(from.lat)) * Math.cos(radians(to.lat)) * Math.sin(longitudeDelta / 2) ** 2;
+  return 6_371.0088 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const samePlace = (left: string, right: string): boolean =>
+  left.localeCompare(right, 'tr', { sensitivity: 'base' }) === 0;
+
+export function formatFriendlyLocation(record: FriendlyLocationRecord, stops: PlannedStop[]): string {
+  const city = record.city?.trim() || null;
+  const nearest = stops
+    .filter((stop) => Number.isFinite(stop.lat) && Number.isFinite(stop.lng) && stop.name.trim().length > 0)
+    .map((stop) => ({ ...stop, distanceKm: distanceKm(record, stop) }))
+    .sort((left, right) => left.distanceKm - right.distanceKm)[0] ?? null;
+
+  if (city) {
+    if (nearest && nearest.distanceKm <= 120 && !samePlace(city, nearest.name)) {
+      return `${city}, ${nearest.name}`;
+    }
+    return city;
+  }
+
+  const target = record.activeRouteStop?.trim() || record.nextStop?.trim() || null;
+  if (record.routeStarted && target) return `${target} yönünde`;
+  if (nearest && nearest.distanceKm <= 120) return `${nearest.name} çevresi`;
+
+  return 'Konum güncelleniyor';
+}
+
+export function heroLiveLabels(record: FriendlyLocationRecord, stops: PlannedStop[]): HeroLiveLabels {
+  const place = formatFriendlyLocation(record, stops);
+  const next = record.activeRouteStop?.trim() || record.nextStop?.trim() || 'Sıradaki';
+  const current = record.city?.trim()
+    || (place.endsWith(' çevresi') ? place.replace(/ çevresi$/, '') : null)
+    || (record.routeStarted ? 'Yolda' : 'Şu an');
+  const state = record.routeStarted
+    ? next === 'Sıradaki' ? 'Rota aktif' : `${next} yönü`
+    : 'Kalkış hazırlığı';
+
+  return { place, state, current, next };
+}
+
+export function routeMapInteractionOptions(compact: boolean): RouteMapInteractionOptions {
+  return {
+    zoomControl: false,
+    scrollWheelZoom: false,
+    dragging: !compact,
+    touchZoom: !compact,
+    doubleClickZoom: !compact,
+    boxZoom: !compact,
+    keyboard: !compact,
+  };
+}
 
 export function normalizeLiveRecord(raw: RawLiveRecord): NormalizedLiveRecord | null {
   const lat = asNumber(raw.lat);

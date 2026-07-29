@@ -1,0 +1,13 @@
+---
+import { buildCampLinks, type CampLinkInput } from '../scripts/journeyExperience';
+
+type Props = CampLinkInput;
+
+const { arrivalTarget, camp } = Astro.props;
+const { directionsURL, websiteURL } = buildCampLinks({ arrivalTarget, camp });
+---
+
+<p class="tag-row">
+  <a class="btn btn--primary" href={directionsURL} target="_blank" rel="noreferrer">Kesin kamp rotasını aç</a>
+</p>
+{websiteURL ? <p><a href={websiteURL} target="_blank" rel="noreferrer">Kamp web sitesi</a></p> : null}

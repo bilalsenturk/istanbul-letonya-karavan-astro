@@ -1,0 +1,31 @@
+---
+import CameraPlayer from './CameraPlayer.astro';
+
+interface Camera {
+  title: string;
+  url: string;
+  source: string;
+  kind?: 'video' | 'web' | 'image';
+  openUrl?: string;
+  refreshSeconds?: number;
+  note?: string;
+}
+
+interface Props {
+  cameras: Camera[];
+}
+
+const { cameras } = Astro.props;
+---
+
+{cameras.length > 0 ? (
+  <section class="shell">
+    <div class="section-title">
+      <h2>Şehir Kameraları</h2>
+      <a class="btn btn--ghost" href="#top">Yukarı çık</a>
+    </div>
+    <div class="grid">
+      {cameras.map((camera) => <div class="col-6"><CameraPlayer camera={camera} headingLevel={3} /></div>)}
+    </div>
+  </section>
+) : null}

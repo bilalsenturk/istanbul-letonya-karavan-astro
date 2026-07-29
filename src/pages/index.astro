@@ -1,5 +1,11 @@
 ---
+import { Picture } from 'astro:assets';
+import followBudapest from '../assets/journey/follow-budapest.jpg';
+import followHighway from '../assets/journey/follow-highway.jpg';
+import followSofia from '../assets/journey/follow-sofia.png';
+import heroSocialImage from '../assets/journey/kuzey-road-motion.webp';
 import MainLayout from '../layouts/MainLayout.astro';
+import JourneyHero from '../components/JourneyHero.astro';
 import RouteMap from '../components/RouteMap.astro';
 import { tripData } from '../data/tripData';
 
@@ -7,6 +13,7 @@ const mapStops = tripData.stops.map((stop) => ({ name: stop.name, lat: stop.lat,
 const countryCodes: Record<string, string> = {
   Türkiye: 'TR',
   Bulgaristan: 'BG',
+  Sırbistan: 'RS',
   Romanya: 'RO',
   Macaristan: 'HU',
   Slovakya: 'SK',
@@ -23,6 +30,7 @@ const parseDistanceKm = (label: string): number => {
 };
 const routeTimeline = tripData.days.map((day) => ({
   id: day.id,
+  slug: day.slug,
   date: day.date,
   from: day.origin,
   to: day.destination,
@@ -33,104 +41,35 @@ const routeTimeline = tripData.days.map((day) => ({
 }));
 const travelPhotos = [
   {
-    src: '/assets/follow-highway.jpg',
+    src: followHighway,
     alt: 'Karavanla otoyolda yolculuk',
   },
   {
-    src: '/assets/follow-budapest.jpg',
+    src: followBudapest,
     alt: 'Budapeşte yolunda karavan',
   },
   {
-    src: '/assets/follow-sofia.png',
+    src: followSofia,
     alt: 'Sofya şehir içinde karavan',
   },
 ];
 ---
 
 <MainLayout
-  title="KUZEY"
-  description="Leyla'nın Kuzey Yolculuğu."
+  title="Leyla'nın Kuzey Yolculuğu | KUZEY"
+  description="İstanbul'dan Riga'ya uzanan karavan yolculuğunu canlı rota, günlük planlar ve yol notlarıyla takip edin."
+  image={heroSocialImage.src}
+  type="website"
 >
-  <div class="follow-page">
-    <section class="follow-hero" aria-label="Leyla'nın Kuzey Yolculuğu">
-      <img
-        class="follow-hero__bg"
-        src="/assets/follow-riga-hero.jpg"
-        alt="Riga sokaklarında karavan"
-        fetchpriority="high"
-      />
-      <div class="follow-hero__shade"></div>
-      <section class="hero-countdown" aria-live="polite" aria-label="Kalkış geri sayımı">
-        <span class="hero-countdown__label" id="hero-countdown-label">Kalkışa</span>
-        <div class="hero-countdown__grid">
-          <span><strong id="countdown-days">--</strong><small>gün</small></span>
-          <span><strong id="countdown-hours">--</strong><small>saat</small></span>
-          <span><strong id="countdown-minutes">--</strong><small>dk</small></span>
-          <span><strong id="countdown-seconds">--</strong><small>sn</small></span>
-        </div>
-      </section>
-      <div class="follow-hero__inner">
-        <div class="follow-hero__copy">
-          <h1>Leyla'nın Kuzey Yolculuğu</h1>
-          <div class="hero-route-timeline" aria-label="Canlı rota durakları">
-            <span class="hero-route-timeline__rail" aria-hidden="true"><span id="hero-route-fill"></span></span>
-            <div class="hero-route-timeline__track">
-              {mapStops.map((stop, index) => (
-                <span class="hero-route-stop" data-hero-route-stop data-hero-stop-index={index} data-hero-stop-name={stop.name}>
-                  <i aria-hidden="true"></i>
-                  <small>{stop.name}</small>
-                </span>
-              ))}
-            </div>
-          </div>
-          <div class="follow-live-line" aria-live="polite">
-            <span class="follow-live-line__dot" id="live-dot"></span>
-            <span id="hero-live-text">Konum bekleniyor</span>
-          </div>
-        </div>
-
-        <div class="follow-stats" aria-label="Canlı yolculuk özeti">
-          <article class="follow-stat">
-            <span>Şu an</span>
-            <strong id="live-city">-</strong>
-            <small id="live-updated">Bekleniyor</small>
-          </article>
-          <article class="follow-stat">
-            <span>Kalan yol</span>
-            <strong id="remaining-distance">-</strong>
-            <small id="remaining-note">Riga</small>
-          </article>
-          <article class="follow-stat">
-            <span>Gidilen</span>
-            <strong id="live-traveled">-</strong>
-            <small id="journey-progress-note">Rota başlamadı</small>
-          </article>
-          <article class="follow-stat">
-            <span>Harcanan</span>
-            <strong id="spend-amount">-</strong>
-            <small id="spend-note">Bekleniyor</small>
-          </article>
-          <article class="follow-stat">
-            <span>Yakıt</span>
-            <strong id="fuel-used">-</strong>
-            <small id="fuel-note">Bekleniyor</small>
-          </article>
-          <article class="follow-stat">
-            <span>Hava</span>
-            <strong id="weather-now">-</strong>
-            <small id="weather-detail">Bekleniyor</small>
-          </article>
-        </div>
-
-        <div class="journey-progress" aria-label="Toplam rota ilerlemesi">
-          <div class="journey-progress__meta">
-            <span>Toplam rota</span>
-            <strong>{tripData.totalKm.toLocaleString('tr-TR')} km</strong>
-          </div>
-          <div class="journey-progress__bar"><span id="journey-progress"></span></div>
-        </div>
-      </div>
-    </section>
+  <div
+    class="follow-page"
+    data-home-dashboard
+    data-total-km={tripData.totalKm}
+    data-departure-at={tripData.departureAt}
+    data-route-codes={JSON.stringify(routeCountryCodes)}
+    data-route-timeline={JSON.stringify(routeTimeline)}
+  >
+    <JourneyHero routeStops={mapStops} totalKm={tripData.totalKm} />
 
     <details class="route-timeline-section" data-route-details open aria-label="Rota zaman çizgisi">
       <summary class="route-timeline-head">
@@ -180,6 +119,7 @@ const travelPhotos = [
                   </div>
                 ) : null}
               </dl>
+              <a class="route-leg__action" href={`/day/${leg.slug}`}>Gün planını aç</a>
             </div>
           </article>
         ))}
@@ -195,6 +135,8 @@ const travelPhotos = [
         routeStops={mapStops}
         activeFrom="İstanbul"
         activeTo="Riga"
+        mode="journey"
+        live={true}
         height="460px"
       />
     </section>
@@ -271,9 +213,17 @@ const travelPhotos = [
         <button type="button" data-gallery-scroll="1" aria-label="Sonraki fotoğraf" title="Sonraki fotoğraf">→</button>
       </div>
       <div class="follow-gallery__track" data-gallery-track tabindex="0" aria-label="Yol fotoğrafları">
-        {travelPhotos.map((photo, index) => (
+        {travelPhotos.map((photo) => (
           <figure class="follow-gallery__item">
-            <img src={photo.src} alt={photo.alt} loading={index === 0 ? 'eager' : 'lazy'} />
+            <Picture
+              src={photo.src}
+              widths={[420, 720, 1080]}
+              sizes="(max-width: 760px) 86vw, 47vw"
+              formats={['avif', 'webp']}
+              fallbackFormat="jpg"
+              alt={photo.alt}
+              loading="lazy"
+            />
           </figure>
         ))}
       </div>
@@ -281,513 +231,10 @@ const travelPhotos = [
   </div>
 </MainLayout>
 
-<script
-  is:inline
-  data-total-km={tripData.totalKm}
-  data-departure-at={tripData.departureAt}
-  data-route-codes={JSON.stringify(routeCountryCodes)}
-  data-route-timeline={JSON.stringify(routeTimeline)}
->
-  (() => {
-    const script = document.currentScript;
-    const totalKm = Number(script?.dataset.totalKm || '0');
-    let departureAt = script?.dataset.departureAt || '';
-    const routeCodes = (() => {
-      try {
-        return JSON.parse(script?.dataset.routeCodes || '[]');
-      } catch {
-        return [];
-      }
-    })();
-    const routeTimeline = (() => {
-      try {
-        return JSON.parse(script?.dataset.routeTimeline || '[]');
-      } catch {
-        return [];
-      }
-    })();
-    const routeTimelineTotalKm = routeTimeline.reduce((sum, leg) => sum + Math.max(0, Number(leg.distanceKm) || 0), 0);
+<script>
+  import { mountHomeDashboard } from '../scripts/homeDashboard';
 
-    const els = new Map();
-    const state = {
-      live: null,
-      expenses: null,
-      roadfeed: null,
-      weatherKey: '',
-      weatherAbort: null,
-    };
-
-    const byId = (id) => {
-      if (!els.has(id)) els.set(id, document.getElementById(id));
-      return els.get(id);
-    };
-    const setText = (id, value) => {
-      const el = byId(id);
-      if (el) el.textContent = value;
-    };
-    const setProgress = (id, value) => {
-      const el = byId(id);
-      if (el) el.style.width = `${Math.max(0, Math.min(100, value))}%`;
-    };
-    const toNum = (value) => {
-      if (value == null || value === '') return null;
-      const n = Number(value);
-      return Number.isFinite(n) ? n : null;
-    };
-    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-    const normalizeProgress = (value) => {
-      const n = toNum(value);
-      if (n == null) return null;
-      return clamp(n > 1 ? n / 100 : n, 0, 1);
-    };
-    const fmtKm = (value) => {
-      const n = toNum(value);
-      return n == null ? '-' : `${Math.round(n).toLocaleString('tr-TR')} km`;
-    };
-    const fmtMin = (value) => {
-      const n = toNum(value);
-      if (n == null) return null;
-      const rounded = Math.max(0, Math.round(n));
-      return rounded >= 60 ? `${Math.floor(rounded / 60)} sa ${rounded % 60} dk` : `${rounded} dk`;
-    };
-    const fmtEur = (value) => {
-      const n = toNum(value);
-      if (n == null) return '-';
-      return new Intl.NumberFormat('tr-TR', {
-        style: 'currency',
-        currency: 'EUR',
-        maximumFractionDigits: 0,
-      }).format(n);
-    };
-    const fmtLiters = (value) => {
-      const n = toNum(value);
-      return n == null ? '-' : `${Math.round(n).toLocaleString('tr-TR')} L`;
-    };
-    const fmtDateTime = (iso) => {
-      const date = iso ? new Date(iso) : null;
-      if (!date || Number.isNaN(date.getTime())) return '-';
-      return date.toLocaleString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-    };
-    const ageText = (iso) => {
-      const date = iso ? new Date(iso) : null;
-      if (!date || Number.isNaN(date.getTime())) return null;
-      const minutes = Math.max(0, Math.round((Date.now() - date.getTime()) / 60000));
-      if (minutes < 2) return 'az önce';
-      if (minutes < 60) return `${minutes} dk önce`;
-      const hours = Math.round(minutes / 60);
-      return hours < 24 ? `${hours} sa önce` : fmtDateTime(iso);
-    };
-    const cleanText = (value) => (typeof value === 'string' && value.trim() ? value.trim() : null);
-
-    function normalizeLive(raw) {
-      if (!raw || typeof raw !== 'object') return null;
-      const lat = toNum(raw.lat);
-      const lng = toNum(raw.lng);
-      if (lat == null || lng == null || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
-      const routeStarted = raw.journeyStarted === true || raw.routeStarted === true;
-      const rawLegProgress = normalizeProgress(raw.legProgress);
-      return {
-        lat,
-        lng,
-        speedKmh: toNum(raw.speedKmh),
-        city: cleanText(raw.city),
-        nextStop: cleanText(raw.nextStop),
-        nextFlag: cleanText(raw.nextFlag),
-        remainingKm: toNum(raw.remainingKm),
-        remainingToFinalKm: toNum(raw.remainingToFinalKm),
-        remainingMin: toNum(raw.remainingMin),
-        traveledKm: routeStarted ? toNum(raw.traveledKm) : 0,
-        legProgress: routeStarted ? rawLegProgress : 0,
-        routeStarted,
-        activeRouteStop: routeStarted ? cleanText(raw.activeRouteStop) : null,
-        activeRouteCode: routeStarted ? cleanText(raw.activeRouteCode) : null,
-        activeRouteStartedAt: routeStarted ? cleanText(raw.activeRouteStartedAt) : null,
-        altitudeMeters: toNum(raw.altitudeMeters),
-        altitudeKind: cleanText(raw.altitudeKind),
-        altitudeSource: cleanText(raw.altitudeSource),
-        pressureHpa: toNum(raw.pressureHpa),
-        altitudeAvailable: raw.altitudeAvailable === true,
-        ts: cleanText(raw.ts) || cleanText(raw.receivedAt),
-      };
-    }
-
-    function publishMapState(live) {
-      const detail = {
-        position: { lat: live.lat, lng: live.lng },
-        lat: live.lat,
-        lng: live.lng,
-        routeStarted: live.routeStarted,
-        activeRouteStop: live.activeRouteStop,
-        activeRouteCode: live.activeRouteCode,
-        activeRouteStartedAt: live.activeRouteStartedAt,
-        nextStop: live.nextStop,
-        nextFlag: live.nextFlag,
-        remainingKm: live.remainingKm,
-        remainingMin: live.remainingMin,
-        remainingToFinalKm: live.remainingToFinalKm,
-        traveledKm: live.traveledKm,
-        legProgress: live.legProgress,
-        speedKmh: live.speedKmh,
-        city: live.city,
-        ts: live.ts,
-      };
-      window.__kuzeyLiveState = detail;
-      window.dispatchEvent(new CustomEvent('kuzey:live-location', { detail }));
-    }
-
-    const stopKey = (value) => cleanText(value)?.toLocaleLowerCase('tr-TR') ?? '';
-    const timelineLegs = () => Array.from(document.querySelectorAll('[data-leg-index]'));
-    const heroRouteStops = () => Array.from(document.querySelectorAll('[data-hero-route-stop]'));
-    const routeDetails = document.querySelector('[data-route-details]');
-    const routeSummaryQuery = window.matchMedia('(max-width: 760px)');
-    const syncRouteDetailsMode = () => {
-      const isMobileRouteSummary = routeSummaryQuery.matches;
-      if (routeDetails) routeDetails.open = !isMobileRouteSummary;
-    };
-    const cumulativeBefore = (index) =>
-      routeTimeline.slice(0, Math.max(0, index)).reduce((sum, leg) => sum + Math.max(0, Number(leg.distanceKm) || 0), 0);
-    const activeLegIndex = (live) => {
-      const target = stopKey(live.activeRouteStop || live.nextStop);
-      if (!target) return -1;
-      return routeTimeline.findIndex((leg) => stopKey(leg.to) === target);
-    };
-    const deriveRouteProgressKm = (live) => {
-      if (!live?.routeStarted) return 0;
-      const index = activeLegIndex(live);
-      if (index >= 0) {
-        const legKm = Math.max(0, Number(routeTimeline[index]?.distanceKm) || 0);
-        const before = cumulativeBefore(index);
-        if (live.legProgress != null) return before + legKm * live.legProgress;
-        if (live.traveledKm != null) return before + Math.max(0, live.traveledKm);
-      }
-      if (live.remainingToFinalKm != null && totalKm > 0) return Math.max(0, totalKm - live.remainingToFinalKm);
-      return Math.max(0, live.traveledKm ?? 0);
-    };
-
-    function updateTimeline(live, routeProgressKm) {
-      const routeStarted = live?.routeStarted === true;
-      const progressKm = routeStarted ? Math.max(0, routeProgressKm) : 0;
-      const activeIndex = activeLegIndex(live);
-      let activeLabel = 'Rota başlamadı';
-
-      timelineLegs().forEach((el) => {
-        const index = Number(el.dataset.legIndex || '0');
-        const leg = routeTimeline[index] || {};
-        const legKm = Math.max(0, Number(leg.distanceKm) || 0);
-        const before = cumulativeBefore(index);
-        const rawFill = legKm > 0 ? ((progressKm - before) / legKm) * 100 : progressKm >= before ? 100 : 0;
-        const fill = routeStarted ? clamp(rawFill, 0, 100) : 0;
-        const done = routeStarted && fill >= 99.5;
-        const active = routeStarted && !done && (index === activeIndex || (fill > 0 && fill < 99.5));
-        const status = el.querySelector('[data-leg-status]');
-        const fillEl = el.querySelector('[data-leg-fill]');
-
-        if (fillEl) fillEl.style.width = `${fill}%`;
-        el.classList.toggle('is-done', done);
-        el.classList.toggle('is-active', active);
-
-        if (status) {
-          if (done) status.textContent = 'Varıldı';
-          else if (active) {
-            const driven = Math.max(0, Math.min(legKm, progressKm - before));
-            status.textContent = legKm > 0 ? `${Math.round(driven)} / ${Math.round(legKm)} km` : 'Yolda';
-          } else if (legKm === 0) status.textContent = routeStarted && progressKm >= before ? 'Dinlenme' : 'Bekliyor';
-          else status.textContent = 'Bekliyor';
-        }
-
-        if (active) activeLabel = `${leg.from} → ${leg.to}`;
-      });
-
-      if (routeStarted && activeLabel === 'Rota başlamadı') {
-        activeLabel = progressKm >= routeTimelineTotalKm ? 'Riga' : live.activeRouteStop || live.nextStop || 'Yolda';
-      }
-      if (routeDetails) routeDetails.classList.toggle('is-started', routeStarted);
-      setText('route-timeline-summary', activeLabel);
-      setText('route-timeline-progress', fmtKm(progressKm));
-      updateHeroRoute(live, progressKm, activeIndex);
-    }
-
-    function updateHeroRoute(live, progressKm, activeLeg) {
-      const routeStarted = live?.routeStarted === true;
-      const total = Math.max(totalKm, routeTimelineTotalKm, 1);
-      const progress = routeStarted ? clamp((Math.max(0, progressKm) / total) * 100, 0, 100) : 0;
-      const activeStop = routeStarted ? clamp(activeLeg < 0 ? 0 : activeLeg, 0, Math.max(0, heroRouteStops().length - 1)) : -1;
-
-      setProgress('hero-route-fill', progress);
-      heroRouteStops().forEach((stop) => {
-        const index = Number(stop.dataset.heroStopIndex || '0');
-        stop.classList.toggle('is-passed', routeStarted && index < activeStop);
-        stop.classList.toggle('is-active', routeStarted && index === activeStop);
-      });
-    }
-
-    function renderCountdown() {
-      const departure = departureAt ? new Date(departureAt) : null;
-      const seconds = departure && !Number.isNaN(departure.getTime())
-        ? Math.max(0, Math.floor((departure.getTime() - Date.now()) / 1000))
-        : 0;
-      const routeStarted = state.live?.routeStarted === true;
-      const label = routeStarted ? 'Rota aktif' : seconds > 0 ? 'Kalkışa' : 'Kalkış zamanı';
-
-      setText('hero-countdown-label', label);
-      setText('countdown-days', String(Math.floor(seconds / 86400)));
-      setText('countdown-hours', String(Math.floor((seconds % 86400) / 3600)).padStart(2, '0'));
-      setText('countdown-minutes', String(Math.floor((seconds % 3600) / 60)).padStart(2, '0'));
-      setText('countdown-seconds', String(seconds % 60).padStart(2, '0'));
-    }
-
-    async function refreshPlan() {
-      try {
-        const plan = await fetchJson('/api/plan');
-        const publishedDeparture = cleanText(plan?.departureAt);
-        if (publishedDeparture && !Number.isNaN(new Date(publishedDeparture).getTime())) departureAt = publishedDeparture;
-      } catch {
-        // Uygulama henüz planı yayınlamadıysa gömülü kalkış tarihi kullanılır.
-      }
-      renderCountdown();
-    }
-
-    function initGallery() {
-      document.querySelectorAll('[data-gallery-scroll]').forEach((button) => {
-        button.addEventListener('click', () => {
-          const gallery = button.closest('.follow-gallery');
-          const track = gallery?.querySelector('[data-gallery-track]');
-          const direction = Number(button.dataset.galleryScroll || '1');
-          track?.scrollBy({ left: track.clientWidth * 0.82 * direction, behavior: 'smooth' });
-        });
-      });
-    }
-
-    function updateLiveUi(live) {
-      state.live = live;
-      publishMapState(live);
-      renderCountdown();
-
-      const city = live.city || `${live.lat.toFixed(4)}, ${live.lng.toFixed(4)}`;
-      const next = live.activeRouteStop || live.nextStop || '-';
-      const routeProgressKm = deriveRouteProgressKm(live);
-      const remainingFinal =
-        !live.routeStarted
-          ? totalKm || null
-          : live.remainingToFinalKm != null
-          ? Math.max(0, live.remainingToFinalKm)
-          : totalKm > 0
-            ? Math.max(0, totalKm - routeProgressKm)
-            : null;
-      const traveled =
-        live.routeStarted
-          ? routeProgressKm
-          : 0;
-      const overallProgress = totalKm > 0 && traveled != null ? clamp((traveled / totalKm) * 100, 0, 100) : 0;
-      const legProgress = live.routeStarted && live.legProgress != null ? clamp(live.legProgress * 100, 0, 100) : null;
-      const last = ageText(live.ts);
-      const status = live.routeStarted
-        ? `${city}${next !== '-' ? ` -> ${next}` : ''}`
-        : `${city} · rota başlamadı`;
-
-      setText('hero-live-text', status);
-      setText('live-city', city);
-      setText('live-updated', last || 'Bekleniyor');
-      setText('last-seen', live.ts ? `${fmtDateTime(live.ts)}${last ? ` (${last})` : ''}` : '-');
-      setText('live-next', next);
-      setText('remaining-distance', fmtKm(remainingFinal));
-      setText('remaining-note', live.routeStarted ? "Riga'ya" : 'Planlanan rota');
-      setText('live-traveled', fmtKm(traveled));
-      setText(
-        'journey-progress-note',
-        live.routeStarted
-          ? `%${Math.round(overallProgress)} tamamlandı`
-          : 'Rota başlamadı',
-      );
-      setText(
-        'live-leg-remaining',
-        live.routeStarted
-          ? [
-            fmtKm(live.remainingKm),
-            fmtMin(live.remainingMin),
-            legProgress != null ? `%${Math.round(legProgress)} etap` : null,
-          ].filter(Boolean).join(' · ') || '-'
-          : 'Rota başlamadı',
-      );
-      setText('live-speed', live.speedKmh != null ? `${Math.round(live.speedKmh)} km/sa` : '-');
-      setProgress('journey-progress', overallProgress);
-      updateTimeline(live, routeProgressKm);
-
-      const dot = byId('live-dot');
-      if (dot) dot.classList.toggle('is-paused', !live.routeStarted);
-
-      if (live.altitudeAvailable && live.altitudeMeters != null) {
-        const kind = live.altitudeKind === 'relative' ? 'göreli' : 'rakım';
-        const source = live.altitudeSource === 'barometer' ? 'barometre' : live.altitudeSource === 'gps' ? 'GPS' : 'uygulama';
-        setText('live-altitude', `${Math.round(live.altitudeMeters).toLocaleString('tr-TR')} m (${kind}, ${source})`);
-      } else {
-        setText('live-altitude', '-');
-      }
-      setText('live-pressure', live.pressureHpa != null ? `${Math.round(live.pressureHpa).toLocaleString('tr-TR')} hPa` : '-');
-
-      updateFuelUi();
-      loadWeather(live);
-    }
-
-    function weatherLabel(code) {
-      const c = Number(code);
-      if (c === 0) return 'Açık';
-      if ([1, 2].includes(c)) return 'Parçalı bulutlu';
-      if (c === 3) return 'Bulutlu';
-      if ([45, 48].includes(c)) return 'Sis';
-      if ([51, 53, 55, 56, 57].includes(c)) return 'Çise';
-      if ([61, 63, 65, 66, 67, 80, 81, 82].includes(c)) return 'Yağmur';
-      if ([71, 73, 75, 77, 85, 86].includes(c)) return 'Kar';
-      if ([95, 96, 99].includes(c)) return 'Fırtına';
-      return 'Hava';
-    }
-
-    async function loadWeather(live) {
-      const key = `${live.lat.toFixed(3)},${live.lng.toFixed(3)}`;
-      if (state.weatherKey === key) return;
-      state.weatherKey = key;
-      if (state.weatherAbort) state.weatherAbort.abort();
-      state.weatherAbort = new AbortController();
-
-      try {
-        const url = new URL('https://api.open-meteo.com/v1/forecast');
-        url.searchParams.set('latitude', live.lat);
-        url.searchParams.set('longitude', live.lng);
-        url.searchParams.set('current', 'temperature_2m,weather_code,wind_speed_10m,precipitation');
-        url.searchParams.set('timezone', 'auto');
-        const res = await fetch(url, { signal: state.weatherAbort.signal });
-        if (!res.ok) throw new Error('weather failed');
-        const data = await res.json();
-        const current = data?.current;
-        const temp = toNum(current?.temperature_2m);
-        const wind = toNum(current?.wind_speed_10m);
-        const rain = toNum(current?.precipitation);
-        const label = weatherLabel(current?.weather_code);
-
-        setText('weather-now', temp == null ? label : `${Math.round(temp)}°C`);
-        setText('weather-detail', temp == null ? label : label);
-        setText('weather-wind', wind == null ? '-' : `${Math.round(wind)} km/sa`);
-        setText('weather-rain', rain == null ? '-' : `${rain.toLocaleString('tr-TR', { maximumFractionDigits: 1 })} mm`);
-      } catch (error) {
-        if (error?.name === 'AbortError') return;
-        setText('weather-now', '-');
-        setText('weather-detail', 'Hava alınamadı');
-      }
-    }
-
-    function expenseFuelValue(byCategory) {
-      if (!byCategory || typeof byCategory !== 'object') return null;
-      const keys = ['yakit', 'yakıt', 'fuel', 'diesel', 'benzin'];
-      for (const key of keys) {
-        const value = toNum(byCategory[key]);
-        if (value != null) return value;
-      }
-      return null;
-    }
-
-    function averageDieselPrice() {
-      const rows = Array.isArray(state.roadfeed?.fuel) ? state.roadfeed.fuel : [];
-      const prices = rows
-        .filter((row) => routeCodes.includes(row.country))
-        .map((row) => toNum(row.dieselEur))
-        .filter((value) => value != null && value > 0);
-      if (!prices.length) return null;
-      return prices.reduce((sum, value) => sum + value, 0) / prices.length;
-    }
-
-    function updateFuelUi() {
-      const fuelSpend = expenseFuelValue(state.expenses?.byCategory);
-      const avgDiesel = averageDieselPrice();
-      const traveled = toNum(state.live?.traveledKm);
-      let liters = null;
-      let note = 'Bekleniyor';
-
-      if (fuelSpend != null && avgDiesel != null) {
-        liters = fuelSpend / avgDiesel;
-        note = `${fmtEur(fuelSpend)} üzerinden`;
-      } else if (traveled != null && traveled > 0) {
-        liters = (traveled * 13) / 100;
-        note = '13 L/100 km';
-      }
-
-      setText('fuel-used', fmtLiters(liters));
-      setText('fuel-note', note);
-      setText('fuel-spend', fuelSpend == null ? '-' : fmtEur(fuelSpend));
-      setText(
-        'roadfeed-fuel',
-        avgDiesel == null
-          ? '-'
-          : `${avgDiesel.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €/L`,
-      );
-    }
-
-    function updateExpensesUi(data) {
-      state.expenses = data && typeof data === 'object' ? data : null;
-      const total = toNum(state.expenses?.totalEur);
-      const count = toNum(state.expenses?.count);
-      setText('spend-amount', fmtEur(total));
-      setText('spend-total-detail', total == null ? '-' : `${fmtEur(total)}${count != null ? ` · ${count} kayıt` : ''}`);
-      setText('spend-note', state.expenses?.ts ? ageText(state.expenses.ts) || fmtDateTime(state.expenses.ts) : 'Bekleniyor');
-      updateFuelUi();
-    }
-
-    function updateRoadfeedUi(data) {
-      state.roadfeed = data && typeof data === 'object' ? data : null;
-      const border = Array.isArray(state.roadfeed?.borders) ? state.roadfeed.borders[0] : null;
-      setText('border-note', border ? `${border.name}: ${border.outbound}` : '-');
-      updateFuelUi();
-    }
-
-    async function fetchJson(path) {
-      const res = await fetch(path, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`${path} ${res.status}`);
-      return res.json();
-    }
-
-    async function refreshLive() {
-      try {
-        const live = normalizeLive(await fetchJson('/api/location'));
-        if (!live) throw new Error('bad live payload');
-        updateLiveUi(live);
-      } catch {
-        setText('hero-live-text', 'Konum bekleniyor');
-      }
-    }
-
-    async function refreshExpenses() {
-      try {
-        updateExpensesUi(await fetchJson('/api/expenses'));
-      } catch {
-        updateExpensesUi(null);
-      }
-    }
-
-    async function refreshRoadfeed() {
-      try {
-        updateRoadfeedUi(await fetchJson('/api/roadfeed'));
-      } catch {
-        updateRoadfeedUi(null);
-      }
-    }
-
-    refreshLive();
-    refreshExpenses();
-    refreshRoadfeed();
-    refreshPlan();
-    initGallery();
-    syncRouteDetailsMode();
-    routeSummaryQuery.addEventListener?.('change', syncRouteDetailsMode);
-    setInterval(refreshLive, 20000);
-    setInterval(refreshExpenses, 60000);
-    setInterval(refreshRoadfeed, 30 * 60 * 1000);
-    setInterval(refreshPlan, 5 * 60 * 1000);
-    const countdownInterval = setInterval(renderCountdown, 1000);
-    window.addEventListener('pagehide', () => clearInterval(countdownInterval), { once: true });
-
-    if ('serviceWorker' in navigator && location.protocol === 'https:') {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
-    }
-  })();
+  mountHomeDashboard();
 </script>
 
 <style>
@@ -1344,6 +791,23 @@ const travelPhotos = [
     overflow-wrap: anywhere;
   }
 
+  .route-leg__action {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-top: 8px;
+    color: #dce4ee;
+    font-size: 0.84rem;
+    font-weight: 750;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.18em;
+  }
+
+  .route-leg__action:hover {
+    color: #fff;
+  }
+
   .route-leg.is-active {
     border-color: rgba(56, 224, 138, 0.32);
     background: rgba(13, 24, 21, 0.8);
@@ -1480,8 +944,8 @@ const travelPhotos = [
 
   .follow-gallery__controls button {
     display: grid;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     place-items: center;
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;

@@ -1,9 +1,14 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-
-type Stop = { name: string; lat: number; lng: number };
-type Leg = { from: string; to: string; distance: number; duration: number; coords: [number, number][] };
-type Geometry = { legs: Leg[]; totalDistanceKm?: number; totalDurationH?: number };
+import { routeMapInteractionOptions, subscribeLiveLocation } from './liveSync';
+import {
+  createTileReadinessController,
+  selectGeometryLegs,
+  type Geometry,
+  type Leg,
+  type RouteMapMode,
+  type Stop,
+} from './routeMapData';
 type LiveMapDetail = {
   position?: { lat: number; lng: number };
   lat?: number;
@@ -227,9 +232,9 @@ function liveLatLng(detail: LiveMapDetail | null): L.LatLng | null {
   return L.latLng(lat, lng);
 }
 
-export function initRouteMap(containerId: string): void {
-  const container = document.getElementById(containerId);
-  if (!container) return;
+export function initRouteMap(container: HTMLElement): void {
+  if (container.dataset.mapRendered === 'true') return;
+  container.dataset.mapRendered = 'true';
 
   const wrapper = container.closest('.route-map-container');
   if (!wrapper) return;
@@ -248,13 +253,21 @@ export function initRouteMap(containerId: string): void {
   if (valid.length === 0) return;
   ensureRigStyles();
 
-  const map = L.map(container, { zoomControl: false, scrollWheelZoom: false });
-  L.control.zoom({ position: 'bottomright' }).addTo(map);
+  const compact = container.dataset.compact === 'true';
+  const mode: RouteMapMode = container.dataset.mode === 'day' ? 'day' : 'journey';
+  const liveEnabled = container.dataset.live === 'true';
+  const map = L.map(container, routeMapInteractionOptions(compact));
+  if (!compact) L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom: 18,
-  }).addTo(map);
+  });
+  const tileReadiness = createTileReadinessController((ready) => wrapper.classList.toggle('ready', ready));
+  tiles.on('loading', tileReadiness.loading);
+  tiles.on('tileerror', tileReadiness.tileError);
+  tiles.on('load', tileReadiness.load);
+  tiles.addTo(map);
 
   const from = String(container.dataset.from || '');
   const to = String(container.dataset.to || '');
@@ -263,7 +276,7 @@ export function initRouteMap(containerId: string): void {
   const segStart = startIdx >= 0 ? startIdx : 0;
   const segEnd = endIdx >= 0 ? Math.max(segStart, endIdx) : segStart;
 
-  let lastLiveState: LiveMapDetail | null = window.__kuzeyLiveState ?? null;
+  let lastLiveState: LiveMapDetail | null = liveEnabled ? window.__kuzeyLiveState ?? null : null;
   let liveMarker: L.Marker | null = null;
   let lastFocusKey = '';
   const legLayers: Array<{ shadow: L.Polyline; line: L.Polyline; leg: Leg; index: number }> = [];
@@ -341,6 +354,7 @@ export function initRouteMap(containerId: string): void {
   };
 
   const updateLiveStatus = () => {
+    if (!liveEnabled) return;
     if (!liveStatus || !lastLiveState) return;
     const target = lastLiveState.activeRouteStop || lastLiveState.nextStop;
     const parts = ['KUZEY'];
@@ -358,7 +372,10 @@ export function initRouteMap(containerId: string): void {
     if (!activeLayer) return false;
     const bounds = activeLayer.getBounds().extend(latlng);
     if (!bounds.isValid()) return false;
-    map.fitBounds(bounds, { padding: [34, 34], maxZoom: 10 });
+    map.fitBounds(bounds, {
+      padding: compact ? [14, 14] : [34, 34],
+      maxZoom: compact ? 8 : 10,
+    });
     return true;
   };
 
@@ -413,7 +430,12 @@ export function initRouteMap(containerId: string): void {
 
   const refit = () => {
     map.invalidateSize({ animate: false });
-    if (fitTarget.isValid()) map.fitBounds(fitTarget, { padding: [24, 24] });
+    if (fitTarget.isValid()) {
+      map.fitBounds(fitTarget, {
+        padding: compact ? [12, 12] : [24, 24],
+        ...(compact ? { maxZoom: 8 } : {}),
+      });
+    }
   };
 
   loadGeometry().then((geo) => {
@@ -425,7 +447,7 @@ export function initRouteMap(containerId: string): void {
     straight.remove();
 
     const drawn: L.Polyline[] = [];
-    geo.legs.forEach((leg, i) => {
+    selectGeometryLegs(geo, from, to, mode).forEach((leg, i) => {
       if (!leg.coords?.length) return;
       const shadow = L.polyline(leg.coords, { color: '#0b1a33', weight: 6, opacity: 0.22 }).addTo(map);
       const line = L.polyline(leg.coords, {
@@ -453,14 +475,15 @@ export function initRouteMap(containerId: string): void {
     applyLiveState();
   });
 
-  const onLiveLocation = (event: Event) => {
-    const detail = (event as CustomEvent<LiveMapDetail>).detail;
-    if (!detail) return;
-    lastLiveState = detail;
-    applyLiveState();
-  };
-  window.addEventListener('kuzey:live-location', onLiveLocation);
-  window.addEventListener('pagehide', () => window.removeEventListener('kuzey:live-location', onLiveLocation), { once: true });
+  if (liveEnabled) {
+    const onLiveLocation = (event: Event) => {
+      const detail = (event as CustomEvent<LiveMapDetail>).detail;
+      if (!detail) return;
+      lastLiveState = detail;
+      applyLiveState();
+    };
+    subscribeLiveLocation(onLiveLocation);
+  }
 
   requestAnimationFrame(() => {
     refit();
@@ -490,5 +513,4 @@ export function initRouteMap(containerId: string): void {
     io.observe(container);
   }
 
-  wrapper.classList.add('ready');
 }

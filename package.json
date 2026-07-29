@@ -17,6 +17,8 @@
     "check:trip-api": "node --experimental-strip-types tools/check-trip-api.mjs",
     "check:published-state": "node --experimental-strip-types tools/check-published-state.mjs",
     "check:web-sync": "node --experimental-strip-types tools/check-web-app-sync.mjs",
+    "check:web-experience": "node --experimental-strip-types tools/check-web-experience.mjs && vitest run tools/home-dashboard.test.ts tools/web-experience-components.test.ts tools/camera-player.test.ts tools/camp-actions.test.ts tools/day-camera-section.test.ts",
+    "check:web-output": "npm run build && node --experimental-strip-types tools/check-web-output.mjs",
     "check:travel-content": "node tools/check-travel-content.mjs",
     "check": "astro check",
     "lint": "eslint .",
@@ -36,10 +38,12 @@
     "@types/leaflet": "^1.9.21",
     "eslint": "^9.22.0",
     "eslint-plugin-astro": "^1.3.1",
+    "happy-dom": "^20.11.1",
     "prettier": "^3.9.6",
     "prettier-plugin-astro": "^0.14.1",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.65.0"
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^4.1.10"
   },
   "overrides": {
     "@vercel/routing-utils": {
