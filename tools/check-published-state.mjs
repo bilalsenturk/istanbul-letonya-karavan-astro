@@ -1,6 +1,8 @@
 /* global structuredClone */
 
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { createServer } from 'vite';
 import {
   getPlanEdits,
@@ -8,7 +10,42 @@ import {
   putPlanEdits,
   putPublishedResource,
 } from '../src/accounts/publishedStateRepository.ts';
+import { errorResponse, json, requestJSON } from '../src/accounts/api.ts';
+import { UnauthorizedError } from '../src/accounts/session.ts';
 import { TripStorageConflictError } from '../src/accounts/tripRepository.ts';
+
+const v2PublishedStateRoutes = [
+  { resource: 'live-location', methods: ['PUT'] },
+  { resource: 'expense-summary', methods: ['PUT'] },
+  { resource: 'plan-edits', methods: ['GET', 'PUT'] },
+  { resource: 'published-plan', methods: ['PUT'] },
+  { resource: 'shared-journal', methods: ['PUT'] },
+];
+
+for (const { resource, methods } of v2PublishedStateRoutes) {
+  const relativePath = `src/pages/api/v2/trips/[id]/${resource}.ts`;
+  const routePath = resolve(process.cwd(), relativePath);
+  assert.ok(existsSync(routePath), `${relativePath} must exist`);
+  const source = readFileSync(routePath, 'utf8');
+  assert.match(source, /export const prerender = false/, `${resource} must be server-rendered`);
+  assert.doesNotMatch(source, /body\.tripId/, `${resource} must never select a trip from the request body`);
+  assert.match(source, /authenticateRequest\(request\)/, `${resource} must authenticate requests`);
+  assert.match(source, /return dependencies\.json\(/, `${resource} responses must use the no-store JSON helper`);
+  assert.match(source, /return dependencies\.errorResponse\(error\)/, `${resource} failures must use errorResponse`);
+  const authenticateIndex = source.indexOf('authenticateRequest(request)');
+  const repositoryIndex = resource === 'plan-edits'
+    ? Math.min(source.indexOf('await getPlanEdits'), source.indexOf('await putPlanEdits'))
+    : source.indexOf('await putPublishedResource');
+  assert.ok(authenticateIndex < repositoryIndex, `${resource} must authenticate before repository calls`);
+  for (const method of methods) {
+    assert.match(source, new RegExp(`export const ${method}\\b`), `${resource} must export ${method}`);
+  }
+  for (const method of ['GET', 'POST', 'PATCH', 'DELETE']) {
+    if (!methods.includes(method)) {
+      assert.doesNotMatch(source, new RegExp(`export const ${method}\\b`), `${resource} must not expose ${method}`);
+    }
+  }
+}
 
 class MemoryPublishedStateStorage {
   entries = new Map();
@@ -635,6 +672,83 @@ const vite = await createServer({
   server: { middlewareMode: true },
 });
 try {
+  const routeStorage = new MemoryPublishedStateStorage();
+  const routeDependencies = {
+    tripStorage,
+    publishedStateStorage: routeStorage,
+    now: () => '2026-07-29T14:00:00.000Z',
+  };
+  const routeInputs = {
+    'live-location': validInputs['live-location'],
+    'expense-summary': validInputs['expense-summary'],
+    'plan-edits': { baseRevision: 0, departureAt: null, days: {} },
+    'published-plan': validInputs['published-plan'],
+    'shared-journal': validInputs['shared-journal'],
+  };
+
+  for (const { resource, methods } of v2PublishedStateRoutes) {
+    const route = await vite.ssrLoadModule(`/src/pages/api/v2/trips/[id]/${resource}.ts`);
+    const handlers = route.createHandlers({
+      authenticateRequest: async () => ownerAuth,
+      errorResponse,
+      json,
+      requestJSON,
+      repositoryDependencies: routeDependencies,
+    });
+    const targetTripId = 'kuzey-public';
+    const forgedTripId = 'other-public';
+    const put = await handlers.PUT({
+      request: new Request(`https://test.invalid/api/v2/trips/${targetTripId}/${resource}`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...routeInputs[resource], tripId: forgedTripId }),
+      }),
+      params: { id: targetTripId },
+    });
+    assert.equal(put.status, 200, `${resource} accepts authenticated PUT requests`);
+    assert.equal(put.headers.get('cache-control'), 'no-store', `${resource} PUT responses must not be cached`);
+    assert.ok(routeStorage.entries.has(`${targetTripId}:${resource}`), `${resource} uses params.id for storage selection`);
+    assert.equal(
+      routeStorage.entries.has(`${forgedTripId}:${resource}`),
+      false,
+      `${resource} ignores a forged body tripId`,
+    );
+
+    const malformed = await handlers.PUT({
+      request: new Request(`https://test.invalid/api/v2/trips/${targetTripId}/${resource}`, { method: 'PUT', body: '{' }),
+      params: { id: targetTripId },
+    });
+    assert.equal(malformed.status, 400, `${resource} rejects malformed JSON`);
+    assert.equal(malformed.headers.get('cache-control'), 'no-store', `${resource} error responses must not be cached`);
+
+    const unauthenticated = route.createHandlers({
+      authenticateRequest: async () => { throw new UnauthorizedError(); },
+      errorResponse,
+      json,
+      requestJSON,
+      repositoryDependencies: routeDependencies,
+    });
+    const denied = await unauthenticated.PUT({
+      request: new Request(`https://test.invalid/api/v2/trips/${targetTripId}/${resource}`, { method: 'PUT', body: '{}' }),
+      params: { id: targetTripId },
+    });
+    assert.equal(denied.status, 401, `${resource} authenticates before publishing state`);
+
+    if (!methods.includes('GET')) continue;
+    const get = await handlers.GET({
+      request: new Request(`https://test.invalid/api/v2/trips/${targetTripId}/${resource}`),
+      params: { id: targetTripId },
+    });
+    assert.equal(get.status, 200, 'plan-edits GET requires authentication and returns the projected state');
+    assert.equal(get.headers.get('cache-control'), 'no-store', 'plan-edits GET responses must not be cached');
+    assert.equal((await get.json()).revision, 1, 'plan-edits GET returns the latest revision after PUT');
+    const deniedGet = await unauthenticated.GET({
+      request: new Request(`https://test.invalid/api/v2/trips/${targetTripId}/${resource}`),
+      params: { id: targetTripId },
+    });
+    assert.equal(deniedGet.status, 401, 'plan-edits GET authenticates before reading state');
+  }
+
   const { BlobPublishedStateStorage } = await vite.ssrLoadModule('/src/accounts/blobPublishedStateStorage.ts');
   const { PrivateBlobConflictError, listPrivatePaths } = await vite.ssrLoadModule('/src/accounts/privateBlob.ts');
   const storage = new BlobPublishedStateStorage();
