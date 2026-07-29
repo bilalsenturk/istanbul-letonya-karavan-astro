@@ -18,7 +18,7 @@
     </filter>
   </defs>
 
-  <rect width="1024" height="1024" rx="212" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
 
   <!-- soft glow behind the mark -->
   <path d="M 512 196 L 762 778 L 512 652 L 262 778 Z" fill="#38BDF8" opacity="0.5" filter="url(#soft)"/>
