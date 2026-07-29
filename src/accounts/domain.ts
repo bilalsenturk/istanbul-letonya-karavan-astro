@@ -161,6 +161,7 @@ export const foldTripEvents = (events: TripEvent[]): TripRecord => {
   const ordered = [...events].sort((left, right) => left.revision - right.revision);
   const created = ordered[0];
   if (!created || created.type !== 'tripCreated') throw new TripDomainError('trip_created_event_required');
+  if (created.revision !== 1) throw new TripDomainError('invalid_trip_event_sequence');
 
   const name = requiredString(created.payload.name, 'trip_name_required');
   const kind = tripKind(created.payload.kind);
@@ -184,7 +185,7 @@ export const foldTripEvents = (events: TripEvent[]): TripRecord => {
   };
 
   for (const event of ordered.slice(1)) {
-    if (event.tripId !== trip.id || event.revision <= trip.revision) {
+    if (event.tripId !== trip.id || event.revision !== trip.revision + 1) {
       throw new TripDomainError('invalid_trip_event_sequence');
     }
     applyEvent(trip, event);

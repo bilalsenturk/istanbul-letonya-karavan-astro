@@ -329,12 +329,60 @@ storage.events.set('corrupt-trip', [{
   type: 'tripUpdated',
   payload: { name: 'Geçersiz geçmiş' },
 }]);
+storage.events.set('corrupt-start-revision', [{
+  id: 'corrupt-start-created',
+  tripId: 'corrupt-start-revision',
+  revision: 2,
+  occurredAt: '2026-07-29T12:00:00.000Z',
+  actorUserId: owner.userId,
+  type: 'tripCreated',
+  payload: {
+    name: 'Eksik başlangıç',
+    kind: 'standard',
+    transportMode: 'automobile',
+    ownerUserId: owner.userId,
+    stops: [],
+  },
+}]);
+storage.events.set('corrupt-revision-gap', [
+  {
+    id: 'corrupt-gap-created',
+    tripId: 'corrupt-revision-gap',
+    revision: 1,
+    occurredAt: '2026-07-29T12:00:00.000Z',
+    actorUserId: owner.userId,
+    type: 'tripCreated',
+    payload: {
+      name: 'Eksik olay',
+      kind: 'standard',
+      transportMode: 'automobile',
+      ownerUserId: owner.userId,
+      stops: [],
+    },
+  },
+  {
+    id: 'corrupt-gap-update',
+    tripId: 'corrupt-revision-gap',
+    revision: 3,
+    occurredAt: '2026-07-29T12:01:00.000Z',
+    actorUserId: owner.userId,
+    type: 'tripUpdated',
+    payload: { name: 'Üçüncü revizyon' },
+  },
+]);
 const listedTrips = await tripRepository.listTripsForUser(storage, owner);
 assert.deepEqual(listedTrips.map((trip) => trip.id), [created.id]);
 await assert.rejects(
   tripRepository.getTripForUser(storage, owner, 'corrupt-trip'),
   (error) => error?.code === 'trip_corrupt',
 );
+for (const corruptTripId of ['corrupt-start-revision', 'corrupt-revision-gap']) {
+  await assert.rejects(
+    tripRepository.getTripForUser(storage, owner, corruptTripId),
+    (error) => error?.code === 'trip_corrupt',
+    `${corruptTripId} must remain hidden behind the repository corruption boundary`,
+  );
+}
 assert.ok(inaccessible.id, 'the unauthorized trip remains present but hidden from this actor');
 
 assert.equal(
