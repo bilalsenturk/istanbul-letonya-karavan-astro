@@ -1,5 +1,12 @@
 import { formatAltitude, mapLiveEventDetail, normalizeLiveRecord, type NormalizedLiveRecord } from './liveSync';
 import { createPollingLoop } from './polling';
+import {
+  refreshWeatherCache,
+  shouldRefreshWeather,
+  type WeatherCacheEntry,
+  type WeatherRefreshReference,
+  type WeatherSnapshot,
+} from './weather';
 
 const PUBLIC_TRIP = '/api/v2/public/trips/kuzey-2026';
 const urls = {
@@ -19,7 +26,8 @@ interface DashboardState {
   live: NormalizedLiveRecord | null;
   expenses: Record<string, unknown> | null;
   roadfeed: Record<string, unknown> | null;
-  weatherKey: string;
+  weatherEntry: WeatherCacheEntry | null;
+  weatherPending: WeatherRefreshReference | null;
   weatherAbort: AbortController | null;
 }
 
@@ -31,6 +39,7 @@ export interface HomeDashboardDependencies {
 }
 
 const activeDashboards = new WeakMap<HTMLElement, () => void>();
+const weatherCacheByDashboard = new WeakMap<HTMLElement, WeatherCacheEntry>();
 
 const parseArray = <T>(value: string | undefined): T[] => {
   try {
@@ -110,7 +119,8 @@ export function initHomeDashboard(root?: HTMLElement, dependencies: HomeDashboar
     live: null,
     expenses: null,
     roadfeed: null,
-    weatherKey: '',
+    weatherEntry: weatherCacheByDashboard.get(dashboard) ?? null,
+    weatherPending: null,
     weatherAbort: null,
   };
 
@@ -383,36 +393,69 @@ export function initHomeDashboard(root?: HTMLElement, dependencies: HomeDashboar
     return 'Hava';
   };
 
+  const renderWeather = (snapshot: WeatherSnapshot, detail?: string) => {
+    const label = weatherLabel(snapshot.weatherCode);
+    setText('weather-now', snapshot.temperatureC == null ? label : `${Math.round(snapshot.temperatureC)}°C`);
+    setText('weather-detail', detail ?? label);
+    setText('weather-wind', snapshot.windKmh == null ? '-' : `${Math.round(snapshot.windKmh)} km/sa`);
+    setText(
+      'weather-rain',
+      snapshot.precipitationMm == null
+        ? '-'
+        : `${snapshot.precipitationMm.toLocaleString('tr-TR', { maximumFractionDigits: 1 })} mm`,
+    );
+  };
+
   const loadWeather = async (live: NormalizedLiveRecord) => {
-    const key = `${live.lat.toFixed(3)},${live.lng.toFixed(3)}`;
-    if (state.weatherKey === key) return;
-    state.weatherKey = key;
+    const location = { lat: live.lat, lng: live.lng };
+    const requestedAt = now();
+    if (!shouldRefreshWeather(state.weatherEntry, location, requestedAt)) {
+      if (state.weatherEntry) renderWeather(state.weatherEntry.snapshot);
+      return;
+    }
+    if (
+      state.weatherPending &&
+      !shouldRefreshWeather(state.weatherPending, location, requestedAt, Number.POSITIVE_INFINITY)
+    ) {
+      return;
+    }
+
     state.weatherAbort?.abort();
     const weatherController = new AbortController();
     state.weatherAbort = weatherController;
+    state.weatherPending = { ...location, fetchedAt: requestedAt };
 
-    try {
-      const url = new URL('https://api.open-meteo.com/v1/forecast');
-      url.searchParams.set('latitude', String(live.lat));
-      url.searchParams.set('longitude', String(live.lng));
-      url.searchParams.set('current', 'temperature_2m,weather_code,wind_speed_10m,precipitation');
-      url.searchParams.set('timezone', 'auto');
-      const response = await fetchImpl(url, { signal: weatherController.signal });
-      if (!response.ok) throw new Error('weather failed');
-      const data = (await response.json()) as { current?: Record<string, unknown> };
-      const current = data?.current;
-      const temperature = toNum(current?.temperature_2m);
-      const wind = toNum(current?.wind_speed_10m);
-      const rain = toNum(current?.precipitation);
-      const label = weatherLabel(current?.weather_code);
+    const result = await refreshWeatherCache(
+      state.weatherEntry,
+      location,
+      async ({ lat, lng }) => {
+        const url = new URL('https://api.open-meteo.com/v1/forecast');
+        url.searchParams.set('latitude', String(lat));
+        url.searchParams.set('longitude', String(lng));
+        url.searchParams.set('current', 'temperature_2m,weather_code,wind_speed_10m,precipitation');
+        url.searchParams.set('timezone', 'auto');
+        const response = await fetchImpl(url, { signal: weatherController.signal });
+        if (!response.ok) throw new Error('weather failed');
+        return response.json();
+      },
+      requestedAt,
+    );
+    if (state.weatherAbort !== weatherController) return;
+    state.weatherAbort = null;
+    state.weatherPending = null;
 
-      setText('weather-now', temperature == null ? label : `${Math.round(temperature)}°C`);
-      setText('weather-detail', label);
-      setText('weather-wind', wind == null ? '-' : `${Math.round(wind)} km/sa`);
-      setText('weather-rain', rain == null ? '-' : `${rain.toLocaleString('tr-TR', { maximumFractionDigits: 1 })} mm`);
-    } catch (error) {
-      if (isAbortError(error)) {
-        if (state.weatherAbort === weatherController) state.weatherKey = '';
+    if (result.status === 'fresh' && result.entry) {
+      state.weatherEntry = result.entry;
+      weatherCacheByDashboard.set(dashboard, result.entry);
+      renderWeather(result.entry.snapshot);
+      return;
+    }
+    if (isAbortError(result.error)) return;
+    if (result.status === 'failed') {
+      if (result.entry) {
+        state.weatherEntry = result.entry;
+        const age = ageText(new Date(result.entry.fetchedAt).toISOString()) ?? 'az önce';
+        renderWeather(result.entry.snapshot, `Bağlantı kesildi · ${age}`);
         return;
       }
       setText('weather-now', '-');
@@ -584,7 +627,8 @@ export function initHomeDashboard(root?: HTMLElement, dependencies: HomeDashboar
       loops.forEach((loop) => loop.pause());
       stopCountdown();
       state.weatherAbort?.abort();
-      state.weatherKey = '';
+      state.weatherAbort = null;
+      state.weatherPending = null;
     } else {
       loops.forEach((loop) => loop.resume());
       scheduleCountdown();
@@ -597,6 +641,8 @@ export function initHomeDashboard(root?: HTMLElement, dependencies: HomeDashboar
     loops.forEach((loop) => loop.stop());
     stopCountdown();
     state.weatherAbort?.abort();
+    state.weatherAbort = null;
+    state.weatherPending = null;
     routeSummaryQuery.removeEventListener?.('change', syncRouteDetailsMode);
     doc.removeEventListener('visibilitychange', handleVisibility);
     view.removeEventListener('pagehide', cleanup);

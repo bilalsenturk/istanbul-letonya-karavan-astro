@@ -9,8 +9,109 @@ const liveSync = await import(pathToFileURL(path.join(root, 'src/scripts/liveSyn
 const routeMapData = await import(pathToFileURL(path.join(root, 'src/scripts/routeMapData.ts')).href);
 const routeMapLoader = await import(pathToFileURL(path.join(root, 'src/scripts/routeMapLoader.ts')).href);
 const pollingModule = await import(pathToFileURL(path.join(root, 'src/scripts/polling.ts')).href).catch(() => null);
+const weatherModule = await import(pathToFileURL(path.join(root, 'src/scripts/weather.ts')).href).catch(() => null);
 
 assert.ok(pollingModule, 'the homepage polling scheduler should exist');
+assert.ok(weatherModule, 'the homepage weather cache should exist');
+
+{
+  const fetchedAt = Date.parse('2026-08-03T00:00:00Z');
+  const entry = {
+    lat: 41,
+    lng: 29,
+    fetchedAt,
+    snapshot: {
+      temperatureC: 24,
+      weatherCode: 1,
+      windKmh: 12,
+      precipitationMm: 0,
+    },
+  };
+  const nearby = { lat: 41.04, lng: 29.03 };
+  const overTenKm = { lat: 41.1, lng: 29 };
+
+  assert.equal(
+    weatherModule.shouldRefreshWeather(entry, nearby, fetchedAt + 899_999),
+    false,
+    'a nearby snapshot must remain fresh until the 15-minute TTL expires',
+  );
+  assert.equal(
+    weatherModule.shouldRefreshWeather(entry, nearby, fetchedAt + 900_000),
+    true,
+    'the weather cache must refresh at the 15-minute boundary',
+  );
+  assert.equal(
+    weatherModule.shouldRefreshWeather(entry, overTenKm, fetchedAt + 60_000),
+    true,
+    'moving more than 10 km must refresh weather before the TTL',
+  );
+
+  const failed = await weatherModule.refreshWeatherCache(
+    entry,
+    nearby,
+    async () => {
+      throw new Error('offline');
+    },
+    fetchedAt + 900_000,
+  );
+  assert.equal(failed.status, 'failed');
+  assert.equal(failed.entry, entry, 'a failed refresh must retain the exact original cache entry');
+  assert.deepEqual(
+    { lat: failed.entry.lat, lng: failed.entry.lng, fetchedAt: failed.entry.fetchedAt },
+    { lat: 41, lng: 29, fetchedAt },
+    'a failed refresh must not advance cached location or time',
+  );
+
+  let freshCacheFetches = 0;
+  const retained = await weatherModule.refreshWeatherCache(
+    entry,
+    nearby,
+    async () => {
+      freshCacheFetches += 1;
+      return { current: { temperature_2m: 99, weather_code: 99 } };
+    },
+    fetchedAt + 60_000,
+  );
+  assert.equal(retained.status, 'cached');
+  assert.equal(retained.entry, entry);
+  assert.equal(freshCacheFetches, 0, 'a fresh nearby cache entry must not call the fetcher');
+
+  const refreshedAt = fetchedAt + 900_000;
+  const refreshed = await weatherModule.refreshWeatherCache(
+    null,
+    overTenKm,
+    async () => ({
+      current: {
+        temperature_2m: '18.6',
+        weather_code: '61',
+        wind_speed_10m: '14.2',
+        precipitation: '0.7',
+      },
+    }),
+    refreshedAt,
+  );
+  assert.equal(refreshed.status, 'fresh');
+  assert.deepEqual(refreshed.entry, {
+    lat: 41.1,
+    lng: 29,
+    fetchedAt: refreshedAt,
+    snapshot: {
+      temperatureC: 18.6,
+      weatherCode: 61,
+      windKmh: 14.2,
+      precipitationMm: 0.7,
+    },
+  });
+
+  const malformed = await weatherModule.refreshWeatherCache(
+    null,
+    nearby,
+    async () => ({ current: { temperature_2m: 'warm', weather_code: null } }),
+    refreshedAt,
+  );
+  assert.equal(malformed.status, 'failed');
+  assert.equal(malformed.entry, null, 'a response without a normalized measurement must not enter the cache');
+}
 
 function createFakeClock() {
   let currentTime = 0;

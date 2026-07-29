@@ -237,6 +237,179 @@ describe('home live compatibility', () => {
   });
 });
 
+test('uses one in-flight weather request for live updates within 15 minutes and 10 km', async () => {
+  const clock = createFakeClock(Date.parse('2026-08-03T00:00:00.250Z'));
+  const { window, root } = createDashboardFixture();
+  let liveCalls = 0;
+  let weatherCalls = 0;
+  const weatherRequest: { signal: AbortSignal | null } = { signal: null };
+  let resolveWeather!: (response: Response) => void;
+  const weatherResponse = new Promise<Response>((resolve) => {
+    resolveWeather = resolve;
+  });
+  const fetchImpl = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const url = String(input);
+    if (url === '/api/v2/public/trips/kuzey-2026/live-location') {
+      const position = liveCalls++ === 0 ? { lat: 41, lng: 29 } : { lat: 41.04, lng: 29.03 };
+      return Response.json({ ...position, city: 'Edirne', routeStarted: true });
+    }
+    if (url.startsWith('https://api.open-meteo.com/')) {
+      weatherCalls += 1;
+      weatherRequest.signal = init?.signal ?? null;
+      return weatherResponse;
+    }
+    return Response.json({});
+  };
+  const cleanup = homeDashboard.initHomeDashboard(root, {
+    fetch: fetchImpl,
+    now: clock.now,
+    schedule: clock.schedule,
+    cancel: clock.cancel,
+  });
+
+  try {
+    await clock.runCurrent();
+    await Promise.resolve();
+    expect(weatherCalls).toBe(1);
+
+    clock.elapse(20_000);
+    await clock.runCurrent();
+    await Promise.resolve();
+    expect(weatherCalls).toBe(1);
+    expect(weatherRequest.signal?.aborted).toBe(false);
+
+    resolveWeather(
+      Response.json({
+        current: { temperature_2m: 24, weather_code: 0, wind_speed_10m: 12, precipitation: 0 },
+      }),
+    );
+    await expect.poll(() => root.querySelector('#weather-now')?.textContent).toBe('24°C');
+  } finally {
+    resolveWeather(Response.json({ current: {} }));
+    cleanup();
+    window.close();
+  }
+});
+
+test('renders the retained weather snapshot and original age after a failed refresh', async () => {
+  const clock = createFakeClock(Date.parse('2026-08-03T00:00:00.250Z'));
+  const { window, root } = createDashboardFixture();
+  let weatherCalls = 0;
+  const fetchImpl = async (input: RequestInfo | URL): Promise<Response> => {
+    const url = String(input);
+    if (url === '/api/v2/public/trips/kuzey-2026/live-location') {
+      return Response.json({ lat: 41, lng: 29, city: 'Edirne', routeStarted: true });
+    }
+    if (url.startsWith('https://api.open-meteo.com/')) {
+      weatherCalls += 1;
+      if (weatherCalls === 1) {
+        return Response.json({
+          current: { temperature_2m: 24, weather_code: 0, wind_speed_10m: 12, precipitation: 0 },
+        });
+      }
+      throw new Error('offline');
+    }
+    return Response.json({});
+  };
+  const cleanup = homeDashboard.initHomeDashboard(root, {
+    fetch: fetchImpl,
+    now: clock.now,
+    schedule: clock.schedule,
+    cancel: clock.cancel,
+  });
+
+  try {
+    await clock.runCurrent();
+    await expect.poll(() => root.querySelector('#weather-now')?.textContent).toBe('24°C');
+
+    clock.elapse(900_000);
+    await clock.runCurrent();
+    await expect.poll(() => root.querySelector('#weather-detail')?.textContent).toBe('Bağlantı kesildi · 15 dk önce');
+    expect(weatherCalls).toBe(2);
+    expect(root.querySelector('#weather-now')?.textContent).toBe('24°C');
+    expect(root.querySelector('#weather-wind')?.textContent).toBe('12 km/sa');
+    expect(root.querySelector('#weather-rain')?.textContent).toBe('0 mm');
+  } finally {
+    cleanup();
+    window.close();
+  }
+});
+
+test('pagehide abort retains the last successful weather cache across bfcache restore', async () => {
+  const clock = createFakeClock(Date.parse('2026-08-03T00:00:00.250Z'));
+  const { window, root } = createDashboardFixture();
+  const positions = [
+    { lat: 41, lng: 29 },
+    { lat: 41.12, lng: 29 },
+    { lat: 41.01, lng: 29 },
+  ];
+  let liveCalls = 0;
+  let weatherCalls = 0;
+  const abortedRequest: { signal: AbortSignal | null } = { signal: null };
+  const fetchImpl = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const url = String(input);
+    if (url === '/api/v2/public/trips/kuzey-2026/live-location') {
+      const position = positions[Math.min(liveCalls, positions.length - 1)];
+      liveCalls += 1;
+      return Response.json({ ...position, city: 'Edirne', routeStarted: true });
+    }
+    if (url.startsWith('https://api.open-meteo.com/')) {
+      weatherCalls += 1;
+      if (weatherCalls === 2) {
+        abortedRequest.signal = init?.signal ?? null;
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), {
+            once: true,
+          });
+        });
+      }
+      return Response.json({
+        current: {
+          temperature_2m: weatherCalls === 1 ? 24 : 99,
+          weather_code: 0,
+          wind_speed_10m: 12,
+          precipitation: 0,
+        },
+      });
+    }
+    return Response.json({});
+  };
+  const cleanup = homeDashboard.mountHomeDashboard(root, {
+    fetch: fetchImpl,
+    now: clock.now,
+    schedule: clock.schedule,
+    cancel: clock.cancel,
+  });
+
+  try {
+    await clock.runCurrent();
+    await expect.poll(() => root.querySelector('#weather-now')?.textContent).toBe('24°C');
+
+    clock.elapse(20_000);
+    await clock.runCurrent();
+    await Promise.resolve();
+    expect(weatherCalls).toBe(2);
+    expect(abortedRequest.signal?.aborted).toBe(false);
+
+    const hidden = new window.Event('pagehide');
+    Object.defineProperty(hidden, 'persisted', { value: true });
+    window.dispatchEvent(hidden);
+    expect(abortedRequest.signal?.aborted).toBe(true);
+
+    const restored = new window.Event('pageshow');
+    Object.defineProperty(restored, 'persisted', { value: true });
+    window.dispatchEvent(restored);
+    await clock.runCurrent();
+    await Promise.resolve();
+
+    expect(weatherCalls).toBe(2);
+    expect(root.querySelector('#weather-now')?.textContent).toBe('24°C');
+  } finally {
+    cleanup();
+    window.close();
+  }
+});
+
 test('runs the real dashboard against controlled DOM, fetch, and clock boundaries', async () => {
   const startAt = Date.parse('2026-08-03T00:00:00.250Z');
   const clock = createFakeClock(startAt);
