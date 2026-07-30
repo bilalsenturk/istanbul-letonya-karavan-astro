@@ -94,14 +94,13 @@ final class UpdateChecker: NSObject, ObservableObject {
         var request = URLRequest(url: url)
         request.cachePolicy = .reloadIgnoringLocalCacheData
         request.timeoutInterval = 10
-        struct Manifest: Decodable { let latestBuild: Int; let minBuild: Int; let testflightURL: String }
         guard let (data, response) = try? await URLSession.shared.data(for: request),
               let http = response as? HTTPURLResponse, http.statusCode == 200,
-              let manifest = try? JSONDecoder().decode(Manifest.self, from: data)
+              let manifest = try? JSONDecoder().decode(UpdateManifest.self, from: data)
         else { return }  // çevrimdışı / bozuk manifest → sessiz geç
 
         UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: Self.lastCheckKey)
-        testflightURL = URL(string: manifest.testflightURL)
+        testflightURL = manifest.testflightURL.flatMap(URL.init(string:))
 
         let current = Self.currentBuild
         if current < manifest.minBuild {

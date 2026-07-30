@@ -5,6 +5,7 @@ type MeDependencies = {
   authenticate(request: Request): Promise<AuthenticatedRequest>;
   updateTravelProfile(userId: string, profile: Partial<TravelProfileRecord>): Promise<AccountRecord>;
   ensureKuzeyTrip(): Promise<void>;
+  reconcileKuzeyMembership(account: AccountRecord): Promise<void>;
   listTripsForUser(actor: AuthenticatedRequest['actor']): Promise<unknown[]>;
 };
 
@@ -16,6 +17,7 @@ export const createMeHandlers = (dependencies: MeDependencies) => ({
     try {
       const auth = await dependencies.authenticate(request);
       await dependencies.ensureKuzeyTrip();
+      await dependencies.reconcileKuzeyMembership(auth.account);
       return json({ user: auth.account, trips: await dependencies.listTripsForUser(auth.actor) });
     } catch (error) {
       return errorResponse(error);

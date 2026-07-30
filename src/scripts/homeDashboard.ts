@@ -1,5 +1,6 @@
 import { formatAltitude, mapLiveEventDetail, normalizeLiveRecord, type NormalizedLiveRecord } from './liveSync';
 import { createPollingLoop } from './polling';
+import { applyPublishedPlan } from './publishedPlan';
 import {
   refreshWeatherCache,
   shouldRefreshWeather,
@@ -112,8 +113,17 @@ export function initHomeDashboard(root?: HTMLElement, dependencies: HomeDashboar
   const totalKm = Number(dashboard.dataset.totalKm || '0');
   let departureAt = dashboard.dataset.departureAt || '';
   const routeCodes = parseArray<string>(dashboard.dataset.routeCodes);
-  const routeTimeline = parseArray<RouteTimelineLeg>(dashboard.dataset.routeTimeline);
+  let routeTimeline = parseArray<RouteTimelineLeg>(dashboard.dataset.routeTimeline);
   const routeTimelineTotalKm = routeTimeline.reduce((sum, leg) => sum + Math.max(0, Number(leg.distanceKm) || 0), 0);
+  const finalRouteDestination = (): string =>
+    routeTimeline[routeTimeline.length - 1]?.to?.trim() || 'Riga';
+  const destinationDative = (destination: string): string => {
+    const normalized = destination.toLocaleLowerCase('tr-TR');
+    const lastVowel = [...normalized].reverse().find((character) => 'aeıioöuü'.includes(character));
+    const suffix = lastVowel && 'aıou'.includes(lastVowel) ? 'a' : 'e';
+    const buffer = 'aeıioöuü'.includes(normalized.at(-1) || '') ? 'y' : '';
+    return `${destination}'${buffer}${suffix}`;
+  };
   const elements = new Map<string, HTMLElement | null>();
   const state: DashboardState = {
     live: null,
@@ -279,7 +289,9 @@ export function initHomeDashboard(root?: HTMLElement, dependencies: HomeDashboar
     });
 
     if (routeStarted && activeLabel === 'Rota başlamadı') {
-      activeLabel = progressKm >= routeTimelineTotalKm ? 'Riga' : live.activeRouteStop || live.nextStop || 'Yolda';
+      activeLabel = progressKm >= routeTimelineTotalKm
+        ? finalRouteDestination()
+        : live.activeRouteStop || live.nextStop || 'Yolda';
     }
     routeDetails?.classList.toggle('is-started', routeStarted);
     setText('route-timeline-summary', activeLabel);
@@ -340,7 +352,7 @@ export function initHomeDashboard(root?: HTMLElement, dependencies: HomeDashboar
     setText('last-seen', live.ts ? `${fmtDateTime(live.ts)}${last ? ` (${last})` : ''}` : '-');
     setText('live-next', next);
     setText('remaining-distance', fmtKm(remainingFinal));
-    setText('remaining-note', live.routeStarted ? "Riga'ya" : 'Planlanan rota');
+    setText('remaining-note', live.routeStarted ? destinationDative(finalRouteDestination()) : 'Planlanan rota');
     setText('live-traveled', fmtKm(traveled));
     setText(
       'journey-progress-note',
@@ -575,9 +587,17 @@ export function initHomeDashboard(root?: HTMLElement, dependencies: HomeDashboar
 
   const refreshPlan = async (signal: AbortSignal) => {
     try {
-      const plan = (await fetchJson(urls.plan, signal)) as Record<string, unknown> | null;
-      const publishedDeparture = cleanText(plan?.departureAt);
-      if (publishedDeparture && !Number.isNaN(new Date(publishedDeparture).getTime())) departureAt = publishedDeparture;
+      const publishedDeparture = applyPublishedPlan(dashboard, await fetchJson(urls.plan, signal));
+      routeTimeline = parseArray<RouteTimelineLeg>(dashboard.dataset.routeTimeline);
+      if (publishedDeparture) {
+        departureAt = publishedDeparture;
+        dashboard.dataset.departureAt = publishedDeparture;
+      }
+      if (state.live) {
+        const routeProgressKm = deriveRouteProgressKm(state.live);
+        updateTimeline(state.live, routeProgressKm);
+        updateHeroRoute(state.live, routeProgressKm);
+      }
     } finally {
       renderCountdown();
     }
@@ -602,8 +622,8 @@ export function initHomeDashboard(root?: HTMLElement, dependencies: HomeDashboar
     }),
     createPollingLoop({
       task: refreshPlan,
-      intervalMs: 5 * 60_000,
-      maxBackoffMs: 40 * 60_000,
+      intervalMs: 60_000,
+      maxBackoffMs: 8 * 60_000,
       now,
       schedule,
       cancel,

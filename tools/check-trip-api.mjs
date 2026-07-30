@@ -403,8 +403,108 @@ const bootstrapVite = await createServer({
   server: { middlewareMode: true },
 });
 try {
-  const { ensureKuzeyTrip } = await bootstrapVite.ssrLoadModule('/src/accounts/bootstrap.ts');
+  const { claimPendingInvites, ensureKuzeyTrip, reconcileKuzeyMembership } = await bootstrapVite.ssrLoadModule(
+    '/src/accounts/bootstrap.ts',
+  );
   await ensureKuzeyTrip(bootstrapStorage);
+
+  // Production already contains a trusted Kuzey participant whose invite was
+  // claimed as a plain member. Re-running account bootstrap must migrate that
+  // existing membership to owner, then remain idempotent.
+  const existingMemberId = 'trusted-existing-member';
+  let seededEvents = await bootstrapStorage.list('kuzey-2026');
+  let seededRevision = seededEvents.at(-1).revision;
+  await bootstrapStorage.append({
+    id: 'trusted-existing-member-added',
+    tripId: 'kuzey-2026',
+    revision: seededRevision + 1,
+    occurredAt: '2026-07-30T12:00:00.000Z',
+    actorUserId: existingMemberId,
+    type: 'memberAdded',
+    payload: { userId: existingMemberId, role: 'member' },
+  }, seededRevision);
+  seededRevision += 1;
+  await bootstrapStorage.append({
+    id: 'trusted-existing-invite-removed',
+    tripId: 'kuzey-2026',
+    revision: seededRevision + 1,
+    occurredAt: '2026-07-30T12:00:01.000Z',
+    actorUserId: existingMemberId,
+    type: 'inviteRemoved',
+    payload: { email: 'szngk.13@icloud.com' },
+  }, seededRevision);
+  await reconcileKuzeyMembership(bootstrapStorage, { id: existingMemberId, email: 'szngk.13@icloud.com' });
+  const existingMemberTrip = await tripRepository.getTripForUser(
+    bootstrapStorage,
+    { userId: existingMemberId, globalRole: 'user' },
+    'kuzey-2026',
+  );
+  assert.equal(existingMemberTrip.access.tripRole, 'owner', 'trusted existing Kuzey participant is promoted');
+  const migratedEventCount = bootstrapStorage.totalEvents();
+  await reconcileKuzeyMembership(bootstrapStorage, { id: existingMemberId, email: 'szngk.13@icloud.com' });
+  assert.equal(bootstrapStorage.totalEvents(), migratedEventCount, 'trusted membership migration is idempotent');
+
+  seededEvents = await bootstrapStorage.list('kuzey-2026');
+  seededRevision = seededEvents.at(-1).revision;
+  await bootstrapStorage.append({
+    id: 'trusted-existing-member-demoted',
+    tripId: 'kuzey-2026',
+    revision: seededRevision + 1,
+    occurredAt: '2026-07-30T12:00:02.000Z',
+    actorUserId: 'system-kuzey-owner',
+    type: 'memberRoleChanged',
+    payload: { userId: existingMemberId, role: 'member' },
+  }, seededRevision);
+  const demotedEventCount = bootstrapStorage.totalEvents();
+  await reconcileKuzeyMembership(bootstrapStorage, { id: existingMemberId, email: 'szngk.13@icloud.com' });
+  const demotedTrip = await tripRepository.getTripForUser(
+    bootstrapStorage,
+    { userId: existingMemberId, globalRole: 'user' },
+    'kuzey-2026',
+  );
+  assert.equal(demotedTrip.access.tripRole, 'member', 'an explicit owner demotion is not silently reversed');
+  assert.equal(bootstrapStorage.totalEvents(), demotedEventCount, 'demotion does not trigger another migration event');
+
+  seededEvents = await bootstrapStorage.list('kuzey-2026');
+  seededRevision = seededEvents.at(-1).revision;
+  await bootstrapStorage.append({
+    id: 'trusted-existing-member-removed',
+    tripId: 'kuzey-2026',
+    revision: seededRevision + 1,
+    occurredAt: '2026-07-30T12:00:03.000Z',
+    actorUserId: 'system-kuzey-owner',
+    type: 'memberRemoved',
+    payload: { userId: existingMemberId },
+  }, seededRevision);
+  const removedEventCount = bootstrapStorage.totalEvents();
+  await reconcileKuzeyMembership(bootstrapStorage, { id: existingMemberId, email: 'szngk.13@icloud.com' });
+  const afterRemoval = await tripRepository.getPublicTrip(bootstrapStorage, 'kuzey-2026');
+  assert.equal(afterRemoval.members.some((member) => member.userId === existingMemberId), false,
+    'a removed trusted participant is not resurrected');
+  assert.equal(bootstrapStorage.totalEvents(), removedEventCount, 'removal does not trigger another membership event');
+
+  const freshOwnerId = 'trusted-fresh-owner';
+  await claimPendingInvites(bootstrapStorage, { id: freshOwnerId, email: 'senturk.leyla@icloud.com' });
+  const freshOwnerTrip = await tripRepository.getTripForUser(
+    bootstrapStorage,
+    { userId: freshOwnerId, globalRole: 'user' },
+    'kuzey-2026',
+  );
+  assert.equal(freshOwnerTrip.access.tripRole, 'owner', 'trusted Kuzey invite is claimed as owner');
+
+  bootstrapStorage.events.set('corrupt-unrelated-claim', [{
+    id: 'corrupt-unrelated-event',
+    tripId: 'corrupt-unrelated-claim',
+    revision: 1,
+    occurredAt: '2026-07-30T12:10:00.000Z',
+    actorUserId: 'corrupt',
+    type: 'tripUpdated',
+    payload: { name: 'creation event is missing' },
+  }]);
+  await assert.doesNotReject(
+    claimPendingInvites(bootstrapStorage, { id: 'uninvited-user', email: 'uninvited@example.com' }),
+    'one corrupt unrelated trip must not break invite reconciliation',
+  );
 } finally {
   await bootstrapVite.close();
 }

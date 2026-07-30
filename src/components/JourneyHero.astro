@@ -66,13 +66,13 @@ const { routeStops, totalKm } = Astro.props;
         <div class="journey-route" aria-label="Rota özeti">
           <span class="journey-route__rail" aria-hidden="true"><span id="hero-route-fill"></span></span>
           <ol>
-            <li data-hero-role="start"><i aria-hidden="true"></i><small>İstanbul</small></li>
+            <li data-hero-role="start"><i aria-hidden="true"></i><small data-published-route-start>İstanbul</small></li>
             <li data-hero-role="current"><i aria-hidden="true"></i><small id="hero-current-place">Şu an</small></li>
             <li data-hero-role="next"><i aria-hidden="true"></i><small id="hero-next-place">Sofya</small></li>
-            <li data-hero-role="end"><i aria-hidden="true"></i><small>Riga</small></li>
+            <li data-hero-role="end"><i aria-hidden="true"></i><small data-published-route-end>Riga</small></li>
           </ol>
         </div>
-        <p id="hero-route-status" class="sr-only" role="status" aria-live="polite">Rota başlamadı.</p>
+        <p id="hero-route-status" class="sr-only" role="status" aria-live="polite" data-published-plan-status>Rota başlamadı.</p>
       </div>
 
       <div class="journey-hero__map">
@@ -127,7 +127,7 @@ const { routeStops, totalKm } = Astro.props;
       aria-valuemax="100"
       aria-valuenow="0"
     >
-      <span>İstanbul → Riga</span>
+      <span data-published-route-summary><span data-published-route-start>İstanbul</span> → <span data-published-route-end>Riga</span></span>
       <div><i id="journey-progress"></i></div>
       <strong>{totalKm.toLocaleString('tr-TR')} km</strong>
     </div>

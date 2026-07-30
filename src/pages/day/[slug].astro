@@ -72,11 +72,12 @@ const dayImage = day.camp.image ?? '/assets/follow-riga-hero.jpg';
 ---
 
 <MainLayout title={dayTitle} description={dayDescription} image={dayImage} type="article">
-  <section class="shell" id="top">
+  <section class="shell" id="top" data-published-day={day.slug}>
     <div class="day-title">
-      <h1>{day.date}</h1>
-      <span class="tag tag--road">{day.origin} → {day.destination}</span>
+      <h1><time data-published-day-date>{day.date}</time></h1>
+      <span class="tag tag--road"><span data-published-day-origin>{day.origin}</span> → <span data-published-day-destination>{day.destination}</span></span>
     </div>
+    <p class="sr-only" role="status" aria-live="polite" data-published-plan-status></p>
     <p class="subline">
       Günün operasyonel özeti: mesafe, yakıt, risk senaryoları, alternatif planlar, kamp teyidi ve kamera takip noktaları.
     </p>
@@ -104,7 +105,11 @@ const dayImage = day.camp.image ?? '/assets/follow-riga-hero.jpg';
         mode="day"
         live={false}
         height="420px"
+        publishedDay={day.slug}
       />
+      <p class="muted" data-published-day={day.slug} data-published-route-note>
+        Güncel etap: {day.origin} → {day.destination}. Harita sabit ana rota geometrisini gösterir.
+      </p>
       <div class="two-col" style="margin-top:10px;">
         <div>
           <h3>Kamp</h3>
@@ -148,16 +153,18 @@ const dayImage = day.camp.image ?? '/assets/follow-riga-hero.jpg';
               href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(day.origin)}&destination=${encodeURIComponent(day.destination)}&travelmode=driving`}
               target="_blank"
               rel="noreferrer"
+              data-published-day={day.slug}
+              data-published-directions
             >
               Google Yol Trafiği (Canlı)
             </a>
-            <a class="btn btn--ghost" href={day.route} target="_blank" rel="noreferrer">Google Rota Planını Aç</a>
+            <a class="btn btn--ghost" href={day.route} target="_blank" rel="noreferrer" data-published-day={day.slug} data-published-directions>Google Rota Planını Aç</a>
           </p>
           <p class="muted">Not: Bu planın trafik penceresi kaynaktan kısıtlanabiliyor, bu yüzden bağlantılar tercih edilir.</p>
         </div>
       </div>
       <div class="tag-row">
-          <a class="btn btn--primary" href={day.route} target="_blank" rel="noreferrer">Google Rota Planı</a>
+          <a class="btn btn--primary" href={day.route} target="_blank" rel="noreferrer" data-published-day={day.slug} data-published-directions>Google Rota Planı</a>
           <a class="btn btn--ghost" href="/#harita">Kontrol Paneli Rotası</a>
           <a class="btn btn--ghost" href="/">Kontrol Paneline Dön</a>
       </div>
@@ -191,7 +198,7 @@ const dayImage = day.camp.image ?? '/assets/follow-riga-hero.jpg';
     <div class="grid">
       <article class="card col-6">
         <h3>Güzergâh özeti</h3>
-        <p class="muted">{day.origin} → {day.destination}</p>
+        <p class="muted" data-published-day={day.slug}><span data-published-day-origin>{day.origin}</span> → <span data-published-day-destination>{day.destination}</span></p>
         <ul>
           {segmentGuide.highlights.map((item) => <li>{item}</li>)}
         </ul>
@@ -267,6 +274,12 @@ const dayImage = day.camp.image ?? '/assets/follow-riga-hero.jpg';
     </p>
   </section>
 </MainLayout>
+
+<script>
+  import { mountPublishedPlan } from '../../scripts/publishedPlan';
+
+  mountPublishedPlan();
+</script>
 
 <style>
   h4 {

@@ -82,7 +82,11 @@ function createDashboardFixture() {
       <span id="spend-total-detail"></span>
       <span id="spend-note"></span>
       <span id="border-note"></span>
-      <div role="progressbar" aria-valuenow="0"><span id="journey-progress"></span></div>
+      <p data-published-plan-status></p>
+      <div role="progressbar" aria-valuenow="0">
+        <span data-published-route-summary><span data-published-route-start>İstanbul</span> → <span data-published-route-end>Riga</span></span>
+        <span id="journey-progress"></span>
+      </div>
       <span id="hero-route-fill"></span>
       <i data-hero-role="start"></i>
       <i data-hero-role="current"></i>
@@ -91,7 +95,9 @@ function createDashboardFixture() {
       <details data-route-details open>
         <span id="route-timeline-summary"></span>
         <span id="route-timeline-progress"></span>
-        <article data-leg-index="0">
+        <article data-leg-index="0" data-published-day="istanbul-sofya">
+          <strong><span data-published-day-origin>İstanbul</span> → <span data-published-day-destination>Sofya</span></strong>
+          <small data-published-day-date>3 Ağustos · Pazartesi</small>
           <span data-leg-status></span>
           <span data-leg-fill></span>
         </article>
@@ -107,7 +113,9 @@ function createDashboardFixture() {
   root.dataset.totalKm = '1000';
   root.dataset.departureAt = '2026-08-05T00:00:00Z';
   root.dataset.routeCodes = JSON.stringify(['TR', 'BG']);
-  root.dataset.routeTimeline = JSON.stringify([{ from: 'İstanbul', to: 'Sofya', distanceKm: 500 }]);
+  root.dataset.routeTimeline = JSON.stringify([{
+    slug: 'istanbul-sofya', from: 'İstanbul', to: 'Sofya', distanceKm: 500,
+  }]);
   const track = root.querySelector<HTMLElement>('[data-gallery-track]')!;
   Object.defineProperty(track, 'clientWidth', { configurable: true, value: 1000 });
   Object.defineProperty(track, 'scrollBy', {
@@ -518,6 +526,15 @@ test('runs the real dashboard against controlled DOM, fetch, and clock boundarie
     },
     '/api/v2/public/trips/kuzey-2026/published-plan': {
       departureAt: '2026-08-04T00:00:10Z',
+      days: [{
+        slug: 'istanbul-sofya',
+        date: '2026-08-04T00:00:10Z',
+        label: '4 Ağustos · Salı',
+        origin: 'Silivri',
+        destination: 'Sofya',
+        restDay: false,
+        dayCount: 1,
+      }],
     },
     '/api/roadfeed': {
       fuel: [{ country: 'TR', dieselEur: 2 }],
@@ -569,7 +586,7 @@ test('runs the real dashboard against controlled DOM, fetch, and clock boundarie
       '/api/v2/public/trips/kuzey-2026/published-plan',
       '/api/roadfeed',
     ]);
-    expect(clock.pendingDelays()).toEqual([750, 20_000, 60_000, 300_000, 1_800_000]);
+    expect(clock.pendingDelays()).toEqual([750, 20_000, 60_000, 60_000, 1_800_000]);
     expect(root.querySelector('#live-next')?.textContent).toBe('Sofya');
     expect(root.querySelector('#live-speed')?.textContent).toBe('82 km/sa');
     expect(root.querySelector('#fuel-used')?.textContent).toBe('25 L');
@@ -577,8 +594,14 @@ test('runs the real dashboard against controlled DOM, fetch, and clock boundarie
     expect(root.querySelector('#spend-total-detail')?.textContent).toContain('2 kayıt');
     expect(root.querySelector('#roadfeed-fuel')?.textContent).toBe('2,00 €/L');
     expect(root.querySelector('#border-note')?.textContent).toBe('Kapıkule: 1 saat');
-    expect(root.querySelector('#route-timeline-summary')?.textContent).toBe('İstanbul → Sofya');
+    expect(root.querySelector('#route-timeline-summary')?.textContent).toBe('Silivri → Sofya');
     expect(root.querySelector('[data-leg-index]')?.classList.contains('is-active')).toBe(true);
+    expect(root.querySelector('[data-published-day-date]')?.textContent).toBe('4 Ağustos · Salı');
+    expect(root.querySelector('[data-published-day-origin]')?.textContent).toBe('Silivri');
+    expect(root.querySelector('[data-published-route-summary]')?.textContent).toBe('Silivri → Sofya');
+    expect(root.querySelector('#remaining-note')?.textContent).toBe("Sofya'ya");
+    expect(root.dataset.departureAt).toBe('2026-08-04T00:00:10Z');
+    expect(JSON.parse(root.dataset.routeTimeline || '[]')[0].from).toBe('Silivri');
     expect(root.querySelector('#hero-countdown-label')?.textContent).toBe('Rota aktif');
     expect(root.querySelector('#countdown-days')?.textContent).toBe('1');
     expect(root.querySelector('#countdown-seconds')?.textContent).toBe('09');
@@ -592,7 +615,7 @@ test('runs the real dashboard against controlled DOM, fetch, and clock boundarie
     clock.elapse(10_000);
     (window.document as unknown as { hidden: boolean }).hidden = false;
     window.document.dispatchEvent(new window.Event('visibilitychange'));
-    expect(clock.pendingDelays()).toEqual([750, 10_000, 50_000, 290_000, 1_790_000]);
+    expect(clock.pendingDelays()).toEqual([750, 10_000, 50_000, 50_000, 1_790_000]);
     window.dispatchEvent(new window.Event('pagehide'));
     expect(clock.pendingDelays()).toEqual([]);
   } finally {

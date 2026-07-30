@@ -294,8 +294,33 @@ const handlers = createMeHandlers({
   authenticate: async () => ({ account: seeded, actor: { userId: seeded.id, globalRole: 'user' }, sessionId: 's1' }),
   updateTravelProfile: accountRepository.updateTravelProfile,
   ensureKuzeyTrip: async () => {},
+  reconcileKuzeyMembership: async () => {},
   listTripsForUser: async () => [],
 });
+const getOrder = [];
+const migrationHandlers = createMeHandlers({
+  authenticate: async () => {
+    getOrder.push('authenticate');
+    return { account: seeded, actor: { userId: seeded.id, globalRole: 'user' }, sessionId: 's1' };
+  },
+  updateTravelProfile: accountRepository.updateTravelProfile,
+  ensureKuzeyTrip: async () => { getOrder.push('ensureKuzeyTrip'); },
+  reconcileKuzeyMembership: async (account) => {
+    assert.equal(account.id, seeded.id);
+    getOrder.push('reconcileKuzeyMembership');
+  },
+  listTripsForUser: async () => {
+    getOrder.push('listTripsForUser');
+    return [];
+  },
+});
+const migrationResponse = await migrationHandlers.GET(new Request('https://test.invalid/api/v2/me'));
+assert.equal(migrationResponse.status, 200);
+assert.deepEqual(
+  getOrder,
+  ['authenticate', 'ensureKuzeyTrip', 'reconcileKuzeyMembership', 'listTripsForUser'],
+  'session restore migrates pending and existing Kuzey memberships before returning trips',
+);
 for (const body of [null, [], 'profile', { travelProfile: null }, { travelProfile: [] }, { travelProfile: 'profile' }]) {
   const response = await handlers.PATCH(new Request('https://test.invalid/api/v2/me', {
     method: 'PATCH', body: JSON.stringify(body), headers: { 'content-type': 'application/json' },
@@ -426,6 +451,7 @@ const unauthorizedHandlers = createMeHandlers({
   authenticate: async () => { throw new UnauthorizedError(); },
   updateTravelProfile: accountRepository.updateTravelProfile,
   ensureKuzeyTrip: async () => {},
+  reconcileKuzeyMembership: async () => {},
   listTripsForUser: async () => [],
 });
 const unauthorizedPatch = await unauthorizedHandlers.PATCH(new Request('https://test.invalid/api/v2/me', {

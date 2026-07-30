@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { authenticateRequest } from '../../../accounts/api.ts';
 import { updateTravelProfile } from '../../../accounts/accountRepository.ts';
-import { ensureKuzeyTrip } from '../../../accounts/bootstrap.ts';
+import { ensureKuzeyTrip, reconcileKuzeyMembership } from '../../../accounts/bootstrap.ts';
 import { tripEventStorage } from '../../../accounts/blobTripStorage.ts';
 import { listTripsForUser } from '../../../accounts/tripRepository.ts';
 import { createMeHandlers } from '../../../accounts/meHandler.ts';
@@ -12,6 +12,7 @@ const handlers = createMeHandlers({
   authenticate: authenticateRequest,
   updateTravelProfile,
   ensureKuzeyTrip: () => ensureKuzeyTrip(tripEventStorage),
+  reconcileKuzeyMembership: (account) => reconcileKuzeyMembership(tripEventStorage, account),
   listTripsForUser: (actor) => listTripsForUser(tripEventStorage, actor),
 });
 

@@ -17,7 +17,7 @@
     "check:trip-api": "node --disable-warning=ExperimentalWarning --experimental-strip-types tools/check-trip-api.mjs",
     "check:published-state": "node --disable-warning=ExperimentalWarning --experimental-strip-types tools/check-published-state.mjs",
     "check:web-sync": "node --disable-warning=ExperimentalWarning --experimental-strip-types tools/check-web-app-sync.mjs",
-    "check:web-experience": "node --disable-warning=ExperimentalWarning --experimental-strip-types tools/check-web-experience.mjs && vitest run tools/home-dashboard.test.ts tools/web-experience-components.test.ts tools/camera-player.test.ts tools/camp-actions.test.ts tools/day-camera-section.test.ts",
+    "check:web-experience": "node --disable-warning=ExperimentalWarning --experimental-strip-types tools/check-web-experience.mjs && vitest run tools/home-dashboard.test.ts tools/published-plan.test.ts tools/web-experience-components.test.ts tools/camera-player.test.ts tools/camp-actions.test.ts tools/day-camera-section.test.ts",
     "check:web-output": "npm run build && node --disable-warning=ExperimentalWarning --experimental-strip-types tools/check-web-output.mjs",
     "check:travel-content": "node tools/check-travel-content.mjs",
     "check": "astro check",

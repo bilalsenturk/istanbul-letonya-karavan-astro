@@ -16,6 +16,7 @@ interface Props {
   live: boolean;
   height?: string;
   variant?: 'default' | 'hero';
+  publishedDay?: string;
 }
 
 const {
@@ -27,6 +28,7 @@ const {
   live,
   height = '360px',
   variant = 'default',
+  publishedDay,
 } = Astro.props;
 const compact = variant === 'hero';
 const selectedStops = selectRouteStops(routeStops, activeFrom, activeTo, mode);
@@ -54,6 +56,8 @@ const fallbackUrl = `https://staticmap.openstreetmap.de/staticmap.php?size=900x4
       data-mode={mode}
       data-live={live ? 'true' : 'false'}
       data-compact={compact ? 'true' : 'false'}
+      data-published-route-map={publishedDay ? 'true' : undefined}
+      data-published-day={publishedDay}
       style={`height:${height}; min-height:${height};`}
     ></div>
     {live ? <div class="route-map-live-status" data-route-live-status>Konum bekleniyor</div> : null}

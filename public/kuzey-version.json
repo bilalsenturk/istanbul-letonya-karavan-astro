@@ -1,4 +1,5 @@
 {
-  "latestBuild": 18,
-  "minBuild": 1
+  "latestBuild": 19,
+  "minBuild": 18,
+  "testflightURL": "https://testflight.apple.com"
 }

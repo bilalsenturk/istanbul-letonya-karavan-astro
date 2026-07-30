@@ -79,7 +79,7 @@ ETag, hesap kimliği ve özel zarf alanlarını çıkarır.
 Uygulama açılışta (ve öne gelişte, en sık 6 saatte bir) sitedeki `/kuzey-version.json` manifest'ini okur; güncel `latestBuild` kurulu sürümden yüksekse Panel'in üstünde güncelleme banner'ı gösterir. Yeni TestFlight build'i yükleyince:
 
 1. `public/kuzey-version.json`'da **`latestBuild`**'i yeni `CURRENT_PROJECT_VERSION` (`project.yml`) değerine çek — site deploy olunca aktif olur
-2. **`testflightURL`**'deki `XXXXXX` yer tutucusunu App Store Connect → TestFlight → herkese açık davet linkiyle değiştir (bir kere; link her build için aynıdır)
+2. **`testflightURL`** isteğe bağlıdır; harici test grubu varsa App Store Connect'teki herkese açık davet linkini, yalnız iç test kullanılıyorsa TestFlight ana bağlantısını kullan
 3. Eski sürümlerin güncellemesi **zorunluysa** `minBuild`'i de yeni numaraya çek — banner kapatılamaz hâle gelir
 
 Dürüst not: iOS, uygulamanın kendi kendini güncellemesine izin vermez — uygulama yalnızca **haber verir**, kurulumu TestFlight yapar. Her cihazda TestFlight → Kuzey → **Otomatik Güncelleme** açıksa yeni build zaten kendiliğinden kurulur; banner yedek güvencedir.

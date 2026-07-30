@@ -162,6 +162,7 @@
 		F2CD340AB8260F2899D0A188 /* TravelContentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1D4DFC09D7DE7C3D482F5B /* TravelContentStore.swift */; };
 		F3FF95676307867E576FCA49 /* NotificationRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB162821D5118BBCDA717991 /* NotificationRules.swift */; };
 		F6492D9BF37EC827F982ED43 /* LatvianLessonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26AC6D5D9A3E3BB448AFBF4B /* LatvianLessonView.swift */; };
+		F97211C9C084245F0E0CC6DC /* UpdateManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = D625000F385D30996845B790 /* UpdateManifest.swift */; };
 		F9AC44806989F94432E793EB /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28813A01A61F007F63AFB19A /* UpdateChecker.swift */; };
 		FA3A58E4C230882AAD9F18EB /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DC95431B932CB4DFD5412C9 /* Notifications.swift */; };
 		FAD7DD8D7AC36626072723B3 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00954AF5EE56487B60F675E1 /* Theme.swift */; };
@@ -333,6 +334,7 @@
 		D3276F3D23A709BB108E3A4C /* lv-streak.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "lv-streak.wav"; sourceTree = "<group>"; };
 		D3638EB3FFB78BC53DDEDF21 /* TravelProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelProfileView.swift; sourceTree = "<group>"; };
 		D374371A328544BA4E8295D1 /* NearbyTravelSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyTravelSections.swift; sourceTree = "<group>"; };
+		D625000F385D30996845B790 /* UpdateManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateManifest.swift; sourceTree = "<group>"; };
 		D7E574F9940C5A4DDA5BE464 /* JourneyMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyMenuView.swift; sourceTree = "<group>"; };
 		D91E6EAF5244A2A02B41294D /* LatvianMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatvianMotion.swift; sourceTree = "<group>"; };
 		DB162821D5118BBCDA717991 /* NotificationRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationRules.swift; sourceTree = "<group>"; };
@@ -460,6 +462,7 @@
 				48245403E32764040394E43C /* TripPlanStore.swift */,
 				5CFA86E52D515272F7F13F10 /* TripStore.swift */,
 				28813A01A61F007F63AFB19A /* UpdateChecker.swift */,
+				D625000F385D30996845B790 /* UpdateManifest.swift */,
 				DEB2A1F70C4BD191A5BA233B /* WeatherService.swift */,
 				BC537F389A651E45E82A65B0 /* Accounts */,
 				2A250CBCA9C112E1771EF84C /* Journal */,
@@ -949,6 +952,7 @@
 				6642C214B22A4BEFC8510FC3 /* TripWorkspaceStore.swift in Sources */,
 				CA910C0B4E3D7EBCB3B0CE55 /* TripsHomeView.swift in Sources */,
 				F9AC44806989F94432E793EB /* UpdateChecker.swift in Sources */,
+				F97211C9C084245F0E0CC6DC /* UpdateManifest.swift in Sources */,
 				77F34D3C5BFAC1E0F9C01DE9 /* VignettesView.swift in Sources */,
 				8E67C1D2643A6A1CCA151B8A /* VoiceExpenseView.swift in Sources */,
 				BE94D409F9E37AE2C0E79B9C /* WeatherService.swift in Sources */,
@@ -1027,7 +1031,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Widgets/KuzeyWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 19;
 				DEVELOPMENT_TEAM = YQUGG5VXCC;
 				INFOPLIST_FILE = Widgets/Support/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1051,7 +1055,7 @@
 				CODE_SIGN_ENTITLEMENTS = Karavan/Kuzey.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 19;
 				DEVELOPMENT_TEAM = YQUGG5VXCC;
 				INFOPLIST_FILE = Support/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1073,7 +1077,7 @@
 				CODE_SIGN_ENTITLEMENTS = Karavan/Kuzey.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 19;
 				DEVELOPMENT_TEAM = YQUGG5VXCC;
 				INFOPLIST_FILE = Support/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1093,7 +1097,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Widgets/KuzeyWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 19;
 				DEVELOPMENT_TEAM = YQUGG5VXCC;
 				INFOPLIST_FILE = Widgets/Support/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;

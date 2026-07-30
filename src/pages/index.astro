@@ -70,7 +70,6 @@ const travelPhotos = [
     data-route-timeline={JSON.stringify(routeTimeline)}
   >
     <JourneyHero routeStops={mapStops} totalKm={tripData.totalKm} />
-
     <details class="route-timeline-section" data-route-details open aria-label="Rota zaman çizgisi">
       <summary class="route-timeline-head">
         <div>
@@ -87,6 +86,7 @@ const travelPhotos = [
           <article
             class="route-leg"
             data-leg-index={index}
+            data-published-day={leg.slug}
             data-leg-distance={leg.distanceKm}
             data-leg-to={leg.to}
           >
@@ -98,8 +98,8 @@ const travelPhotos = [
             <div class="route-leg__body">
               <div class="route-leg__title">
                 <div>
-                  <strong>{leg.from} → {leg.to}</strong>
-                  <small>{leg.date}</small>
+                  <strong><span data-published-day-origin>{leg.from}</span> → <span data-published-day-destination>{leg.to}</span></strong>
+                  <small><time data-published-day-date>{leg.date}</time></small>
                 </div>
                 <span class="route-leg__status" data-leg-status>Bekliyor</span>
               </div>
